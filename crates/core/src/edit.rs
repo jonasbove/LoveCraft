@@ -86,31 +86,43 @@ pub fn chapter_label(title: &str, live_titles_before_and_including: &[&str]) -> 
     format!("Chapter {number}")
 }
 
-/// `createScene`: a new scene at the end of `chapter_id`, with ProseCraft's empty content.
+/// `createScene` with its defaults: an empty scene, a screenplay one in a screenplay project.
 pub fn add_scene(
     project: &mut JsValue,
     chapter_id: &str,
     title: &str,
     id: String,
 ) -> Result<String, EditError> {
-    let screenplay = project
+    add_scene_with(project, chapter_id, title, id, None, None)
+}
+
+/// `createScene(chapterId, title, { content, format })`: the content given or the empty scene
+/// of its format; the format given, or "screenplay" in a screenplay project.
+pub fn add_scene_with(
+    project: &mut JsValue,
+    chapter_id: &str,
+    title: &str,
+    id: String,
+    content: Option<&str>,
+    format: Option<&str>,
+) -> Result<String, EditError> {
+    let screenplay_project = project
         .get("kind")
         .and_then(JsValue::as_js_string)
         .is_some_and(|k| k.eq_str("screenplay"));
+    let format = format.or(screenplay_project.then_some("screenplay"));
+    let empty = if format == Some("screenplay") {
+        r#"<p data-sp="scene-heading"></p>"#
+    } else {
+        "<p><br></p>"
+    };
     let mut scene = JsObject::new();
     scene.insert("id", JsValue::str(&id));
     scene.insert("title", JsValue::str(title));
-    scene.insert(
-        "content",
-        JsValue::str(if screenplay {
-            r#"<p data-sp="scene-heading"></p>"#
-        } else {
-            "<p><br></p>"
-        }),
-    );
+    scene.insert("content", JsValue::str(content.unwrap_or(empty)));
     scene.insert("chapterId", JsValue::str(chapter_id));
-    if screenplay {
-        scene.insert("format", JsValue::str("screenplay"));
+    if let Some(format) = format {
+        scene.insert("format", JsValue::str(format));
     }
     list_mut(project, "documents")?.push(JsValue::Object(scene));
     Ok(id)

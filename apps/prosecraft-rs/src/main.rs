@@ -29,6 +29,8 @@ enum Then {
     /// Read this zipped Scrivener project, or this `.scriv` folder.
     ScrivenerZip,
     ScrivenerFolder,
+    /// Add this screenplay to the open project.
+    Fountain,
     /// Write these bytes where the person chose (a backup or an exported manuscript).
     Export(Vec<u8>),
     /// The folder to sync through.
@@ -198,6 +200,25 @@ impl eframe::App for DesktopApp {
                         }
                     }
                 }
+                (Then::Fountain, Answer::Paths(paths)) => {
+                    if let Some(path) = paths.first() {
+                        let name = path
+                            .file_name()
+                            .map(|n| n.to_string_lossy().into_owned())
+                            .unwrap_or_default();
+                        match read_capped(path, 64 * 1024 * 1024) {
+                            Ok(bytes) => {
+                                // `file.text()`: UTF-8 (a byte-order mark dropped), anything else as U+FFFD.
+                                let text = String::from_utf8_lossy(&bytes);
+                                self.app.import_fountain(
+                                    &name,
+                                    text.strip_prefix('\u{feff}').unwrap_or(&text),
+                                );
+                            }
+                            Err(e) => eprintln!("{}: {e}", path.display()),
+                        }
+                    }
+                }
                 (Then::ScrivenerZip, Answer::Paths(paths)) => {
                     if let Some(path) = paths.first() {
                         match read_capped(path, SCRIVENER_LIMIT) {
@@ -245,6 +266,12 @@ impl eframe::App for DesktopApp {
                         .title("Open a ProseCraft backup")
                         .filter("ProseCraft backup", &["prosecraft", "json"]);
                     self.dialogs.ask(dialog, Then::Open);
+                }
+                HostRequest::ImportFountain => {
+                    let dialog = FileDialog::open()
+                        .title("Import a Fountain screenplay")
+                        .filter("Fountain screenplay", &["fountain", "txt"]);
+                    self.dialogs.ask(dialog, Then::Fountain);
                 }
                 HostRequest::ImportScrivenerZip => {
                     let dialog = FileDialog::open()

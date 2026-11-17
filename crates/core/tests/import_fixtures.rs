@@ -252,3 +252,75 @@ fn scrivener_import_matches_prosecraft() {
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
+
+fn element_json(e: &prosecraft_core::screenplay::fountain::ScreenplayElement) -> JsValue {
+    let mut o = js::JsObject::new();
+    o.insert("type", JsValue::str(&e.kind));
+    o.insert("text", JsValue::str(&e.text));
+    if let Some(level) = e.level {
+        o.insert("level", JsValue::Number(level as f64));
+    }
+    if e.dual {
+        o.insert("dual", JsValue::Bool(true));
+    }
+    if e.forced {
+        o.insert("forced", JsValue::Bool(true));
+    }
+    if let Some(n) = &e.scene_number {
+        o.insert("sceneNumber", JsValue::str(n));
+    }
+    JsValue::Object(o)
+}
+
+#[test]
+fn fountain_reads_and_writes_as_prosecraft_does() {
+    use prosecraft_core::screenplay::fountain::{parse_fountain, serialize_fountain};
+    use prosecraft_core::screenplay::layout::{elements_to_html, html_to_elements};
+    let all = fixture("fountain.json");
+    let cases = all
+        .get("cases")
+        .and_then(JsValue::as_array)
+        .unwrap_or_default();
+    assert_eq!(cases.len(), 24);
+    let mut failures = Vec::new();
+    for case in cases {
+        let input = s(case, "input");
+        let (title, elements) = parse_fountain(&input);
+        let mut t = js::JsObject::new();
+        for (k, v) in &title {
+            t.insert(k.as_str(), JsValue::str(v));
+        }
+        let have_title = js::stringify(&JsValue::Object(t));
+        let have_elements =
+            js::stringify(&JsValue::Array(elements.iter().map(element_json).collect()));
+        let html = elements_to_html(&elements);
+        let back = js::stringify(&JsValue::Array(
+            html_to_elements(&html).iter().map(element_json).collect(),
+        ));
+        let fountain = serialize_fountain(&title, &elements);
+        for (what, have, want) in [
+            (
+                "title",
+                have_title,
+                js::stringify(case.get("title").unwrap_or(&JsValue::Null)),
+            ),
+            (
+                "elements",
+                have_elements,
+                js::stringify(case.get("elements").unwrap_or(&JsValue::Null)),
+            ),
+            ("html", html, s(case, "html")),
+            (
+                "back",
+                back,
+                js::stringify(case.get("back").unwrap_or(&JsValue::Null)),
+            ),
+            ("fountain", fountain, s(case, "fountain")),
+        ] {
+            if have != want {
+                failures.push(format!("{input:?} {what}:\n  want {want}\n  have {have}"));
+            }
+        }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}

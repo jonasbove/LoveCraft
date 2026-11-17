@@ -2286,3 +2286,87 @@ fn citations_are_inserted_with_the_picker() {
     assert!(harness.query_by_label("Search citation sources").is_none());
     assert_eq!(content(&memory), html);
 }
+
+#[test]
+fn a_citation_is_changed_and_removed_from_its_picker() {
+    let (mut harness, memory) = app();
+    let content = |memory: &Memory| -> String {
+        project(&memory.last(), "project-1")
+            .get("project")
+            .and_then(|p| p.get("documents"))
+            .and_then(JsValue::as_array)
+            .unwrap_or_default()
+            .iter()
+            .find(|d| {
+                d.get("id")
+                    .and_then(JsValue::as_js_string)
+                    .is_some_and(|i| i.eq_str("doc-1"))
+            })
+            .and_then(|d| d.get("content"))
+            .and_then(JsValue::as_js_string)
+            .map(|c| c.to_string_lossy())
+            .unwrap_or_default()
+    };
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    // Click along the text until a citation's label is hit: its picker opens to edit it.
+    let text = harness.get_by_label("Scene text").rect();
+    let click = |harness: &mut Harness<'static, ProseApp>, pos: egui::Pos2| {
+        harness.drag_at(pos);
+        harness.run();
+        harness.drop_at(pos);
+        harness.run_steps(3);
+    };
+    let mut chip = None;
+    'scan: for dy in (8..120).step_by(8) {
+        for dx in (10..400).step_by(10) {
+            let pos = text.left_top() + egui::vec2(dx as f32, dy as f32);
+            click(&mut harness, pos);
+            if harness.query_by_label("Search citation sources").is_some() {
+                chip = Some(pos);
+                break 'scan;
+            }
+        }
+    }
+    let chip = chip.expect("a click on the citation opens its picker");
+    assert!(
+        harness.query_by_label("Lighthouses").is_some(),
+        "the picker lists the library"
+    );
+    harness.get_by_label("Remove Smith (2020)");
+    harness
+        .get_by_role_and_label(Role::TextInput, "Locator")
+        .focus();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TextInput, "Locator")
+        .type_text("7");
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Update")
+        .click();
+    harness.run_steps(12);
+    assert!(
+        content(&memory).contains(
+            r#"data-cites="[{&quot;id&quot;:&quot;smith2020&quot;,&quot;locator&quot;:&quot;7&quot;,&quot;label&quot;:&quot;page&quot;}]""#
+        ),
+        "{}",
+        content(&memory)
+    );
+
+    // Its picker again (the label is a little wider now): Remove takes it out.
+    click(&mut harness, chip);
+    assert!(harness.query_by_label("Search citation sources").is_some());
+    harness
+        .get_by_role_and_label(Role::Button, "Remove")
+        .click();
+    harness.run_steps(12);
+    assert!(
+        !content(&memory).contains("cite-ref"),
+        "{}",
+        content(&memory)
+    );
+    assert!(content(&memory).contains("Then"));
+}

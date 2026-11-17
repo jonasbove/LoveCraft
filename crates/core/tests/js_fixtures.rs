@@ -512,3 +512,68 @@ fn custom_starters_match_prosecraft() {
         .collect();
     assert_eq!(filter_blueprint(&working, &keys), want("template"));
 }
+
+/// `normalizeCslItemsDetailed` and `sanitizeCitationId` on ProseCraft's own output: cleaning,
+/// caps, fallback ids, duplicates, dates, names, links, and the 5,000-item cap.
+#[test]
+fn citation_items_are_normalized_as_prosecraft_normalizes_them() {
+    use prosecraft_core::csl::{normalize_csl_items_detailed, sanitize_citation_id};
+    let fx = fixture("csl.json");
+    for case in fx
+        .get("cases")
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+    {
+        let input = case.get("input").cloned().unwrap_or(JsValue::Null);
+        let have = normalize_csl_items_detailed(&input);
+        let want = case.get("output").unwrap_or(&JsValue::Null);
+        assert_eq!(
+            js::stringify(&JsValue::Array(have.items)),
+            want.get("items").map(js::stringify).unwrap_or_default(),
+            "{}",
+            js::stringify(&input)
+        );
+        let warnings: Vec<JsValue> = have.warnings.iter().map(|w| JsValue::str(w)).collect();
+        assert_eq!(
+            js::stringify(&JsValue::Array(warnings)),
+            want.get("warnings").map(js::stringify).unwrap_or_default()
+        );
+    }
+    for case in fx
+        .get("ids")
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+    {
+        let text = |k: &str| {
+            case.get(k)
+                .and_then(JsValue::as_js_string)
+                .map(|s| s.to_string_lossy())
+                .unwrap_or_default()
+        };
+        assert_eq!(
+            sanitize_citation_id(&text("raw")),
+            text("id"),
+            "{:?}",
+            text("raw")
+        );
+    }
+    let many: Vec<JsValue> = (0..5003)
+        .map(|i| {
+            js::parse(&format!(r#"{{"id":"r{i}","type":"book","title":"T{i}"}}"#))
+                .unwrap_or(JsValue::Null)
+        })
+        .collect();
+    let capped = normalize_csl_items_detailed(&JsValue::Array(many));
+    let want = fx.get("capped").unwrap_or(&JsValue::Null);
+    assert_eq!(
+        capped.items.len() as f64,
+        want.get("count")
+            .and_then(JsValue::as_number)
+            .unwrap_or(-1.0)
+    );
+    assert_eq!(
+        capped.items.last().map(js::stringify),
+        want.get("last").map(js::stringify)
+    );
+    assert_eq!(capped.warnings.len(), 1);
+}

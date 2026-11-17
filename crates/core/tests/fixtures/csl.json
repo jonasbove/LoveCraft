@@ -1,0 +1,569 @@
+{
+  "cases": [
+    {
+      "input": [
+        {
+          "id": "smith2020",
+          "type": "book",
+          "title": "  The   Long\tRoad\n ",
+          "author": [
+            {
+              "family": "Smith",
+              "given": "Ann"
+            }
+          ],
+          "issued": {
+            "date-parts": [
+              [
+                2020,
+                5,
+                1
+              ]
+            ]
+          }
+        }
+      ],
+      "output": {
+        "items": [
+          {
+            "id": "smith2020",
+            "type": "book",
+            "title": "The Long Road",
+            "author": [
+              {
+                "family": "Smith",
+                "given": "Ann"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2020,
+                  5,
+                  1
+                ]
+              ]
+            }
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "input": [
+        {
+          "type": "article-journal",
+          "title": "No id here",
+          "author": [
+            {
+              "family": "Ångström",
+              "given": "A."
+            }
+          ],
+          "issued": {
+            "date-parts": [
+              [
+                "2019"
+              ]
+            ]
+          },
+          "container-title": "Journal",
+          "volume": 12,
+          "issue": 3.5,
+          "page": "1-10",
+          "DOI": "10.1/x",
+          "URL": "https://example.com/a b"
+        }
+      ],
+      "output": {
+        "items": [
+          {
+            "id": "angstrom-2019-50w4wy",
+            "type": "article-journal",
+            "title": "No id here",
+            "author": [
+              {
+                "family": "Ångström",
+                "given": "A."
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  "2019"
+                ]
+              ]
+            },
+            "container-title": "Journal",
+            "volume": "12",
+            "issue": "3.5",
+            "page": "1-10",
+            "DOI": "10.1/x",
+            "URL": "https://example.com/a b"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "input": [
+        {
+          "type": "book",
+          "title": "Same"
+        },
+        {
+          "type": "book",
+          "title": "Same"
+        },
+        {
+          "id": "dup",
+          "type": "book",
+          "title": "A"
+        },
+        {
+          "id": "dup",
+          "type": "book",
+          "title": "B"
+        },
+        {
+          "id": "dup",
+          "type": "book",
+          "title": "C"
+        }
+      ],
+      "output": {
+        "items": [
+          {
+            "id": "same-1h7pihx",
+            "type": "book",
+            "title": "Same"
+          },
+          {
+            "id": "same-1h7pihx-2",
+            "type": "book",
+            "title": "Same"
+          },
+          {
+            "id": "dup",
+            "type": "book",
+            "title": "A"
+          },
+          {
+            "id": "dup-2",
+            "type": "book",
+            "title": "B"
+          },
+          {
+            "id": "dup-3",
+            "type": "book",
+            "title": "C"
+          }
+        ],
+        "warnings": [
+          "Duplicate citation id \"same-1h7pihx\" renamed to \"same-1h7pihx-2\".",
+          "Duplicate citation id \"dup\" renamed to \"dup-2\".",
+          "Duplicate citation id \"dup\" renamed to \"dup-3\"."
+        ]
+      }
+    },
+    {
+      "input": [
+        {
+          "id": "x",
+          "type": "BOOK",
+          "title": "upper type"
+        },
+        {
+          "id": "y",
+          "type": "9book",
+          "title": "bad type"
+        },
+        {
+          "id": "z",
+          "type": "book"
+        },
+        "not an object",
+        null,
+        [
+          1
+        ],
+        {
+          "type": "webpage",
+          "URL": "javascript:alert(1)"
+        },
+        {
+          "type": "webpage",
+          "URL": "ftp://files.example.org/a"
+        }
+      ],
+      "output": {
+        "items": [
+          {
+            "id": "x",
+            "type": "book",
+            "title": "upper type"
+          },
+          {
+            "id": "ref-1rfkyzc",
+            "type": "webpage",
+            "URL": "ftp://files.example.org/a"
+          }
+        ],
+        "warnings": [
+          "Entry 2: Citation entry is missing a valid CSL type.",
+          "Entry 3: Citation entry has no bibliographic content.",
+          "Entry 4: Citation entry is not an object.",
+          "Entry 5: Citation entry is not an object.",
+          "Entry 6: Citation entry is not an object.",
+          "Entry 7: Citation entry has no bibliographic content."
+        ]
+      }
+    },
+    {
+      "input": [
+        {
+          "id": 42,
+          "type": "chapter",
+          "editor": [
+            {
+              "literal": "The Committee"
+            },
+            {
+              "family": ""
+            },
+            {},
+            {
+              "given": "Only"
+            }
+          ],
+          "issued": {
+            "literal": "Spring 1999",
+            "season": 2,
+            "circa": true
+          }
+        }
+      ],
+      "output": {
+        "items": [
+          {
+            "id": "42",
+            "type": "chapter",
+            "editor": [
+              {
+                "literal": "The Committee"
+              },
+              {
+                "given": "Only"
+              }
+            ],
+            "issued": {
+              "literal": "Spring 1999",
+              "season": 2,
+              "circa": true
+            }
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "input": [
+        {
+          "id": "  we!rd id // with spaces--and--dashes.. ",
+          "type": "book",
+          "title": "x"
+        },
+        {
+          "id": "-./",
+          "type": "book",
+          "title": "Fallback after empty sanitized id"
+        }
+      ],
+      "output": {
+        "items": [
+          {
+            "id": "we-rd-id-//-with-spaces-and-dashes",
+            "type": "book",
+            "title": "x"
+          },
+          {
+            "id": "fallback-1pestyu",
+            "type": "book",
+            "title": "Fallback after empty sanitized id"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "input": [
+        {
+          "type": "thesis",
+          "abstract": "Line one\r\nLine two\u0001",
+          "title": "T",
+          "issued": {
+            "date-parts": [
+              [
+                2001,
+                "Jan",
+                1,
+                9
+              ],
+              [
+                2002
+              ],
+              [
+                2003
+              ]
+            ],
+            "raw": "2001"
+          }
+        }
+      ],
+      "output": {
+        "items": [
+          {
+            "id": "t-2001-1yxmi0y",
+            "type": "thesis",
+            "title": "T",
+            "issued": {
+              "date-parts": [
+                [
+                  2001,
+                  "Jan",
+                  1
+                ],
+                [
+                  2002
+                ]
+              ],
+              "raw": "2001"
+            },
+            "abstract-free": "Line one\nLine two"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "input": [
+        {
+          "type": "book",
+          "title": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+          "publisher": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+          "container-title": "C\u0000ontrol\u0007chars",
+          "citeKey": "key",
+          "provider": "zotero",
+          "language": "en",
+          "ISBN": "978",
+          "edition": 2,
+          "publisher-place": "Oslo"
+        }
+      ],
+      "output": {
+        "items": [
+          {
+            "id": "eeeeeeeeeeeeeeeeeeeeeeee-1xqipad",
+            "type": "book",
+            "title": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+            "container-title": "Controlchars",
+            "publisher": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+            "publisher-place": "Oslo",
+            "ISBN": "978",
+            "edition": "2",
+            "language": "en",
+            "citeKey": "key",
+            "provider": "zotero"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "input": [
+        {
+          "type": "report",
+          "issued": {
+            "date-parts": [
+              [
+                1.5,
+                2
+              ]
+            ],
+            "season": "Summer"
+          }
+        },
+        {
+          "type": "report",
+          "issued": {
+            "date-parts": "bad"
+          }
+        },
+        {
+          "type": "report",
+          "author": "nope",
+          "title": "Anon"
+        }
+      ],
+      "output": {
+        "items": [
+          {
+            "id": "ref-2-17yvfqu",
+            "type": "report",
+            "issued": {
+              "date-parts": [
+                [
+                  2
+                ]
+              ],
+              "season": "Summer"
+            }
+          },
+          {
+            "id": "anon-b2mkpy",
+            "type": "report",
+            "title": "Anon"
+          }
+        ],
+        "warnings": [
+          "Entry 2: Citation entry has no bibliographic content."
+        ]
+      }
+    },
+    {
+      "input": "not an array",
+      "output": {
+        "items": [],
+        "warnings": [
+          "Expected an array of citation items."
+        ]
+      }
+    },
+    {
+      "input": [],
+      "output": {
+        "items": [],
+        "warnings": []
+      }
+    },
+    {
+      "input": [
+        {
+          "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "type": "book",
+          "title": "Long id"
+        },
+        {
+          "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "type": "book",
+          "title": "Long id again"
+        }
+      ],
+      "output": {
+        "items": [
+          {
+            "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "type": "book",
+            "title": "Long id"
+          },
+          {
+            "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-2",
+            "type": "book",
+            "title": "Long id again"
+          }
+        ],
+        "warnings": [
+          "Duplicate citation id \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\" renamed to \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-2\"."
+        ]
+      }
+    },
+    {
+      "input": [
+        {
+          "type": "book",
+          "title": "🌊 Waves and more",
+          "author": [
+            {
+              "family": "Ōe"
+            }
+          ]
+        },
+        {
+          "type": "book",
+          "title": "   "
+        },
+        {
+          "type": "book",
+          "DOI": "10.2/y"
+        }
+      ],
+      "output": {
+        "items": [
+          {
+            "id": "oe-sgm94o",
+            "type": "book",
+            "title": "🌊 Waves and more",
+            "author": [
+              {
+                "family": "Ōe"
+              }
+            ]
+          },
+          {
+            "id": "ref-zihc36",
+            "type": "book",
+            "DOI": "10.2/y"
+          }
+        ],
+        "warnings": [
+          "Entry 2: Citation entry has no bibliographic content."
+        ]
+      }
+    }
+  ],
+  "ids": [
+    {
+      "raw": "  Smith 2020!!",
+      "id": "Smith-2020"
+    },
+    {
+      "raw": "a..b",
+      "id": "a..b"
+    },
+    {
+      "raw": "-x-",
+      "id": "x"
+    },
+    {
+      "raw": "日本",
+      "id": ""
+    },
+    {
+      "raw": "a\u0001b",
+      "id": "ab"
+    },
+    {
+      "raw": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    {
+      "raw": "./weird/.",
+      "id": "weird"
+    },
+    {
+      "raw": "keep:this/one-1",
+      "id": "keep:this/one-1"
+    }
+  ],
+  "capped": {
+    "count": 5000,
+    "last": {
+      "id": "r4999",
+      "type": "book",
+      "title": "T4999"
+    },
+    "warnings": [
+      "Citation library capped at 5000 items; remaining entries were skipped."
+    ]
+  }
+}

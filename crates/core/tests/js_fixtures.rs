@@ -248,3 +248,62 @@ fn comment_anchors_match_prosecraft() {
         );
     }
 }
+
+#[test]
+fn starters_build_as_prosecraft_builds_them() {
+    use prosecraft_core::starters::{
+        add_module, all_keys, build_from_blueprint, screenplay_blueprint, starter_blueprint,
+        starters,
+    };
+    let fixture = fixture("starters.json");
+    let counter = || {
+        let mut n = 0;
+        move || {
+            n += 1;
+            format!("id-{n}")
+        }
+    };
+    let pair = |(folders, documents): (Vec<JsValue>, Vec<JsValue>)| {
+        let mut o = js::JsObject::new();
+        o.insert("folders", JsValue::Array(folders));
+        o.insert("documents", JsValue::Array(documents));
+        js::stringify(&JsValue::Object(o))
+    };
+    assert_eq!(starters().len(), 8);
+    for starter in starters() {
+        let want = fixture
+            .get("builds")
+            .and_then(|b| b.get(&starter.id))
+            .expect("build");
+        assert_eq!(
+            pair(build_from_blueprint(
+                &starter_blueprint(&starter.id),
+                &mut counter()
+            )),
+            js::stringify(want),
+            "{}",
+            starter.id
+        );
+    }
+    let screenplay = fixture.get("screenplay").expect("screenplay");
+    assert_eq!(
+        pair(build_from_blueprint(
+            &screenplay_blueprint(),
+            &mut counter()
+        )),
+        js::stringify(screenplay.get("build").expect("build"))
+    );
+    let keys: Vec<String> = screenplay
+        .get("keys")
+        .and_then(JsValue::as_array)
+        .expect("keys")
+        .iter()
+        .map(|k| k.as_js_string().expect("key").to_string_lossy())
+        .collect();
+    assert_eq!(all_keys(&screenplay_blueprint()), keys);
+    // An unknown module adds nothing, as there.
+    assert_eq!(
+        add_module(&starter_blueprint("fantasy"), "factions"),
+        starter_blueprint("fantasy")
+    );
+}

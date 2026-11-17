@@ -153,3 +153,102 @@ fn a_failed_save_is_reported_not_hidden() {
             .contains("couldn't save your library: the disk is full")
     );
 }
+
+#[test]
+fn a_new_project_starts_from_a_wiki_template() {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::{Arc, Mutex};
+    #[derive(Clone, Default)]
+    struct Store(Arc<Mutex<Option<String>>>, Arc<AtomicUsize>);
+    impl prosecraft_ui_egui::LibraryStore for Store {
+        fn save(&mut self, text: &str) -> Result<(), String> {
+            *self.0.lock().map_err(|e| e.to_string())? = Some(text.to_owned());
+            Ok(())
+        }
+        fn now_ms(&self) -> f64 {
+            1_800_000_000_000.0
+        }
+        fn new_id(&mut self) -> String {
+            format!("id-{}", self.1.fetch_add(1, Ordering::SeqCst))
+        }
+    }
+    let store = Store::default();
+    let app = ProseApp::with_library(
+        prosecraft_ui_egui::ProjectLibrary::new("me".into()),
+        Box::new(store.clone()),
+    );
+    let mut harness = Harness::builder()
+        .with_size([1280.0, 850.0])
+        .build_ui_state(|ui, app: &mut ProseApp| app.show(ui), app);
+    prosecraft_ui_egui::setup_for_tests(&harness.ctx);
+    harness.run();
+    // An empty library offers to create a project.
+    harness
+        .get_by_role_and_label(Role::Button, "Create project")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::RadioButton, "Fantasy")
+        .click();
+    harness.run();
+    // Add one more module, then create.
+    harness
+        .get_by_role_and_label(Role::Button, "Religions")
+        .scroll_to_me();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Religions")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Create")
+        .click();
+    harness.run();
+    let saved = store
+        .0
+        .lock()
+        .expect("saved")
+        .clone()
+        .expect("the library was saved");
+    let library = prosecraft_core::js::parse(&saved).expect("json");
+    let project = &library
+        .get("projects")
+        .and_then(|p| p.as_array())
+        .expect("projects")[0];
+    let data = project.get("project").expect("data");
+    assert_eq!(
+        data.get("name")
+            .and_then(|n| n.as_js_string())
+            .map(|s| s.to_string_lossy())
+            .as_deref(),
+        Some("Untitled Project")
+    );
+    let folders: Vec<String> = data
+        .get("researchFolders")
+        .and_then(|f| f.as_array())
+        .expect("folders")
+        .iter()
+        .map(|f| {
+            f.get("title")
+                .and_then(|t| t.as_js_string())
+                .map(|s| s.to_string_lossy())
+                .unwrap_or_default()
+        })
+        .collect();
+    assert_eq!(
+        folders,
+        [
+            "Characters",
+            "Places",
+            "Magic",
+            "Cultures",
+            "Creatures",
+            "History & Timeline",
+            "Items",
+            "Religions"
+        ]
+    );
+    // The new project is open at its first scene, in the Write view.
+    harness.get_by_role_and_label(Role::TreeItem, "Scene 1");
+    assert!(harness.query_by_label("Scene text").is_some());
+}

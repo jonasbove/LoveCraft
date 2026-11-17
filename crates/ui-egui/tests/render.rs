@@ -96,4 +96,20 @@ fn render_views() {
         .get_by_role_and_label(Role::TreeItem, "Opening Scene")
         .click();
     save(&mut harness, "write-light");
+
+    // A new project from an empty library.
+    let empty = ProseApp::with_library(ProjectLibrary::new("render".into()), Box::new(Nowhere));
+    let mut harness = Harness::builder()
+        .with_size([1440.0, 900.0])
+        .build_ui_state(|ui, app: &mut ProseApp| app.show(ui), empty);
+    prosecraft_ui_egui::setup(&harness.ctx);
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Create project")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::RadioButton, "Fantasy")
+        .click();
+    save(&mut harness, "starter");
 }

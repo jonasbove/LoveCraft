@@ -1,0 +1,689 @@
+{
+  "builds": {
+    "blank": {
+      "folders": [],
+      "documents": []
+    },
+    "fantasy": {
+      "folders": [
+        {
+          "id": "id-1",
+          "title": "Characters",
+          "parentId": null
+        },
+        {
+          "id": "id-3",
+          "title": "Places",
+          "parentId": null
+        },
+        {
+          "id": "id-5",
+          "title": "Magic",
+          "parentId": null
+        },
+        {
+          "id": "id-7",
+          "title": "Cultures",
+          "parentId": null
+        },
+        {
+          "id": "id-9",
+          "title": "Creatures",
+          "parentId": null
+        },
+        {
+          "id": "id-11",
+          "title": "History & Timeline",
+          "parentId": null
+        },
+        {
+          "id": "id-13",
+          "title": "Items",
+          "parentId": null
+        }
+      ],
+      "documents": [
+        {
+          "id": "id-2",
+          "title": "Character template",
+          "content": "<h2>Basics</h2>\n<p><strong>Role:</strong> Protagonist, antagonist, supporting…</p>\n<p><strong>Age:</strong> e.g. 34, or early 40s</p>\n<p><strong>Gender:</strong> e.g. woman, man, non-binary</p>\n<p><strong>Pronouns:</strong> she/her, they/them…</p>\n<p><strong>Ethnicity / heritage:</strong> e.g. Irish-American</p>\n<p><strong>Occupation:</strong> What do they do?</p>\n<h2>Appearance &amp; voice</h2>\n<p><strong>Appearance:</strong> Build, features, clothing, distinguishing marks…</p>\n<p><strong>Voice &amp; mannerisms:</strong> How they speak and carry themselves…</p>\n<h2>Personality &amp; background</h2>\n<p><strong>Personality:</strong> Temperament, habits, the way they treat people…</p>\n<p><strong>Background:</strong> Where they come from and what shaped them…</p>\n<p><strong>Motivations &amp; goals:</strong> What do they want, and why now?</p>\n<p><strong>Flaws &amp; fears:</strong> What holds them back or trips them up?</p>\n<h2>Life &amp; relationships</h2>\n<p><strong>Hobbies &amp; interests:</strong> What do they love doing off the page?</p>\n<p><strong>Relationships:</strong> Family, friends, rivals, and entanglements…</p>",
+          "space": "Wiki",
+          "folderId": "id-1"
+        },
+        {
+          "id": "id-4",
+          "title": "Place template",
+          "content": "<h2>Overview</h2>\n<p><strong>Type:</strong> City, village, forest, ship, planet…</p>\n<p><strong>Region:</strong> Where is it? Coast, mountains, borderlands…</p>\n<p><strong>Climate &amp; weather:</strong> Seasons, light, what the air feels like…</p>\n<p><strong>Population:</strong> How many people, or how busy is it?</p>\n<p><strong>Government:</strong> Who rules, and how?</p>\n<p><strong>Economy:</strong> What keeps it running?</p>\n<h2>Look &amp; atmosphere</h2>\n<p><strong>Appearance:</strong> Layout, architecture, sights, sounds, smells…</p>\n<p><strong>Atmosphere:</strong> What it feels like to arrive and stay…</p>\n<p><strong>Landmarks:</strong> Places within the place that matter…</p>\n<h2>History &amp; culture</h2>\n<p><strong>History:</strong> Founding, turning points, old wounds…</p>\n<p><strong>Culture &amp; customs:</strong> Beliefs, food, language, festivals, taboos…</p>\n<p><strong>Notable inhabitants:</strong> Who lives here, and who is worth knowing?</p>\n<h2>Story</h2>\n<p><strong>Role in the story:</strong> Why this place matters to the plot or characters…</p>\n<p><strong>Dangers &amp; secrets:</strong> Threats, hidden places, what can go wrong here…</p>",
+          "space": "Wiki",
+          "folderId": "id-3"
+        },
+        {
+          "id": "id-6",
+          "title": "Magic system",
+          "content": "<h2>Source</h2>\n<p>Where does magic come from, and who can reach it?</p>\n<h2>Rules and limits</h2>\n<p>What it can do, what it can never do, and what it costs.</p>\n<h2>Practitioners</h2>\n<p>Who uses magic, how they learn it, and how others see them.</p>\n<h2>Everyday use</h2>\n<p>How magic shows up in ordinary work, travel, and trade.</p>\n<h2>Story pressure</h2>\n<p>What happens when magic fails, spreads, or is misused.</p>",
+          "space": "Wiki",
+          "folderId": "id-5"
+        },
+        {
+          "id": "id-8",
+          "title": "Culture template",
+          "content": "<h2>Values</h2>\n<p>What this culture prizes, and what it punishes.</p>\n<h2>Customs</h2>\n<p>Greetings, meals, festivals, and everyday manners.</p>\n<h2>Language</h2>\n<p>Words, accents, and phrases that mark someone as an insider.</p>\n<h2>Power</h2>\n<p>Who leads, who follows, and how disputes are settled.</p>\n<h2>Friction</h2>\n<p>What this culture disagrees with its neighbours about.</p>",
+          "space": "Wiki",
+          "folderId": "id-7"
+        },
+        {
+          "id": "id-10",
+          "title": "Creature template",
+          "content": "<h2>Appearance</h2>\n<p>Size, shape, and the details people notice first.</p>\n<h2>Habitat</h2>\n<p>Where it lives and how it survives there.</p>\n<h2>Behaviour</h2>\n<p>What it does when undisturbed, hungry, or threatened.</p>\n<h2>Dangers</h2>\n<p>How it hurts people, and how people defend themselves.</p>\n<h2>Story role</h2>\n<p>What it means in the story beyond being a threat.</p>",
+          "space": "Wiki",
+          "folderId": "id-9"
+        },
+        {
+          "id": "id-12",
+          "title": "Timeline",
+          "content": "<h2>Before the story</h2>\n<p>The old events everyone still refers to.</p>\n<h2>Recent past</h2>\n<p>What changed in the last few years, and why.</p>\n<h2>Present day</h2>\n<p>Where things stand when the story opens.</p>\n<h2>Open questions</h2>\n<p>Dates and causes you still need to settle.</p>",
+          "space": "Wiki",
+          "folderId": "id-11"
+        },
+        {
+          "id": "id-14",
+          "title": "Item template",
+          "content": "<h2>Description</h2>\n<p>What it is, what it looks like, and what it is made of.</p>\n<h2>Origin</h2>\n<p>Who made it, when, and for what purpose.</p>\n<h2>Powers</h2>\n<p>What it does, and what it refuses to do.</p>\n<h2>Cost</h2>\n<p>What using it takes from the bearer.</p>\n<h2>Where it is now</h2>\n<p>Who holds it at the start of the story.</p>",
+          "space": "Wiki",
+          "folderId": "id-13"
+        }
+      ]
+    },
+    "scifi": {
+      "folders": [
+        {
+          "id": "id-1",
+          "title": "Characters",
+          "parentId": null
+        },
+        {
+          "id": "id-3",
+          "title": "Places & Worlds",
+          "parentId": null
+        },
+        {
+          "id": "id-5",
+          "title": "Technology",
+          "parentId": null
+        },
+        {
+          "id": "id-7",
+          "title": "Factions",
+          "parentId": null
+        },
+        {
+          "id": "id-9",
+          "title": "Species",
+          "parentId": null
+        },
+        {
+          "id": "id-11",
+          "title": "Timeline",
+          "parentId": null
+        }
+      ],
+      "documents": [
+        {
+          "id": "id-2",
+          "title": "Character template",
+          "content": "<h2>Basics</h2>\n<p><strong>Role:</strong> Protagonist, antagonist, supporting…</p>\n<p><strong>Age:</strong> e.g. 34, or early 40s</p>\n<p><strong>Gender:</strong> e.g. woman, man, non-binary</p>\n<p><strong>Pronouns:</strong> she/her, they/them…</p>\n<p><strong>Ethnicity / heritage:</strong> e.g. Irish-American</p>\n<p><strong>Occupation:</strong> What do they do?</p>\n<h2>Appearance &amp; voice</h2>\n<p><strong>Appearance:</strong> Build, features, clothing, distinguishing marks…</p>\n<p><strong>Voice &amp; mannerisms:</strong> How they speak and carry themselves…</p>\n<h2>Personality &amp; background</h2>\n<p><strong>Personality:</strong> Temperament, habits, the way they treat people…</p>\n<p><strong>Background:</strong> Where they come from and what shaped them…</p>\n<p><strong>Motivations &amp; goals:</strong> What do they want, and why now?</p>\n<p><strong>Flaws &amp; fears:</strong> What holds them back or trips them up?</p>\n<h2>Life &amp; relationships</h2>\n<p><strong>Hobbies &amp; interests:</strong> What do they love doing off the page?</p>\n<p><strong>Relationships:</strong> Family, friends, rivals, and entanglements…</p>",
+          "space": "Wiki",
+          "folderId": "id-1"
+        },
+        {
+          "id": "id-4",
+          "title": "Place template",
+          "content": "<h2>Overview</h2>\n<p><strong>Type:</strong> City, village, forest, ship, planet…</p>\n<p><strong>Region:</strong> Where is it? Coast, mountains, borderlands…</p>\n<p><strong>Climate &amp; weather:</strong> Seasons, light, what the air feels like…</p>\n<p><strong>Population:</strong> How many people, or how busy is it?</p>\n<p><strong>Government:</strong> Who rules, and how?</p>\n<p><strong>Economy:</strong> What keeps it running?</p>\n<h2>Look &amp; atmosphere</h2>\n<p><strong>Appearance:</strong> Layout, architecture, sights, sounds, smells…</p>\n<p><strong>Atmosphere:</strong> What it feels like to arrive and stay…</p>\n<p><strong>Landmarks:</strong> Places within the place that matter…</p>\n<h2>History &amp; culture</h2>\n<p><strong>History:</strong> Founding, turning points, old wounds…</p>\n<p><strong>Culture &amp; customs:</strong> Beliefs, food, language, festivals, taboos…</p>\n<p><strong>Notable inhabitants:</strong> Who lives here, and who is worth knowing?</p>\n<h2>Story</h2>\n<p><strong>Role in the story:</strong> Why this place matters to the plot or characters…</p>\n<p><strong>Dangers &amp; secrets:</strong> Threats, hidden places, what can go wrong here…</p>",
+          "space": "Wiki",
+          "folderId": "id-3"
+        },
+        {
+          "id": "id-6",
+          "title": "Technology template",
+          "content": "<h2>What it does</h2>\n<p>The job it performs in daily life.</p>\n<h2>How it works</h2>\n<p>The principle in one or two sentences.</p>\n<h2>Limits</h2>\n<p>Range, cost, failure modes, and who can repair it.</p>\n<h2>Control</h2>\n<p>Who owns it, licenses it, or restricts it.</p>\n<h2>Consequences</h2>\n<p>What it changed, and what it broke.</p>",
+          "space": "Wiki",
+          "folderId": "id-5"
+        },
+        {
+          "id": "id-8",
+          "title": "Faction template",
+          "content": "<h2>Goal</h2>\n<p>What the faction wants, stated plainly.</p>\n<h2>Resources</h2>\n<p>Money, people, ships, information, and favours.</p>\n<h2>Methods</h2>\n<p>How it gets what it wants, and how far it will go.</p>\n<h2>Allies and rivals</h2>\n<p>Who works with it, and who stands in its way.</p>\n<h2>Weakness</h2>\n<p>What could split it or bring it down.</p>",
+          "space": "Wiki",
+          "folderId": "id-7"
+        },
+        {
+          "id": "id-10",
+          "title": "Species template",
+          "content": "<h2>Biology</h2>\n<p>Body, senses, lifespan, and what they need to live.</p>\n<h2>Homeworld</h2>\n<p>Where they evolved and what that place demands.</p>\n<h2>Culture</h2>\n<p>Shared habits, values, and taboos.</p>\n<h2>Relations</h2>\n<p>How they deal with other species, and why.</p>\n<h2>Story role</h2>\n<p>Which individuals matter, and what they want.</p>",
+          "space": "Wiki",
+          "folderId": "id-9"
+        },
+        {
+          "id": "id-12",
+          "title": "Timeline",
+          "content": "<h2>Before the story</h2>\n<p>The events that set the current situation up.</p>\n<h2>Recent events</h2>\n<p>What changed in the months before chapter one.</p>\n<h2>Present day</h2>\n<p>Where the characters stand when the story opens.</p>\n<h2>Planned future</h2>\n<p>What the story is moving toward.</p>",
+          "space": "Wiki",
+          "folderId": "id-11"
+        }
+      ]
+    },
+    "crime": {
+      "folders": [
+        {
+          "id": "id-1",
+          "title": "Characters",
+          "parentId": null
+        },
+        {
+          "id": "id-3",
+          "title": "Suspects",
+          "parentId": null
+        },
+        {
+          "id": "id-5",
+          "title": "Crime Scenes",
+          "parentId": null
+        },
+        {
+          "id": "id-7",
+          "title": "Clues",
+          "parentId": null
+        },
+        {
+          "id": "id-9",
+          "title": "Timeline of the Case",
+          "parentId": null
+        }
+      ],
+      "documents": [
+        {
+          "id": "id-2",
+          "title": "Character template",
+          "content": "<h2>Basics</h2>\n<p><strong>Role:</strong> Protagonist, antagonist, supporting…</p>\n<p><strong>Age:</strong> e.g. 34, or early 40s</p>\n<p><strong>Gender:</strong> e.g. woman, man, non-binary</p>\n<p><strong>Pronouns:</strong> she/her, they/them…</p>\n<p><strong>Ethnicity / heritage:</strong> e.g. Irish-American</p>\n<p><strong>Occupation:</strong> What do they do?</p>\n<h2>Appearance &amp; voice</h2>\n<p><strong>Appearance:</strong> Build, features, clothing, distinguishing marks…</p>\n<p><strong>Voice &amp; mannerisms:</strong> How they speak and carry themselves…</p>\n<h2>Personality &amp; background</h2>\n<p><strong>Personality:</strong> Temperament, habits, the way they treat people…</p>\n<p><strong>Background:</strong> Where they come from and what shaped them…</p>\n<p><strong>Motivations &amp; goals:</strong> What do they want, and why now?</p>\n<p><strong>Flaws &amp; fears:</strong> What holds them back or trips them up?</p>\n<h2>Life &amp; relationships</h2>\n<p><strong>Hobbies &amp; interests:</strong> What do they love doing off the page?</p>\n<p><strong>Relationships:</strong> Family, friends, rivals, and entanglements…</p>",
+          "space": "Wiki",
+          "folderId": "id-1"
+        },
+        {
+          "id": "id-4",
+          "title": "Suspect template",
+          "content": "<h2>Connection</h2>\n<p>How they know the victim or the scene.</p>\n<h2>Motive</h2>\n<p>What they stood to gain or lose.</p>\n<h2>Opportunity</h2>\n<p>Where they were and what they can prove.</p>\n<h2>Alibi</h2>\n<p>Their account, and who supports it.</p>\n<h2>Secret</h2>\n<p>The thing they are hiding that is not the crime.</p>",
+          "space": "Wiki",
+          "folderId": "id-3"
+        },
+        {
+          "id": "id-6",
+          "title": "Crime scene template",
+          "content": "<h2>Location</h2>\n<p>Where it is and how to get in.</p>\n<h2>What happened</h2>\n<p>The sequence of events, as far as anyone knows.</p>\n<h2>Evidence</h2>\n<p>What was left behind, and what is missing.</p>\n<h2>Witnesses</h2>\n<p>Who saw or heard something, and what they claim.</p>\n<h2>Questions</h2>\n<p>What the scene does not explain.</p>",
+          "space": "Wiki",
+          "folderId": "id-5"
+        },
+        {
+          "id": "id-8",
+          "title": "Clue template",
+          "content": "<h2>What it is</h2>\n<p>The object, trace, or statement.</p>\n<h2>Where it was found</h2>\n<p>Place, time, and who handled it.</p>\n<h2>What it suggests</h2>\n<p>The reading the investigator takes from it.</p>\n<h2>Red herring</h2>\n<p>Why it might mislead, and who benefits.</p>\n<h2>Who knows</h2>\n<p>Characters who have seen it or know it exists.</p>",
+          "space": "Wiki",
+          "folderId": "id-7"
+        },
+        {
+          "id": "id-10",
+          "title": "Case timeline",
+          "content": "<h2>Before the crime</h2>\n<p>The relationships and plans that led here.</p>\n<h2>The crime</h2>\n<p>What happened, in order, with times where possible.</p>\n<h2>Investigation</h2>\n<p>Steps taken, leads followed, and dead ends.</p>\n<h2>Breakthrough</h2>\n<p>The discovery that changes the case.</p>\n<h2>Resolution</h2>\n<p>How it ends, and what remains open.</p>",
+          "space": "Wiki",
+          "folderId": "id-9"
+        }
+      ]
+    },
+    "historical": {
+      "folders": [
+        {
+          "id": "id-1",
+          "title": "Characters",
+          "parentId": null
+        },
+        {
+          "id": "id-3",
+          "title": "Places",
+          "parentId": null
+        },
+        {
+          "id": "id-5",
+          "title": "Period Research",
+          "parentId": null
+        },
+        {
+          "id": "id-7",
+          "title": "Events & Timeline",
+          "parentId": null
+        },
+        {
+          "id": "id-9",
+          "title": "Sources",
+          "parentId": null
+        }
+      ],
+      "documents": [
+        {
+          "id": "id-2",
+          "title": "Character template",
+          "content": "<h2>Basics</h2>\n<p><strong>Role:</strong> Protagonist, antagonist, supporting…</p>\n<p><strong>Age:</strong> e.g. 34, or early 40s</p>\n<p><strong>Gender:</strong> e.g. woman, man, non-binary</p>\n<p><strong>Pronouns:</strong> she/her, they/them…</p>\n<p><strong>Ethnicity / heritage:</strong> e.g. Irish-American</p>\n<p><strong>Occupation:</strong> What do they do?</p>\n<h2>Appearance &amp; voice</h2>\n<p><strong>Appearance:</strong> Build, features, clothing, distinguishing marks…</p>\n<p><strong>Voice &amp; mannerisms:</strong> How they speak and carry themselves…</p>\n<h2>Personality &amp; background</h2>\n<p><strong>Personality:</strong> Temperament, habits, the way they treat people…</p>\n<p><strong>Background:</strong> Where they come from and what shaped them…</p>\n<p><strong>Motivations &amp; goals:</strong> What do they want, and why now?</p>\n<p><strong>Flaws &amp; fears:</strong> What holds them back or trips them up?</p>\n<h2>Life &amp; relationships</h2>\n<p><strong>Hobbies &amp; interests:</strong> What do they love doing off the page?</p>\n<p><strong>Relationships:</strong> Family, friends, rivals, and entanglements…</p>",
+          "space": "Wiki",
+          "folderId": "id-1"
+        },
+        {
+          "id": "id-4",
+          "title": "Place template",
+          "content": "<h2>Overview</h2>\n<p><strong>Type:</strong> City, village, forest, ship, planet…</p>\n<p><strong>Region:</strong> Where is it? Coast, mountains, borderlands…</p>\n<p><strong>Climate &amp; weather:</strong> Seasons, light, what the air feels like…</p>\n<p><strong>Population:</strong> How many people, or how busy is it?</p>\n<p><strong>Government:</strong> Who rules, and how?</p>\n<p><strong>Economy:</strong> What keeps it running?</p>\n<h2>Look &amp; atmosphere</h2>\n<p><strong>Appearance:</strong> Layout, architecture, sights, sounds, smells…</p>\n<p><strong>Atmosphere:</strong> What it feels like to arrive and stay…</p>\n<p><strong>Landmarks:</strong> Places within the place that matter…</p>\n<h2>History &amp; culture</h2>\n<p><strong>History:</strong> Founding, turning points, old wounds…</p>\n<p><strong>Culture &amp; customs:</strong> Beliefs, food, language, festivals, taboos…</p>\n<p><strong>Notable inhabitants:</strong> Who lives here, and who is worth knowing?</p>\n<h2>Story</h2>\n<p><strong>Role in the story:</strong> Why this place matters to the plot or characters…</p>\n<p><strong>Dangers &amp; secrets:</strong> Threats, hidden places, what can go wrong here…</p>",
+          "space": "Wiki",
+          "folderId": "id-3"
+        },
+        {
+          "id": "id-6",
+          "title": "Period research",
+          "content": "<h2>Daily life</h2>\n<p>Housing, food, hygiene, and the shape of an ordinary day.</p>\n<h2>Work and money</h2>\n<p>Jobs, wages, prices, and who employed whom.</p>\n<h2>Dress and manners</h2>\n<p>What people wore and how they addressed each other.</p>\n<h2>Law and power</h2>\n<p>Who held authority and how it was enforced.</p>\n<h2>Beliefs and rituals</h2>\n<p>What people believed and how that shaped their choices.</p>",
+          "space": "Wiki",
+          "folderId": "id-5"
+        },
+        {
+          "id": "id-8",
+          "title": "Timeline",
+          "content": "<h2>Before the story</h2>\n<p>The longer history a reader needs.</p>\n<h2>The story begins</h2>\n<p>The moment the novel enters recorded events.</p>\n<h2>Turning points</h2>\n<p>Real events the plot hangs on.</p>\n<h2>Aftermath</h2>\n<p>What follows, and where invention takes over.</p>",
+          "space": "Wiki",
+          "folderId": "id-7"
+        },
+        {
+          "id": "id-10",
+          "title": "Sources",
+          "content": "<h2>Books</h2>\n<p>Secondary works, with author and year.</p>\n<h2>Archives</h2>\n<p>Documents, registers, letters, and where to find them.</p>\n<h2>Images and objects</h2>\n<p>Paintings, photographs, maps, and museum pieces.</p>\n<h2>People to ask</h2>\n<p>Experts, locals, and questions worth putting to them.</p>\n<h2>Reliability notes</h2>\n<p>Where sources disagree, and which you trust.</p>",
+          "space": "Wiki",
+          "folderId": "id-9"
+        }
+      ]
+    },
+    "romance": {
+      "folders": [
+        {
+          "id": "id-1",
+          "title": "Characters",
+          "parentId": null
+        },
+        {
+          "id": "id-3",
+          "title": "Relationships",
+          "parentId": null
+        },
+        {
+          "id": "id-5",
+          "title": "Places",
+          "parentId": null
+        },
+        {
+          "id": "id-7",
+          "title": "Beats",
+          "parentId": null
+        }
+      ],
+      "documents": [
+        {
+          "id": "id-2",
+          "title": "Character template",
+          "content": "<h2>Basics</h2>\n<p><strong>Role:</strong> Protagonist, antagonist, supporting…</p>\n<p><strong>Age:</strong> e.g. 34, or early 40s</p>\n<p><strong>Gender:</strong> e.g. woman, man, non-binary</p>\n<p><strong>Pronouns:</strong> she/her, they/them…</p>\n<p><strong>Ethnicity / heritage:</strong> e.g. Irish-American</p>\n<p><strong>Occupation:</strong> What do they do?</p>\n<h2>Appearance &amp; voice</h2>\n<p><strong>Appearance:</strong> Build, features, clothing, distinguishing marks…</p>\n<p><strong>Voice &amp; mannerisms:</strong> How they speak and carry themselves…</p>\n<h2>Personality &amp; background</h2>\n<p><strong>Personality:</strong> Temperament, habits, the way they treat people…</p>\n<p><strong>Background:</strong> Where they come from and what shaped them…</p>\n<p><strong>Motivations &amp; goals:</strong> What do they want, and why now?</p>\n<p><strong>Flaws &amp; fears:</strong> What holds them back or trips them up?</p>\n<h2>Life &amp; relationships</h2>\n<p><strong>Hobbies &amp; interests:</strong> What do they love doing off the page?</p>\n<p><strong>Relationships:</strong> Family, friends, rivals, and entanglements…</p>",
+          "space": "Wiki",
+          "folderId": "id-1"
+        },
+        {
+          "id": "id-4",
+          "title": "Relationship template",
+          "content": "<h2>Who they are</h2>\n<p>The two people, and what each wants at the start.</p>\n<h2>First impression</h2>\n<p>What they notice, misread, or assume.</p>\n<h2>Attraction</h2>\n<p>What draws them together despite themselves.</p>\n<h2>Conflict</h2>\n<p>The fear, loyalty, or history that keeps them apart.</p>\n<h2>Change</h2>\n<p>What each must give up or learn for the relationship to work.</p>",
+          "space": "Wiki",
+          "folderId": "id-3"
+        },
+        {
+          "id": "id-6",
+          "title": "Place template",
+          "content": "<h2>Overview</h2>\n<p><strong>Type:</strong> City, village, forest, ship, planet…</p>\n<p><strong>Region:</strong> Where is it? Coast, mountains, borderlands…</p>\n<p><strong>Climate &amp; weather:</strong> Seasons, light, what the air feels like…</p>\n<p><strong>Population:</strong> How many people, or how busy is it?</p>\n<p><strong>Government:</strong> Who rules, and how?</p>\n<p><strong>Economy:</strong> What keeps it running?</p>\n<h2>Look &amp; atmosphere</h2>\n<p><strong>Appearance:</strong> Layout, architecture, sights, sounds, smells…</p>\n<p><strong>Atmosphere:</strong> What it feels like to arrive and stay…</p>\n<p><strong>Landmarks:</strong> Places within the place that matter…</p>\n<h2>History &amp; culture</h2>\n<p><strong>History:</strong> Founding, turning points, old wounds…</p>\n<p><strong>Culture &amp; customs:</strong> Beliefs, food, language, festivals, taboos…</p>\n<p><strong>Notable inhabitants:</strong> Who lives here, and who is worth knowing?</p>\n<h2>Story</h2>\n<p><strong>Role in the story:</strong> Why this place matters to the plot or characters…</p>\n<p><strong>Dangers &amp; secrets:</strong> Threats, hidden places, what can go wrong here…</p>",
+          "space": "Wiki",
+          "folderId": "id-5"
+        },
+        {
+          "id": "id-8",
+          "title": "Romance beats",
+          "content": "<h2>Meeting</h2>\n<p>The first encounter, and why it matters.</p>\n<h2>Growing closer</h2>\n<p>The scenes where the bond forms.</p>\n<h2>Turning point</h2>\n<p>The moment the relationship changes direction.</p>\n<h2>Crisis</h2>\n<p>The break, the misunderstanding, or the choice.</p>\n<h2>Resolution</h2>\n<p>How they find their way back, and what it costs.</p>",
+          "space": "Wiki",
+          "folderId": "id-7"
+        }
+      ]
+    },
+    "nonfiction": {
+      "folders": [
+        {
+          "id": "id-1",
+          "title": "Chapters Outline",
+          "parentId": null
+        },
+        {
+          "id": "id-3",
+          "title": "Sources",
+          "parentId": null
+        },
+        {
+          "id": "id-5",
+          "title": "Key Terms",
+          "parentId": null
+        },
+        {
+          "id": "id-7",
+          "title": "Quotes",
+          "parentId": null
+        }
+      ],
+      "documents": [
+        {
+          "id": "id-2",
+          "title": "Book outline",
+          "content": "<h2>Promise</h2>\n<p>What the book gives the reader by the end.</p>\n<h2>Reader</h2>\n<p>Who it is for, and what they already know.</p>\n<h2>Chapters</h2>\n<p>One line per chapter, in order.</p>\n<h2>Evidence</h2>\n<p>The examples, cases, or data each chapter leans on.</p>\n<h2>Takeaway</h2>\n<p>What the reader should remember.</p>",
+          "space": "Wiki",
+          "folderId": "id-1"
+        },
+        {
+          "id": "id-4",
+          "title": "Sources",
+          "content": "<h2>Books and articles</h2>\n<p>Full references, with the edition you used.</p>\n<h2>Interviews</h2>\n<p>Who you spoke to, when, and how it was recorded.</p>\n<h2>Data</h2>\n<p>Datasets, dates, and how they were collected.</p>\n<h2>Primary documents</h2>\n<p>Letters, reports, records, and their locations.</p>\n<h2>Reliability</h2>\n<p>Where the sources disagree, and what you chose to trust.</p>",
+          "space": "Wiki",
+          "folderId": "id-3"
+        },
+        {
+          "id": "id-6",
+          "title": "Key terms",
+          "content": "<h2>Term</h2>\n<p>The word or phrase as you use it.</p>\n<h2>Plain definition</h2>\n<p>One sentence a new reader would understand.</p>\n<h2>First use</h2>\n<p>Where it appears first, and how it is introduced.</p>\n<h2>Related terms</h2>\n<p>Words that are close, and how they differ.</p>",
+          "space": "Wiki",
+          "folderId": "id-5"
+        },
+        {
+          "id": "id-8",
+          "title": "Quote template",
+          "content": "<h2>Quote</h2>\n<p>The exact words, checked against the source.</p>\n<h2>Source</h2>\n<p>Author, title, page, and year.</p>\n<h2>Context</h2>\n<p>What was being discussed, and why it matters here.</p>\n<h2>Permission</h2>\n<p>Whether reuse is allowed, and what the terms are.</p>",
+          "space": "Wiki",
+          "folderId": "id-7"
+        }
+      ]
+    },
+    "thriller": {
+      "folders": [
+        {
+          "id": "id-1",
+          "title": "Characters",
+          "parentId": null
+        },
+        {
+          "id": "id-3",
+          "title": "Antagonist",
+          "parentId": null
+        },
+        {
+          "id": "id-5",
+          "title": "Places",
+          "parentId": null
+        },
+        {
+          "id": "id-7",
+          "title": "Organisations",
+          "parentId": null
+        },
+        {
+          "id": "id-9",
+          "title": "Timeline of events",
+          "parentId": null
+        },
+        {
+          "id": "id-11",
+          "title": "Clues and red herrings",
+          "parentId": null
+        },
+        {
+          "id": "id-13",
+          "title": "Research",
+          "parentId": null
+        }
+      ],
+      "documents": [
+        {
+          "id": "id-2",
+          "title": "Character template",
+          "content": "<h2>Basics</h2>\n<p><strong>Role:</strong> Protagonist, antagonist, supporting…</p>\n<p><strong>Age:</strong> e.g. 34, or early 40s</p>\n<p><strong>Gender:</strong> e.g. woman, man, non-binary</p>\n<p><strong>Pronouns:</strong> she/her, they/them…</p>\n<p><strong>Ethnicity / heritage:</strong> e.g. Irish-American</p>\n<p><strong>Occupation:</strong> What do they do?</p>\n<h2>Appearance &amp; voice</h2>\n<p><strong>Appearance:</strong> Build, features, clothing, distinguishing marks…</p>\n<p><strong>Voice &amp; mannerisms:</strong> How they speak and carry themselves…</p>\n<h2>Personality &amp; background</h2>\n<p><strong>Personality:</strong> Temperament, habits, the way they treat people…</p>\n<p><strong>Background:</strong> Where they come from and what shaped them…</p>\n<p><strong>Motivations &amp; goals:</strong> What do they want, and why now?</p>\n<p><strong>Flaws &amp; fears:</strong> What holds them back or trips them up?</p>\n<h2>Life &amp; relationships</h2>\n<p><strong>Hobbies &amp; interests:</strong> What do they love doing off the page?</p>\n<p><strong>Relationships:</strong> Family, friends, rivals, and entanglements…</p>",
+          "space": "Wiki",
+          "folderId": "id-1"
+        },
+        {
+          "id": "id-4",
+          "title": "Antagonist template",
+          "content": "<h2>Goal</h2>\n<p>What do they want, and what will they do to get it?</p>\n<h2>Method</h2>\n<p>How do they work, and what is their signature?</p>\n<h2>Resources</h2>\n<p>Money, people, access, and skills they can call on.</p>\n<h2>Weak point</h2>\n<p>What could expose or stop them?</p>\n<h2>Cover</h2>\n<p>How they appear to everyone else.</p>",
+          "space": "Wiki",
+          "folderId": "id-3"
+        },
+        {
+          "id": "id-6",
+          "title": "Place template",
+          "content": "<h2>Overview</h2>\n<p><strong>Type:</strong> City, village, forest, ship, planet…</p>\n<p><strong>Region:</strong> Where is it? Coast, mountains, borderlands…</p>\n<p><strong>Climate &amp; weather:</strong> Seasons, light, what the air feels like…</p>\n<p><strong>Population:</strong> How many people, or how busy is it?</p>\n<p><strong>Government:</strong> Who rules, and how?</p>\n<p><strong>Economy:</strong> What keeps it running?</p>\n<h2>Look &amp; atmosphere</h2>\n<p><strong>Appearance:</strong> Layout, architecture, sights, sounds, smells…</p>\n<p><strong>Atmosphere:</strong> What it feels like to arrive and stay…</p>\n<p><strong>Landmarks:</strong> Places within the place that matter…</p>\n<h2>History &amp; culture</h2>\n<p><strong>History:</strong> Founding, turning points, old wounds…</p>\n<p><strong>Culture &amp; customs:</strong> Beliefs, food, language, festivals, taboos…</p>\n<p><strong>Notable inhabitants:</strong> Who lives here, and who is worth knowing?</p>\n<h2>Story</h2>\n<p><strong>Role in the story:</strong> Why this place matters to the plot or characters…</p>\n<p><strong>Dangers &amp; secrets:</strong> Threats, hidden places, what can go wrong here…</p>",
+          "space": "Wiki",
+          "folderId": "id-5"
+        },
+        {
+          "id": "id-8",
+          "title": "Organisation template",
+          "content": "<h2>Purpose</h2>\n<p>What it officially does, and what it really does.</p>\n<h2>Structure</h2>\n<p>Who gives orders, who follows them, who knows what.</p>\n<h2>Reach</h2>\n<p>Where it operates and who it can pressure.</p>\n<h2>Secrets</h2>\n<p>What it must keep hidden.</p>",
+          "space": "Wiki",
+          "folderId": "id-7"
+        },
+        {
+          "id": "id-10",
+          "title": "Timeline",
+          "content": "<h2>Before the story</h2>\n<p>What already happened that the characters do not know yet.</p>\n<h2>Act one</h2>\n<p>The inciting event and the first stakes.</p>\n<h2>Act two</h2>\n<p>Escalations, reversals, and the point of no return.</p>\n<h2>Act three</h2>\n<p>The confrontation and its aftermath.</p>",
+          "space": "Wiki",
+          "folderId": "id-9"
+        },
+        {
+          "id": "id-12",
+          "title": "Clue tracker",
+          "content": "<h2>Clue</h2>\n<p>What is found, and where.</p>\n<h2>What it seems to mean</h2>\n<p>The conclusion the reader is nudged towards.</p>\n<h2>What it really means</h2>\n<p>The truth behind it.</p>\n<h2>Revealed in</h2>\n<p>Chapter or scene where it pays off.</p>",
+          "space": "Wiki",
+          "folderId": "id-11"
+        },
+        {
+          "id": "id-14",
+          "title": "Research notes",
+          "content": "<h2>Procedures</h2>\n<p>How investigations, operations, or institutions really work.</p>\n<h2>Terminology</h2>\n<p>Words and jargon to get right.</p>\n<h2>Sources</h2>\n<p>Books, articles, and people to check facts with.</p>",
+          "space": "Wiki",
+          "folderId": "id-13"
+        }
+      ]
+    }
+  },
+  "screenplay": {
+    "blueprint": {
+      "folders": [
+        {
+          "key": "module:characters",
+          "name": "Characters",
+          "pages": [
+            {
+              "key": "module:characters/0",
+              "title": "Character template",
+              "html": "<h2>Basics</h2>\n<p><strong>Role:</strong> Protagonist, antagonist, supporting…</p>\n<p><strong>Age:</strong> e.g. 34, or early 40s</p>\n<p><strong>Gender:</strong> e.g. woman, man, non-binary</p>\n<p><strong>Pronouns:</strong> she/her, they/them…</p>\n<p><strong>Ethnicity / heritage:</strong> e.g. Irish-American</p>\n<p><strong>Occupation:</strong> What do they do?</p>\n<h2>Appearance &amp; voice</h2>\n<p><strong>Appearance:</strong> Build, features, clothing, distinguishing marks…</p>\n<p><strong>Voice &amp; mannerisms:</strong> How they speak and carry themselves…</p>\n<h2>Personality &amp; background</h2>\n<p><strong>Personality:</strong> Temperament, habits, the way they treat people…</p>\n<p><strong>Background:</strong> Where they come from and what shaped them…</p>\n<p><strong>Motivations &amp; goals:</strong> What do they want, and why now?</p>\n<p><strong>Flaws &amp; fears:</strong> What holds them back or trips them up?</p>\n<h2>Life &amp; relationships</h2>\n<p><strong>Hobbies &amp; interests:</strong> What do they love doing off the page?</p>\n<p><strong>Relationships:</strong> Family, friends, rivals, and entanglements…</p>"
+            }
+          ]
+        },
+        {
+          "key": "module:places",
+          "name": "Places",
+          "pages": [
+            {
+              "key": "module:places/0",
+              "title": "Place template",
+              "html": "<h2>Overview</h2>\n<p><strong>Type:</strong> City, village, forest, ship, planet…</p>\n<p><strong>Region:</strong> Where is it? Coast, mountains, borderlands…</p>\n<p><strong>Climate &amp; weather:</strong> Seasons, light, what the air feels like…</p>\n<p><strong>Population:</strong> How many people, or how busy is it?</p>\n<p><strong>Government:</strong> Who rules, and how?</p>\n<p><strong>Economy:</strong> What keeps it running?</p>\n<h2>Look &amp; atmosphere</h2>\n<p><strong>Appearance:</strong> Layout, architecture, sights, sounds, smells…</p>\n<p><strong>Atmosphere:</strong> What it feels like to arrive and stay…</p>\n<p><strong>Landmarks:</strong> Places within the place that matter…</p>\n<h2>History &amp; culture</h2>\n<p><strong>History:</strong> Founding, turning points, old wounds…</p>\n<p><strong>Culture &amp; customs:</strong> Beliefs, food, language, festivals, taboos…</p>\n<p><strong>Notable inhabitants:</strong> Who lives here, and who is worth knowing?</p>\n<h2>Story</h2>\n<p><strong>Role in the story:</strong> Why this place matters to the plot or characters…</p>\n<p><strong>Dangers &amp; secrets:</strong> Threats, hidden places, what can go wrong here…</p>"
+            }
+          ]
+        },
+        {
+          "key": "module:items",
+          "name": "Items",
+          "pages": [
+            {
+              "key": "module:items/0",
+              "title": "Item template",
+              "html": "<h2>Description</h2>\n<p>What it is, what it looks like, and what it is made of.</p>\n<h2>Origin</h2>\n<p>Who made it, when, and for what purpose.</p>\n<h2>Powers</h2>\n<p>What it does, and what it refuses to do.</p>\n<h2>Cost</h2>\n<p>What using it takes from the bearer.</p>\n<h2>Where it is now</h2>\n<p>Who holds it at the start of the story.</p>"
+            },
+            {
+              "key": "module:items/1",
+              "title": "Weapon notes",
+              "html": "<h2>Make</h2>\n<p>Materials, balance, and how it is held.</p>\n<h2>Carrier</h2>\n<p>Who carries it, and what carrying it says about them.</p>\n<h2>In a fight</h2>\n<p>Reach, speed, and what it can and cannot cut through.</p>\n<h2>Upkeep</h2>\n<p>How it is cleaned, repaired, and replaced.</p>\n<h2>Reputation</h2>\n<p>What owning it means to other people.</p>"
+            }
+          ]
+        }
+      ]
+    },
+    "keys": [
+      "module:characters",
+      "module:characters/0",
+      "module:places",
+      "module:places/0",
+      "module:items",
+      "module:items/0",
+      "module:items/1"
+    ],
+    "build": {
+      "folders": [
+        {
+          "id": "id-1",
+          "title": "Characters",
+          "parentId": null
+        },
+        {
+          "id": "id-3",
+          "title": "Places",
+          "parentId": null
+        },
+        {
+          "id": "id-5",
+          "title": "Items",
+          "parentId": null
+        }
+      ],
+      "documents": [
+        {
+          "id": "id-2",
+          "title": "Character template",
+          "content": "<h2>Basics</h2>\n<p><strong>Role:</strong> Protagonist, antagonist, supporting…</p>\n<p><strong>Age:</strong> e.g. 34, or early 40s</p>\n<p><strong>Gender:</strong> e.g. woman, man, non-binary</p>\n<p><strong>Pronouns:</strong> she/her, they/them…</p>\n<p><strong>Ethnicity / heritage:</strong> e.g. Irish-American</p>\n<p><strong>Occupation:</strong> What do they do?</p>\n<h2>Appearance &amp; voice</h2>\n<p><strong>Appearance:</strong> Build, features, clothing, distinguishing marks…</p>\n<p><strong>Voice &amp; mannerisms:</strong> How they speak and carry themselves…</p>\n<h2>Personality &amp; background</h2>\n<p><strong>Personality:</strong> Temperament, habits, the way they treat people…</p>\n<p><strong>Background:</strong> Where they come from and what shaped them…</p>\n<p><strong>Motivations &amp; goals:</strong> What do they want, and why now?</p>\n<p><strong>Flaws &amp; fears:</strong> What holds them back or trips them up?</p>\n<h2>Life &amp; relationships</h2>\n<p><strong>Hobbies &amp; interests:</strong> What do they love doing off the page?</p>\n<p><strong>Relationships:</strong> Family, friends, rivals, and entanglements…</p>",
+          "space": "Wiki",
+          "folderId": "id-1"
+        },
+        {
+          "id": "id-4",
+          "title": "Place template",
+          "content": "<h2>Overview</h2>\n<p><strong>Type:</strong> City, village, forest, ship, planet…</p>\n<p><strong>Region:</strong> Where is it? Coast, mountains, borderlands…</p>\n<p><strong>Climate &amp; weather:</strong> Seasons, light, what the air feels like…</p>\n<p><strong>Population:</strong> How many people, or how busy is it?</p>\n<p><strong>Government:</strong> Who rules, and how?</p>\n<p><strong>Economy:</strong> What keeps it running?</p>\n<h2>Look &amp; atmosphere</h2>\n<p><strong>Appearance:</strong> Layout, architecture, sights, sounds, smells…</p>\n<p><strong>Atmosphere:</strong> What it feels like to arrive and stay…</p>\n<p><strong>Landmarks:</strong> Places within the place that matter…</p>\n<h2>History &amp; culture</h2>\n<p><strong>History:</strong> Founding, turning points, old wounds…</p>\n<p><strong>Culture &amp; customs:</strong> Beliefs, food, language, festivals, taboos…</p>\n<p><strong>Notable inhabitants:</strong> Who lives here, and who is worth knowing?</p>\n<h2>Story</h2>\n<p><strong>Role in the story:</strong> Why this place matters to the plot or characters…</p>\n<p><strong>Dangers &amp; secrets:</strong> Threats, hidden places, what can go wrong here…</p>",
+          "space": "Wiki",
+          "folderId": "id-3"
+        },
+        {
+          "id": "id-6",
+          "title": "Item template",
+          "content": "<h2>Description</h2>\n<p>What it is, what it looks like, and what it is made of.</p>\n<h2>Origin</h2>\n<p>Who made it, when, and for what purpose.</p>\n<h2>Powers</h2>\n<p>What it does, and what it refuses to do.</p>\n<h2>Cost</h2>\n<p>What using it takes from the bearer.</p>\n<h2>Where it is now</h2>\n<p>Who holds it at the start of the story.</p>",
+          "space": "Wiki",
+          "folderId": "id-5"
+        },
+        {
+          "id": "id-7",
+          "title": "Weapon notes",
+          "content": "<h2>Make</h2>\n<p>Materials, balance, and how it is held.</p>\n<h2>Carrier</h2>\n<p>Who carries it, and what carrying it says about them.</p>\n<h2>In a fight</h2>\n<p>Reach, speed, and what it can and cannot cut through.</p>\n<h2>Upkeep</h2>\n<p>How it is cleaned, repaired, and replaced.</p>\n<h2>Reputation</h2>\n<p>What owning it means to other people.</p>",
+          "space": "Wiki",
+          "folderId": "id-5"
+        }
+      ]
+    }
+  },
+  "fantasyPlusFactions": {
+    "folders": [
+      {
+        "key": "module:characters",
+        "name": "Characters",
+        "pages": [
+          {
+            "key": "module:characters/0",
+            "title": "Character template",
+            "html": "<h2>Basics</h2>\n<p><strong>Role:</strong> Protagonist, antagonist, supporting…</p>\n<p><strong>Age:</strong> e.g. 34, or early 40s</p>\n<p><strong>Gender:</strong> e.g. woman, man, non-binary</p>\n<p><strong>Pronouns:</strong> she/her, they/them…</p>\n<p><strong>Ethnicity / heritage:</strong> e.g. Irish-American</p>\n<p><strong>Occupation:</strong> What do they do?</p>\n<h2>Appearance &amp; voice</h2>\n<p><strong>Appearance:</strong> Build, features, clothing, distinguishing marks…</p>\n<p><strong>Voice &amp; mannerisms:</strong> How they speak and carry themselves…</p>\n<h2>Personality &amp; background</h2>\n<p><strong>Personality:</strong> Temperament, habits, the way they treat people…</p>\n<p><strong>Background:</strong> Where they come from and what shaped them…</p>\n<p><strong>Motivations &amp; goals:</strong> What do they want, and why now?</p>\n<p><strong>Flaws &amp; fears:</strong> What holds them back or trips them up?</p>\n<h2>Life &amp; relationships</h2>\n<p><strong>Hobbies &amp; interests:</strong> What do they love doing off the page?</p>\n<p><strong>Relationships:</strong> Family, friends, rivals, and entanglements…</p>"
+          }
+        ]
+      },
+      {
+        "key": "module:places",
+        "name": "Places",
+        "pages": [
+          {
+            "key": "module:places/0",
+            "title": "Place template",
+            "html": "<h2>Overview</h2>\n<p><strong>Type:</strong> City, village, forest, ship, planet…</p>\n<p><strong>Region:</strong> Where is it? Coast, mountains, borderlands…</p>\n<p><strong>Climate &amp; weather:</strong> Seasons, light, what the air feels like…</p>\n<p><strong>Population:</strong> How many people, or how busy is it?</p>\n<p><strong>Government:</strong> Who rules, and how?</p>\n<p><strong>Economy:</strong> What keeps it running?</p>\n<h2>Look &amp; atmosphere</h2>\n<p><strong>Appearance:</strong> Layout, architecture, sights, sounds, smells…</p>\n<p><strong>Atmosphere:</strong> What it feels like to arrive and stay…</p>\n<p><strong>Landmarks:</strong> Places within the place that matter…</p>\n<h2>History &amp; culture</h2>\n<p><strong>History:</strong> Founding, turning points, old wounds…</p>\n<p><strong>Culture &amp; customs:</strong> Beliefs, food, language, festivals, taboos…</p>\n<p><strong>Notable inhabitants:</strong> Who lives here, and who is worth knowing?</p>\n<h2>Story</h2>\n<p><strong>Role in the story:</strong> Why this place matters to the plot or characters…</p>\n<p><strong>Dangers &amp; secrets:</strong> Threats, hidden places, what can go wrong here…</p>"
+          }
+        ]
+      },
+      {
+        "key": "module:magic-and-technology",
+        "name": "Magic",
+        "pages": [
+          {
+            "key": "module:magic-and-technology/0",
+            "title": "Magic system",
+            "html": "<h2>Source</h2>\n<p>Where does magic come from, and who can reach it?</p>\n<h2>Rules and limits</h2>\n<p>What it can do, what it can never do, and what it costs.</p>\n<h2>Practitioners</h2>\n<p>Who uses magic, how they learn it, and how others see them.</p>\n<h2>Everyday use</h2>\n<p>How magic shows up in ordinary work, travel, and trade.</p>\n<h2>Story pressure</h2>\n<p>What happens when magic fails, spreads, or is misused.</p>"
+          }
+        ]
+      },
+      {
+        "key": "module:cultures",
+        "name": "Cultures",
+        "pages": [
+          {
+            "key": "module:cultures/0",
+            "title": "Culture template",
+            "html": "<h2>Values</h2>\n<p>What this culture prizes, and what it punishes.</p>\n<h2>Customs</h2>\n<p>Greetings, meals, festivals, and everyday manners.</p>\n<h2>Language</h2>\n<p>Words, accents, and phrases that mark someone as an insider.</p>\n<h2>Power</h2>\n<p>Who leads, who follows, and how disputes are settled.</p>\n<h2>Friction</h2>\n<p>What this culture disagrees with its neighbours about.</p>"
+          }
+        ]
+      },
+      {
+        "key": "module:species",
+        "name": "Creatures",
+        "pages": [
+          {
+            "key": "module:species/0",
+            "title": "Creature template",
+            "html": "<h2>Appearance</h2>\n<p>Size, shape, and the details people notice first.</p>\n<h2>Habitat</h2>\n<p>Where it lives and how it survives there.</p>\n<h2>Behaviour</h2>\n<p>What it does when undisturbed, hungry, or threatened.</p>\n<h2>Dangers</h2>\n<p>How it hurts people, and how people defend themselves.</p>\n<h2>Story role</h2>\n<p>What it means in the story beyond being a threat.</p>"
+          }
+        ]
+      },
+      {
+        "key": "module:timeline",
+        "name": "History & Timeline",
+        "pages": [
+          {
+            "key": "module:timeline/0",
+            "title": "Timeline",
+            "html": "<h2>Before the story</h2>\n<p>The old events everyone still refers to.</p>\n<h2>Recent past</h2>\n<p>What changed in the last few years, and why.</p>\n<h2>Present day</h2>\n<p>Where things stand when the story opens.</p>\n<h2>Open questions</h2>\n<p>Dates and causes you still need to settle.</p>"
+          }
+        ]
+      },
+      {
+        "key": "module:items",
+        "name": "Items",
+        "pages": [
+          {
+            "key": "module:items/0",
+            "title": "Item template",
+            "html": "<h2>Description</h2>\n<p>What it is, what it looks like, and what it is made of.</p>\n<h2>Origin</h2>\n<p>Who made it, when, and for what purpose.</p>\n<h2>Powers</h2>\n<p>What it does, and what it refuses to do.</p>\n<h2>Cost</h2>\n<p>What using it takes from the bearer.</p>\n<h2>Where it is now</h2>\n<p>Who holds it at the start of the story.</p>"
+          }
+        ]
+      }
+    ]
+  }
+}

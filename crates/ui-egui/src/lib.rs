@@ -61,6 +61,14 @@ pub trait LibraryStore {
     fn load_sync_state(&mut self) -> Option<String> {
         None
     }
+    /// Whether CraftCloud's `craftcloud` program is installed (then its folder is offered).
+    fn has_craftcloud(&self) -> bool {
+        false
+    }
+    /// The folder to sync through inside CraftCloud's sync folder, or why there is none.
+    fn craftcloud_folder(&mut self) -> Result<String, String> {
+        Err("CraftCloud isn't installed.".into())
+    }
     /// Saves (or, with `None`, forgets) the device's sync settings.
     fn save_sync_state(&mut self, _text: Option<&str>) -> Result<(), String> {
         Ok(())

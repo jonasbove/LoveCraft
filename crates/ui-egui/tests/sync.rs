@@ -49,6 +49,8 @@ struct Store {
     folder: Shared,
     state: Arc<Mutex<Option<String>>>,
     saved: Arc<Mutex<Option<String>>>,
+    /// CraftCloud's ProseCraft folder, when "installed".
+    craftcloud: Option<String>,
 }
 
 impl LibraryStore for Store {
@@ -64,6 +66,14 @@ impl LibraryStore for Store {
     }
     fn supports_sync(&self) -> bool {
         true
+    }
+    fn has_craftcloud(&self) -> bool {
+        self.craftcloud.is_some()
+    }
+    fn craftcloud_folder(&mut self) -> Result<String, String> {
+        self.craftcloud
+            .clone()
+            .ok_or_else(|| "not installed".to_owned())
     }
     fn sync_fs(&mut self, _folder: &str) -> Option<Box<dyn SyncFileSystem + Send>> {
         Some(Box::new(self.folder.clone()))
@@ -211,4 +221,34 @@ fn a_wrong_passphrase_says_so() {
     };
     let mut b = app(&other, false);
     assert_eq!(sync(&mut b, "wrong passphrase!"), "Incorrect passphrase.");
+}
+
+#[test]
+fn the_craftcloud_folder_is_one_click_away() {
+    let store = Store {
+        craftcloud: Some("/home/writer/CraftCloud/ProseCraft".into()),
+        ..Store::default()
+    };
+    let mut harness = app(&store, true);
+    harness
+        .get_by_role_and_label(Role::Button, "Settings…")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Use the CraftCloud folder")
+        .click();
+    harness.run();
+    assert_eq!(
+        status(&harness),
+        "Folder saved. The first sync creates one encrypted sync file."
+    );
+    let state = store.state.lock().expect("state").clone().expect("saved");
+    assert!(
+        state.contains(r#""folder":"/home/writer/CraftCloud/ProseCraft""#)
+            && state.contains(r#""mode":"encrypted-file""#),
+        "{state}"
+    );
+    // Without CraftCloud the button isn't there.
+    let plain = app(&Store::default(), true);
+    assert!(plain.query_by_label("Use the CraftCloud folder").is_none());
 }

@@ -14,6 +14,8 @@ use crate::widgets::eyebrow;
 pub(crate) struct SyncPanel {
     /// This host can sync through a folder (the desktop app).
     pub available: bool,
+    /// CraftCloud is installed: its folder is offered in one click.
+    pub craftcloud: bool,
     pub folder: String,
     pub mode: SyncMode,
     pub passphrase: String,
@@ -25,6 +27,7 @@ pub(crate) struct SyncPanel {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum SyncAction {
     ChooseFolder,
+    UseCraftCloud,
     SetMode(SyncMode),
     SyncNow,
     Forget,
@@ -180,6 +183,19 @@ fn device_sync(ui: &mut Ui, state: &mut AppState) {
             actions.push(SyncAction::ChooseFolder);
         }
     });
+    if panel.craftcloud {
+        if ui
+            .add_enabled(!panel.busy, egui::Button::new("Use the CraftCloud folder"))
+            .clicked()
+        {
+            actions.push(SyncAction::UseCraftCloud);
+        }
+        help(
+            ui,
+            &palette,
+            "Syncs through a ProseCraft folder inside the folder CraftCloud keeps in sync, as one encrypted file.",
+        );
+    }
     if !panel.folder.is_empty() {
         ui.add_space(6.0);
         let field = ui.add_enabled(

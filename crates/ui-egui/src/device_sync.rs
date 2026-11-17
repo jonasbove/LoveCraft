@@ -28,6 +28,7 @@ impl ProseApp {
             return;
         };
         self.state.sync.available = home.store.supports_sync();
+        self.state.sync.craftcloud = home.store.has_craftcloud();
         if let Some(state) = home
             .store
             .load_sync_state()
@@ -108,6 +109,23 @@ impl ProseApp {
                     };
                 }
                 SyncAction::SetMode(_) => {}
+                SyncAction::UseCraftCloud => {
+                    let Some(home) = self.home.as_mut() else {
+                        continue;
+                    };
+                    match home.store.craftcloud_folder() {
+                        Ok(folder) => {
+                            // One encrypted file: a CraftCloud clash is then one whole-file
+                            // conflict copy, never a half-synced layout.
+                            if self.state.sync.mode != SyncMode::EncryptedFile {
+                                self.state.sync.mode = SyncMode::EncryptedFile;
+                                self.state.sync.passphrase.clear();
+                            }
+                            self.set_sync_folder(folder);
+                        }
+                        Err(why) => self.state.sync.status = why,
+                    }
+                }
                 SyncAction::Forget => {
                     if let Some(home) = self.home.as_mut() {
                         let _ = home.store.save_sync_state(None);

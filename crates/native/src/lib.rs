@@ -14,6 +14,7 @@
     clippy::unreachable
 )]
 
+pub mod craftcloud;
 pub mod sync_fs;
 
 use std::io;

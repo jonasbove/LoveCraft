@@ -156,6 +156,8 @@ pub struct Snapshot {
     pub title: String,
     pub note: Option<String>,
     pub before_restore: bool,
+    /// The kept HTML.
+    pub content: String,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -326,6 +328,7 @@ impl Project {
                     title: text(s, "title"),
                     note: optional_text(s, "note"),
                     before_restore: text(s, "reason") == "before-restore",
+                    content: text(s, "content"),
                 })
                 .collect(),
             timeline: list(project, "timelineNodes")

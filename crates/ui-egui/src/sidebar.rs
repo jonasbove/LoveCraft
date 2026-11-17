@@ -35,6 +35,25 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         Some(Selection::Document(id)) => Some(id.as_str()),
         _ => None,
     };
+    // Snapshots: the open scene, or every scene of the open chapter (chapter mode).
+    let snapshot_scope: Option<(Vec<String>, bool)> = match &state.selection {
+        Some(Selection::Document(id)) => Some((vec![id.clone()], false)),
+        Some(Selection::Chapter(id)) => Some((
+            project
+                .scenes_in_chapter(id)
+                .map(|d| d.id.clone())
+                .collect(),
+            true,
+        )),
+        None => None,
+    };
+    let mut snapshot_edit = SnapshotEdit {
+        note: &mut state.snapshot_note,
+        preview: &mut state.snapshot_preview,
+        intents: &mut state.intents,
+        editable: state.editable,
+        now_ms: state.now_ms,
+    };
     let month = &mut state.activity_month;
     egui::ScrollArea::vertical()
         .id_salt("sidebar-scroll")
@@ -42,7 +61,9 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         .show(ui, |ui| match state.side_tab {
             SideTab::Progress => progress(ui, &palette, project, month),
             SideTab::Comments => comments(ui, &palette, project, document),
-            SideTab::Snapshots => snapshots(ui, &palette, project, document),
+            SideTab::Snapshots => {
+                snapshots(ui, &palette, project, snapshot_scope, &mut snapshot_edit)
+            }
             SideTab::Footnotes => footnotes(ui, &palette, project, document),
         });
 }
@@ -298,40 +319,197 @@ fn comments(ui: &mut Ui, palette: &Palette, project: &Project, document: Option<
     }
 }
 
-fn snapshots(ui: &mut Ui, palette: &Palette, project: &Project, document: Option<&str>) {
-    heading(ui, palette, "This scene", "Snapshots");
-    let Some(document) = document else {
+/// What the Snapshots tab changes.
+struct SnapshotEdit<'a> {
+    note: &'a mut String,
+    preview: &'a mut Option<String>,
+    intents: &'a mut Vec<crate::editing::Intent>,
+    editable: bool,
+    now_ms: f64,
+}
+
+/// `snapshotLabel`: when it was taken, and whether before a restore.
+fn snapshot_label(created_at: f64, before_restore: bool) -> String {
+    let when = chrono::DateTime::from_timestamp_millis(created_at as i64)
+        .map(|t| t.format("%Y-%m-%d %H:%M UTC").to_string())
+        .unwrap_or_default();
+    if before_restore {
+        format!("{when} (before a restore)")
+    } else {
+        when
+    }
+}
+
+/// ProseCraft's Snapshots tab: "Save this version" (with an optional note), then "Earlier
+/// versions" with Preview, Restore and Delete. In chapter mode it covers the chapter's scenes.
+fn snapshots(
+    ui: &mut Ui,
+    palette: &Palette,
+    project: &Project,
+    scope: Option<(Vec<String>, bool)>,
+    edit: &mut SnapshotEdit<'_>,
+) {
+    heading(ui, palette, "Versions", "Snapshots");
+    let Some((documents, chapter_mode)) = scope else {
         return pick_document(ui, palette);
     };
+    let title = match (
+        chapter_mode,
+        documents.first().and_then(|id| project.document(id)),
+    ) {
+        (false, Some(doc)) if !doc.title.is_empty() => doc.title.clone(),
+        (false, _) => "Untitled".to_owned(),
+        (true, _) => "this chapter".to_owned(),
+    };
+    ui.label(
+        RichText::new("Save this version")
+            .strong()
+            .color(palette.text_heading),
+    );
+    let what = if chapter_mode {
+        "the scenes of this chapter".to_owned()
+    } else {
+        format!("“{title}”")
+    };
+    ui.add(
+        egui::Label::new(
+            RichText::new(format!(
+                "Keeps a copy of {what} as it is now. Up to ten are kept per scene."
+            ))
+            .size(12.0)
+            .color(palette.text_muted),
+        )
+        .wrap(),
+    );
+    ui.add_space(6.0);
+    let mut take = false;
+    ui.add_enabled_ui(edit.editable && !documents.is_empty(), |ui| {
+        let field = ui.add(
+            egui::TextEdit::singleline(edit.note)
+                .hint_text("Optional note")
+                .char_limit(120)
+                .desired_width(f32::INFINITY),
+        );
+        crate::views::name_field(ui, &field, "Snapshot note");
+        take |= field.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
+        take |= ui.button("Take snapshot").clicked();
+    });
+    if take && edit.editable && !documents.is_empty() {
+        edit.intents.push(crate::editing::Intent::TakeSnapshots {
+            documents: documents.clone(),
+            note: std::mem::take(edit.note),
+            now: edit.now_ms,
+        });
+    }
+    ui.add_space(12.0);
     let mut list: Vec<_> = project
         .snapshots
         .iter()
-        .filter(|s| s.document_id == document)
+        .filter(|s| documents.contains(&s.document_id))
         .collect();
     // Newest first, as ProseCraft lists them.
     list.sort_by(|a, b| b.created_at.total_cmp(&a.created_at));
+    ui.horizontal(|ui| {
+        ui.label(
+            RichText::new("Earlier versions")
+                .strong()
+                .color(palette.text_heading),
+        );
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            ui.label(RichText::new(list.len().to_string()).color(palette.text_muted))
+        });
+    });
+    ui.add(
+        egui::Label::new(
+            RichText::new("Restoring first saves the current text, so you can go back.")
+                .size(12.0)
+                .color(palette.text_muted),
+        )
+        .wrap(),
+    );
+    ui.add_space(6.0);
     if list.is_empty() {
-        ui.label(RichText::new("No snapshots of this scene.").color(palette.text_muted));
+        ui.label(
+            RichText::new("No snapshots yet. Save one above to freeze this moment.")
+                .color(palette.text_muted),
+        );
     }
     for snapshot in list {
-        let when = chrono::DateTime::from_timestamp_millis(snapshot.created_at as i64)
-            .map(|t| t.format("%Y-%m-%d %H:%M UTC").to_string())
-            .unwrap_or_default();
         card(palette).show(ui, |ui| {
             ui.set_width(ui.available_width());
-            ui.label(RichText::new(when).color(palette.text_primary));
+            let label = snapshot_label(snapshot.created_at, snapshot.before_restore);
+            ui.label(RichText::new(&label).strong().color(palette.text_primary));
+            let text = html_to_plain_text(&snapshot.content, &PlainTextOptions::default());
             let mut meta = Vec::new();
-            if snapshot.before_restore {
-                meta.push("Before a restore".to_owned());
+            if chapter_mode {
+                let scene = project
+                    .document(&snapshot.document_id)
+                    .map(|d| d.title.clone())
+                    .filter(|t| !t.is_empty())
+                    .unwrap_or_else(|| "Untitled scene".into());
+                meta.push(scene);
             }
+            meta.push(format!(
+                "{} words",
+                prosecraft_core::html::count_words(&text)
+            ));
             if let Some(note) = &snapshot.note {
                 meta.push(note.clone());
             }
-            if !meta.is_empty() {
-                ui.label(
-                    RichText::new(meta.join(" · "))
-                        .size(12.0)
-                        .color(palette.text_muted),
+            ui.label(
+                RichText::new(meta.join(" · "))
+                    .size(12.0)
+                    .color(palette.text_muted),
+            );
+            ui.horizontal(|ui| {
+                let previewing = edit.preview.as_deref() == Some(snapshot.id.as_str());
+                let toggle = ui.button(if previewing { "Hide" } else { "Preview" });
+                crate::views::name_field(
+                    ui,
+                    &toggle,
+                    &format!(
+                        "{} snapshot from {label}",
+                        if previewing { "Hide" } else { "Preview" }
+                    ),
+                );
+                if toggle.clicked() {
+                    *edit.preview = if previewing {
+                        None
+                    } else {
+                        Some(snapshot.id.clone())
+                    };
+                }
+                ui.add_enabled_ui(edit.editable, |ui| {
+                    let restore = ui.button("Restore");
+                    crate::views::name_field(
+                        ui,
+                        &restore,
+                        &format!("Restore snapshot from {label}"),
+                    );
+                    if restore.clicked() {
+                        edit.intents.push(crate::editing::Intent::RestoreSnapshot {
+                            id: snapshot.id.clone(),
+                            now: edit.now_ms,
+                        });
+                        *edit.preview = None;
+                    }
+                    let delete = ui.button(RichText::new("Delete").color(palette.danger));
+                    crate::views::name_field(ui, &delete, &format!("Delete snapshot from {label}"));
+                    if delete.clicked() {
+                        edit.intents
+                            .push(crate::editing::Intent::DeleteSnapshot(snapshot.id.clone()));
+                    }
+                });
+            });
+            if edit.preview.as_deref() == Some(snapshot.id.as_str()) {
+                ui.add_space(4.0);
+                ui.add(
+                    egui::Label::new(
+                        RichText::new(&text)
+                            .font(fonts::serif(14.0))
+                            .color(palette.text_body),
+                    )
+                    .wrap(),
                 );
             }
         });

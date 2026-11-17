@@ -33,6 +33,18 @@ pub enum Intent {
         key: String,
         value: JsValue,
     },
+    /// Snapshots of these scenes (one, or a chapter's), at `now` (Unix milliseconds).
+    TakeSnapshots {
+        documents: Vec<String>,
+        note: String,
+        now: f64,
+    },
+    /// Restores a snapshot, keeping the current text as a snapshot first.
+    RestoreSnapshot {
+        id: String,
+        now: f64,
+    },
+    DeleteSnapshot(String),
 }
 
 /// The scene or page being typed into.
@@ -108,6 +120,15 @@ pub fn run(
         Intent::SetPublishOption { key, value } => {
             edit::set_publish_option(data, key, value.clone())
         }
+        Intent::TakeSnapshots {
+            documents,
+            note,
+            now,
+        } => prosecraft_core::snapshots::take_snapshots(data, documents, *now, note, new_id),
+        Intent::RestoreSnapshot { id, now } => {
+            prosecraft_core::snapshots::restore_snapshot(data, id, *now, new_id).map(|_| ())
+        }
+        Intent::DeleteSnapshot(id) => prosecraft_core::snapshots::delete_snapshot(data, id),
     }
 }
 

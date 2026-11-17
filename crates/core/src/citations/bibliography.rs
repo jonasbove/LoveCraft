@@ -47,13 +47,13 @@ fn id_of(item: &JsValue) -> String {
 }
 
 /// The library by id, then by cite key (`buildLibraryLookup`, `resolveItem`).
-struct Lookup<'a> {
+pub(super) struct Lookup<'a> {
     by_id: HashMap<String, &'a JsValue>,
     by_key: HashMap<String, &'a JsValue>,
 }
 
 impl<'a> Lookup<'a> {
-    fn new(items: &'a [JsValue]) -> Self {
+    pub(super) fn new(items: &'a [JsValue]) -> Self {
         let mut by_id = HashMap::new();
         let mut by_key = HashMap::new();
         for item in items {
@@ -70,7 +70,7 @@ impl<'a> Lookup<'a> {
         Self { by_id, by_key }
     }
 
-    fn resolve(&self, id: &str) -> Option<&'a JsValue> {
+    pub(super) fn resolve(&self, id: &str) -> Option<&'a JsValue> {
         self.by_id.get(id).or_else(|| self.by_key.get(id)).copied()
     }
 }

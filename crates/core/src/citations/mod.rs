@@ -5,6 +5,7 @@ pub mod bibliography;
 pub mod bibtex;
 pub mod format;
 pub mod import;
+pub mod labels;
 pub mod library;
 pub mod ris;
 pub mod styles;

@@ -96,6 +96,8 @@ struct Edit<'a> {
     markdown_forced: &'a mut bool,
     /// The Sources dialog (opened from the toolbar's "Sources…").
     sources: &'a mut Option<crate::sources::SourcesDialog>,
+    /// What citation markers are labelled with.
+    cites: CiteStyle<'a>,
 }
 
 pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
@@ -190,6 +192,19 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         markdown_switch,
         markdown_forced,
         sources,
+        cites: {
+            let options = prosecraft_core::publish::PublishOptions::read(
+                entry
+                    .stored
+                    .get("project")
+                    .and_then(|p| p.get("publishOptions")),
+            );
+            CiteStyle {
+                items: &project.citations,
+                style: options.citation_style,
+                locale: options.citation_locale,
+            }
+        },
     };
     let mut chosen = None;
     egui::ScrollArea::vertical()
@@ -558,14 +573,54 @@ const BLOCK_STYLES: [(LineKind, &str); 7] = [
     (LineKind::Numbered, "Numbered list"),
 ];
 
-/// What an atom shows: a footnote its number, a citation its own text, an equation its TeX.
-fn atom_labels(doc: &RichDoc) -> Vec<(String, bool)> {
+/// The citation library and the publish settings' style and locale, which the editor labels
+/// citation markers in (`refreshEditorCitationLabels`).
+pub(crate) struct CiteStyle<'a> {
+    pub items: &'a [prosecraft_core::js::JsValue],
+    pub style: String,
+    pub locale: String,
+}
+
+/// What an atom shows.
+#[derive(Clone, Debug, PartialEq)]
+enum AtomLabel {
+    /// A footnote reference: its number.
+    Footnote(String),
+    /// An equation: its TeX.
+    Math(String),
+    /// A citation: its sources formatted in the publish style (`renderCitationLabels`).
+    Cite(String),
+}
+
+fn is_footnote(html: &str) -> bool {
+    html.contains("footnote-ref")
+}
+
+fn is_math(html: &str) -> bool {
+    html.contains("math-inline")
+}
+
+/// Each atom's label, in order.
+fn atom_labels(doc: &RichDoc, cites: &CiteStyle) -> Vec<AtomLabel> {
+    let cite_markers: Vec<&str> = doc
+        .atoms
+        .iter()
+        .map(String::as_str)
+        .filter(|h| !is_footnote(h) && !is_math(h))
+        .collect();
+    let mut cite_labels = prosecraft_core::citations::labels::citation_labels(
+        &cite_markers,
+        cites.items,
+        &cites.style,
+        &cites.locale,
+    )
+    .into_iter();
     // Footnotes are numbered by id in order (`footnoteNumbers`): a repeated marker keeps its number.
     let mut numbered: Vec<String> = Vec::new();
     doc.atoms
         .iter()
         .map(|html| {
-            if html.contains("footnote-ref") {
+            if is_footnote(html) {
                 let id = prosecraft_core::footnotes::extract_ids(html)
                     .into_iter()
                     .next()
@@ -577,8 +632,8 @@ fn atom_labels(doc: &RichDoc) -> Vec<(String, bool)> {
                         numbered.len()
                     }
                 };
-                (number.to_string(), true)
-            } else if html.contains("math-inline") {
+                AtomLabel::Footnote(number.to_string())
+            } else if is_math(html) {
                 let nodes = prosecraft_core::html::parse_fragment(html);
                 let tex = nodes.first().and_then(|n| match n {
                     prosecraft_core::html::Node::Element(e) => {
@@ -586,18 +641,48 @@ fn atom_labels(doc: &RichDoc) -> Vec<(String, bool)> {
                     }
                     prosecraft_core::html::Node::Text(_) => None,
                 });
-                (format!("${}$", tex.unwrap_or_default()), false)
+                AtomLabel::Math(tex.unwrap_or_default())
             } else {
-                let text = prosecraft_core::html::html_to_plain_text(html, &Default::default());
-                (
-                    if text.is_empty() {
-                        "citation".to_owned()
-                    } else {
-                        text
-                    },
-                    false,
+                // A marker whose sources can't be read shows nothing in ProseCraft (no
+                // `data-label`); a word keeps it visible and clickable here.
+                AtomLabel::Cite(
+                    cite_labels
+                        .next()
+                        .flatten()
+                        .unwrap_or_else(|| "citation".to_owned()),
                 )
             }
+        })
+        .collect()
+}
+
+/// A citation label's font: the body's at 0.92em, as ProseCraft's `span.cite-ref`.
+fn cite_font() -> egui::FontId {
+    fonts::serif(17.0 * 0.92)
+}
+
+/// The room each atom takes beyond its own character (a citation's label and padding).
+fn atom_spacing(fonts: &mut egui::epaint::FontsView<'_>, labels: &[AtomLabel]) -> Vec<f32> {
+    let glyph = fonts
+        .layout_no_wrap(
+            ATOM.to_string(),
+            egui::FontId::proportional(ATOM_FONT + 2.0),
+            egui::Color32::TRANSPARENT,
+        )
+        .size()
+        .x;
+    labels
+        .iter()
+        .map(|label| match label {
+            AtomLabel::Cite(text) => {
+                let width = fonts
+                    .layout_no_wrap(text.clone(), cite_font(), egui::Color32::TRANSPARENT)
+                    .size()
+                    .x;
+                // ProseCraft's 5px padding each side and 1px margin.
+                (width + 12.0 - glyph).max(0.0)
+            }
+            AtomLabel::Footnote(_) | AtomLabel::Math(_) => 0.0,
         })
         .collect()
 }
@@ -610,10 +695,16 @@ pub(crate) fn layout_doc(
     text: &str,
     palette: &Palette,
     wrap: f32,
+    atom_spacing: &[f32],
 ) -> egui::text::LayoutJob {
     let mut job = egui::text::LayoutJob::default();
     job.wrap.max_width = wrap;
     let mut line = 0;
+    let mut atom = 0;
+    // A citation's room comes before the character after it, so the atom's own character is
+    // at the label's left and the next one at its right (the caret sits either side of it).
+    let mut room = 0.0;
+    let count = text.chars().count();
     for (i, c) in text.chars().enumerate() {
         if c == '\n' {
             line += 1;
@@ -656,13 +747,24 @@ pub(crate) fn layout_doc(
             // The character's own box holds a short painted label.
             format.font_id = egui::FontId::proportional(ATOM_FONT + 2.0);
             format.color = egui::Color32::TRANSPARENT;
+            atom += 1;
         }
         if c == '\n' {
             // ProseCraft's gap between paragraphs.
             format.line_height = Some(size * 1.85 + 10.0);
         }
+        let mut leading = std::mem::take(&mut room);
+        if c == ATOM {
+            let spacing = atom_spacing.get(atom - 1).copied().unwrap_or(0.0);
+            // The last character has nothing after it: its room goes before it.
+            if i + 1 == count {
+                leading += spacing;
+            } else {
+                room = spacing;
+            }
+        }
         let mut buf = [0u8; 4];
-        job.append(c.encode_utf8(&mut buf), 0.0, format);
+        job.append(c.encode_utf8(&mut buf), leading, format);
     }
     job
 }
@@ -924,6 +1026,7 @@ fn editor(
         ui.memory_mut(|m| m.request_focus(body_id));
     }
     let doc_for_layout = draft.doc.clone();
+    let layout_labels = atom_labels(&draft.doc, &edit.cites);
     let layout_palette = *palette;
     let mut layouter = move |ui: &Ui, text: &dyn egui::TextBuffer, wrap_width: f32| {
         if screenplay {
@@ -935,8 +1038,17 @@ fn editor(
                 wrap_width,
             );
         }
-        let job = layout_doc(&doc_for_layout, text.as_str(), &layout_palette, wrap_width);
-        ui.fonts_mut(|f| f.layout_job(job))
+        ui.fonts_mut(|f| {
+            let spacing = atom_spacing(f, &layout_labels);
+            let job = layout_doc(
+                &doc_for_layout,
+                text.as_str(),
+                &layout_palette,
+                wrap_width,
+                &spacing,
+            );
+            f.layout_job(job)
+        })
     };
     let output = egui::TextEdit::multiline(&mut draft.body)
         .id(body_id)
@@ -971,7 +1083,8 @@ fn editor(
         draft.words_added += (words as f64 - draft.words as f64).max(0.0);
         draft.words = words;
     }
-    let markers = paint_extras(ui, palette, &draft.doc, &output);
+    let labels = atom_labels(&draft.doc, &edit.cites);
+    let markers = paint_extras(ui, palette, &draft.doc, &labels, &output);
     // A click on a footnote marker opens its editor (`openFootnotePopoverForMarker`).
     if output.response.clicked()
         && let Some(pos) = output.response.interact_pointer_pos()
@@ -1101,13 +1214,14 @@ fn markdown_editor(
     footer(ui, palette, count, &save_text(edit.save_state));
 }
 
-/// What the text itself can't show: list bullets and numbers, the quote bar, and footnote
-/// markers as their numbers. Painted over the laid-out text, so the caret, selection and the
+/// What the text itself can't show: list bullets and numbers, the quote bar, footnote
+/// markers as their numbers, and citations as their labels. Painted over the laid-out text, so the caret, selection and the
 /// accessibility tree still see the real text.
 fn paint_extras(
     ui: &Ui,
     palette: &Palette,
     doc: &RichDoc,
+    labels: &[AtomLabel],
     output: &egui::text_edit::TextEditOutput,
 ) -> Vec<(egui::Rect, String)> {
     let mut markers = Vec::new();
@@ -1160,7 +1274,7 @@ fn paint_extras(
         .enumerate()
         .filter(|(_, c)| *c == ATOM)
         .map(|(i, _)| i);
-    for ((index, (label, footnote)), html) in atoms.zip(atom_labels(doc)).zip(&doc.atoms) {
+    for ((index, label), html) in atoms.zip(labels).zip(&doc.atoms) {
         let before = galley
             .pos_from_cursor(egui::text::CCursor::new(index))
             .translate(origin.to_vec2());
@@ -1173,42 +1287,71 @@ fn paint_extras(
             before.min.x + 14.0
         };
         let center = egui::pos2((before.min.x + right) / 2.0, before.center().y);
-        if footnote {
-            // A superscript number, as ProseCraft shows footnote references.
-            let at = egui::pos2(center.x, before.min.y + before.height() * 0.3);
-            if let Some(id) = prosecraft_core::footnotes::extract_ids(html)
-                .into_iter()
-                .next()
-            {
-                markers.push((
-                    egui::Rect::from_min_max(
-                        before.min,
-                        egui::pos2(right.max(before.min.x + 8.0), before.max.y),
-                    ),
-                    id,
-                ));
+        match label {
+            AtomLabel::Footnote(number) => {
+                // A superscript number, as ProseCraft shows footnote references.
+                let at = egui::pos2(center.x, before.min.y + before.height() * 0.3);
+                if let Some(id) = prosecraft_core::footnotes::extract_ids(html)
+                    .into_iter()
+                    .next()
+                {
+                    markers.push((
+                        egui::Rect::from_min_max(
+                            before.min,
+                            egui::pos2(right.max(before.min.x + 8.0), before.max.y),
+                        ),
+                        id,
+                    ));
+                }
+                painter.text(
+                    at,
+                    egui::Align2::CENTER_CENTER,
+                    number,
+                    egui::FontId::proportional(ATOM_FONT - 2.0),
+                    palette.link,
+                );
             }
-            painter.text(
-                at,
-                egui::Align2::CENTER_CENTER,
-                label,
-                egui::FontId::proportional(ATOM_FONT - 2.0),
-                palette.link,
-            );
-        } else {
-            let short = if label.starts_with('$') { "ƒ" } else { "cite" };
-            let chip = egui::Rect::from_center_size(
-                center,
-                egui::vec2((right - before.min.x).max(16.0), ATOM_FONT + 4.0),
-            );
-            painter.rect_filled(chip, 4.0, palette.selected_bg);
-            painter.text(
-                chip.center(),
-                egui::Align2::CENTER_CENTER,
-                short,
-                egui::FontId::proportional(ATOM_FONT - 2.0),
-                palette.selected_text,
-            );
+            AtomLabel::Math(_) => {
+                let chip = egui::Rect::from_center_size(
+                    center,
+                    egui::vec2((right - before.min.x).max(16.0), ATOM_FONT + 4.0),
+                );
+                painter.rect_filled(chip, 4.0, palette.selected_bg);
+                painter.text(
+                    chip.center(),
+                    egui::Align2::CENTER_CENTER,
+                    "ƒ",
+                    egui::FontId::proportional(ATOM_FONT - 2.0),
+                    palette.selected_text,
+                );
+            }
+            AtomLabel::Cite(text) => {
+                // ProseCraft's `span.cite-ref`: the label on a faint accent tint, in the room
+                // the layout left (which ends where the next character starts).
+                let font = cite_font();
+                let width = painter
+                    .layout_no_wrap(text.clone(), font.clone(), palette.accent_strong)
+                    .size()
+                    .x
+                    + 12.0;
+                let (left, right) = if (after.min.y - before.min.y).abs() < 1.0 {
+                    (after.min.x - width, after.min.x)
+                } else {
+                    (before.min.x, before.min.x + width)
+                };
+                let chip = egui::Rect::from_min_max(
+                    egui::pos2(left + 1.0, center.y - font.size * 0.62),
+                    egui::pos2(right - 1.0, center.y + font.size * 0.62),
+                );
+                painter.rect_filled(chip, 4.0, palette.accent.gamma_multiply(0.11));
+                painter.text(
+                    egui::pos2(chip.min.x + 5.0, chip.center().y),
+                    egui::Align2::LEFT_CENTER,
+                    text,
+                    font,
+                    palette.accent_strong,
+                );
+            }
         }
     }
     markers

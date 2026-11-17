@@ -935,3 +935,121 @@ fn timeline_moments_are_added_edited_moved_and_removed() {
         ["Day One"]
     );
 }
+
+#[test]
+fn wiki_folders_and_pages_are_added_renamed_and_removed() {
+    let (mut harness, memory) = app();
+    let data = |memory: &Memory| {
+        project(&memory.last(), "project-1")
+            .get("project")
+            .cloned()
+            .expect("data")
+    };
+    harness
+        .get_by_role_and_label(Role::Button, "Add to Wiki")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Add folder")
+        .click();
+    harness.run_steps(3);
+    // The new folder's name is being edited.
+    let name = harness.get_by_role_and_label(Role::TextInput, "Folder name");
+    name.focus();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    harness
+        .get_by_role_and_label(Role::TextInput, "Folder name")
+        .type_text("People");
+    harness.key_press(egui::Key::Enter);
+    harness.run_steps(12);
+    let folders = data(&memory)
+        .get("researchFolders")
+        .and_then(JsValue::as_array)
+        .map(<[JsValue]>::to_vec)
+        .unwrap_or_default();
+    let people = folders
+        .iter()
+        .find(|f| {
+            f.get("title")
+                .and_then(JsValue::as_js_string)
+                .is_some_and(|t| t.eq_str("People"))
+        })
+        .cloned()
+        .expect("the folder is named");
+    let people_id = people
+        .get("id")
+        .and_then(JsValue::as_js_string)
+        .map(|s| s.to_string_lossy())
+        .expect("id");
+
+    // A page in it, from the folder's menu: it opens in the editor.
+    harness
+        .get_by_role_and_label(Role::Button, "Actions for folder People")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Add page")
+        .click();
+    harness.run_steps(12);
+    assert!(
+        harness.query_by_label("Scene text").is_some(),
+        "the new page is open"
+    );
+    let docs = data(&memory)
+        .get("documents")
+        .and_then(JsValue::as_array)
+        .map(<[JsValue]>::to_vec)
+        .unwrap_or_default();
+    let page = docs.last().cloned().expect("a page");
+    assert_eq!(
+        page.get("folderId")
+            .and_then(JsValue::as_js_string)
+            .map(|s| s.to_string_lossy())
+            .as_deref(),
+        Some(people_id.as_str())
+    );
+    assert_eq!(
+        page.get("title")
+            .and_then(JsValue::as_js_string)
+            .map(|s| s.to_string_lossy())
+            .as_deref(),
+        Some("Untitled page")
+    );
+
+    // Removing the folder (confirmed) moves its page to the Wiki root; nothing is deleted.
+    harness
+        .get_by_role_and_label(Role::Button, "Actions for folder People")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Remove folder")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Remove")
+        .click();
+    harness.run_steps(12);
+    let after = data(&memory);
+    assert!(
+        !after
+            .get("researchFolders")
+            .and_then(JsValue::as_array)
+            .unwrap_or_default()
+            .iter()
+            .any(|f| f
+                .get("id")
+                .and_then(JsValue::as_js_string)
+                .is_some_and(|i| i.eq_str(&people_id)))
+    );
+    let page_after = after
+        .get("documents")
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+        .last()
+        .cloned()
+        .expect("the page is still there");
+    assert!(
+        page_after.get("folderId").is_none(),
+        "unfiled at the Wiki root"
+    );
+}

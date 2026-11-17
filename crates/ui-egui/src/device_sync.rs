@@ -232,6 +232,20 @@ impl ProseApp {
                     Ok(()) if result.created => created_message(mode, result.projects.len()),
                     Ok(()) => synced_message(&result),
                 };
+                if let Some(first) = result.conflict_files.first() {
+                    let more = result.conflict_files.len() - 1;
+                    let others = if more == 0 {
+                        String::new()
+                    } else {
+                        format!(" and {more} more")
+                    };
+                    let advice = if mode == SyncMode::EncryptedFile {
+                        " Open it with Open backup… to bring its changes in."
+                    } else {
+                        ""
+                    };
+                    self.state.sync.status.push_str(&format!(" Another sync tool left a conflict copy in the folder: {first}{others}. It was left as it is.{advice}"));
+                }
             }
             Err(message) if message == "Incorrect passphrase." => self.state.sync.status = message,
             Err(message) => self.state.sync.status = format!("Sync failed: {message}"),

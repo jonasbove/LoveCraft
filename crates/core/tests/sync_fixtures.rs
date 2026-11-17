@@ -368,3 +368,121 @@ fn write_layouts_for_prosecraft() {
         .expect("write");
     }
 }
+
+#[test]
+fn pruning_keeps_files_the_folder_did_not_write() {
+    use prosecraft_core::sync::SyncFileSystem;
+    let f = fixture();
+    let mut fs = files(f.get("folder").expect("folder"));
+    let original = fs
+        .files()
+        .get("projects/project-1/documents/doc-1.enc")
+        .cloned()
+        .expect("doc-1");
+    // Another sync tool's conflict copies repeat doc-1's envelope under other names; a stray
+    // file isn't an envelope at all.
+    for name in [
+        "doc-1 (conflict 2026-11-17 10.00 Laptop).enc",
+        "doc-1.sync-conflict-20261117-100000-ABC.enc",
+    ] {
+        fs.write_text(&format!("projects/project-1/documents/{name}"), &original)
+            .expect("copy");
+    }
+    fs.write_text("projects/project-1/documents/notes.enc", "not an envelope")
+        .expect("stray");
+    // A record deleted since: its canonical file is ours to remove.
+    fs.write_text(
+        "projects/project-1/documents/doc-9.enc",
+        &original.replace("\"id\": \"doc-1\"", "\"id\": \"doc-9\""),
+    )
+    .expect("old");
+    let mut provider = FolderProvider::new(&mut fs);
+    let connection = provider
+        .connect(&passphrase(&f), &mut OsRandom)
+        .expect("connect");
+    provider
+        .push(&connection.projects, &connection.key, &mut OsRandom)
+        .expect("push");
+    let names: Vec<&str> = fs
+        .files()
+        .keys()
+        .filter_map(|k| k.strip_prefix("projects/project-1/documents/"))
+        .collect();
+    assert_eq!(
+        names,
+        [
+            "doc-1 (conflict 2026-11-17 10.00 Laptop).enc",
+            "doc-1.enc",
+            "doc-1.sync-conflict-20261117-100000-ABC.enc",
+            "doc-2.enc",
+            "doc-3.enc",
+            "notes.enc"
+        ],
+        "conflict copies and stray files stay; doc-9.enc, written by this layout for a record no longer live, goes"
+    );
+}
+
+#[test]
+fn conflict_copies_are_reported_not_removed() {
+    use prosecraft_core::sync::SyncFileSystem;
+    let f = fixture();
+    let none = JsValue::Object(Default::default());
+    // The single file: a conflict copy beside it.
+    let mut fs = files(f.get("singleFile").expect("file"));
+    let bundle = fs
+        .files()
+        .get("prosecraft-sync.prosecraft")
+        .cloned()
+        .expect("bundle");
+    fs.write_text(
+        "prosecraft-sync (conflict 2026-11-17 10.00 Laptop).prosecraft",
+        &bundle,
+    )
+    .expect("copy");
+    let result = sync_via(
+        &mut EncryptedFileProvider::new(&mut fs, 1.0),
+        &passphrase(&f),
+        &[],
+        &none,
+        1.0,
+        "d",
+        &mut OsRandom,
+        &mut || "x".to_owned(),
+    )
+    .expect("sync");
+    assert_eq!(
+        result.conflict_files,
+        ["prosecraft-sync (conflict 2026-11-17 10.00 Laptop).prosecraft"]
+    );
+    assert!(
+        fs.files()
+            .contains_key("prosecraft-sync (conflict 2026-11-17 10.00 Laptop).prosecraft")
+    );
+    // The folder: a copy of a scene file.
+    let mut fs = files(f.get("folder").expect("folder"));
+    let original = fs
+        .files()
+        .get("projects/project-1/documents/doc-1.enc")
+        .cloned()
+        .expect("doc-1");
+    fs.write_text(
+        "projects/project-1/documents/doc-1 (conflict 2026-11-17 10.00 Laptop).enc",
+        &original,
+    )
+    .expect("copy");
+    let result = sync_via(
+        &mut FolderProvider::new(&mut fs),
+        &passphrase(&f),
+        &[],
+        &none,
+        1.0,
+        "d",
+        &mut OsRandom,
+        &mut || "x".to_owned(),
+    )
+    .expect("sync");
+    assert_eq!(
+        result.conflict_files,
+        ["projects/project-1/documents/doc-1 (conflict 2026-11-17 10.00 Laptop).enc"]
+    );
+}

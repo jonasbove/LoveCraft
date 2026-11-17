@@ -1,7 +1,9 @@
 //! The encrypted single file (`bundle-provider.ts`) and the encrypted folder
 //! (`folder-provider.ts`), and the flow both run (`orchestrate.ts`).
 
-use super::layout::{encode_project_files, entity_dir, project_dir_name, read_project_files};
+use super::layout::{
+    encode_project_files, entity_dir, entity_file_name, project_dir_name, read_project_files,
+};
 use super::merge::merge_projects;
 use super::{
     BUNDLE_FILE, OPEN_MARKER_FILE, PROJECTS_DIR, SyncError, SyncFileSystem, SyncResult, VAULT_FILE,
@@ -34,6 +36,11 @@ pub trait SyncProvider {
         random: &mut dyn RandomSource,
     ) -> Result<(), SyncError>;
     fn remove(&mut self, project_ids: &[String]) -> Result<(), SyncError>;
+    /// Files in the folder that look like another sync tool's conflict copies of this
+    /// layout's files. prosecraft-rs never deletes them; it says they are there.
+    fn conflict_files(&mut self) -> Result<Vec<String>, SyncError> {
+        Ok(Vec::new())
+    }
 }
 
 /// Refuses a folder that holds encrypted-folder projects but no vault file: a second vault
@@ -171,6 +178,24 @@ impl SyncProvider for EncryptedFileProvider<'_> {
         // Deleted projects are simply left out of the next file.
         Ok(())
     }
+
+    fn conflict_files(&mut self) -> Result<Vec<String>, SyncError> {
+        let stem = BUNDLE_FILE.trim_end_matches(".prosecraft");
+        let temporary = format!("{BUNDLE_FILE}.tmp");
+        Ok(self
+            .fs
+            .list_dir("")?
+            .into_iter()
+            .filter(|e| {
+                !e.is_directory
+                    && e.name != BUNDLE_FILE
+                    && e.name != temporary
+                    && e.name.starts_with(stem)
+                    && e.name.contains("onflict")
+            })
+            .map(|e| e.name)
+            .collect())
+    }
 }
 
 /// One encrypted file per record, discoverable from directory listings alone (no index).
@@ -212,18 +237,42 @@ impl<'a> FolderProvider<'a> {
         Ok(projects)
     }
 
-    /// Removes the `.enc` files of records that are no longer live.
+    /// Removes the files this layout wrote for records that are no longer live. A file counts
+    /// as ours only when its name is exactly the one this layout gives the id in its own
+    /// envelope. Anything else is left alone: a folder synced by another tool (CraftCloud,
+    /// Syncthing, Nextcloud) can hold that tool's conflict copies (`doc-1 (conflict ….enc`,
+    /// `doc-1.sync-conflict-….enc`), which repeat the original's id under another name and
+    /// can be the only copy of an edit.
+    ///
+    /// (ProseCraft at `7dae544` deletes every unknown `.enc` file; the same fix is proposed
+    /// upstream in jennraeross/ProseCraft#37.)
     fn prune(&mut self, dir: &str, keep: &[String]) -> Result<(), SyncError> {
         for kind in ENTITY_KINDS {
             let sub = format!("{dir}/{}", entity_dir(kind));
             for entry in self.fs.list_dir(&sub)? {
                 let path = format!("{sub}/{}", entry.name);
-                if !entry.is_directory && entry.name.ends_with(".enc") && !keep.contains(&path) {
+                if entry.is_directory || !entry.name.ends_with(".enc") || keep.contains(&path) {
+                    continue;
+                }
+                if self
+                    .envelope_id(&path)
+                    .is_some_and(|id| entity_file_name(&id) == entry.name)
+                {
                     self.fs.remove(&path)?;
                 }
             }
         }
         Ok(())
+    }
+
+    /// The record id in an encrypted file's plain-text envelope, if it can be read.
+    fn envelope_id(&mut self, path: &str) -> Option<String> {
+        let value = js::parse(&self.fs.read_text(path).ok()?).ok()?;
+        value
+            .get("id")
+            .and_then(JsValue::as_js_string)
+            .map(JsString::to_string_lossy)
+            .filter(|id| !id.is_empty())
     }
 }
 
@@ -305,6 +354,32 @@ impl SyncProvider for FolderProvider<'_> {
         }
         Ok(())
     }
+
+    fn conflict_files(&mut self) -> Result<Vec<String>, SyncError> {
+        let mut found = Vec::new();
+        for project in self.fs.list_dir(PROJECTS_DIR)? {
+            if !project.is_directory {
+                continue;
+            }
+            let dir = format!("{PROJECTS_DIR}/{}", project.name);
+            for kind in ENTITY_KINDS {
+                let sub = format!("{dir}/{}", entity_dir(kind));
+                for entry in self.fs.list_dir(&sub)? {
+                    if entry.is_directory || !entry.name.ends_with(".enc") {
+                        continue;
+                    }
+                    let path = format!("{sub}/{}", entry.name);
+                    if self
+                        .envelope_id(&path)
+                        .is_some_and(|id| entity_file_name(&id) != entry.name)
+                    {
+                        found.push(path);
+                    }
+                }
+            }
+        }
+        Ok(found)
+    }
 }
 
 /// `syncViaProvider`: connect, merge, write back, delete. The same for every layout, so
@@ -333,7 +408,9 @@ pub fn sync_via(
     if !merged.removed_ids.is_empty() {
         provider.remove(&merged.removed_ids)?;
     }
+    let conflict_files = provider.conflict_files()?;
     Ok(SyncResult {
+        conflict_files,
         projects: merged.projects,
         created: connection.created,
         imported: merged.imported,

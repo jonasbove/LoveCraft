@@ -101,4 +101,6 @@ pub struct SyncResult {
     pub conflicts: usize,
     /// The stamps to remember for the next sync, as a JSON object (id → stamp).
     pub last_synced: JsValue,
+    /// Another sync tool's conflict copies found in the folder (left as they are).
+    pub conflict_files: Vec<String>,
 }

@@ -106,6 +106,10 @@ pub enum Intent {
         y: f64,
     },
     RemoveCard(String),
+    /// A storyboard drawing: new (its id is made then), changed, removed.
+    AddDrawing(prosecraft_core::storyboard::Drawing),
+    SetDrawing(prosecraft_core::storyboard::Drawing),
+    RemoveDrawing(String),
     SetCardTitle {
         id: String,
         title: String,
@@ -288,6 +292,11 @@ pub fn run(
             prosecraft_core::storyboard::move_card(data, new_id, id, *x, *y)
         }
         Intent::RemoveCard(id) => prosecraft_core::storyboard::remove_card(data, new_id, id),
+        Intent::AddDrawing(drawing) => {
+            prosecraft_core::storyboard::add_drawing(data, new_id, drawing)
+        }
+        Intent::SetDrawing(drawing) => prosecraft_core::storyboard::set_drawing(data, drawing),
+        Intent::RemoveDrawing(id) => prosecraft_core::storyboard::remove_drawing(data, id),
         Intent::SetCardTitle { id, title } => {
             prosecraft_core::storyboard::set_card_title(data, new_id, id, title)
         }

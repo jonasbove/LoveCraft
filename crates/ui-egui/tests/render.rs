@@ -85,6 +85,71 @@ fn render_views() {
     harness
         .get_by_role_and_label(Role::Button, "+ Add blank card")
         .click();
+    harness.run();
+    let canvas = harness.get_by_label("Freeform storyboard").rect();
+    let origin = canvas.max - egui::vec2(420.0, 260.0);
+    let drag = |harness: &mut egui_kittest::Harness<'static, ProseApp>,
+                from: egui::Pos2,
+                to: egui::Pos2| {
+        harness.event(egui::Event::PointerMoved(from));
+        harness.event(egui::Event::PointerButton {
+            pos: from,
+            button: egui::PointerButton::Primary,
+            pressed: true,
+            modifiers: egui::Modifiers::NONE,
+        });
+        harness.run();
+        for step in 1..=4 {
+            harness.event(egui::Event::PointerMoved(
+                from + (to - from) * (step as f32 / 4.0),
+            ));
+            harness.run();
+        }
+        harness.event(egui::Event::PointerButton {
+            pos: to,
+            button: egui::PointerButton::Primary,
+            pressed: false,
+            modifiers: egui::Modifiers::NONE,
+        });
+        harness.run();
+    };
+    harness
+        .get_by_role_and_label(Role::Button, "Box tool")
+        .click();
+    harness.run();
+    drag(&mut harness, origin, origin + egui::vec2(160.0, 100.0));
+    harness
+        .get_by_role_and_label(Role::Button, "Arrow tool")
+        .click();
+    harness.run();
+    drag(
+        &mut harness,
+        origin + egui::vec2(170.0, 50.0),
+        origin + egui::vec2(300.0, 50.0),
+    );
+    harness
+        .get_by_role_and_label(Role::Button, "Text tool")
+        .click();
+    harness.run();
+    let at = origin + egui::vec2(20.0, 140.0);
+    harness.event(egui::Event::PointerMoved(at));
+    harness.event(egui::Event::PointerButton {
+        pos: at,
+        button: egui::PointerButton::Primary,
+        pressed: true,
+        modifiers: egui::Modifiers::NONE,
+    });
+    harness.event(egui::Event::PointerButton {
+        pos: at,
+        button: egui::PointerButton::Primary,
+        pressed: false,
+        modifiers: egui::Modifiers::NONE,
+    });
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::MultilineTextInput, "Diagram text")
+        .type_text("The turn");
+    harness.run();
     save(&mut harness, "storyboard");
     harness.get_by_role_and_label(Role::Tab, "Timeline").click();
     save(&mut harness, "timeline");

@@ -16,6 +16,7 @@ pub mod comments;
 pub mod edit;
 pub mod footnotes;
 pub mod html;
+pub mod import;
 pub mod js;
 pub mod labels;
 pub mod library;

@@ -21,6 +21,7 @@ tested against what the original really reads and writes, not against our readin
 | `comments.json` | `commentText` (ProseCraft's comment-dom over jsdom) for the rich corpus and fixture scenes, and `buildAnchor` / `locateAnchor` cases (repeated phrases, whitespace, astral characters, edits) |
 | `starters.json` | `buildFromBlueprint` for every starter preset and the screenplay blueprint, with counter ids (the starter data itself is `crates/core/src/starters/data.json`, exported by the same generator) |
 | `search.json` | `searchDocuments` (14 queries: folding, case, whole words, trash, wiki, astral, Hangul), `replaceInDocuments` (6, with titles, trash and a match spanning formatting) and `findFirstMatch` |
+| `epub-import.json` | `parseEpub` on 25 books (ProseCraft's own test cases: EPUB 3 nav and EPUB 2 NCX, the spine fallback, scene breaks, wrappers, title and licence pages, images, covers, DRM, sanitizing, broken archives, traversal; plus HTML-fallback markup, and three books ProseCraft's exporter wrote), each with its bytes and the manuscript or the error; and `buildEpubProject` with counter ids |
 | `bundle-plain.prosecraft` | A plain backup with two projects that touch every stored field, including a field from a "future release" |
 | `bundle-encrypted.prosecraft` | The same projects as an encrypted backup; `bundle-encrypted.key.json` holds its test passphrase and key |
 

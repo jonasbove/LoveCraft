@@ -280,6 +280,11 @@ pub fn screenplay_blueprint() -> Blueprint {
 /// `createProjectWithStarter`: a new project's data. `existing` is how many live projects
 /// there are (the name is "Untitled Project", then "Untitled Project 2"…). Ids are drawn in
 /// ProseCraft's order: project, chapter, storyboard row, first scene, then the wiki.
+/// ProseCraft's `defaultPublishOptions()`.
+pub fn default_publish_options() -> JsValue {
+    data().publish_options.clone()
+}
+
 pub fn new_project(
     screenplay: bool,
     existing: usize,

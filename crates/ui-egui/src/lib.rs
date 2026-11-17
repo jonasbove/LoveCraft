@@ -105,6 +105,8 @@ pub enum HostRequest {
     OpenBackup,
     /// Ask where to save this backup, then write it there.
     ExportBackup { file_name: String, text: String },
+    /// Ask for an EPUB to import, then call [`ProseApp::import_epub`].
+    ImportEpub,
     /// Ask for a sync folder, then call [`ProseApp::set_sync_folder`].
     ChooseSyncFolder,
     /// Ask where to save an exported manuscript, then write it there. `kind` names the format
@@ -816,6 +818,8 @@ impl ProseApp {
             return;
         }
         match file.bytes() {
+            // A dropped EPUB is imported (`importEpubData`); anything else is a backup.
+            Ok(bytes) if name.to_lowercase().ends_with(".epub") => self.import_epub(&name, &bytes),
             Ok(bytes) => self.open_backup_bytes(&name, &bytes),
             Err(error) => self.state.status = Some(format!("Couldn't open {name}: {error}")),
         }

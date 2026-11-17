@@ -120,6 +120,29 @@ fn mode_option(
     ui.add_space(4.0);
 }
 
+/// ProseCraft's "Import a manuscript" group (the EPUB importer; Scrivener, Markdown folders and
+/// Fountain come later).
+fn import_manuscript(ui: &mut Ui, state: &mut AppState) {
+    let palette = state.palette;
+    ui.label(
+        RichText::new("Import a manuscript")
+            .strong()
+            .color(palette.text_heading),
+    );
+    ui.add_space(4.0);
+    if ui
+        .add_enabled(state.has_home, egui::Button::new("Import EPUB…"))
+        .clicked()
+    {
+        state.requests.push(crate::HostRequest::ImportEpub);
+    }
+    help(
+        ui,
+        &palette,
+        "Creates a new project from an EPUB file. Chapter structure and supported illustrations are preserved, and the cover becomes the project cover when it can be embedded.",
+    );
+}
+
 fn device_sync(ui: &mut Ui, state: &mut AppState) {
     let palette = state.palette;
     let panel = &mut state.sync;
@@ -399,7 +422,11 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                     ui.set_width(440.0);
                     match state.settings_tab {
                         Category::General => general(ui, state),
-                        Category::Data => device_sync(ui, state),
+                        Category::Data => {
+                            import_manuscript(ui, state);
+                            ui.add_space(14.0);
+                            device_sync(ui, state);
+                        }
                     }
                 });
             });

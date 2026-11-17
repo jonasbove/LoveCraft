@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 
 use egui::accesskit::Role;
 use egui_kittest::Harness;
-use egui_kittest::kittest::Queryable;
+use egui_kittest::kittest::{NodeT, Queryable};
 use prosecraft_ui_egui::{HostRequest, LibraryStore, ProjectLibrary, ProseApp};
 
 fn fixture(name: &str) -> String {
@@ -300,4 +300,89 @@ fn a_new_project_starts_from_a_wiki_template() {
             .as_deref(),
         Some("The Long Night")
     );
+}
+
+/// A book from the EPUB import fixtures.
+fn epub(name: &str) -> Vec<u8> {
+    use base64::Engine;
+    let all = prosecraft_core::js::parse(&fixture("epub-import.json")).expect("json");
+    let case = all
+        .get("cases")
+        .and_then(prosecraft_core::js::JsValue::as_array)
+        .unwrap_or_default()
+        .iter()
+        .find(|c| {
+            c.get("name")
+                .and_then(prosecraft_core::js::JsValue::as_js_string)
+                .is_some_and(|n| n.eq_str(name))
+        })
+        .cloned()
+        .expect("case");
+    let text = case
+        .get("epub")
+        .and_then(prosecraft_core::js::JsValue::as_js_string)
+        .map(|s| s.to_string_lossy())
+        .unwrap_or_default();
+    base64::engine::general_purpose::STANDARD
+        .decode(text)
+        .expect("base64")
+}
+
+#[test]
+fn an_imported_epub_becomes_a_project_that_opens() {
+    let memory = Memory::default();
+    let app = ProseApp::with_library(
+        ProjectLibrary::new("this-device".into()),
+        Box::new(memory.clone()),
+    );
+    let mut harness = harness(app);
+    harness.run();
+    // Settings → Data and sync asks the host for a book.
+    harness
+        .get_by_role_and_label(Role::Button, "Settings…")
+        .click();
+    harness.run();
+    harness.get_by_label("Data and sync").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Import EPUB…")
+        .click();
+    harness.run();
+    assert!(
+        harness
+            .state_mut()
+            .take_requests()
+            .contains(&HostRequest::ImportEpub)
+    );
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+
+    harness
+        .state_mut()
+        .import_epub("book.epub", &epub("nav-and-metadata"));
+    harness.run_steps(3);
+    harness.get_by_label_contains("Imported “A Test Book” — 2 chapter(s), 2 scene(s).");
+    // The chapter, and its first scene titled after it (as ProseCraft names them).
+    assert_eq!(
+        harness
+            .query_all_by_role_and_label(Role::TreeItem, "Chapter Two")
+            .count(),
+        2
+    );
+    // Opened at its first scene, with the heading made the chapter's title.
+    assert_eq!(
+        harness
+            .get_by_label("Scene text")
+            .accesskit_node()
+            .value()
+            .as_deref(),
+        Some("First scene.")
+    );
+    let saved = memory.saved.lock().unwrap().last().cloned().expect("saved");
+    assert!(saved.contains("A Test Book") && saved.contains("Ada Lovelace"));
+
+    // A book that can't be imported says why.
+    harness.state_mut().import_epub("drm.epub", &epub("drm"));
+    harness.run();
+    harness.get_by_label_contains("This EPUB is DRM-protected and can't be imported.");
 }

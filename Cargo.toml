@@ -23,6 +23,7 @@ craft-atomic = { git = "https://github.com/storytold/craft-libs", rev = "8672aff
 craft-dialogs = { git = "https://github.com/storytold/craft-libs", rev = "8672aff3d85ccad8f2a391304139d192a7d08dd5", version = "=0.1.0" }
 craft-html = { git = "https://github.com/storytold/craft-libs", rev = "8672aff3d85ccad8f2a391304139d192a7d08dd5", version = "=0.1.0" }
 craft-zip = { git = "https://github.com/storytold/craft-libs", rev = "8672aff3d85ccad8f2a391304139d192a7d08dd5", version = "=0.1.0" }
+craft-xml = { git = "https://github.com/storytold/craft-libs", rev = "8672aff3d85ccad8f2a391304139d192a7d08dd5", version = "=0.1.0" }
 craft-image-codecs = { git = "https://github.com/storytold/craft-libs", rev = "8672aff3d85ccad8f2a391304139d192a7d08dd5", version = "=0.1.0" }
 
 # foundation

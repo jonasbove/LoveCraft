@@ -98,6 +98,8 @@ struct Edit<'a> {
     sources: &'a mut Option<crate::sources::SourcesDialog>,
     /// What citation markers are labelled with.
     cites: CiteStyle<'a>,
+    /// The citation picker (opened from the toolbar, Ctrl+Alt+C, or a citation).
+    citation_picker: &'a mut Option<crate::citation_picker::CitationPicker>,
 }
 
 pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
@@ -149,6 +151,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         markdown_switch,
         markdown_forced,
         sources,
+        citation_picker,
         ..
     } = state;
     let entry = library.as_ref().and_then(|l| l.projects().get(*active));
@@ -192,6 +195,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         markdown_switch,
         markdown_forced,
         sources,
+        citation_picker,
         cites: {
             let options = prosecraft_core::publish::PublishOptions::read(
                 entry
@@ -984,6 +988,28 @@ fn editor(
                     at,
                 });
             }
+            // ProseCraft's Insert citation (Ctrl+Alt+C): the picker for a citation at the caret,
+            // or at the end of the text.
+            let cite = ui
+                .button("Cite")
+                .on_hover_text("Insert citation (Ctrl+Alt+C)");
+            name_field(ui, &cite, "Insert citation");
+            let keyed = ui.input_mut(|i| {
+                i.consume_key(
+                    egui::Modifiers::COMMAND | egui::Modifiers::ALT,
+                    egui::Key::C,
+                )
+            });
+            if cite.clicked() || keyed {
+                let at = selection
+                    .clone()
+                    .map_or(draft.doc.text.chars().count(), |r| r.start);
+                *edit.citation_picker = Some(crate::citation_picker::CitationPicker::new(
+                    &document.id,
+                    crate::citation_picker::Target::Insert { at },
+                    &[],
+                ));
+            }
             // ProseCraft's "Sources…": the project's citation library.
             let sources = ui.button("Sources…").on_hover_text("Sources…");
             name_field(ui, &sources, "Sources");
@@ -1085,14 +1111,60 @@ fn editor(
     }
     let labels = atom_labels(&draft.doc, &edit.cites);
     let markers = paint_extras(ui, palette, &draft.doc, &labels, &output);
-    // A click on a footnote marker opens its editor (`openFootnotePopoverForMarker`).
+    // A click on a footnote marker opens its editor (`openFootnotePopoverForMarker`); on a
+    // citation, the picker to change it (`openCitationPickerForMarker`).
     if output.response.clicked()
         && let Some(pos) = output.response.interact_pointer_pos()
-        && let Some((_, id)) = markers
+        && let Some((rect, clicked)) = markers
             .iter()
             .find(|(rect, _)| rect.expand(2.0).contains(pos))
     {
-        *edit.footnote_open = Some((document.id.clone(), id.clone()));
+        match clicked {
+            Clicked::Footnote(id) => {
+                *edit.footnote_open = Some((document.id.clone(), id.clone()));
+            }
+            Clicked::Cite(atom) => {
+                let cites = draft
+                    .doc
+                    .atoms
+                    .get(*atom)
+                    .and_then(|html| {
+                        prosecraft_core::html::parse_fragment(html)
+                            .into_iter()
+                            .find_map(|n| match n {
+                                prosecraft_core::html::Node::Element(e) => {
+                                    e.attr("data-cites").map(str::to_owned)
+                                }
+                                prosecraft_core::html::Node::Text(_) => None,
+                            })
+                    })
+                    .and_then(|raw| prosecraft_core::cite::parse_cite_data(Some(&raw)))
+                    .unwrap_or_default();
+                let mut picker = crate::citation_picker::CitationPicker::new(
+                    &document.id,
+                    crate::citation_picker::Target::Edit { atom: *atom },
+                    &cites,
+                );
+                picker.pos = Some(rect.left_bottom() + egui::vec2(0.0, 6.0));
+                *edit.citation_picker = Some(picker);
+            }
+        }
+    }
+    // A new citation's picker opens beside the caret.
+    if let Some(picker) = edit
+        .citation_picker
+        .as_mut()
+        .filter(|p| p.pos.is_none() && p.document == document.id)
+    {
+        let at = match picker.target {
+            crate::citation_picker::Target::Insert { at } => at,
+            crate::citation_picker::Target::Edit { .. } => 0,
+        };
+        let caret = output
+            .galley
+            .pos_from_cursor(egui::text::CCursor::new(at))
+            .translate(output.galley_pos.to_vec2());
+        picker.pos = Some(caret.left_bottom() + egui::vec2(0.0, 6.0));
     }
     let count = draft.words;
     footer(ui, palette, count, &save_text(edit.save_state));
@@ -1214,6 +1286,14 @@ fn markdown_editor(
     footer(ui, palette, count, &save_text(edit.save_state));
 }
 
+/// A marker the writer can click.
+enum Clicked {
+    /// A footnote reference: its id.
+    Footnote(String),
+    /// A citation: its atom's index.
+    Cite(usize),
+}
+
 /// What the text itself can't show: list bullets and numbers, the quote bar, footnote
 /// markers as their numbers, and citations as their labels. Painted over the laid-out text, so the caret, selection and the
 /// accessibility tree still see the real text.
@@ -1223,7 +1303,7 @@ fn paint_extras(
     doc: &RichDoc,
     labels: &[AtomLabel],
     output: &egui::text_edit::TextEditOutput,
-) -> Vec<(egui::Rect, String)> {
+) -> Vec<(egui::Rect, Clicked)> {
     let mut markers = Vec::new();
     let painter = ui.painter_at(output.text_clip_rect.expand2(egui::vec2(30.0, 0.0)));
     let galley = &output.galley;
@@ -1274,7 +1354,7 @@ fn paint_extras(
         .enumerate()
         .filter(|(_, c)| *c == ATOM)
         .map(|(i, _)| i);
-    for ((index, label), html) in atoms.zip(labels).zip(&doc.atoms) {
+    for (atom, ((index, label), html)) in atoms.zip(labels).zip(&doc.atoms).enumerate() {
         let before = galley
             .pos_from_cursor(egui::text::CCursor::new(index))
             .translate(origin.to_vec2());
@@ -1300,7 +1380,7 @@ fn paint_extras(
                             before.min,
                             egui::pos2(right.max(before.min.x + 8.0), before.max.y),
                         ),
-                        id,
+                        Clicked::Footnote(id),
                     ));
                 }
                 painter.text(
@@ -1344,6 +1424,7 @@ fn paint_extras(
                     egui::pos2(right - 1.0, center.y + font.size * 0.62),
                 );
                 painter.rect_filled(chip, 4.0, palette.accent.gamma_multiply(0.11));
+                markers.push((chip, Clicked::Cite(atom)));
                 painter.text(
                     egui::pos2(chip.min.x + 5.0, chip.center().y),
                     egui::Align2::LEFT_CENTER,

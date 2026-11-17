@@ -120,6 +120,17 @@ pub enum Intent {
     },
     /// The Sources dialog's citation library.
     SetCitations(Vec<prosecraft_core::js::JsValue>),
+    /// The citation picker's citation (its marker's HTML), new at a character of the open
+    /// scene or in place of one of its atoms; and removing one. Handled with the editor's draft.
+    PlaceCitation {
+        document: String,
+        target: crate::citation_picker::Target,
+        html: String,
+    },
+    RemoveCitation {
+        document: String,
+        atom: usize,
+    },
     /// `convertToScreenplay`: a prose scene made a screenplay, a snapshot of the prose first.
     ConvertToScreenplay {
         document: String,
@@ -358,7 +369,9 @@ pub fn run(
             Ok(())
         }
         // Placed by the app, which holds the draft.
-        Intent::InsertFootnote { .. } => Ok(()),
+        Intent::InsertFootnote { .. }
+        | Intent::PlaceCitation { .. }
+        | Intent::RemoveCitation { .. } => Ok(()),
         Intent::SetFootnote { document, id, html } => {
             prosecraft_core::footnotes::update_definition(data, document, id, html)
         }

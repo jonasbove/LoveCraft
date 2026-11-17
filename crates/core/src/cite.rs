@@ -165,6 +165,34 @@ pub(crate) fn cite_json(items: &[CiteRefItem]) -> String {
     crate::js::stringify(&JsValue::Array(values))
 }
 
+/// `citeMarkerHtml` (with `buildCiteData`'s checks): the empty, non-editable marker for these
+/// sources, or `None` where ProseCraft throws (no sources, too many, an invalid one, or JSON
+/// over the size limit).
+pub fn cite_marker_html(items: &[CiteRefItem]) -> Option<String> {
+    if items.is_empty() || items.len() > MAX_CITE_ITEMS {
+        return None;
+    }
+    // Each entry as `validateAndNormalizeItem` leaves it (none may be dropped).
+    let normalized: Vec<CiteRefItem> = crate::js::parse(&cite_json(items))
+        .ok()?
+        .as_array()?
+        .iter()
+        .map(item)
+        .collect::<Option<_>>()?;
+    let json = cite_json(&normalized);
+    if js_len(&json) > MAX_CITE_ATTR_LENGTH {
+        return None;
+    }
+    let escaped = json
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;");
+    Some(format!(
+        "<span class=\"{CITE_REF_CLASS}\" data-cites=\"{escaped}\" contenteditable=\"false\"></span>"
+    ))
+}
+
 /// `normalizeCiteDataAttr`: the canonical `data-cites` value, or `None`.
 pub fn normalize_cite_data_attr(raw: Option<&str>) -> Option<String> {
     let json = cite_json(&parse_cite_data(raw)?);

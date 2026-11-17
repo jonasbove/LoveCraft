@@ -134,6 +134,266 @@
       "html": "<p>Unicode: café 🌊   tab\tend</p>",
       "full": "<p>Unicode: café 🌊   tab\tend</p>",
       "inline": "Unicode: café 🌊   tab\tend"
+    },
+    {
+      "html": " \n\t<p>x</p>",
+      "full": "<p>x</p>",
+      "inline": "x"
+    },
+    {
+      "html": "</b> 日本",
+      "full": "日本",
+      "inline": "日本"
+    },
+    {
+      "html": "<!-- c -->  x",
+      "full": "x",
+      "inline": "x"
+    },
+    {
+      "html": " lead nbsp",
+      "full": "&nbsp;lead nbsp",
+      "inline": "&nbsp;lead nbsp"
+    },
+    {
+      "html": "  <em>a</em> b",
+      "full": "<em>a</em> b",
+      "inline": "<em>a</em> b"
+    },
+    {
+      "html": "\n\n",
+      "full": "",
+      "inline": ""
+    },
+    {
+      "html": "</p>\n<p>x</p>",
+      "full": "<p>x</p>",
+      "inline": "x"
+    },
+    {
+      "html": "<p><a href=\"http://x.y&]\"\">u</a></p>",
+      "full": "<p><a>u</a></p>",
+      "inline": "<a>u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://x.y%5Br%5D\">u</a></p>",
+      "full": "<p><a>u</a></p>",
+      "inline": "<a>u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://a b/\">u</a></p>",
+      "full": "<p><a>u</a></p>",
+      "inline": "<a>u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://[::1]/\">u</a></p>",
+      "full": "<p><a href=\"http://[::1]/\">u</a></p>",
+      "inline": "<a href=\"http://[::1]/\">u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://[bad/\">u</a></p>",
+      "full": "<p><a>u</a></p>",
+      "inline": "<a>u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://x:99999/\">u</a></p>",
+      "full": "<p><a>u</a></p>",
+      "inline": "<a>u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://x:80/\">u</a></p>",
+      "full": "<p><a href=\"http://x:80/\">u</a></p>",
+      "inline": "<a href=\"http://x:80/\">u</a>"
+    },
+    {
+      "html": "<p><a href=\"http:///x\">u</a></p>",
+      "full": "<p><a href=\"http:///x\">u</a></p>",
+      "inline": "<a href=\"http:///x\">u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://\">u</a></p>",
+      "full": "<p><a>u</a></p>",
+      "inline": "<a>u</a>"
+    },
+    {
+      "html": "<p><a href=\"https://exa mple.com\">u</a></p>",
+      "full": "<p><a>u</a></p>",
+      "inline": "<a>u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://ex%41mple.com\">u</a></p>",
+      "full": "<p><a href=\"http://ex%41mple.com\">u</a></p>",
+      "inline": "<a href=\"http://ex%41mple.com\">u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://ex%00ample.com\">u</a></p>",
+      "full": "<p><a>u</a></p>",
+      "inline": "<a>u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://xn--nxasmq6b.com\">u</a></p>",
+      "full": "<p><a href=\"http://xn--nxasmq6b.com\">u</a></p>",
+      "inline": "<a href=\"http://xn--nxasmq6b.com\">u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://ünïcode.com\">u</a></p>",
+      "full": "<p><a href=\"http://ünïcode.com\">u</a></p>",
+      "inline": "<a href=\"http://ünïcode.com\">u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://a@b@c/\">u</a></p>",
+      "full": "<p><a href=\"http://a@b@c/\">u</a></p>",
+      "inline": "<a href=\"http://a@b@c/\">u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://user:pass@host/\">u</a></p>",
+      "full": "<p><a href=\"http://user:pass@host/\">u</a></p>",
+      "inline": "<a href=\"http://user:pass@host/\">u</a>"
+    },
+    {
+      "html": "<p><a href=\"mailto:\">u</a></p>",
+      "full": "<p><a href=\"mailto:\">u</a></p>",
+      "inline": "<a href=\"mailto:\">u</a>"
+    },
+    {
+      "html": "<p><a href=\"mailto:a b\">u</a></p>",
+      "full": "<p><a href=\"mailto:a b\">u</a></p>",
+      "inline": "<a href=\"mailto:a b\">u</a>"
+    },
+    {
+      "html": "<p><a href=\"http:x\">u</a></p>",
+      "full": "<p><a href=\"http:x\">u</a></p>",
+      "inline": "<a href=\"http:x\">u</a>"
+    },
+    {
+      "html": "<p><a href=\"https:/x\">u</a></p>",
+      "full": "<p><a href=\"https:/x\">u</a></p>",
+      "inline": "<a href=\"https:/x\">u</a>"
+    },
+    {
+      "html": "<p><a href=\"http:\\\\x\\y\">u</a></p>",
+      "full": "<p><a href=\"http:\\\\x\\y\">u</a></p>",
+      "inline": "<a href=\"http:\\\\x\\y\">u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://1.2.3.4.5/\">u</a></p>",
+      "full": "<p><a>u</a></p>",
+      "inline": "<a>u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://0x7f.1/\">u</a></p>",
+      "full": "<p><a href=\"http://0x7f.1/\">u</a></p>",
+      "inline": "<a href=\"http://0x7f.1/\">u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://256.0.0.1/\">u</a></p>",
+      "full": "<p><a>u</a></p>",
+      "inline": "<a>u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://%zz/\">u</a></p>",
+      "full": "<p><a>u</a></p>",
+      "inline": "<a>u</a>"
+    },
+    {
+      "html": "<p><a href=\"//proto-relative/x\">u</a></p>",
+      "full": "<p><a href=\"//proto-relative/x\">u</a></p>",
+      "inline": "<a href=\"//proto-relative/x\">u</a>"
+    },
+    {
+      "html": "<p><a href=\"?q\">u</a></p>",
+      "full": "<p><a href=\"?q\">u</a></p>",
+      "inline": "<a href=\"?q\">u</a>"
+    },
+    {
+      "html": "<p><a href=\"/rel\">u</a></p>",
+      "full": "<p><a href=\"/rel\">u</a></p>",
+      "inline": "<a href=\"/rel\">u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://x.y/%zz\">u</a></p>",
+      "full": "<p><a href=\"http://x.y/%zz\">u</a></p>",
+      "inline": "<a href=\"http://x.y/%zz\">u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://x.y#frag]\">u</a></p>",
+      "full": "<p><a href=\"http://x.y#frag]\">u</a></p>",
+      "inline": "<a href=\"http://x.y#frag]\">u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://x.y?<>\">u</a></p>",
+      "full": "<p><a href=\"http://x.y?<>\">u</a></p>",
+      "inline": "<a href=\"http://x.y?<>\">u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://-x.y/\">u</a></p>",
+      "full": "<p><a href=\"http://-x.y/\">u</a></p>",
+      "inline": "<a href=\"http://-x.y/\">u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://x_y.z/\">u</a></p>",
+      "full": "<p><a href=\"http://x_y.z/\">u</a></p>",
+      "inline": "<a href=\"http://x_y.z/\">u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://x..y/\">u</a></p>",
+      "full": "<p><a href=\"http://x..y/\">u</a></p>",
+      "inline": "<a href=\"http://x..y/\">u</a>"
+    },
+    {
+      "html": "<p><a href=\"HTTP://X.Y\">u</a></p>",
+      "full": "<p><a href=\"HTTP://X.Y\">u</a></p>",
+      "inline": "<a href=\"HTTP://X.Y\">u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://x.y:/\">u</a></p>",
+      "full": "<p><a href=\"http://x.y:/\">u</a></p>",
+      "inline": "<a href=\"http://x.y:/\">u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://x.y:0x50/\">u</a></p>",
+      "full": "<p><a>u</a></p>",
+      "inline": "<a>u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://[1:2::3]:8080/\">u</a></p>",
+      "full": "<p><a href=\"http://[1:2::3]:8080/\">u</a></p>",
+      "inline": "<a href=\"http://[1:2::3]:8080/\">u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://x.y|z/\">u</a></p>",
+      "full": "<p><a>u</a></p>",
+      "inline": "<a>u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://x^y/\">u</a></p>",
+      "full": "<p><a>u</a></p>",
+      "inline": "<a>u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://x.y z/\">u</a></p>",
+      "full": "<p><a>u</a></p>",
+      "inline": "<a>u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://xn--a.com/\">u</a></p>",
+      "full": "<p><a>u</a></p>",
+      "inline": "<a>u</a>"
+    },
+    {
+      "html": "<p><a href=\"https://例え.jp/\">u</a></p>",
+      "full": "<p><a href=\"https://例え.jp/\">u</a></p>",
+      "inline": "<a href=\"https://例え.jp/\">u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://x.y%2Fz/\">u</a></p>",
+      "full": "<p><a>u</a></p>",
+      "inline": "<a>u</a>"
+    },
+    {
+      "html": "<p><a href=\"http://x.y%3Az/\">u</a></p>",
+      "full": "<p><a>u</a></p>",
+      "inline": "<a>u</a>"
     }
   ]
 }

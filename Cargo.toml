@@ -44,6 +44,9 @@ zeroize = "1"
 # ECMAScript regular expressions, for marked's rules to match as they do in JavaScript
 # (MIT OR Apache-2.0).
 regress = "0.12"
+# The WHATWG URL Standard, for links judged as ProseCraft's `new URL()` judges them (MIT OR
+# Apache-2.0).
+url = "2.5"
 # The platform data folder for the library (MIT OR Apache-2.0).
 dirs = "6"
 tempfile = "3"

@@ -38,6 +38,11 @@ impl ProseApp {
                 .load_setting(prosecraft_core::starters::custom::CUSTOM_STARTERS_KEY)
                 .as_deref(),
         );
+        self.state.markdown_enabled = home
+            .store
+            .load_setting(crate::settings::MARKDOWN_EDITOR_KEY)
+            .as_deref()
+            == Some("true");
         self.state.theme = home
             .store
             .load_setting(crate::settings::THEME_KEY)

@@ -205,6 +205,18 @@ fn render_views() {
         .get_by_role_and_label(Role::TreeItem, "Opening Scene")
         .click();
     save(&mut harness, "write-light");
+    harness
+        .get_by_role_and_label(Role::Button, "Settings…")
+        .click();
+    harness.run();
+    harness.get_by_label("Writing").click();
+    harness.run();
+    harness.get_by_label("Enable Markdown editor").click();
+    save(&mut harness, "settings-writing");
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    harness.get_by_label("Markdown editor").click();
+    save(&mut harness, "markdown-editor");
 
     // A new project from an empty library.
     let empty = ProseApp::with_library(ProjectLibrary::new("render".into()), Box::new(Nowhere));

@@ -283,6 +283,12 @@ pub struct AppState {
     /// A Markdown folder read and shown in the import dialog, and one to import now.
     markdown_import: Option<markdown_import::MarkdownImportDraft>,
     markdown_import_done: Option<markdown_import::MarkdownImportDraft>,
+    /// ProseCraft's Markdown editor: the preference, the mode (on for every scene until turned
+    /// off), a switch asked for this frame, and the preference changed in Settings.
+    markdown_enabled: bool,
+    markdown_mode: bool,
+    markdown_switch: Option<bool>,
+    markdown_enabled_choice: Option<bool>,
     /// The user's own wiki templates (a device setting), and a new list to save (a new one has
     /// no id yet).
     custom_starters: Vec<prosecraft_core::starters::custom::CustomStarter>,
@@ -751,6 +757,13 @@ impl ProseApp {
 
     /// After each frame: the panes' changes, the draft after a pause, the library after a pause.
     fn after_frame(&mut self) {
+        // `switchToMarkdownEditor` / `switchToRichTextEditor`: the typing so far saved, then
+        // the editor reopened in the other mode.
+        if let Some(on) = self.state.markdown_switch.take() {
+            self.commit_draft();
+            self.state.markdown_mode = on && self.state.markdown_enabled;
+            self.state.draft = None;
+        }
         for intent in std::mem::take(&mut self.state.intents) {
             match &intent {
                 editing::Intent::InsertFootnote { document, at } => {
@@ -977,6 +990,20 @@ impl ProseApp {
         self.passphrase_dialog(ui);
         self.handle_sync_actions();
         self.save_custom_starters();
+        if let Some(enabled) = self.state.markdown_enabled_choice.take() {
+            self.state.markdown_enabled = enabled;
+            if !enabled && self.state.markdown_mode {
+                self.state.markdown_switch = Some(false);
+            }
+            if let Some(home) = self.home.as_mut()
+                && let Err(error) = home.store.save_setting(
+                    settings::MARKDOWN_EDITOR_KEY,
+                    Some(if enabled { "true" } else { "false" }),
+                )
+            {
+                self.state.status = Some(format!("Could not save the setting: {error}"));
+            }
+        }
         if let Some(theme) = self.state.theme_choice.take() {
             self.state.theme = theme;
             if let Some(home) = self.home.as_mut()

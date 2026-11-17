@@ -1966,3 +1966,80 @@ fn a_prose_scene_of_a_screenplay_project_converts_with_a_snapshot() {
     );
     harness.get_by_label("Element type");
 }
+
+#[test]
+fn a_scene_is_written_in_markdown_and_back_in_rich_text() {
+    let (mut harness, memory) = app();
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("an add button")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Scene 1")
+        .click();
+    harness.run();
+    // No Markdown editor until it is enabled in Settings → Writing.
+    assert!(harness.query_by_label("Markdown editor").is_none());
+    harness
+        .get_by_role_and_label(Role::Button, "Settings…")
+        .click();
+    harness.run();
+    harness.get_by_label("Writing").click();
+    harness.run();
+    harness.get_by_label("Enable Markdown editor").click();
+    harness.run();
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+
+    harness.get_by_label("Markdown editor").click();
+    harness.run_steps(2);
+    let source = harness.get_by_label("Markdown source");
+    source.focus();
+    source.type_text("# Lighthouse");
+    harness.key_press(egui::Key::Enter);
+    harness.key_press(egui::Key::Enter);
+    harness
+        .get_by_label("Markdown source")
+        .type_text("The *lamp* went out[^n].");
+    harness.key_press(egui::Key::Enter);
+    harness.key_press(egui::Key::Enter);
+    harness
+        .get_by_label("Markdown source")
+        .type_text("[^n]: At midnight.");
+    harness.run_steps(12);
+
+    let saved = memory.last();
+    let scene = document(project(&saved, "project-1"), "new-1").expect("saved scene");
+    let text = |key: &str| scene.get(key).map(js::stringify).unwrap_or_default();
+    assert_eq!(
+        text("content"),
+        r#""<h1>Lighthouse</h1>\n<p>The <em>lamp</em> went out<sup class=\"footnote-ref\" data-footnote-id=\"n\" contenteditable=\"false\"></sup>.</p>\n""#
+    );
+    assert_eq!(
+        text("markdownSource"),
+        r##""# Lighthouse\n\nThe *lamp* went out[^n].\n\n[^n]: At midnight.""##
+    );
+    assert_eq!(text("footnotes"), r#"[{"id":"n","html":"At midnight."}]"#);
+    harness.get_by_label("5 words");
+
+    // Back in rich text, the scene shows what the Markdown made; a rich edit drops the source.
+    harness
+        .get_by_role_and_label(Role::Button, "Rich text editor")
+        .click();
+    harness.run_steps(2);
+    let body = harness.get_by_label("Scene text");
+    assert!(
+        body.accesskit_node()
+            .value()
+            .is_some_and(|v| v.starts_with("Lighthouse\nThe lamp went out"))
+    );
+    body.focus();
+    harness.key_press(egui::Key::End);
+    harness.get_by_label("Scene text").type_text("!");
+    harness.run_steps(12);
+    let saved = memory.last();
+    let scene = document(project(&saved, "project-1"), "new-1").expect("saved scene");
+    assert!(scene.get("markdownSource").is_none());
+}

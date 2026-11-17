@@ -87,6 +87,10 @@ struct Edit<'a> {
     now_ms: f64,
     /// A footnote to open in the footnote editor: document and id.
     footnote_open: &'a mut Option<(String, String)>,
+    /// The Markdown editor is enabled, on, and a switch asked for.
+    markdown_enabled: bool,
+    markdown_mode: bool,
+    markdown_switch: &'a mut Option<bool>,
 }
 
 pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
@@ -133,6 +137,9 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         side_tab,
         comment_goto,
         footnote_open,
+        markdown_enabled,
+        markdown_mode,
+        markdown_switch,
         ..
     } = state;
     let entry = library.as_ref().and_then(|l| l.projects().get(*active));
@@ -171,6 +178,9 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         comment_goto,
         footnote_open,
         now_ms: *now_ms,
+        markdown_enabled: *markdown_enabled,
+        markdown_mode: *markdown_mode,
+        markdown_switch,
     };
     let mut chosen = None;
     egui::ScrollArea::vertical()
@@ -395,13 +405,18 @@ fn write(
                     }
                 });
                 ui.add_space(10.0);
+                // `screenplayActive`: a screenplay scene, or any scene of a screenplay project.
+                let screenplay = !document.is_wiki()
+                    && (document.screenplay
+                        || project.kind == prosecraft_core::project::ProjectKind::Screenplay);
+                // The Markdown editor edits any scene's source, even one the rich editor can't
+                // hold (a table, a code block); a screenplay keeps its own editor.
+                if edit.markdown_mode && edit.editable && !screenplay {
+                    markdown_editor(ui, palette, document, edit);
+                    return;
+                }
                 match RichDoc::from_html(&document.content).filter(|_| edit.editable) {
                     Some(doc) => {
-                        // `screenplayActive`: a screenplay scene, or any scene of a screenplay project.
-                        let screenplay = !document.is_wiki()
-                            && (document.screenplay
-                                || project.kind
-                                    == prosecraft_core::project::ProjectKind::Screenplay);
                         editor(ui, palette, document, doc, screenplay, edit);
                     }
                     None => {
@@ -645,6 +660,7 @@ fn editor(
     // untouched draft (an import of a newer copy).
     let stale = edit.draft.as_ref().is_none_or(|d| {
         d.document != document.id
+            || d.markdown.is_some()
             || (!d.is_dirty() && (d.title != document.title || d.doc.to_html() != document.content))
     });
     if stale {
@@ -659,6 +675,8 @@ fn editor(
             changed_at: edit.now,
             edits: 0,
             words_added: 0.0,
+            markdown: None,
+            markdown_base: String::new(),
         });
     }
     let now = edit.now;
@@ -844,6 +862,15 @@ fn editor(
                     at,
                 });
             }
+            // ProseCraft's "MD" button, when the Markdown editor is enabled.
+            if edit.markdown_enabled {
+                ui.separator();
+                let markdown = ui.button("MD").on_hover_text("Markdown editor");
+                name_field(ui, &markdown, "Markdown editor");
+                if markdown.clicked() {
+                    *edit.markdown_switch = Some(true);
+                }
+            }
         });
     });
     if changed_format {
@@ -927,6 +954,106 @@ fn editor(
             .find(|(rect, _)| rect.expand(2.0).contains(pos))
     {
         *edit.footnote_open = Some((document.id.clone(), id.clone()));
+    }
+    let count = draft.words;
+    footer(ui, palette, count, &save_text(edit.save_state));
+}
+
+/// The words of Markdown, counted as ProseCraft counts them after `handleMarkdownInput` (the
+/// rendered text, equations and diagrams left out).
+fn markdown_words(source: &str) -> usize {
+    prosecraft_core::html::html_word_count(&prosecraft_core::html::sanitize_html(
+        &prosecraft_core::markdown::markdown_to_html(source),
+    ))
+}
+
+/// ProseCraft's Markdown editor: the scene's Markdown source as plain text, with "Rich text
+/// editor" to go back. What is typed reaches the scene as it does from the rich editor, as
+/// Markdown (`applySingleDocumentMarkdown`).
+fn markdown_editor(
+    ui: &mut Ui,
+    palette: &Palette,
+    document: &prosecraft_core::project::Document,
+    edit: &mut Edit<'_>,
+) {
+    // A new draft when another document opens, or when the scene changed underneath an
+    // untouched draft.
+    let stale = edit.draft.as_ref().is_none_or(|d| {
+        d.document != document.id
+            || d.markdown.is_none()
+            || (!d.is_dirty() && (d.title != document.title || d.markdown_base != document.content))
+    });
+    if stale {
+        let source = document.markdown();
+        let doc = RichDoc::from_html(&document.content).unwrap_or_default();
+        *edit.draft = Some(Draft {
+            document: document.id.clone(),
+            title: document.title.clone(),
+            words: markdown_words(&source),
+            body: doc.text.clone(),
+            doc,
+            title_dirty: false,
+            body_dirty: false,
+            changed_at: edit.now,
+            edits: 0,
+            words_added: 0.0,
+            markdown: Some(source),
+            markdown_base: document.content.clone(),
+        });
+    }
+    let now = edit.now;
+    let Some(draft) = edit.draft.as_mut() else {
+        return;
+    };
+    let title = ui.add(
+        egui::TextEdit::singleline(&mut draft.title)
+            .font(fonts::serif(38.0))
+            .text_color(palette.text_heading)
+            .frame(egui::Frame::NONE)
+            .hint_text("Untitled scene")
+            .desired_width(f32::INFINITY),
+    );
+    name_field(ui, &title, "Scene title");
+    if title.changed() {
+        draft.title_dirty = true;
+        draft.changed_at = now;
+    }
+    ui.add_space(10.0);
+    // ProseCraft's Markdown utilities: back to the rich text editor.
+    ui.horizontal(|ui| {
+        if edit.markdown_enabled {
+            let rich = ui.button("Rich text editor");
+            ui.ctx().accesskit_node_builder(rich.id, |node| {
+                node.set_label("Rich text editor");
+                node.set_toggled(egui::accesskit::Toggled::True);
+            });
+            if rich.clicked() {
+                *edit.markdown_switch = Some(false);
+            }
+        }
+    });
+    ui.add_space(10.0);
+    let Some(source) = draft.markdown.as_mut() else {
+        return;
+    };
+    let body_id = ui.make_persistent_id(("markdown-source", &document.id));
+    let output = egui::TextEdit::multiline(source)
+        .id(body_id)
+        .font(egui::FontId::monospace(15.0))
+        .text_color(palette.text_body)
+        .frame(egui::Frame::NONE)
+        .hint_text("Start writing…")
+        .desired_width(f32::INFINITY)
+        .desired_rows(16)
+        .show(ui);
+    name_field(ui, &output.response, "Markdown source");
+    if output.response.changed() {
+        draft.body_dirty = true;
+        draft.changed_at = now;
+        let words = markdown_words(source);
+        draft.edits += 1;
+        draft.words_added += (words as f64 - draft.words as f64).max(0.0);
+        draft.words = words;
     }
     let count = draft.words;
     footer(ui, palette, count, &save_text(edit.save_state));

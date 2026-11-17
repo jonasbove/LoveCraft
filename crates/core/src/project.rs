@@ -76,6 +76,8 @@ pub struct Document {
     /// Sanitized HTML, as stored.
     pub content: String,
     pub footnotes: Vec<Footnote>,
+    /// The Markdown last written in the Markdown editor, while no rich edit has replaced it.
+    pub markdown_source: Option<String>,
 }
 
 impl Document {
@@ -89,6 +91,25 @@ impl Document {
 
     pub fn word_count(&self) -> usize {
         html_word_count(&self.content)
+    }
+
+    /// What the Markdown editor shows: the Markdown last written there, else the content (and
+    /// its footnotes) as Markdown.
+    pub fn markdown(&self) -> String {
+        match &self.markdown_source {
+            Some(source) => source.clone(),
+            None => {
+                let footnotes: Vec<crate::markdown::FootnoteDef> = self
+                    .footnotes
+                    .iter()
+                    .map(|f| crate::markdown::FootnoteDef {
+                        id: f.id.clone(),
+                        html: f.html.clone(),
+                    })
+                    .collect();
+                crate::markdown::html_to_markdown(&self.content, &footnotes)
+            }
+        }
     }
 }
 
@@ -279,6 +300,11 @@ impl Project {
                             html: text(f, "html"),
                         })
                         .collect(),
+                    // `??`: an empty source is still the source.
+                    markdown_source: d
+                        .get("markdownSource")
+                        .and_then(JsValue::as_js_string)
+                        .map(JsString::to_string_lossy),
                 })
                 .collect(),
             folders: list(project, "researchFolders")

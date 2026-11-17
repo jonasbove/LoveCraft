@@ -1,11 +1,12 @@
 //! The main panel: the view switch and the Outline, Write, Storyboard, Timeline and Publish views.
 
 use egui::{RichText, Ui};
-use prosecraft_core::edit::{chapter_label, plain_paragraphs};
+use prosecraft_core::edit::chapter_label;
 use prosecraft_core::html::{
     PlainTextOptions, RichText as RichMode, count_words, html_to_plain_text,
 };
 use prosecraft_core::project::Project;
+use prosecraft_core::richtext::{ATOM, LineKind, Mark, RichDoc};
 
 use crate::editing::{Draft, Intent};
 use crate::theme::Palette;
@@ -369,8 +370,8 @@ fn write(
                     }
                 });
                 ui.add_space(10.0);
-                match plain_paragraphs(&document.content).filter(|_| edit.editable) {
-                    Some(text) => editor(ui, palette, document, text, edit),
+                match RichDoc::from_html(&document.content).filter(|_| edit.editable) {
+                    Some(doc) => editor(ui, palette, document, doc, edit),
                     None => {
                         ui.label(
                             RichText::new(document.title.as_str())
@@ -380,7 +381,7 @@ fn write(
                         ui.add_space(18.0);
                         manuscript(ui, palette, &plain(&document.content));
                         let why = if edit.editable {
-                            "Read-only for now: this scene has formatting the plain editor can't change yet"
+                            "Read-only for now: this scene has content the editor can't change yet"
                         } else {
                             "Read-only preview"
                         };
@@ -479,30 +480,136 @@ fn write(
     }
 }
 
-/// The plain editor: the scene's title and its paragraphs, one per line.
+/// The block styles of ProseCraft's toolbar.
+const BLOCK_STYLES: [(LineKind, &str); 7] = [
+    (LineKind::Paragraph, "Normal text"),
+    (LineKind::Heading1, "Title"),
+    (LineKind::Heading2, "Heading"),
+    (LineKind::Heading3, "Subheading"),
+    (LineKind::Quote, "Quote"),
+    (LineKind::Bullet, "Bulleted list"),
+    (LineKind::Numbered, "Numbered list"),
+];
+
+/// What an atom shows: a footnote its number, a citation its own text, an equation its TeX.
+fn atom_labels(doc: &RichDoc) -> Vec<(String, bool)> {
+    let mut footnote = 0;
+    doc.atoms
+        .iter()
+        .map(|html| {
+            if html.contains("footnote-ref") {
+                footnote += 1;
+                (footnote.to_string(), true)
+            } else if html.contains("math-inline") {
+                let nodes = prosecraft_core::html::parse_fragment(html);
+                let tex = nodes.first().and_then(|n| match n {
+                    prosecraft_core::html::Node::Element(e) => {
+                        e.attr("data-tex").map(str::to_owned)
+                    }
+                    prosecraft_core::html::Node::Text(_) => None,
+                });
+                (format!("${}$", tex.unwrap_or_default()), false)
+            } else {
+                let text = prosecraft_core::html::html_to_plain_text(html, &Default::default());
+                (
+                    if text.is_empty() {
+                        "citation".to_owned()
+                    } else {
+                        text
+                    },
+                    false,
+                )
+            }
+        })
+        .collect()
+}
+
+const ATOM_FONT: f32 = 12.0;
+
+/// The text formats the editor lays the scene out with.
+fn layout_doc(doc: &RichDoc, text: &str, palette: &Palette, wrap: f32) -> egui::text::LayoutJob {
+    let mut job = egui::text::LayoutJob::default();
+    job.wrap.max_width = wrap;
+    let mut line = 0;
+    for (i, c) in text.chars().enumerate() {
+        if c == '\n' {
+            line += 1;
+        }
+        let kind = doc.lines.get(line).copied().unwrap_or(LineKind::Paragraph);
+        let marks = doc.marks.get(i).map_or(&[][..], Vec::as_slice);
+        let (size, heading) = match kind {
+            LineKind::Heading1 => (32.0, true),
+            LineKind::Heading2 => (25.0, true),
+            LineKind::Heading3 => (20.0, true),
+            _ => (17.0, false),
+        };
+        let bold = heading || Mark::Bold.applies(marks);
+        let italic = kind == LineKind::Quote || Mark::Italic.applies(marks);
+        let font = match (bold, italic) {
+            (_, true) => fonts::serif_italic(size),
+            (true, false) => {
+                egui::FontId::new(size, egui::FontFamily::Name(fonts::SERIF_SEMIBOLD.into()))
+            }
+            _ => fonts::serif(size),
+        };
+        let mut format = egui::TextFormat {
+            font_id: font,
+            line_height: Some(size * if heading { 1.3 } else { 1.85 }),
+            ..Default::default()
+        };
+        format.color = match kind {
+            LineKind::Quote => palette.quote,
+            _ if heading => palette.text_heading,
+            _ => palette.text_body,
+        };
+        if Mark::Underline.applies(marks) || marks.iter().any(|t| t.name == "a") {
+            format.underline = egui::Stroke::new(1.0, format.color);
+        }
+        if Mark::Strike.applies(marks) {
+            format.strikethrough = egui::Stroke::new(1.0, format.color);
+        }
+        if c == ATOM {
+            // The character itself is invisible; its label is painted in the room reserved here.
+            // The character's own box holds a short painted label.
+            format.font_id = egui::FontId::proportional(ATOM_FONT + 2.0);
+            format.color = egui::Color32::TRANSPARENT;
+        }
+        if c == '\n' {
+            // ProseCraft's gap between paragraphs.
+            format.line_height = Some(size * 1.85 + 10.0);
+        }
+        let mut buf = [0u8; 4];
+        job.append(c.encode_utf8(&mut buf), 0.0, format);
+    }
+    job
+}
+
+/// The editor: the scene's title, ProseCraft's toolbar, and its formatted text.
 fn editor(
     ui: &mut Ui,
     palette: &Palette,
     document: &prosecraft_core::project::Document,
-    text: String,
+    doc: RichDoc,
     edit: &mut Edit<'_>,
 ) {
     // A new draft when another document opens, or when the stored one changed underneath an
     // untouched draft (an import of a newer copy).
     let stale = edit.draft.as_ref().is_none_or(|d| {
         d.document != document.id
-            || (!d.is_dirty() && (d.title != document.title || d.body != text))
+            || (!d.is_dirty() && (d.title != document.title || d.doc.to_html() != document.content))
     });
     if stale {
         *edit.draft = Some(Draft {
             document: document.id.clone(),
             title: document.title.clone(),
-            body: text,
+            body: doc.text.clone(),
+            doc,
             title_dirty: false,
             body_dirty: false,
             changed_at: edit.now,
         });
     }
+    let now = edit.now;
     let Some(draft) = edit.draft.as_mut() else {
         return;
     };
@@ -517,31 +624,226 @@ fn editor(
     name_field(ui, &title, "Scene title");
     if title.changed() {
         draft.title_dirty = true;
-        draft.changed_at = edit.now;
+        draft.changed_at = now;
     }
-    ui.add_space(18.0);
-    let body_format = body_format(palette);
+    ui.add_space(10.0);
+
+    let body_id = ui.make_persistent_id(("scene-body", &document.id));
+    let selection = egui::TextEdit::load_state(ui.ctx(), body_id)
+        .and_then(|s| s.cursor.char_range())
+        .map(|r| {
+            let (a, b) = (r.primary.index.0, r.secondary.index.0);
+            a.min(b)..a.max(b)
+        });
+    let cursor = selection.clone().map_or(0, |r| r.start);
+    let mut changed_format = false;
+    // ProseCraft's formatting toolbar.
+    card(palette).show(ui, |ui| {
+        ui.horizontal(|ui| {
+            let current = draft.doc.kind_at(cursor);
+            let label = BLOCK_STYLES
+                .iter()
+                .find(|(k, _)| *k == current)
+                .map_or("Normal text", |(_, l)| l);
+            let mut chosen = current;
+            let style = craft_ui::ComboBox::from_id_salt(("block-style", &document.id))
+                .selected_text(label)
+                .show_ui(ui, |ui| {
+                    for (kind, name) in BLOCK_STYLES {
+                        ui.selectable_value(&mut chosen, kind, name);
+                    }
+                });
+            // Named for what it sets; the current style is its value.
+            ui.ctx().accesskit_node_builder(style.response.id, |node| {
+                node.set_label("Block style");
+                node.set_value(label);
+            });
+            if chosen != current {
+                draft
+                    .doc
+                    .set_line_kind(selection.clone().unwrap_or(cursor..cursor), chosen);
+                changed_format = true;
+            }
+            ui.separator();
+            let body_focused = ui.memory(|m| m.has_focus(body_id));
+            for (mark, text, name, key) in [
+                (
+                    Mark::Bold,
+                    RichText::new("B").strong(),
+                    "Bold",
+                    Some(egui::Key::B),
+                ),
+                (
+                    Mark::Italic,
+                    RichText::new("I").italics(),
+                    "Italic",
+                    Some(egui::Key::I),
+                ),
+                (
+                    Mark::Underline,
+                    RichText::new("U").underline(),
+                    "Underline",
+                    Some(egui::Key::U),
+                ),
+                (
+                    Mark::Strike,
+                    RichText::new("S").strikethrough(),
+                    "Strikethrough",
+                    None,
+                ),
+            ] {
+                let button = ui.button(text).on_hover_text(name);
+                ui.ctx()
+                    .accesskit_node_builder(button.id, |node| node.set_label(name));
+                let keyed = key.is_some_and(|k| {
+                    body_focused && ui.input_mut(|i| i.consume_key(egui::Modifiers::COMMAND, k))
+                });
+                if (button.clicked() || keyed)
+                    && let Some(range) = selection.clone().filter(|r| !r.is_empty())
+                {
+                    draft.doc.toggle_mark(range, mark);
+                    changed_format = true;
+                }
+            }
+        });
+    });
+    if changed_format {
+        draft.body_dirty = true;
+        draft.changed_at = now;
+        ui.memory_mut(|m| m.request_focus(body_id));
+    }
+    ui.add_space(14.0);
+
+    let doc_for_layout = draft.doc.clone();
+    let layout_palette = *palette;
     let mut layouter = move |ui: &Ui, text: &dyn egui::TextBuffer, wrap_width: f32| {
-        let mut job = egui::text::LayoutJob::default();
-        job.wrap.max_width = wrap_width;
-        job.append(text.as_str(), 0.0, body_format.clone());
+        let job = layout_doc(&doc_for_layout, text.as_str(), &layout_palette, wrap_width);
         ui.fonts_mut(|f| f.layout_job(job))
     };
-    let body = ui.add(
-        egui::TextEdit::multiline(&mut draft.body)
-            .frame(egui::Frame::NONE)
-            .hint_text("Start writing…")
-            .desired_width(f32::INFINITY)
-            .desired_rows(12)
-            .layouter(&mut layouter),
-    );
-    name_field(ui, &body, "Scene text");
-    if body.changed() {
+    let output = egui::TextEdit::multiline(&mut draft.body)
+        .id(body_id)
+        .frame(egui::Frame::NONE)
+        .hint_text("Start writing…")
+        .desired_width(f32::INFINITY)
+        .desired_rows(12)
+        .layouter(&mut layouter)
+        .margin(egui::Margin {
+            left: 26,
+            ..Default::default()
+        })
+        .show(ui);
+    name_field(ui, &output.response, "Scene text");
+    if output.response.changed() {
+        let cursor = output.cursor_range.map(|r| r.primary.index.0);
+        let kept = draft.doc.apply_text_at(&draft.body, cursor);
+        if kept != draft.body {
+            draft.body = kept;
+        }
         draft.body_dirty = true;
-        draft.changed_at = edit.now;
+        draft.changed_at = now;
     }
-    let count = count_words(&draft.body);
+    paint_extras(ui, palette, &draft.doc, &output);
+    let count = count_words(&draft.body.replace(ATOM, " "));
     footer(ui, palette, count, &save_text(edit.save_state));
+}
+
+/// What the text itself can't show: list bullets and numbers, the quote bar, and footnote
+/// markers as their numbers. Painted over the laid-out text, so the caret, selection and the
+/// accessibility tree still see the real text.
+fn paint_extras(
+    ui: &Ui,
+    palette: &Palette,
+    doc: &RichDoc,
+    output: &egui::text_edit::TextEditOutput,
+) {
+    let painter = ui.painter_at(output.text_clip_rect.expand2(egui::vec2(30.0, 0.0)));
+    let galley = &output.galley;
+    let origin = output.galley_pos;
+    let mut number = 0;
+    let mut previous = None;
+    for (line, (start, _end)) in doc.line_ranges().into_iter().enumerate() {
+        let kind = doc.lines.get(line).copied().unwrap_or(LineKind::Paragraph);
+        let rect = galley
+            .pos_from_cursor(egui::text::CCursor::new(start))
+            .translate(origin.to_vec2());
+        number = if kind == LineKind::Numbered {
+            if previous == Some(LineKind::Numbered) {
+                number + 1
+            } else {
+                1
+            }
+        } else {
+            0
+        };
+        let marker = match kind {
+            LineKind::Bullet => Some("•".to_owned()),
+            LineKind::Numbered => Some(format!("{number}.")),
+            _ => None,
+        };
+        if let Some(marker) = marker {
+            painter.text(
+                egui::pos2(rect.min.x - 8.0, rect.center().y),
+                egui::Align2::RIGHT_CENTER,
+                marker,
+                fonts::serif(16.0),
+                palette.text_muted,
+            );
+        }
+        if kind == LineKind::Quote {
+            let bar = egui::Rect::from_min_max(
+                egui::pos2(rect.min.x - 14.0, rect.min.y),
+                egui::pos2(rect.min.x - 12.0, rect.max.y),
+            );
+            painter.rect_filled(bar, 1.0, palette.border_control);
+        }
+        previous = Some(kind);
+    }
+    // Each atom's label, painted in its character's box.
+    let atoms = doc
+        .text
+        .chars()
+        .enumerate()
+        .filter(|(_, c)| *c == ATOM)
+        .map(|(i, _)| i);
+    for (index, (label, footnote)) in atoms.zip(atom_labels(doc)) {
+        let before = galley
+            .pos_from_cursor(egui::text::CCursor::new(index))
+            .translate(origin.to_vec2());
+        let after = galley
+            .pos_from_cursor(egui::text::CCursor::new(index + 1))
+            .translate(origin.to_vec2());
+        let right = if (after.min.y - before.min.y).abs() < 1.0 {
+            after.min.x
+        } else {
+            before.min.x + 14.0
+        };
+        let center = egui::pos2((before.min.x + right) / 2.0, before.center().y);
+        if footnote {
+            // A superscript number, as ProseCraft shows footnote references.
+            let at = egui::pos2(center.x, before.min.y + before.height() * 0.3);
+            painter.text(
+                at,
+                egui::Align2::CENTER_CENTER,
+                label,
+                egui::FontId::proportional(ATOM_FONT - 2.0),
+                palette.link,
+            );
+        } else {
+            let short = if label.starts_with('$') { "ƒ" } else { "cite" };
+            let chip = egui::Rect::from_center_size(
+                center,
+                egui::vec2((right - before.min.x).max(16.0), ATOM_FONT + 4.0),
+            );
+            painter.rect_filled(chip, 4.0, palette.selected_bg);
+            painter.text(
+                chip.center(),
+                egui::Align2::CENTER_CENTER,
+                short,
+                egui::FontId::proportional(ATOM_FONT - 2.0),
+                palette.selected_text,
+            );
+        }
+    }
 }
 
 fn timeline(ui: &mut Ui, palette: &Palette, project: &Project) {

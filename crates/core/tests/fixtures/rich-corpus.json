@@ -1,0 +1,70 @@
+[
+  {
+    "markdown": "It was *dark*. Then it was **not**.",
+    "html": "<p>It was <em>dark</em>. Then it was <strong>not</strong>.</p>\n"
+  },
+  {
+    "markdown": "A _quiet_ ~~loud~~ word and `code`.",
+    "html": "<p>A <em>quiet</em> <s>loud</s> word and <code>code</code>.</p>\n"
+  },
+  {
+    "markdown": "# Title\n\n## Heading\n\n### Subheading\n\nBody text.",
+    "html": "<h1>Title</h1>\n<h2>Heading</h2>\n<h3>Subheading</h3>\n<p>Body text.</p>\n"
+  },
+  {
+    "markdown": "> A quoted line.\n\nAfter the quote.",
+    "html": "<blockquote>\n<p>A quoted line.</p>\n</blockquote>\n<p>After the quote.</p>\n"
+  },
+  {
+    "markdown": "> First quoted paragraph.\n>\n> Second quoted paragraph.",
+    "html": "<blockquote>\n<p>First quoted paragraph.</p>\n<p>Second quoted paragraph.</p>\n</blockquote>\n"
+  },
+  {
+    "markdown": "- one\n- two\n- three",
+    "html": "<ul>\n<li>one</li>\n<li>two</li>\n<li>three</li>\n</ul>\n"
+  },
+  {
+    "markdown": "1. first\n2. second",
+    "html": "<ol>\n<li>first</li>\n<li>second</li>\n</ol>\n"
+  },
+  {
+    "markdown": "- *styled* item\n- plain item",
+    "html": "<ul>\n<li><em>styled</em> item</li>\n<li>plain item</li>\n</ul>\n"
+  },
+  {
+    "markdown": "A note.[^n1]\n\n[^n1]: The note text.",
+    "html": "<p>A note.<sup class=\"footnote-ref\" data-footnote-id=\"n1\" contenteditable=\"false\"></sup></p>\n"
+  },
+  {
+    "markdown": "See [the site](https://example.com) now.",
+    "html": "<p>See <a href=\"https://example.com\">the site</a> now.</p>\n"
+  },
+  {
+    "markdown": "***bold italic*** and **bold with *italic* inside**",
+    "html": "<p><em><strong>bold italic</strong></em> and <strong>bold with <em>italic</em> inside</strong></p>\n"
+  },
+  {
+    "markdown": "Line one\nline two in the same paragraph.",
+    "html": "<p>Line one\nline two in the same paragraph.</p>\n"
+  },
+  {
+    "markdown": "---\n\nAfter a rule.",
+    "html": "<hr>\n<p>After a rule.</p>\n"
+  },
+  {
+    "markdown": "Inline math $x^2$ here.",
+    "html": "<p>Inline math <span class=\"math-inline\" data-tex=\"x^2\"></span> here.</p>\n"
+  },
+  {
+    "markdown": "<u>underlined</u> text",
+    "html": "<p><u>underlined</u> text</p>\n"
+  },
+  {
+    "markdown": "Smart quotes “like these” and an em dash — here.",
+    "html": "<p>Smart quotes “like these” and an em dash — here.</p>\n"
+  },
+  {
+    "markdown": "",
+    "html": ""
+  }
+]

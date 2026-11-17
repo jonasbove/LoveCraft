@@ -2,13 +2,10 @@
 
 use std::collections::HashMap;
 
-use super::compile::citation_fallback;
-use super::{CompiledBook, Export, PublishOptions, SceneSeparator, slugify_filename};
+use super::citations::resolve_book_citations;
+use super::footnotes::{ResolvedFootnote, resolve_book_footnotes};
+use super::{CompiledBook, Export, MatterPage, PublishOptions, SceneSeparator, slugify_filename};
 use crate::html::{PlainTextOptions, html_to_plain_text};
-
-fn plain(html: &str) -> String {
-    html_to_plain_text(html, &PlainTextOptions::default())
-}
 
 fn separator_text(separator: SceneSeparator) -> &'static str {
     match separator {
@@ -20,22 +17,34 @@ fn separator_text(separator: SceneSeparator) -> &'static str {
 }
 
 /// A "Notes" block: `[n] text` per note.
-fn notes_block(notes: &[(usize, String)], uppercase: bool) -> String {
+fn notes_block(notes: &[ResolvedFootnote], uppercase: bool) -> String {
     let mut lines = vec![if uppercase { "NOTES" } else { "Notes" }.to_owned()];
-    for (number, html) in notes {
-        let text = plain(html);
+    for note in notes {
+        let text = html_to_plain_text(&note.html, &PlainTextOptions::default());
         lines.push(if text.is_empty() {
-            format!("[{number}]")
+            format!("[{}]", note.number)
         } else {
-            format!("[{number}] {text}")
+            format!("[{}] {text}", note.number)
         });
     }
     lines.join("\n")
 }
 
+/// A matter page: its title and body, blank parts left out.
+pub(super) fn matter_text(page: &MatterPage, title: String) -> String {
+    [title, page.body.clone()]
+        .into_iter()
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n\n")
+}
+
 /// `exportText`, byte for byte.
 pub fn export_text(book: &CompiledBook, options: &PublishOptions) -> Export {
+    let book = &resolve_book_citations(book);
     let upper = options.chapter_heading_uppercase;
+    let restart = options.footnotes_restart_per_chapter;
+    let notes = resolve_book_footnotes(book, restart);
     let mut blocks: Vec<String> = Vec::new();
     if options.include_title_page {
         blocks.push(book.title.clone());
@@ -65,22 +74,10 @@ pub fn export_text(book: &CompiledBook, options: &PublishOptions) -> Export {
         );
         blocks.push(lines.join("\n"));
     }
-    let matter = |page: &super::MatterPage| {
-        [page.title.as_str(), page.body.as_str()]
-            .iter()
-            .filter(|s| !s.is_empty())
-            .copied()
-            .collect::<Vec<_>>()
-            .join("\n\n")
-    };
     for page in &book.front_matter {
-        blocks.push(matter(page));
+        blocks.push(matter_text(page, page.title.clone()));
     }
-
-    // Footnotes are numbered in compile order (`resolveBookFootnotes`).
-    let mut all_notes: Vec<(usize, String)> = Vec::new();
-    let mut index = 0;
-    for chapter in &book.chapters {
+    for (c, chapter) in book.chapters.iter().enumerate() {
         if options.include_chapter_titles {
             blocks.push(if upper {
                 chapter.label.to_uppercase()
@@ -88,30 +85,19 @@ pub fn export_text(book: &CompiledBook, options: &PublishOptions) -> Export {
                 chapter.label.clone()
             });
         }
-        let mut chapter_notes: Vec<(usize, String)> = Vec::new();
         let mut scenes: Vec<String> = Vec::new();
-        for scene in &chapter.scenes {
-            let mut numbers = HashMap::new();
-            for note in &scene.footnotes {
-                if numbers.contains_key(&note.id) {
-                    continue;
-                }
-                index += 1;
-                let number = if options.footnotes_restart_per_chapter {
-                    chapter_notes.len() + 1
-                } else {
-                    index
-                };
-                numbers.insert(note.id.clone(), number);
-                chapter_notes.push((number, note.html.clone()));
-                all_notes.push((number, note.html.clone()));
-            }
-            let text_options = PlainTextOptions {
-                footnote_numbers: (!numbers.is_empty()).then_some(numbers),
-                citations: Some(citation_fallback),
-                ..Default::default()
-            };
-            let text = html_to_plain_text(&scene.html, &text_options);
+        for (s, scene) in chapter.scenes.iter().enumerate() {
+            let numbers: Option<HashMap<String, usize>> = notes
+                .by_scene
+                .get(&(c, s))
+                .map(|m| m.iter().map(|(id, n)| (id.clone(), n.number)).collect());
+            let text = html_to_plain_text(
+                &scene.html,
+                &PlainTextOptions {
+                    footnote_numbers: numbers,
+                    ..Default::default()
+                },
+            );
             let mut parts = Vec::new();
             if options.include_scene_titles {
                 parts.push(scene.title.clone());
@@ -132,15 +118,15 @@ pub fn export_text(book: &CompiledBook, options: &PublishOptions) -> Export {
             format!("\n\n{separator}\n\n")
         };
         blocks.push(scenes.join(&glue));
-        if options.footnotes_restart_per_chapter && !chapter_notes.is_empty() {
-            blocks.push(notes_block(&chapter_notes, upper));
+        if restart && !notes.by_chapter[c].is_empty() {
+            blocks.push(notes_block(&notes.by_chapter[c], upper));
         }
     }
     for page in &book.back_matter {
-        blocks.push(matter(page));
+        blocks.push(matter_text(page, page.title.clone()));
     }
-    if !options.footnotes_restart_per_chapter && !all_notes.is_empty() {
-        blocks.push(notes_block(&all_notes, upper));
+    if !restart && !notes.all.is_empty() {
+        blocks.push(notes_block(&notes.all, upper));
     }
     let text = format!(
         "{}\n",

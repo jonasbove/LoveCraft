@@ -5,11 +5,14 @@
 //! closes, a `<li>` that the next item closes, end tags that close up to their element. Nesting
 //! is bounded, so hostile input can't exhaust the stack.
 
+pub mod image_layout;
 mod plain;
+pub mod sanitize;
 
 pub use plain::{
     PlainTextOptions, RichText, count_words, html_to_plain_text, html_word_count, is_js_whitespace,
 };
+pub use sanitize::{sanitize_html, sanitize_inline_html, sanitize_nodes};
 
 /// Deepest element nesting kept; anything deeper is attached to the deepest kept element.
 pub const MAX_DEPTH: usize = 128;
@@ -77,6 +80,60 @@ impl Element {
         self.attr("class")
             .is_some_and(|classes| classes.split_ascii_whitespace().any(|c| c == class))
     }
+}
+
+/// The elements `innerHTML` writes without an end tag.
+const SERIALIZED_VOID: &[&str] = &[
+    "area", "base", "basefont", "bgsound", "br", "col", "embed", "frame", "hr", "img", "input",
+    "keygen", "link", "meta", "param", "source", "track", "wbr",
+];
+
+/// `innerHTML` for these nodes, as the browser (and jsdom) writes it: text escapes `&`, `<`,
+/// `>` and no-break spaces; attribute values escape `&`, `"` and no-break spaces.
+pub fn serialize(nodes: &[Node]) -> String {
+    fn text(out: &mut String, value: &str, attribute: bool) {
+        for c in value.chars() {
+            match c {
+                '&' => out.push_str("&amp;"),
+                '\u{a0}' => out.push_str("&nbsp;"),
+                '"' if attribute => out.push_str("&quot;"),
+                '<' if !attribute => out.push_str("&lt;"),
+                '>' if !attribute => out.push_str("&gt;"),
+                c => out.push(c),
+            }
+        }
+    }
+    fn write(out: &mut String, node: &Node) {
+        match node {
+            Node::Text(value) => text(out, value, false),
+            Node::Element(e) => {
+                out.push('<');
+                out.push_str(&e.name);
+                for (key, value) in &e.attrs {
+                    out.push(' ');
+                    out.push_str(key);
+                    out.push_str("=\"");
+                    text(out, value, true);
+                    out.push('"');
+                }
+                out.push('>');
+                if SERIALIZED_VOID.contains(&e.name.as_str()) {
+                    return;
+                }
+                for child in &e.children {
+                    write(out, child);
+                }
+                out.push_str("</");
+                out.push_str(&e.name);
+                out.push('>');
+            }
+        }
+    }
+    let mut out = String::new();
+    for n in nodes {
+        write(&mut out, n);
+    }
+    out
 }
 
 /// Parses an HTML fragment into the children of an implicit body.

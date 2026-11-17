@@ -400,3 +400,35 @@ fn publish_settings_are_saved_and_plain_text_exports() {
     let text = String::from_utf8_lossy(bytes);
     assert!(text.contains("Opening Scene\n\nIt was dark."), "{text}");
 }
+
+#[test]
+fn markdown_exports_from_the_publish_view() {
+    let (mut harness, _memory) = app();
+    harness.get_by_role_and_label(Role::Tab, "Publish").click();
+    harness.run();
+    let card = harness.get_by_role_and_label(Role::RadioButton, "Markdown (md)");
+    card.scroll_to_me();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::RadioButton, "Markdown (md)")
+        .click();
+    harness.run_steps(4);
+    let button = harness.get_by_role_and_label(Role::Button, "Export Markdown");
+    button.scroll_to_me();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Export Markdown")
+        .click();
+    harness.run();
+    let requests = harness.state_mut().take_requests();
+    let Some(prosecraft_ui_egui::HostRequest::ExportFile {
+        file_name, bytes, ..
+    }) = requests.first()
+    else {
+        panic!("an export was asked for: {requests:?}");
+    };
+    assert!(file_name.ends_with(".md"), "{file_name}");
+    let markdown = String::from_utf8_lossy(bytes);
+    assert!(markdown.starts_with("---\ntitle: "), "{markdown}");
+    assert!(markdown.contains("It was _dark_.[^1]"), "{markdown}");
+}

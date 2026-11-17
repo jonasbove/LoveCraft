@@ -1,0 +1,280 @@
+{
+  "cases": [
+    {
+      "html": "<p>Plain text.</p><p>Second paragraph.</p>",
+      "markdown": "Plain text.\n\nSecond paragraph.",
+      "inline": "Plain text.Second paragraph.",
+      "withNotes": "Plain text.\n\nSecond paragraph.\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<h1>One</h1><h2>Two</h2><h3>Three</h3>",
+      "markdown": "# One\n\n## Two\n\n### Three",
+      "inline": "OneTwoThree",
+      "withNotes": "# One\n\n## Two\n\n### Three\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<p>A <em>b</em> c <strong>d</strong> <em>e <strong>f</strong></em>.</p>",
+      "markdown": "A _b_ c **d** _e **f**_.",
+      "inline": "A _b_ c **d** _e **f**_.",
+      "withNotes": "A _b_ c **d** _e **f**_.\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<p>Space<em> inside </em>em and<strong> strong</strong>x and <em> </em>empty</p>",
+      "markdown": "Space _inside_ em and **strong**x and empty",
+      "inline": "Space _inside_ em and **strong**x and empty",
+      "withNotes": "Space _inside_ em and **strong**x and empty\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<p>a<em>b</em>c and a <em> b </em> c</p>",
+      "markdown": "a_b_c and a _b_ c",
+      "inline": "a_b_c and a _b_ c",
+      "withNotes": "a_b_c and a _b_ c\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<p>* star _ under # hash ` tick [b] \\ slash</p><p>- dash</p><p>+ plus</p><p>1. one</p><p>> gt</p><p>## hd</p><p>=== eq</p><p>~~~ tilde</p><p>12. twelve</p>",
+      "markdown": "\\* star \\_ under # hash \\` tick \\[b\\] \\\\ slash\n\n\\- dash\n\n\\+ plus\n\n1\\. one\n\n\\> gt\n\n\\## hd\n\n\\=== eq\n\n\\~~~ tilde\n\n12\\. twelve",
+      "inline": "\\* star \\_ under # hash \\` tick \\[b\\] \\\\ slash- dash+ plus1. one> gt## hd=== eq~~~ tilde12. twelve",
+      "withNotes": "\\* star \\_ under # hash \\` tick \\[b\\] \\\\ slash\n\n\\- dash\n\n\\+ plus\n\n1\\. one\n\n\\> gt\n\n\\## hd\n\n\\=== eq\n\n\\~~~ tilde\n\n12\\. twelve\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<p>   leading and trailing   </p><p>multi    space\n\nnewlines\ttab</p>",
+      "markdown": "leading and trailing\n\nmulti space newlines tab",
+      "inline": "leading and trailing multi space newlines tab",
+      "withNotes": "leading and trailing\n\nmulti space newlines tab\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<ul><li>one</li><li>two<ul><li>nested</li><li>more</li></ul></li><li>three</li></ul>",
+      "markdown": "-   one\n-   two\n    -   nested\n    -   more\n-   three",
+      "inline": "onetwonestedmorethree",
+      "withNotes": "-   one\n-   two\n    -   nested\n    -   more\n-   three\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<ol><li>first</li><li>second</li></ol><ol start=\"5\"><li>five</li><li>six</li></ol>",
+      "markdown": "1.  first\n2.  second\n\n5.  five\n6.  six",
+      "inline": "firstsecondfivesix",
+      "withNotes": "1.  first\n2.  second\n\n5.  five\n6.  six\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<ul><li><p>para item</p></li><li><p>another</p><p>with two</p></li></ul>",
+      "markdown": "-   para item\n    \n-   another\n    \n    with two",
+      "inline": "para itemanotherwith two",
+      "withNotes": "-   para item\n    \n-   another\n    \n    with two\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<blockquote><p>Quote one</p><p>Quote two</p></blockquote>",
+      "markdown": "> Quote one\n> \n> Quote two",
+      "inline": "Quote oneQuote two",
+      "withNotes": "> Quote one\n> \n> Quote two\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<blockquote><p>Outer</p><blockquote><p>Inner</p></blockquote></blockquote>",
+      "markdown": "> Outer\n> \n> > Inner",
+      "inline": "OuterInner",
+      "withNotes": "> Outer\n> \n> > Inner\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<p>Code <code>a`b</code> and <code>`x`</code> and <code>plain</code> and <code></code></p>",
+      "markdown": "Code ``a`b`` and `` `x` `` and `plain` and",
+      "inline": "Code ``a`b`` and `` `x` `` and `plain` and",
+      "withNotes": "Code ``a`b`` and `` `x` `` and `plain` and\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<pre><code>line 1\n  line 2\n</code></pre><pre>no code child</pre>",
+      "markdown": "line 1\n      line 2\n    \n\nno code child",
+      "inline": "`line 1 line 2` no code child",
+      "withNotes": "line 1\n      line 2\n    \n\nno code child\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<hr><p>after rule</p><p>a<br>b<br>c</p>",
+      "markdown": "* * *\n\nafter rule\n\na  \nb  \nc",
+      "inline": "after rulea  \nb  \nc",
+      "withNotes": "* * *\n\nafter rule\n\na  \nb  \nc\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<p><a href=\"https://e.com\">link</a> <a href=\"https://e.com/a b\" title=\"T &quot;q&quot;\">spaced</a> <a href=\"https://e.com/(x)\">paren</a> <a>no href</a> <a href=\"https://e.com\"></a></p>",
+      "markdown": "[link](https://e.com) [spaced](<https://e.com/a b> \"T \\\"q\\\"\") [paren](https://e.com/\\(x\\)) no href[](https://e.com)",
+      "inline": "[link](https://e.com) [spaced](<https://e.com/a b>) [paren](https://e.com/\\(x\\)) no href[](https://e.com)",
+      "withNotes": "[link](https://e.com) [spaced](<https://e.com/a b> \"T \\\"q\\\"\") [paren](https://e.com/\\(x\\)) no href[](https://e.com)\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<p><img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\" alt=\"a*b\"> <img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\" alt=\"dot\" title=\"T\"> <img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\" data-size=\"small\" data-align=\"left\"></p>",
+      "markdown": "![a\\*b](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==) ![dot](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg== \"T\") <img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\" alt=\"\" data-size=\"small\" data-align=\"left\">",
+      "inline": "",
+      "withNotes": "![a\\*b](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==) ![dot](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg== \"T\") <img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\" alt=\"\" data-size=\"small\" data-align=\"left\">\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<p>Inline <span class=\"math-inline\" data-tex=\"x^2\"></span> math.</p><div class=\"math-block\" data-tex=\"\\int x\"></div>",
+      "markdown": "Inline $x^2$ math.\n\n$$\n\\int x\n$$",
+      "inline": "Inline $x^2$ math.",
+      "withNotes": "Inline $x^2$ math.\n\n$$\n\\int x\n$$\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<div class=\"mermaid-diagram\" data-source=\"graph TD; A--&gt;B\"></div><div class=\"mermaid-diagram\" data-source=\"a ``` b\"></div><div class=\"calc-worksheet\" data-source=\"x = 2\"></div>",
+      "markdown": "```mermaid\ngraph TD; A-->B\n```\n\n~~~~mermaid\na ``` b\n~~~~\n\n```calc\nx = 2\n```",
+      "inline": "",
+      "withNotes": "```mermaid\ngraph TD; A-->B\n```\n\n~~~~mermaid\na ``` b\n~~~~\n\n```calc\nx = 2\n```\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<p>Note<sup class=\"footnote-ref\" data-footnote-id=\"n1\" contenteditable=\"false\"></sup> and bad<sup class=\"footnote-ref\" data-footnote-id=\"bad id\"></sup>.</p>",
+      "markdown": "Note[^n1] and bad​.",
+      "inline": "Note and bad.",
+      "withNotes": "Note[^n1] and bad​.\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<p>See <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020&quot;,&quot;locator&quot;:&quot;42&quot;,&quot;label&quot;:&quot;page&quot;,&quot;prefix&quot;:&quot;see&quot;,&quot;suffix&quot;:&quot;ff.&quot;},{&quot;id&quot;:&quot;doe&quot;,&quot;suppressAuthor&quot;:true,&quot;suffix&quot;:&quot;; more [x]&quot;}]\" contenteditable=\"false\"></span> and <span class=\"cite-ref\" data-cites=\"broken\"></span>.</p>",
+      "markdown": "See [see @smith2020, p. 42 ff.; -@doe \\; more \\[x\\]] and .",
+      "inline": "See [see @smith2020, p. 42 ff.; -@doe \\; more \\[x\\]] and .",
+      "withNotes": "See [see @smith2020, p. 42 ff.; -@doe \\; more \\[x\\]] and .\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<p><u>under</u> <s>strike</s> <del>del</del> <u> sp </u></p><p class=\"eyebrow\">Kicker</p>",
+      "markdown": "<u>under</u> ~~strike~~ ~~del~~ <u>sp</u>\n\n**Kicker**",
+      "inline": "<u>under</u> ~~strike~~ ~~del~~ <u>sp</u> Kicker",
+      "withNotes": "<u>under</u> ~~strike~~ ~~del~~ <u>sp</u>\n\n**Kicker**\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<table><tr><th>H</th><td>c</td></tr></table><div>div text</div>",
+      "markdown": "H\n\nc\n\ndiv text",
+      "inline": "Hcdiv text",
+      "withNotes": "H\n\nc\n\ndiv text\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<p>a&nbsp;b &amp; c &lt;d&gt;</p><p> lead nbsp</p><p><br></p><p></p>",
+      "markdown": "a b & c <d>\n\n lead nbsp",
+      "inline": "a b & c <d> lead nbsp",
+      "withNotes": "a b & c <d>\n\n lead nbsp\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<p>one<span> two </span>three</p><p><em>x</em> <strong>y</strong></p>",
+      "markdown": "one two three\n\n_x_ **y**",
+      "inline": "one two three_x_ **y**",
+      "withNotes": "one two three\n\n_x_ **y**\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<p>Unicode 🌊 café soft</p>",
+      "markdown": "Unicode 🌊 café soft",
+      "inline": "Unicode 🌊 café soft",
+      "withNotes": "Unicode 🌊 café soft\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<p>It was <em>dark</em>. Then it was <strong>not</strong>.</p>\n",
+      "markdown": "It was _dark_. Then it was **not**.",
+      "inline": "It was _dark_. Then it was **not**.",
+      "withNotes": "It was _dark_. Then it was **not**.\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<p>A <em>quiet</em> <s>loud</s> word and <code>code</code>.</p>\n",
+      "markdown": "A _quiet_ ~~loud~~ word and `code`.",
+      "inline": "A _quiet_ ~~loud~~ word and `code`.",
+      "withNotes": "A _quiet_ ~~loud~~ word and `code`.\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<h1>Title</h1>\n<h2>Heading</h2>\n<h3>Subheading</h3>\n<p>Body text.</p>\n",
+      "markdown": "# Title\n\n## Heading\n\n### Subheading\n\nBody text.",
+      "inline": "Title Heading Subheading Body text.",
+      "withNotes": "# Title\n\n## Heading\n\n### Subheading\n\nBody text.\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<blockquote>\n<p>A quoted line.</p>\n</blockquote>\n<p>After the quote.</p>\n",
+      "markdown": "> A quoted line.\n\nAfter the quote.",
+      "inline": "A quoted line. After the quote.",
+      "withNotes": "> A quoted line.\n\nAfter the quote.\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<blockquote>\n<p>First quoted paragraph.</p>\n<p>Second quoted paragraph.</p>\n</blockquote>\n",
+      "markdown": "> First quoted paragraph.\n> \n> Second quoted paragraph.",
+      "inline": "First quoted paragraph. Second quoted paragraph.",
+      "withNotes": "> First quoted paragraph.\n> \n> Second quoted paragraph.\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<ul>\n<li>one</li>\n<li>two</li>\n<li>three</li>\n</ul>\n",
+      "markdown": "-   one\n-   two\n-   three",
+      "inline": "one two three",
+      "withNotes": "-   one\n-   two\n-   three\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<ol>\n<li>first</li>\n<li>second</li>\n</ol>\n",
+      "markdown": "1.  first\n2.  second",
+      "inline": "first second",
+      "withNotes": "1.  first\n2.  second\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<ul>\n<li><em>styled</em> item</li>\n<li>plain item</li>\n</ul>\n",
+      "markdown": "-   _styled_ item\n-   plain item",
+      "inline": "_styled_ item plain item",
+      "withNotes": "-   _styled_ item\n-   plain item\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<p>A note.<sup class=\"footnote-ref\" data-footnote-id=\"n1\" contenteditable=\"false\"></sup></p>\n",
+      "markdown": "A note.[^n1]",
+      "inline": "A note.",
+      "withNotes": "A note.[^n1]\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<p>See <a href=\"https://example.com\">the site</a> now.</p>\n",
+      "markdown": "See [the site](https://example.com) now.",
+      "inline": "See [the site](https://example.com) now.",
+      "withNotes": "See [the site](https://example.com) now.\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<p><em><strong>bold italic</strong></em> and <strong>bold with <em>italic</em> inside</strong></p>\n",
+      "markdown": "_**bold italic**_ and **bold with _italic_ inside**",
+      "inline": "_**bold italic**_ and **bold with _italic_ inside**",
+      "withNotes": "_**bold italic**_ and **bold with _italic_ inside**\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<p>Line one\nline two in the same paragraph.</p>\n",
+      "markdown": "Line one line two in the same paragraph.",
+      "inline": "Line one line two in the same paragraph.",
+      "withNotes": "Line one line two in the same paragraph.\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<hr>\n<p>After a rule.</p>\n",
+      "markdown": "* * *\n\nAfter a rule.",
+      "inline": "After a rule.",
+      "withNotes": "* * *\n\nAfter a rule.\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<p>Inline math <span class=\"math-inline\" data-tex=\"x^2\"></span> here.</p>\n",
+      "markdown": "Inline math $x^2$ here.",
+      "inline": "Inline math $x^2$ here.",
+      "withNotes": "Inline math $x^2$ here.\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<p><u>underlined</u> text</p>\n",
+      "markdown": "<u>underlined</u> text",
+      "inline": "<u>underlined</u> text",
+      "withNotes": "<u>underlined</u> text\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<p>Smart quotes “like these” and an em dash — here.</p>\n",
+      "markdown": "Smart quotes “like these” and an em dash — here.",
+      "inline": "Smart quotes “like these” and an em dash — here.",
+      "withNotes": "Smart quotes “like these” and an em dash — here.\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "",
+      "markdown": "",
+      "inline": "",
+      "withNotes": "[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<p>It was <em>dark</em>.<sup class=\"footnote-ref\" data-footnote-id=\"fn-1\" contenteditable=\"false\"></sup></p><p>Then <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020&quot;}]\">(Smith 2020)</span>.</p>",
+      "markdown": "It was _dark_.[^fn-1]\n\nThen [@smith2020].",
+      "inline": "It was _dark_.Then [@smith2020].",
+      "withNotes": "It was _dark_.[^fn-1]\n\nThen [@smith2020].\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+      "markdown": "Notes about Mara. 𝔐𝔞𝔯𝔞",
+      "inline": "Notes about Mara. 𝔐𝔞𝔯𝔞",
+      "withNotes": "Notes about Mara. 𝔐𝔞𝔯𝔞\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    },
+    {
+      "html": "<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>",
+      "markdown": "INT. LIGHTHOUSE - NIGHT",
+      "inline": "INT. LIGHTHOUSE - NIGHT",
+      "withNotes": "INT. LIGHTHOUSE - NIGHT\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+    }
+  ]
+}

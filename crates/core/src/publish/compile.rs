@@ -3,9 +3,10 @@
 use std::collections::HashMap;
 
 use crate::edit::chapter_label;
+use crate::html::sanitize::is_valid_footnote_id;
 use crate::html::{
-    Element, Node, PlainTextOptions, RichText, count_words, html_to_plain_text, is_js_whitespace,
-    parse_fragment,
+    Node, PlainTextOptions, RichText, count_words, html_to_plain_text, is_js_whitespace,
+    parse_fragment, sanitize_html, sanitize_inline_html,
 };
 use crate::project::Project;
 
@@ -168,7 +169,8 @@ pub fn compile_book(project: &Project, options: &PublishOptions) -> CompiledBook
             {
                 continue;
             }
-            let html = document.content.clone();
+            // As ProseCraft: the scene sanitized, its footnotes valid, unique and inline.
+            let html = sanitize_html(&document.content);
             let nodes = parse_fragment(&html);
             let text = html_to_plain_text(&html, &PlainTextOptions::default());
             if js_trim(&text).is_empty() && !has_rich_or_image(&nodes) {
@@ -176,20 +178,17 @@ pub fn compile_book(project: &Project, options: &PublishOptions) -> CompiledBook
             }
             let mut ids = Vec::new();
             collect_footnote_refs(&nodes, &mut ids);
-            let definitions: HashMap<&str, &str> = document
-                .footnotes
-                .iter()
-                .map(|f| (f.id.as_str(), f.html.as_str()))
-                .collect();
+            let mut definitions: HashMap<&str, String> = HashMap::new();
+            for f in &document.footnotes {
+                if is_valid_footnote_id(&f.id) && !definitions.contains_key(f.id.as_str()) {
+                    definitions.insert(f.id.as_str(), sanitize_inline_html(&f.html));
+                }
+            }
             let footnotes = ids
                 .into_iter()
                 .map(|id| {
                     next_number += 1;
-                    let html = definitions
-                        .get(id.as_str())
-                        .copied()
-                        .unwrap_or_default()
-                        .to_owned();
+                    let html = definitions.get(id.as_str()).cloned().unwrap_or_default();
                     CompiledFootnote {
                         id,
                         html,
@@ -268,24 +267,4 @@ impl CompiledBook {
             + self.front_matter.len();
         Some(body + front + self.back_matter.len())
     }
-}
-
-/// How a citation marker is written while citations aren't formatted: as ProseCraft writes
-/// sources it can't find, `[@key; @other]`.
-pub(crate) fn citation_fallback(element: &Element) -> String {
-    let cites = element
-        .attr("data-cites")
-        .and_then(|json| crate::js::parse(json).ok());
-    let keys: Vec<String> = cites
-        .as_ref()
-        .and_then(|c| c.as_array())
-        .unwrap_or_default()
-        .iter()
-        .filter_map(|c| {
-            c.get("id")
-                .and_then(crate::js::JsValue::as_js_string)
-                .map(|id| format!("@{}", id.to_string_lossy()))
-        })
-        .collect();
-    format!("[{}]", keys.join("; "))
 }

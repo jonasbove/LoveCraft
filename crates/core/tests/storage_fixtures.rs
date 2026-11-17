@@ -334,3 +334,34 @@ fn plain_text_export_matches_prosecraft_byte_for_byte() {
         );
     }
 }
+
+#[test]
+fn markdown_export_matches_prosecraft_byte_for_byte() {
+    use prosecraft_core::project::Project;
+    use prosecraft_core::publish::{PublishOptions, compile_book, export_markdown};
+    let fixture = fixture("export-markdown.json");
+    let mut stored = prosecraft_core::js::JsObject::new();
+    stored.insert("project", fixture.get("project").cloned().expect("project"));
+    let project = Project::from_stored(&JsValue::Object(stored)).expect("project view");
+    for (name, case) in fixture
+        .get("exports")
+        .and_then(JsValue::as_object)
+        .expect("exports")
+        .iter()
+    {
+        let options = PublishOptions::read(case.get("options"));
+        let export = export_markdown(&compile_book(&project, &options), &options);
+        let expected = case
+            .get("markdown")
+            .and_then(JsValue::as_js_string)
+            .and_then(JsString::as_string)
+            .expect("markdown");
+        assert_eq!(
+            String::from_utf8_lossy(&export.bytes),
+            expected,
+            "{}",
+            name.to_string_lossy()
+        );
+        assert_eq!(export.file_name, "the-lighthouse-keeper.md");
+    }
+}

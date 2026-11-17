@@ -89,3 +89,94 @@ mod tests {
         }
     }
 }
+
+/// `Number(text)`: JavaScript's string-to-number conversion. Surrounding whitespace is
+/// ignored, an empty string is 0, `0x`/`0o`/`0b` prefixes are read, and anything else that
+/// isn't a decimal literal or `Infinity` is NaN.
+pub fn string_to_number(text: &str) -> f64 {
+    let text = text.trim_matches(crate::html::is_js_whitespace);
+    if text.is_empty() {
+        return 0.0;
+    }
+    for (prefix, radix) in [
+        ("0x", 16),
+        ("0X", 16),
+        ("0o", 8),
+        ("0O", 8),
+        ("0b", 2),
+        ("0B", 2),
+    ] {
+        if let Some(digits) = text.strip_prefix(prefix) {
+            if digits.is_empty() || !digits.chars().all(|c| c.is_digit(radix)) {
+                return f64::NAN;
+            }
+            return digits.chars().fold(0.0, |n, c| {
+                n * f64::from(radix) + f64::from(c.to_digit(radix).unwrap_or(0))
+            });
+        }
+    }
+    let unsigned = text.strip_prefix(['+', '-']).unwrap_or(text);
+    if unsigned == "Infinity" {
+        return if text.starts_with('-') {
+            f64::NEG_INFINITY
+        } else {
+            f64::INFINITY
+        };
+    }
+    // A decimal literal: digits with an optional fraction (or a fraction alone), then an
+    // optional exponent.
+    let bytes = unsigned.as_bytes();
+    let mut i = 0;
+    let digits = |i: &mut usize| {
+        let start = *i;
+        while *i < bytes.len() && bytes[*i].is_ascii_digit() {
+            *i += 1;
+        }
+        *i - start
+    };
+    let whole = digits(&mut i);
+    let mut fraction = 0;
+    if i < bytes.len() && bytes[i] == b'.' {
+        i += 1;
+        fraction = digits(&mut i);
+    }
+    if whole == 0 && fraction == 0 {
+        return f64::NAN;
+    }
+    if i < bytes.len() && (bytes[i] == b'e' || bytes[i] == b'E') {
+        i += 1;
+        if i < bytes.len() && (bytes[i] == b'+' || bytes[i] == b'-') {
+            i += 1;
+        }
+        if digits(&mut i) == 0 {
+            return f64::NAN;
+        }
+    }
+    if i != bytes.len() {
+        return f64::NAN;
+    }
+    text.parse().unwrap_or(f64::NAN)
+}
+
+#[cfg(test)]
+mod string_tests {
+    use super::string_to_number;
+
+    #[test]
+    fn reads_strings_as_javascript_does() {
+        for (text, n) in [
+            ("", 0.0),
+            (" 20 ", 20.0),
+            ("0x10", 16.0),
+            ("1e2", 100.0),
+            ("-.5", -0.5),
+            ("5.", 5.0),
+            ("-Infinity", f64::NEG_INFINITY),
+        ] {
+            assert_eq!(string_to_number(text), n, "{text:?}");
+        }
+        for text in ["abc", "1px", ".", "e5", "1e", "-0x1", "inf", "1_0"] {
+            assert!(string_to_number(text).is_nan(), "{text:?}");
+        }
+    }
+}

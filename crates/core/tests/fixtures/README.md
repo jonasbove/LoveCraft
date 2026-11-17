@@ -12,6 +12,9 @@ tested against what the original really reads and writes, not against our readin
 | `stamping.json` | `stampProject`: revisions, timestamps and tombstones after each kind of change |
 | `rich-corpus.json` | Rich scene HTML as ProseCraft's Markdown converter and sanitizer write it, for the editor's lossless round trip |
 | `export-text.json` | `compileBook` and `exportText` for a project with footnotes, lists, an empty and a trashed scene, under three sets of publish options |
+| `sanitize.json` | `sanitizeHtml` and `sanitizeInlineHtml` on ProseCraft's own HTML, pasted markup and hostile input (scripts, `javascript:` links, bad images, forged markers) |
+| `markdown.json` | `htmlToMarkdown` (with and without footnotes) and `htmlToInlineMarkdown`: escaping, whitespace, lists, code, links, images, equations, diagrams, footnotes, citations, plus the rich corpus |
+| `export-markdown.json` | `exportMarkdown` for the same book and option sets as `export-text.json` |
 | `bundle-plain.prosecraft` | A plain backup with two projects that touch every stored field, including a field from a "future release" |
 | `bundle-encrypted.prosecraft` | The same projects as an encrypted backup; `bundle-encrypted.key.json` holds its test passphrase and key |
 

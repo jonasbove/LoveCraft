@@ -267,8 +267,10 @@ fn the_craftcloud_folder_is_one_click_away() {
 
 #[test]
 fn the_theme_is_chosen_in_settings_and_remembered() {
+    /// Every setting saved, in order: key and value.
+    type Saved = Vec<(String, Option<String>)>;
     #[derive(Clone, Default)]
-    struct Settings(Arc<Mutex<Vec<(String, Option<String>)>>>);
+    struct Settings(Arc<Mutex<Saved>>);
     struct ThemeStore(Settings);
     impl LibraryStore for ThemeStore {
         fn save(&mut self, _text: &str) -> Result<(), String> {

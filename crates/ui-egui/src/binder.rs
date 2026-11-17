@@ -5,6 +5,7 @@ use egui::accesskit::Role;
 use egui::{RichText, Ui};
 use prosecraft_core::project::{Project, WikiItemKind};
 
+use crate::editing::Intent;
 use crate::theme::Palette;
 use crate::widgets::eyebrow;
 use crate::{AppState, Selection, fonts};
@@ -108,7 +109,14 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
     egui::ScrollArea::vertical()
         .auto_shrink([false, false])
         .show(ui, |ui| {
-            chosen = chapters(ui, &palette, project, state.selection.as_ref());
+            chosen = chapters(
+                ui,
+                &palette,
+                project,
+                state.selection.as_ref(),
+                state.editable,
+                &mut state.intents,
+            );
             ui.add_space(14.0);
             ui.separator();
             ui.add_space(8.0);
@@ -116,7 +124,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
             ui.add_space(14.0);
             ui.separator();
             ui.add_space(8.0);
-            trash(ui, &palette, project);
+            trash(ui, &palette, project, state.editable, &mut state.intents);
         });
     if let Some(selection) = chosen {
         state.select(selection);
@@ -128,20 +136,31 @@ fn chapters(
     palette: &Palette,
     project: &Project,
     selection: Option<&Selection>,
+    editable: bool,
+    intents: &mut Vec<Intent>,
 ) -> Option<Selection> {
     let mut chosen = None;
-    eyebrow(ui, palette, "Chapters");
+    ui.horizontal(|ui| {
+        eyebrow(ui, palette, "Chapters");
+        if editable {
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                // An icon button, as ProseCraft's: "+" on screen, "Add chapter" for screen readers.
+                let add = ui.small_button("+").on_hover_text("Add chapter");
+                ui.ctx()
+                    .accesskit_node_builder(add.id, |node| node.set_label("Add chapter"));
+                if add.clicked() {
+                    intents.push(Intent::AddChapter);
+                }
+            });
+        }
+    });
     ui.add_space(4.0);
     let mut any = false;
     for chapter in project.live_chapters() {
         any = true;
         let selected = selection == Some(&Selection::Chapter(chapter.id.clone()));
-        let title = if chapter.title.is_empty() {
-            "Untitled chapter"
-        } else {
-            chapter.title.as_str()
-        };
-        if tree_row(ui, palette, title, 1, selected) {
+        let title = crate::views::label_of(project, &chapter.id);
+        if tree_row(ui, palette, &title, 1, selected) {
             chosen = Some(Selection::Chapter(chapter.id.clone()));
         }
         for scene in project.scenes_in_chapter(&chapter.id) {
@@ -217,7 +236,22 @@ fn wiki(
     chosen
 }
 
-fn trash(ui: &mut Ui, palette: &Palette, project: &Project) {
+/// "Restore", named for its item so each button in the Trash can be told apart.
+fn restore_button(ui: &mut Ui, item: &str) -> egui::Response {
+    let response = ui.small_button("Restore");
+    let name = format!("Restore {item}");
+    ui.ctx()
+        .accesskit_node_builder(response.id, |node| node.set_label(name));
+    response
+}
+
+fn trash(
+    ui: &mut Ui,
+    palette: &Palette,
+    project: &Project,
+    editable: bool,
+    intents: &mut Vec<Intent>,
+) {
     let (chapters, documents) = project.trash();
     let count = chapters.len() + documents.len();
     egui::CollapsingHeader::new(
@@ -232,12 +266,23 @@ fn trash(ui: &mut Ui, palette: &Palette, project: &Project) {
             ui.label(RichText::new("Trash is empty").color(palette.text_muted));
         }
         for chapter in chapters {
-            ui.label(
-                RichText::new(format!("Chapter: {}", chapter.title)).color(palette.text_secondary),
-            );
+            ui.horizontal(|ui| {
+                ui.label(
+                    RichText::new(format!("Chapter: {}", chapter.title))
+                        .color(palette.text_secondary),
+                );
+                if editable && restore_button(ui, &chapter.title).clicked() {
+                    intents.push(Intent::RestoreChapter(chapter.id.clone()));
+                }
+            });
         }
         for document in documents {
-            ui.label(RichText::new(document.title.as_str()).color(palette.text_secondary));
+            ui.horizontal(|ui| {
+                ui.label(RichText::new(document.title.as_str()).color(palette.text_secondary));
+                if editable && restore_button(ui, &document.title).clicked() {
+                    intents.push(Intent::RestoreDocument(document.id.clone()));
+                }
+            });
         }
     });
 }

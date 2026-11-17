@@ -16,6 +16,7 @@
 )]
 
 mod binder;
+mod editing;
 pub mod fonts;
 mod library;
 mod sidebar;
@@ -40,6 +41,17 @@ pub trait LibraryStore {
     fn save(&mut self, text: &str) -> Result<(), String>;
     /// Now, in milliseconds since 1970 (ProseCraft's timestamps).
     fn now_ms(&self) -> f64;
+    /// A new random id for a chapter or scene (a UUID, as ProseCraft's `crypto.randomUUID()`).
+    fn new_id(&mut self) -> String;
+}
+
+/// Where the library's changes are.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub enum SaveState {
+    #[default]
+    Saved,
+    Pending,
+    Failed(String),
 }
 
 /// Something only the host can do: native file dialogs, writing files the person chose.
@@ -161,6 +173,15 @@ pub struct AppState {
     requests: Vec<HostRequest>,
     /// The binder's Export button was pressed; the app builds the backup after the frame.
     export_wanted: bool,
+    /// Whether projects can be changed (a library that isn't read-only).
+    editable: bool,
+    /// Changes the panes asked for, applied after the frame.
+    intents: Vec<editing::Intent>,
+    /// The scene or page being typed into.
+    draft: Option<editing::Draft>,
+    save_state: SaveState,
+    /// egui's time this frame, for the draft's pause.
+    now: f64,
 }
 
 impl AppState {
@@ -174,6 +195,14 @@ impl AppState {
 
     pub fn status(&self) -> Option<&str> {
         self.status.as_deref()
+    }
+
+    pub fn save_state(&self) -> &SaveState {
+        &self.save_state
+    }
+
+    pub fn is_editable(&self) -> bool {
+        self.editable
     }
 
     pub fn library(&self) -> Option<&Library> {
@@ -250,6 +279,8 @@ pub struct ProseApp {
     locked: Option<Locked>,
     ready: bool,
     home: Option<Home>,
+    /// The library has changes not yet saved, last made at this egui time.
+    unsaved_since: Option<f64>,
 }
 
 impl Default for ProseApp {
@@ -267,6 +298,7 @@ impl ProseApp {
             locked: None,
             ready: false,
             home: None,
+            unsaved_since: None,
         }
     }
 
@@ -287,6 +319,8 @@ impl ProseApp {
         };
         app.state.set_library(views, status);
         app.state.has_home = true;
+        app.state.editable = !library.is_read_only();
+        app.state.save_state = SaveState::Saved;
         app.home = Some(Home { library, store });
         app
     }
@@ -330,6 +364,124 @@ impl ProseApp {
         };
         let views = Library::from_stored(home.library.projects().cloned().collect());
         self.state.set_library(views, status);
+    }
+
+    /// The open project's id.
+    fn active_project_id(&self) -> Option<String> {
+        self.state
+            .library
+            .as_ref()
+            .and_then(|l| l.projects().get(self.state.active))
+            .map(|p| p.view.id.clone())
+    }
+
+    /// Rebuilds the views after a change, keeping the open project and selection.
+    fn refresh_views(&mut self) {
+        let Some(home) = self.home.as_ref() else {
+            return;
+        };
+        let active = self.active_project_id();
+        let views = Library::from_stored(home.library.projects().cloned().collect());
+        self.state.active = active
+            .and_then(|id| views.projects().iter().position(|p| p.view.id == id))
+            .unwrap_or(0);
+        self.state.library = Some(views);
+    }
+
+    /// Applies one change to the open project, stamped, and marks the library unsaved.
+    fn change(
+        &mut self,
+        change: impl FnOnce(
+            &mut prosecraft_core::js::JsValue,
+            &mut dyn FnMut() -> String,
+        ) -> Result<(), prosecraft_core::edit::EditError>,
+    ) {
+        let Some(project_id) = self.active_project_id() else {
+            return;
+        };
+        let Some(home) = self.home.as_mut() else {
+            return;
+        };
+        if home.library.is_read_only() {
+            return;
+        }
+        let now_ms = home.store.now_ms();
+        let store = &mut home.store;
+        let mut new_id = || store.new_id();
+        let result = editing::apply(&mut home.library, &project_id, now_ms, |data| {
+            change(data, &mut new_id)
+        });
+        match result {
+            Ok(()) => {
+                self.unsaved_since = Some(self.state.now);
+                self.state.save_state = SaveState::Pending;
+            }
+            Err(error) => self.state.status = Some(format!("That change wasn't made: {error}")),
+        }
+        self.refresh_views();
+    }
+
+    /// Commits the draft to the project if it has unsaved typing.
+    fn commit_draft(&mut self) {
+        let Some(draft) = self.state.draft.clone().filter(editing::Draft::is_dirty) else {
+            return;
+        };
+        self.change(|data, _| editing::commit_draft(&draft, data));
+        if let Some(current) = self.state.draft.as_mut() {
+            current.title_dirty = false;
+            current.body_dirty = false;
+        }
+    }
+
+    /// Writes the library now if it has changes.
+    fn save_now(&mut self) {
+        let Some(home) = self.home.as_mut() else {
+            return;
+        };
+        if self.unsaved_since.is_none() {
+            return;
+        }
+        let text = home.library.to_text(home.store.now_ms());
+        match home.store.save(&text) {
+            Ok(()) => {
+                self.unsaved_since = None;
+                self.state.save_state = SaveState::Saved;
+            }
+            Err(error) => {
+                // Kept unsaved: the next pause tries again.
+                self.unsaved_since = Some(self.state.now);
+                self.state.save_state = SaveState::Failed(error);
+            }
+        }
+    }
+
+    /// Commits any typing and saves. The host calls it before the app closes.
+    pub fn flush(&mut self) {
+        self.commit_draft();
+        self.save_now();
+    }
+
+    /// After each frame: the panes' changes, the draft after a pause, the library after a pause.
+    fn after_frame(&mut self) {
+        for intent in std::mem::take(&mut self.state.intents) {
+            self.commit_draft();
+            self.change(|data, new_id| editing::run(&intent, data, new_id));
+        }
+        let now = self.state.now;
+        if self
+            .state
+            .draft
+            .as_ref()
+            .is_some_and(|d| d.is_dirty() && now - d.changed_at >= editing::COMMIT_AFTER)
+        {
+            self.commit_draft();
+        }
+        if self
+            .unsaved_since
+            .is_some_and(|since| now - since >= editing::SAVE_AFTER)
+        {
+            self.save_now();
+        }
     }
 
     /// The library as a ProseCraft backup, for the host to save where the person chooses.
@@ -429,6 +581,7 @@ impl ProseApp {
             setup(ui.ctx());
             self.ready = true;
         }
+        self.state.now = ui.ctx().input(|i| i.time);
         // Files dropped on the window. (The web build reads them asynchronously; that comes
         // with the web build's file handling.)
         #[cfg(not(target_arch = "wasm32"))]
@@ -469,7 +622,20 @@ impl ProseApp {
         egui::CentralPanel::default().show(ui, |ui| views::show(ui, &mut self.state));
         self.passphrase_dialog(ui);
         if std::mem::take(&mut self.state.export_wanted) {
+            self.flush();
             self.export();
+        }
+        self.after_frame();
+        if self
+            .state
+            .draft
+            .as_ref()
+            .is_some_and(editing::Draft::is_dirty)
+            || self.unsaved_since.is_some()
+        {
+            // Wake up again to commit and save after the pause, even with no input.
+            ui.ctx()
+                .request_repaint_after(std::time::Duration::from_millis(300));
         }
     }
 

@@ -1,0 +1,270 @@
+//! Editing through the interface, checked in what is saved.
+
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
+
+use egui::accesskit::Role;
+use egui_kittest::Harness;
+use egui_kittest::kittest::Queryable;
+use prosecraft_core::js::{self, JsValue};
+use prosecraft_ui_egui::{LibraryStore, ProjectLibrary, ProseApp};
+
+fn fixture(name: &str) -> String {
+    let path = format!(
+        "{}/../core/tests/fixtures/{name}",
+        env!("CARGO_MANIFEST_DIR")
+    );
+    std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{path}: {e}"))
+}
+
+#[derive(Clone, Default)]
+struct Memory {
+    saved: Arc<Mutex<Vec<String>>>,
+    ids: Arc<AtomicUsize>,
+}
+
+impl LibraryStore for Memory {
+    fn save(&mut self, text: &str) -> Result<(), String> {
+        self.saved
+            .lock()
+            .map_err(|e| e.to_string())?
+            .push(text.to_owned());
+        Ok(())
+    }
+    fn now_ms(&self) -> f64 {
+        1_800_000_000_000.0
+    }
+    fn new_id(&mut self) -> String {
+        format!("new-{}", self.ids.fetch_add(1, Ordering::SeqCst))
+    }
+}
+
+impl Memory {
+    fn last(&self) -> JsValue {
+        let text = self
+            .saved
+            .lock()
+            .ok()
+            .and_then(|s| s.last().cloned())
+            .expect("something was saved");
+        js::parse(&text).expect("the saved library is JSON")
+    }
+}
+
+/// The app with the fixture backup in its library, and its store.
+fn app() -> (Harness<'static, ProseApp>, Memory) {
+    let memory = Memory::default();
+    let mut app = ProseApp::with_library(
+        ProjectLibrary::new("this-device".into()),
+        Box::new(memory.clone()),
+    );
+    app.open_backup(
+        "bundle-plain.prosecraft",
+        &fixture("bundle-plain.prosecraft"),
+    );
+    let mut harness = Harness::builder()
+        .with_size([1280.0, 850.0])
+        .build_ui_state(|ui, app: &mut ProseApp| app.show(ui), app);
+    prosecraft_ui_egui::setup(&harness.ctx);
+    harness.run();
+    (harness, memory)
+}
+
+fn project<'a>(library: &'a JsValue, id: &str) -> &'a JsValue {
+    library
+        .get("projects")
+        .and_then(JsValue::as_array)
+        .and_then(|p| {
+            p.iter().find(|p| {
+                p.get("id")
+                    .and_then(JsValue::as_js_string)
+                    .is_some_and(|i| i.eq_str(id))
+            })
+        })
+        .expect("project")
+}
+
+fn document<'a>(project: &'a JsValue, id: &str) -> Option<&'a JsValue> {
+    project
+        .get("project")?
+        .get("documents")?
+        .as_array()?
+        .iter()
+        .find(|d| {
+            d.get("id")
+                .and_then(JsValue::as_js_string)
+                .is_some_and(|i| i.eq_str(id))
+        })
+}
+
+#[test]
+fn a_new_chapter_and_typed_scene_are_saved_as_prosecraft_writes_them() {
+    let (mut harness, memory) = app();
+    // The binder's "+" (the outline has an "Add chapter" button too).
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("an add button")
+        .click();
+    harness.run();
+    // ProseCraft's numbering counts automatically numbered chapters only; "Chapter One" isn't
+    // one, so the new chapter is "Chapter 1". Its first scene is "Scene 1".
+    harness.get_by_role_and_label(Role::TreeItem, "Chapter 1");
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Scene 1")
+        .click();
+    harness.run();
+
+    let body = harness.get_by_label("Scene text");
+    body.focus();
+    body.type_text("The lamp went out.");
+    harness.run();
+    harness.key_press(egui::Key::Enter);
+    harness
+        .get_by_label("Scene text")
+        .type_text("Nobody moved.");
+    // The pause after typing, then the pause before saving.
+    harness.run_steps(12);
+
+    let saved = memory.last();
+    let stored = project(&saved, "project-1");
+    let scene = document(stored, "new-1").expect("the new scene was saved");
+    assert_eq!(
+        js::stringify(scene.get("content").expect("content")),
+        r#""<p>The lamp went out.</p><p>Nobody moved.</p>""#
+    );
+    assert_eq!(
+        scene
+            .get("chapterId")
+            .and_then(JsValue::as_js_string)
+            .map(|c| c.to_string_lossy())
+            .as_deref(),
+        Some("new-0")
+    );
+    // Stamped as ProseCraft stamps, everything else kept.
+    assert!(
+        stored
+            .get("revision")
+            .and_then(JsValue::as_number)
+            .unwrap_or(0.0)
+            > 1.0
+    );
+    let meta = stored
+        .get("entities")
+        .and_then(|e| e.get("documents"))
+        .and_then(|d| d.get("new-1"))
+        .expect("scene metadata");
+    assert_eq!(
+        meta.get("updatedBy")
+            .and_then(JsValue::as_js_string)
+            .map(|d| d.to_string_lossy())
+            .as_deref(),
+        Some("this-device")
+    );
+    assert!(
+        stored
+            .get("project")
+            .and_then(|p| p.get("futureField"))
+            .is_some()
+    );
+    assert!(prosecraft_core::storage::schema::is_stored_project(stored));
+    harness.get_by_label("All changes saved");
+}
+
+#[test]
+fn a_formatted_scene_stays_read_only_with_the_reason() {
+    let (mut harness, _memory) = app();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    assert!(
+        harness.query_by_label("Scene text").is_none(),
+        "no plain editor for a scene with formatting"
+    );
+    harness.get_by_label_contains("formatting the plain editor can't change yet");
+}
+
+#[test]
+fn a_scene_goes_to_the_trash_and_comes_back() {
+    let (mut harness, memory) = app();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "INT. LIGHTHOUSE - NIGHT")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Move to Trash")
+        .click();
+    harness.run_steps(8);
+    assert!(
+        harness
+            .query_by_role_and_label(Role::TreeItem, "INT. LIGHTHOUSE - NIGHT")
+            .is_none()
+    );
+    let saved = memory.last();
+    let scene = document(project(&saved, "project-1"), "doc-3").expect("kept, in the trash");
+    assert_eq!(scene.get("trashed"), Some(&JsValue::Bool(true)));
+
+    harness.get_by_label_contains("Trash (").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Restore INT. LIGHTHOUSE - NIGHT")
+        .click();
+    harness.run_steps(8);
+    harness.get_by_role_and_label(Role::TreeItem, "INT. LIGHTHOUSE - NIGHT");
+}
+
+#[test]
+fn a_backup_opened_without_a_library_offers_no_editing() {
+    let mut app = ProseApp::new();
+    app.open_backup(
+        "bundle-plain.prosecraft",
+        &fixture("bundle-plain.prosecraft"),
+    );
+    let mut harness = Harness::builder()
+        .with_size([1280.0, 850.0])
+        .build_ui_state(|ui, app: &mut ProseApp| app.show(ui), app);
+    prosecraft_ui_egui::setup(&harness.ctx);
+    harness.run();
+    assert!(
+        harness
+            .query_by_role_and_label(Role::Button, "Add chapter")
+            .is_none()
+    );
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Mara")
+        .click();
+    harness.run();
+    assert!(harness.query_by_label("Scene text").is_none());
+}
+
+/// Writes a library edited through the interface to `PROSECRAFT_EXPORT_FOR_TS`, so ProseCraft's own
+/// code can be run on it (see the PR). Does nothing without the variable.
+#[test]
+fn export_an_edited_library_for_prosecraft() {
+    let Some(path) = std::env::var_os("PROSECRAFT_EXPORT_FOR_TS") else {
+        return;
+    };
+    let (mut harness, memory) = app();
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("add")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Scene 1")
+        .click();
+    harness.run();
+    let body = harness.get_by_label("Scene text");
+    body.focus();
+    body.type_text("Written in prosecraft-rs & read by ProseCraft <3");
+    harness.run_steps(12);
+    let text = memory
+        .saved
+        .lock()
+        .ok()
+        .and_then(|s| s.last().cloned())
+        .expect("saved");
+    std::fs::write(path, text).expect("write");
+}

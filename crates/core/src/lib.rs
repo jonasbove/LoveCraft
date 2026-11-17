@@ -11,6 +11,7 @@
 )]
 
 pub mod about;
+pub mod edit;
 pub mod html;
 pub mod js;
 pub mod library;

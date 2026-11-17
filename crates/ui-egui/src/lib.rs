@@ -289,6 +289,9 @@ pub struct AppState {
     markdown_mode: bool,
     markdown_switch: Option<bool>,
     markdown_enabled_choice: Option<bool>,
+    /// The Markdown editor was opened from a scene the rich editor can't hold ("Edit as
+    /// Markdown"), so it is on though the preference is off.
+    markdown_forced: bool,
     /// The user's own wiki templates (a device setting), and a new list to save (a new one has
     /// no id yet).
     custom_starters: Vec<prosecraft_core::starters::custom::CustomStarter>,
@@ -429,6 +432,13 @@ pub struct ProseApp {
     unsaved_since: Option<f64>,
     /// A device sync running in the background.
     sync_job: Option<device_sync::SyncJob>,
+    /// A Markdown folder import being built in the background.
+    markdown_job: Option<
+        std::sync::mpsc::Receiver<(
+            prosecraft_core::js::JsValue,
+            prosecraft_core::import::markdown_folder::MarkdownImportReport,
+        )>,
+    >,
 }
 
 impl Default for ProseApp {
@@ -448,6 +458,7 @@ impl ProseApp {
             home: None,
             unsaved_since: None,
             sync_job: None,
+            markdown_job: None,
         }
     }
 
@@ -761,7 +772,11 @@ impl ProseApp {
         // the editor reopened in the other mode.
         if let Some(on) = self.state.markdown_switch.take() {
             self.commit_draft();
-            self.state.markdown_mode = on && self.state.markdown_enabled;
+            if !on {
+                self.state.markdown_forced = false;
+            }
+            self.state.markdown_mode =
+                on && (self.state.markdown_enabled || self.state.markdown_forced);
             self.state.draft = None;
         }
         for intent in std::mem::take(&mut self.state.intents) {
@@ -1014,7 +1029,7 @@ impl ProseApp {
                 self.state.status = Some(format!("Could not save the theme: {error}"));
             }
         }
-        if self.poll_sync() {
+        if self.poll_sync() | self.poll_markdown_import() {
             ui.ctx()
                 .request_repaint_after(std::time::Duration::from_millis(100));
         }

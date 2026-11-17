@@ -5,9 +5,10 @@ use std::collections::HashMap;
 
 use egui::{RichText, Ui};
 use prosecraft_core::import::markdown_folder::{
-    ChapterMode, FolderRole, ImportFolder, MarkdownFile, MarkdownImportPlan,
+    ChapterMode, FolderRole, ImportFolder, MarkdownFile, MarkdownImportPlan, MarkdownImportReport,
     build_markdown_project, list_import_folders, role_of,
 };
+use prosecraft_core::js::JsValue;
 
 use crate::{AppState, ProseApp};
 
@@ -56,30 +57,82 @@ impl ProseApp {
         self.state.status = Some(message.to_owned());
     }
 
-    /// `importMarkdownFolder`: the project built from the plan, added and opened.
+    /// `importMarkdownFolder`: the project built from the plan (on a worker thread, as a large
+    /// folder takes seconds to read as Markdown), then added and opened.
     pub(crate) fn finish_markdown_import(&mut self, draft: MarkdownImportDraft) {
+        let Some(home) = self.home.as_mut() else {
+            return;
+        };
         let plan = MarkdownImportPlan {
             roles: draft.roles,
             chapter_mode: draft.mode,
         };
-        let mut report = None;
-        let mut name = String::new();
-        let saved = self.add_and_open(|store, _| {
-            let (project, made) = build_markdown_project(
-                &draft.files,
-                &plan,
-                &mut || store.new_id(),
-                Some(&draft.name),
-            );
-            name = project
-                .get("name")
-                .and_then(|n| n.as_js_string())
-                .map(|n| n.to_string_lossy())
-                .unwrap_or_default();
-            report = Some(made);
-            project
-        });
-        let (Some(saved), Some(r)) = (saved, report) else {
+        // Every id the import may take (two per file, one per folder, and a few), drawn now:
+        // the store stays on this thread.
+        let wanted = draft.files.len() * 2
+            + draft
+                .files
+                .iter()
+                .map(|f| f.path.matches('/').count())
+                .sum::<usize>()
+            + 4;
+        let ids: Vec<String> = (0..wanted).map(|_| home.store.new_id()).collect();
+        let job = ImportJob {
+            files: draft.files,
+            plan,
+            name: draft.name,
+            ids,
+        };
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let (sender, receiver) = std::sync::mpsc::channel();
+            let spawned = std::thread::Builder::new()
+                .name("prosecraft-import".into())
+                .spawn(move || {
+                    let _ = sender.send(job.run());
+                });
+            match spawned {
+                Ok(_) => {
+                    self.markdown_job = Some(receiver);
+                    self.state.status = Some("Importing…".into());
+                }
+                Err(_) => self.state.status = Some("Could not import that folder.".into()),
+            }
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            let built = job.run();
+            self.open_markdown_import(built);
+        }
+    }
+
+    /// Takes a finished import. Returns whether one is still running.
+    pub(crate) fn poll_markdown_import(&mut self) -> bool {
+        let Some(receiver) = self.markdown_job.as_ref() else {
+            return false;
+        };
+        match receiver.try_recv() {
+            Ok(built) => {
+                self.markdown_job = None;
+                self.open_markdown_import(built);
+                false
+            }
+            Err(std::sync::mpsc::TryRecvError::Empty) => true,
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                self.markdown_job = None;
+                self.state.status = Some("Could not import that folder.".into());
+                false
+            }
+        }
+    }
+
+    fn open_markdown_import(&mut self, (project, r): (JsValue, MarkdownImportReport)) {
+        let name = project
+            .get("name")
+            .and_then(|n| n.as_js_string())
+            .map(|n| n.to_string_lossy())
+            .unwrap_or_default();
+        let Some(saved) = self.add_and_open(|_, _| project) else {
             return;
         };
         self.state.status = Some(match saved {
@@ -96,6 +149,26 @@ impl ProseApp {
             }
             Err(_) => "Could not save the imported project.".into(),
         });
+    }
+}
+
+/// An import to build away from the interface.
+struct ImportJob {
+    files: Vec<MarkdownFile>,
+    plan: MarkdownImportPlan,
+    name: String,
+    ids: Vec<String>,
+}
+
+impl ImportJob {
+    fn run(self) -> (JsValue, MarkdownImportReport) {
+        let mut ids = self.ids.into_iter();
+        build_markdown_project(
+            &self.files,
+            &self.plan,
+            &mut || ids.next().unwrap_or_default(),
+            Some(&self.name),
+        )
     }
 }
 

@@ -91,6 +91,9 @@ struct Edit<'a> {
     markdown_enabled: bool,
     markdown_mode: bool,
     markdown_switch: &'a mut Option<bool>,
+    /// The Markdown editor opened for content the rich editor can't hold, with the
+    /// preference off.
+    markdown_forced: &'a mut bool,
 }
 
 pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
@@ -140,6 +143,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         markdown_enabled,
         markdown_mode,
         markdown_switch,
+        markdown_forced,
         ..
     } = state;
     let entry = library.as_ref().and_then(|l| l.projects().get(*active));
@@ -181,6 +185,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         markdown_enabled: *markdown_enabled,
         markdown_mode: *markdown_mode,
         markdown_switch,
+        markdown_forced,
     };
     let mut chosen = None;
     egui::ScrollArea::vertical()
@@ -425,6 +430,17 @@ fn write(
                                 .font(fonts::serif(38.0))
                                 .color(palette.text_heading),
                         );
+                        // Content the rich editor can't hold yet (a table, a code block, a
+                        // line break) can still be edited as Markdown.
+                        if edit.editable {
+                            let markdown = ui
+                                .button("Edit as Markdown")
+                                .on_hover_text("Open this scene in the Markdown editor");
+                            if markdown.clicked() {
+                                *edit.markdown_forced = true;
+                                *edit.markdown_switch = Some(true);
+                            }
+                        }
                         ui.add_space(18.0);
                         manuscript(ui, palette, &plain(&document.content));
                         let why = if edit.editable {
@@ -967,6 +983,23 @@ fn markdown_words(source: &str) -> usize {
     ))
 }
 
+/// What the Markdown editor's draft was read from: the content, the Markdown source and the
+/// footnotes. When any of them changes underneath an untouched draft (a footnote edited in the
+/// sidebar, a sync), the draft is read again, so the next keystroke can't write the old one back.
+fn markdown_base(document: &prosecraft_core::project::Document) -> String {
+    let notes: Vec<String> = document
+        .footnotes
+        .iter()
+        .map(|f| format!("{}\u{1}{}", f.id, f.html))
+        .collect();
+    format!(
+        "{}\u{0}{:?}\u{0}{}",
+        document.content,
+        document.markdown_source,
+        notes.join("\u{2}")
+    )
+}
+
 /// ProseCraft's Markdown editor: the scene's Markdown source as plain text, with "Rich text
 /// editor" to go back. What is typed reaches the scene as it does from the rich editor, as
 /// Markdown (`applySingleDocumentMarkdown`).
@@ -981,7 +1014,8 @@ fn markdown_editor(
     let stale = edit.draft.as_ref().is_none_or(|d| {
         d.document != document.id
             || d.markdown.is_none()
-            || (!d.is_dirty() && (d.title != document.title || d.markdown_base != document.content))
+            || (!d.is_dirty()
+                && (d.title != document.title || d.markdown_base != markdown_base(document)))
     });
     if stale {
         let source = document.markdown();
@@ -998,7 +1032,7 @@ fn markdown_editor(
             edits: 0,
             words_added: 0.0,
             markdown: Some(source),
-            markdown_base: document.content.clone(),
+            markdown_base: markdown_base(document),
         });
     }
     let now = edit.now;
@@ -1021,15 +1055,13 @@ fn markdown_editor(
     ui.add_space(10.0);
     // ProseCraft's Markdown utilities: back to the rich text editor.
     ui.horizontal(|ui| {
-        if edit.markdown_enabled {
-            let rich = ui.button("Rich text editor");
-            ui.ctx().accesskit_node_builder(rich.id, |node| {
-                node.set_label("Rich text editor");
-                node.set_toggled(egui::accesskit::Toggled::True);
-            });
-            if rich.clicked() {
-                *edit.markdown_switch = Some(false);
-            }
+        let rich = ui.button("Rich text editor");
+        ui.ctx().accesskit_node_builder(rich.id, |node| {
+            node.set_label("Rich text editor");
+            node.set_toggled(egui::accesskit::Toggled::True);
+        });
+        if rich.clicked() {
+            *edit.markdown_switch = Some(false);
         }
     });
     ui.add_space(10.0);

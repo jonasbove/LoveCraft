@@ -145,9 +145,10 @@ struct LinkDef {
     title: Option<String>,
 }
 
-/// How deeply blocks and inline tokens may nest. marked recurses without a limit and throws a
-/// `RangeError` some thousands of levels down; the port reads anything nested deeper than this
-/// as plain text instead, so a hostile file cannot overflow the stack. Below it, the two agree.
+/// How many levels quotes and lists, and inline tokens (emphasis, links), may nest. marked
+/// recurses without a limit and throws a `RangeError` some thousands of levels down; past this,
+/// the port reads what is left as plain text, so a hostile file cannot overflow the stack. Up to
+/// it (200 nested quotes, lists or emphasis), the two agree.
 const MAX_NESTING: usize = 200;
 
 pub(crate) struct Lexer {
@@ -485,15 +486,15 @@ impl Lexer {
         }
     }
 
+    /// A level of nesting is counted where it opens (a quote, a list), so the guard here only
+    /// backs that up.
     fn block_tokens(&mut self, src: &str, tokens: &mut Vec<Token>, last_paragraph_clipped: bool) {
-        if self.depth >= MAX_NESTING {
+        if self.depth > MAX_NESTING {
             tokens.push(Token::with_text(Kind::Text, src, src));
             self.top = true;
             return;
         }
-        self.depth += 1;
         self.block_tokens_inner(src, tokens, last_paragraph_clipped);
-        self.depth -= 1;
     }
 
     fn block_tokens_inner(

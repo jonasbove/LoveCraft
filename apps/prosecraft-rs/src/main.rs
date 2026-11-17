@@ -73,12 +73,12 @@ impl LibraryStore for DiskStore {
     ) -> Option<Box<dyn prosecraft_core::sync::SyncFileSystem + Send>> {
         Some(Box::new(prosecraft_native::sync_fs::FolderFs::new(folder)))
     }
-    fn load_sync_state(&mut self) -> Option<String> {
-        prosecraft_native::load_sync_state(self.file.path().parent()?)
+    fn load_setting(&mut self, key: &str) -> Option<String> {
+        prosecraft_native::load_setting(self.file.path().parent()?, key)
     }
-    fn save_sync_state(&mut self, text: Option<&str>) -> Result<(), String> {
+    fn save_setting(&mut self, key: &str, value: Option<&str>) -> Result<(), String> {
         let dir = self.file.path().parent().ok_or("there is no data folder")?;
-        prosecraft_native::save_sync_state(dir, text).map_err(|e| e.to_string())
+        prosecraft_native::save_setting(dir, key, value).map_err(|e| e.to_string())
     }
 }
 

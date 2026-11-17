@@ -57,8 +57,9 @@ pub trait LibraryStore {
     ) -> Option<Box<dyn prosecraft_core::sync::SyncFileSystem + Send>> {
         None
     }
-    /// The device's saved sync settings (ProseCraft's `prosecraft-sync-state`).
-    fn load_sync_state(&mut self) -> Option<String> {
+    /// A device setting, under ProseCraft's `localStorage` key (`prosecraft-theme`,
+    /// `prosecraft-sync-state`…).
+    fn load_setting(&mut self, _key: &str) -> Option<String> {
         None
     }
     /// Whether CraftCloud's `craftcloud` program is installed (then its folder is offered).
@@ -69,8 +70,8 @@ pub trait LibraryStore {
     fn craftcloud_folder(&mut self) -> Result<String, String> {
         Err("CraftCloud isn't installed.".into())
     }
-    /// Saves (or, with `None`, forgets) the device's sync settings.
-    fn save_sync_state(&mut self, _text: Option<&str>) -> Result<(), String> {
+    /// Saves (or, with `None`, forgets) a device setting.
+    fn save_setting(&mut self, _key: &str, _value: Option<&str>) -> Result<(), String> {
         Ok(())
     }
 }
@@ -229,6 +230,11 @@ pub struct AppState {
     book_id: Option<String>,
     /// The Settings dialog is open.
     settings_open: bool,
+    /// The Settings dialog's category.
+    settings_tab: settings::Category,
+    /// The Theme preference, and one chosen in Settings this frame.
+    theme: settings::ThemePreference,
+    theme_choice: Option<settings::ThemePreference>,
     /// The Settings dialog's Device sync group.
     sync: settings::SyncPanel,
     /// What the Device sync group asked for this frame.
@@ -692,10 +698,21 @@ impl ProseApp {
                 PaneRequest::Close(_) | PaneRequest::Focus(_) | PaneRequest::Before(..) => {}
             }
         }
+        self.apply_theme(ui.ctx());
         egui::CentralPanel::default().show(ui, |ui| views::show(ui, &mut self.state));
         settings::show(ui, &mut self.state);
         self.passphrase_dialog(ui);
         self.handle_sync_actions();
+        if let Some(theme) = self.state.theme_choice.take() {
+            self.state.theme = theme;
+            if let Some(home) = self.home.as_mut()
+                && let Err(error) = home
+                    .store
+                    .save_setting(settings::THEME_KEY, Some(theme.id()))
+            {
+                self.state.status = Some(format!("Could not save the theme: {error}"));
+            }
+        }
         if self.poll_sync() {
             ui.ctx()
                 .request_repaint_after(std::time::Duration::from_millis(100));
@@ -715,6 +732,28 @@ impl ProseApp {
             // Wake up again to commit and save after the pause, even with no input.
             ui.ctx()
                 .request_repaint_after(std::time::Duration::from_millis(300));
+        }
+    }
+
+    /// The palette for the Theme preference: Follow system uses the system's light or dark
+    /// theme (dark when the system doesn't say, as ProseCraft opens).
+    fn apply_theme(&mut self, ctx: &egui::Context) {
+        let light = match self.state.theme {
+            settings::ThemePreference::Light => true,
+            settings::ThemePreference::Dark => false,
+            settings::ThemePreference::System => {
+                ctx.input(|i| i.raw.system_theme) == Some(egui::Theme::Light)
+            }
+        };
+        let palette = if light {
+            theme::Palette::LIGHT
+        } else {
+            theme::Palette::DARK
+        };
+        // Compared with the style egui holds, so a style set elsewhere is put right too.
+        if palette != self.state.palette || ctx.global_style().visuals != palette.visuals() {
+            palette.apply(ctx);
+            self.state.palette = palette;
         }
     }
 

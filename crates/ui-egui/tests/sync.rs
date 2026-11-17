@@ -343,3 +343,84 @@ fn the_theme_is_chosen_in_settings_and_remembered() {
     harness.run();
     assert_ne!(harness.ctx.global_style().visuals.panel_fill, dark_bg);
 }
+
+/// Opens Settings, chooses the open folder (which asks for no passphrase) and syncs.
+fn sync_open(harness: &mut Harness<'_, ProseApp>) -> String {
+    harness
+        .get_by_role_and_label(Role::Button, "Settings…")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Tab, "Data and sync")
+        .click();
+    harness.run();
+    if harness
+        .query_by_role_and_label(Role::Button, "Sync now")
+        .is_none()
+    {
+        harness.state_mut().set_sync_folder("/shared/open".into());
+        harness.run();
+    }
+    harness
+        .get_by_role_and_label(Role::RadioButton, "Open folder")
+        .click();
+    harness.run();
+    assert!(harness.query_by_label("Sync passphrase").is_none());
+    harness
+        .get_by_role_and_label(Role::Button, "Sync now")
+        .click();
+    harness.run();
+    for _ in 0..600 {
+        harness.step();
+        if status(harness) != "Syncing…" {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+    harness.run();
+    let said = status(harness);
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    said
+}
+
+#[test]
+fn an_open_folder_is_written_and_an_edit_made_outside_comes_back() {
+    let store = Store::default();
+    let mut a = app(&store, true);
+    assert_eq!(
+        sync_open(&mut a),
+        "Set up the open folder. 2 project(s) synced."
+    );
+    let path = "projects/project-1/documents/doc-1.md";
+    let file = store
+        .folder
+        .with(|fs| fs.files().get(path).cloned())
+        .expect("scene file");
+    assert!(
+        file.starts_with("---\nid: \"doc-1\"\n") && file.contains("\nIt was _dark_."),
+        "{file}"
+    );
+    assert!(
+        store
+            .folder
+            .with(|fs| fs.files().contains_key("prosecraft-folder.json"))
+    );
+
+    // Edited in another program: the next sync takes it.
+    store.folder.with(|fs| {
+        let edited = file.replace("It was _dark_.", "It was _very_ dark.");
+        let _ = fs.write_text(path, &edited);
+    });
+    assert_eq!(sync_open(&mut a), "Synced 2 project(s) (1 imported).");
+    let saved = store
+        .saved
+        .lock()
+        .expect("saved")
+        .clone()
+        .expect("library saved");
+    assert!(
+        saved.contains("It was <em>very</em> dark."),
+        "the edit is in the library"
+    );
+}

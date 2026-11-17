@@ -165,12 +165,9 @@ impl ProseApp {
         if self.state.sync.folder.is_empty() {
             return;
         }
-        if self.state.sync.mode == SyncMode::OpenFolder {
-            self.state.sync.status =
-                "Sync failed: open-folder sync isn't available in prosecraft-rs yet.".into();
-            return;
-        }
-        if self.state.sync.passphrase.encode_utf16().count() < 8 {
+        if self.state.sync.mode != SyncMode::OpenFolder
+            && self.state.sync.passphrase.encode_utf16().count() < 8
+        {
             self.state.sync.status = "Use a sync passphrase of at least 8 characters.".into();
             return;
         }
@@ -313,7 +310,9 @@ impl Job {
     #[cfg(not(target_arch = "wasm32"))]
     fn run(mut self) -> Result<SyncResult, String> {
         use prosecraft_core::storage::crypto::{OsRandom, RandomSource};
-        use prosecraft_core::sync::{EncryptedFileProvider, FolderProvider, sync_via};
+        use prosecraft_core::sync::{
+            EncryptedFileProvider, FolderProvider, OpenFolderProvider, sync_via,
+        };
         // ProseCraft's conflicted-copy suffix: five random base-36 characters.
         let mut suffix = || {
             let mut bytes = [0u8; 5];
@@ -335,7 +334,17 @@ impl Job {
                 &mut OsRandom,
                 &mut suffix,
             ),
-            _ => sync_via(
+            SyncMode::OpenFolder => sync_via(
+                &mut OpenFolderProvider::new(fs, self.now),
+                &self.passphrase,
+                &self.local,
+                &self.last_synced,
+                self.now,
+                &self.device_id,
+                &mut OsRandom,
+                &mut suffix,
+            ),
+            SyncMode::EncryptedFolder => sync_via(
                 &mut FolderProvider::new(fs),
                 &self.passphrase,
                 &self.local,

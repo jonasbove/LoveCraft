@@ -8,17 +8,83 @@
     clippy::unreachable
 )]
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+use std::sync::Arc;
 
+use craft_dialogs::{Answer, Dialogs, FileDialog};
 use prosecraft_core::about;
-use prosecraft_ui_egui::{ProseApp, window_title};
+use prosecraft_core::library::{Library, new_device_id};
+use prosecraft_native::{LibraryFile, OsRandom};
+use prosecraft_ui_egui::{HostRequest, LibraryStore, ProseApp, window_title};
 
 /// The window's app id (Wayland app id, X11 class). A placeholder until the bundle id is decided.
 const APP_ID: &str = "io.github.jonasbove.prosecraft_rs";
 
+/// What to do with a dialog's answer.
+enum Then {
+    Open,
+    Export(String),
+}
+
+/// The library file, saved atomically.
+struct DiskStore(LibraryFile);
+
+impl LibraryStore for DiskStore {
+    fn save(&mut self, text: &str) -> Result<(), String> {
+        self.0.save(text).map_err(|e| e.to_string())
+    }
+    fn now_ms(&self) -> f64 {
+        chrono::Utc::now().timestamp_millis() as f64
+    }
+}
+
+/// The app with its library, or why it runs without one. A library that exists but can't be
+/// read is never written over: the app then only shows backups, and says why.
+fn start() -> (ProseApp, Option<String>) {
+    let Some(file) = LibraryFile::default_location() else {
+        return (
+            ProseApp::new(),
+            Some("There is no data folder for the library on this system.".into()),
+        );
+    };
+    let library = match file.load() {
+        Ok(Some(text)) => match Library::from_text(&text) {
+            Ok(library) => library,
+            Err(e) => {
+                let why = format!(
+                    "The library at {} couldn't be read ({e}); it is left untouched.",
+                    file.path().display()
+                );
+                return (ProseApp::new(), Some(why));
+            }
+        },
+        Ok(None) => match new_device_id(&mut OsRandom) {
+            Ok(id) => Library::new(id),
+            Err(e) => {
+                return (
+                    ProseApp::new(),
+                    Some(format!("Couldn't start a library: {e}")),
+                );
+            }
+        },
+        Err(e) => {
+            let why = format!(
+                "The library at {} couldn't be read ({e}); it is left untouched.",
+                file.path().display()
+            );
+            return (ProseApp::new(), Some(why));
+        }
+    };
+    (
+        ProseApp::with_library(library, Box::new(DiskStore(file))),
+        None,
+    )
+}
+
 struct DesktopApp {
     app: ProseApp,
+    dialogs: Dialogs<Then>,
     title: String,
 }
 
@@ -42,8 +108,44 @@ fn read_backup(app: &mut ProseApp, path: &Path) {
 }
 
 impl eframe::App for DesktopApp {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui, _frame: &mut eframe::Frame) {
+    fn ui(&mut self, ui: &mut eframe::egui::Ui, frame: &mut eframe::Frame) {
+        for (then, answer) in self.dialogs.take_answers() {
+            match (then, answer) {
+                (Then::Open, Answer::Paths(paths)) => {
+                    for path in paths {
+                        read_backup(&mut self.app, &path);
+                    }
+                }
+                (Then::Export(text), Answer::Paths(paths)) => {
+                    if let Some(path) = paths.first()
+                        && let Err(e) = craft_atomic::atomic_write(path, text.as_bytes())
+                    {
+                        eprintln!("{}: {e}", path.display());
+                    }
+                }
+                (_, Answer::Unavailable(why)) => eprintln!("file dialog unavailable: {why}"),
+                _ => {}
+            }
+        }
         self.app.show(ui);
+        for request in self.app.take_requests() {
+            match request {
+                HostRequest::OpenBackup => {
+                    let dialog = FileDialog::open()
+                        .title("Open a ProseCraft backup")
+                        .filter("ProseCraft backup", &["prosecraft", "json"]);
+                    self.dialogs.ask(dialog, Then::Open);
+                }
+                HostRequest::ExportBackup { file_name, text } => {
+                    let dialog = FileDialog::save()
+                        .title("Export a backup")
+                        .filter("ProseCraft backup", &["prosecraft"])
+                        .file_name(file_name);
+                    self.dialogs.ask(dialog, Then::Export(text));
+                }
+            }
+        }
+        self.dialogs.show_pending(Some(&*frame));
         let title = window_title(&self.app);
         if title != self.title {
             ui.ctx()
@@ -59,9 +161,12 @@ fn main() -> ExitCode {
         println!("{}", about::name_and_version());
         return ExitCode::SUCCESS;
     }
-    let mut app = ProseApp::new();
-    if let Some(path) = args.first() {
-        read_backup(&mut app, Path::new(path));
+    let (mut app, problem) = start();
+    if let Some(problem) = problem {
+        eprintln!("{problem}");
+    }
+    for path in &args {
+        read_backup(&mut app, &PathBuf::from(path));
     }
     let options = eframe::NativeOptions {
         viewport: eframe::egui::ViewportBuilder::default()
@@ -76,8 +181,11 @@ fn main() -> ExitCode {
         options,
         Box::new(|cc| {
             prosecraft_ui_egui::setup(&cc.egui_ctx);
+            let ctx = cc.egui_ctx.clone();
+            let dialogs = Dialogs::new(Arc::new(move || ctx.request_repaint()));
             Ok(Box::new(DesktopApp {
                 app,
+                dialogs,
                 title: about::APP_NAME.to_owned(),
             }))
         }),

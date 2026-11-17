@@ -14,10 +14,13 @@ repository = "https://github.com/jonasbove/prosecraft-rs"
 # internal
 prosecraft-core = { path = "crates/core" }
 prosecraft-ui-egui = { path = "crates/ui-egui" }
+prosecraft-native = { path = "crates/native" }
 
 # shared Craft libraries (storytold/craft-libs), pinned by commit
 craft-ui = { git = "https://github.com/storytold/craft-libs", rev = "8672aff3d85ccad8f2a391304139d192a7d08dd5", version = "=0.1.0" }
 craft-fonts-build = { git = "https://github.com/storytold/craft-libs", rev = "8672aff3d85ccad8f2a391304139d192a7d08dd5", version = "=0.1.0" }
+craft-atomic = { git = "https://github.com/storytold/craft-libs", rev = "8672aff3d85ccad8f2a391304139d192a7d08dd5", version = "=0.1.0" }
+craft-dialogs = { git = "https://github.com/storytold/craft-libs", rev = "8672aff3d85ccad8f2a391304139d192a7d08dd5", version = "=0.1.0" }
 craft-html = { git = "https://github.com/storytold/craft-libs", rev = "8672aff3d85ccad8f2a391304139d192a7d08dd5", version = "=0.1.0" }
 
 # foundation
@@ -32,6 +35,9 @@ base64 = "0.23"
 # NFKC for passphrases, as ProseCraft's `passphrase.normalize("NFKC")` ((MIT OR Apache-2.0) AND Unicode-3.0).
 unicode-normalization = "0.1"
 zeroize = "1"
+# The platform data folder for the library (MIT OR Apache-2.0).
+dirs = "6"
+tempfile = "3"
 getrandom = "0.3"
 
 # ui

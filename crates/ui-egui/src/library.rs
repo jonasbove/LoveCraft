@@ -35,7 +35,8 @@ impl fmt::Display for OpenError {
 }
 
 impl Library {
-    fn from_stored(stored: Vec<JsValue>) -> Self {
+    /// Views of stored projects (for example the app's own library).
+    pub fn from_stored(stored: Vec<JsValue>) -> Self {
         let mut projects: Vec<OpenProject> = stored
             .into_iter()
             .filter_map(|stored| {
@@ -46,12 +47,10 @@ impl Library {
         Self { projects }
     }
 
-    /// Opens a backup's text: plain opens at once, encrypted asks for a passphrase.
-    pub fn open(text: &str) -> Result<Self, OpenError> {
+    /// Reads a backup's projects: plain at once, encrypted after its passphrase.
+    pub fn read(text: &str) -> Result<Vec<JsValue>, OpenError> {
         match PlainBundle::parse(text) {
-            Ok(bundle) => Ok(Self::from_stored(
-                bundle.projects().into_iter().cloned().collect(),
-            )),
+            Ok(bundle) => Ok(bundle.projects().into_iter().cloned().collect()),
             Err(plain_error) => match EncryptedBundle::parse(text) {
                 Ok(bundle) => Err(OpenError::Encrypted(Box::new(bundle))),
                 // Report the plain reading's reason unless the file says it's encrypted.
@@ -60,9 +59,12 @@ impl Library {
         }
     }
 
-    pub fn unlock(bundle: &EncryptedBundle, passphrase: &JsString) -> Result<Self, BundleError> {
+    pub fn unlock(
+        bundle: &EncryptedBundle,
+        passphrase: &JsString,
+    ) -> Result<Vec<JsValue>, BundleError> {
         let (_key, projects) = bundle.open(passphrase)?;
-        Ok(Self::from_stored(projects))
+        Ok(projects)
     }
 
     pub fn projects(&self) -> &[OpenProject] {

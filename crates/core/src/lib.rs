@@ -13,5 +13,6 @@
 pub mod about;
 pub mod html;
 pub mod js;
+pub mod library;
 pub mod project;
 pub mod storage;

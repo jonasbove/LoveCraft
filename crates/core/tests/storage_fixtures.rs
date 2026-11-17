@@ -242,3 +242,55 @@ fn hostile_or_foreign_files_are_refused_not_crashed_on() {
         Some(BundleError::NotEncrypted)
     );
 }
+
+#[test]
+fn stamping_matches_prosecraft_step_by_step() {
+    use prosecraft_core::storage::stamp::{
+        create_stored_project, project_content_key, stamp_project,
+    };
+    let fixture = fixture("stamping.json");
+    let created = fixture.get("created").expect("created");
+    let project = created.get("project").cloned().expect("project");
+    assert_eq!(
+        js::stable_stringify(&create_stored_project(project.clone(), "device-a", 1_000.0)),
+        js::stable_stringify(created)
+    );
+    let key = fixture
+        .get("contentKey")
+        .and_then(JsValue::as_js_string)
+        .and_then(JsString::as_string)
+        .expect("key");
+    assert_eq!(project_content_key(&project), key);
+    for step in fixture
+        .get("steps")
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+    {
+        let name = step
+            .get("name")
+            .and_then(JsValue::as_js_string)
+            .map(JsString::to_string_lossy)
+            .unwrap_or_default();
+        let previous = step.get("previous").filter(|p| !p.is_null());
+        let device = step
+            .get("device")
+            .and_then(JsValue::as_js_string)
+            .map(JsString::to_string_lossy)
+            .unwrap_or_default();
+        let now = step
+            .get("now")
+            .and_then(JsValue::as_number)
+            .unwrap_or_default();
+        let stamped = stamp_project(
+            previous,
+            step.get("project").cloned().expect("project"),
+            &device,
+            now,
+        );
+        assert_eq!(
+            js::stringify(&stamped),
+            js::stringify(step.get("result").expect("result")),
+            "{name}"
+        );
+    }
+}

@@ -88,7 +88,7 @@ People trust this app with books that took them years. **Losing or corrupting a 
 |---|---|---|
 | `crates/core` | Project model, the ProseCraft HTML dialect, storage formats (bundle, encrypted, open folder), sync merge, undo, search and replace, calc. No UI and no I/O policy | started (`about`) |
 | `crates/formats` | Publish (EPUB, HTML, Markdown, text, DOCX, PDF, Fountain) and import (EPUB, Scrivener, RTF, Markdown folder, Fountain), on craft-libs | planned |
-| `crates/native` | File system, folder sync, CraftCloud integration, Zotero, OS integration. Not built for wasm | planned |
+| `crates/native` | The library file (atomic saves, `.bak`), data folder; later folder sync, CraftCloud, Zotero. Not built for wasm | started |
 | `crates/mcp` | The MCP server on `craft-mcp-server` | planned |
 | `crates/ui-egui` | The egui front end, including the manuscript editor | started |
 | `apps/prosecraft-rs`, `apps/prosecraft-rs-web` | Desktop and web (Trunk) binaries | started |

@@ -5,3 +5,4 @@
 pub mod bundle;
 pub mod crypto;
 pub mod schema;
+pub mod stamp;

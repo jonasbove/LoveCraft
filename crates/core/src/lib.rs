@@ -16,6 +16,7 @@ pub mod comments;
 pub mod edit;
 pub mod html;
 pub mod js;
+pub mod labels;
 pub mod library;
 pub mod markdown;
 pub mod project;

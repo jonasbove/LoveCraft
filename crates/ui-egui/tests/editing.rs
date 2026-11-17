@@ -1053,3 +1053,111 @@ fn wiki_folders_and_pages_are_added_renamed_and_removed() {
         "unfiled at the Wiki root"
     );
 }
+
+#[test]
+fn labels_are_applied_and_managed() {
+    let (mut harness, memory) = app();
+    let data = |memory: &Memory| {
+        project(&memory.last(), "project-1")
+            .get("project")
+            .cloned()
+            .expect("data")
+    };
+    let label_of = |data: &JsValue, key: &str, id: &str| -> Option<String> {
+        data.get(key)
+            .and_then(JsValue::as_array)
+            .unwrap_or_default()
+            .iter()
+            .find(|i| {
+                i.get("id")
+                    .and_then(JsValue::as_js_string)
+                    .is_some_and(|v| v.eq_str(id))
+            })
+            .and_then(|i| i.get("labelId"))
+            .and_then(JsValue::as_js_string)
+            .map(|s| s.to_string_lossy())
+    };
+    // A scene's menu applies a label.
+    harness
+        .get_by_role_and_label(Role::Button, "Actions for Opening Scene")
+        .click();
+    harness.run();
+    harness.get_by_role_and_label(Role::Button, "Draft").click();
+    harness.run_steps(12);
+    assert_eq!(
+        label_of(&data(&memory), "documents", "doc-1").as_deref(),
+        Some("label-1")
+    );
+    assert!(
+        harness.query_all_by_label("Label: Draft").count() == 2,
+        "the scene shows its label, as its chapter does"
+    );
+
+    // Manage labels… from Project settings: delete Draft (used by a scene and a chapter), add one.
+    harness
+        .get_by_role_and_label(Role::Button, "Project settings")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Manage labels…")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Delete label Draft")
+        .click();
+    harness.run();
+    assert!(
+        harness
+            .query_by_label_contains("Delete label “Draft”? 1 scene and 1 chapter will lose it.")
+            .is_some()
+    );
+    harness
+        .get_by_role_and_label(Role::Button, "Delete label")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Add label")
+        .click();
+    harness.run_steps(2);
+    assert!(
+        harness
+            .get_by_role_and_label(Role::TextInput, "Name for label 1")
+            .is_focused(),
+        "the new label's name is focused"
+    );
+    harness
+        .get_by_role_and_label(Role::RadioButton, "blue")
+        .click();
+    harness.run();
+    harness.get_by_role_and_label(Role::Button, "Save").click();
+    harness.run_steps(12);
+    let after = data(&memory);
+    assert_eq!(
+        label_of(&after, "documents", "doc-1"),
+        None,
+        "the deleted label is cleared from the scene"
+    );
+    assert_eq!(
+        label_of(&after, "chapters", "chapter-1"),
+        None,
+        "and from the chapter"
+    );
+    let labels = after
+        .get("labels")
+        .and_then(JsValue::as_array)
+        .map(<[JsValue]>::to_vec)
+        .unwrap_or_default();
+    assert_eq!(labels.len(), 1);
+    let text = |k: &str| {
+        labels[0]
+            .get(k)
+            .and_then(JsValue::as_js_string)
+            .map(|s| s.to_string_lossy())
+            .unwrap_or_default()
+    };
+    assert_eq!(
+        (text("name").as_str(), text("color").as_str()),
+        ("New label", "blue")
+    );
+    assert!(text("id").starts_with("label-"), "{}", text("id"));
+}

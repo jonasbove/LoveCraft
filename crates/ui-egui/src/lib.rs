@@ -20,6 +20,7 @@ mod device_sync;
 mod editing;
 pub mod find;
 pub mod fonts;
+mod labels;
 mod library;
 mod project_settings;
 mod publish;
@@ -256,6 +257,8 @@ pub struct AppState {
     renaming_folder: Option<(String, String)>,
     /// The Find and replace dialog, while open.
     find: Option<find::FindState>,
+    /// The Labels dialog, while open.
+    labels_dialog: Option<labels::LabelsDraft>,
     /// The Project Settings dialog, while open.
     project_settings: Option<project_settings::ProjectSettingsDraft>,
     /// The Settings dialog is open.
@@ -806,6 +809,7 @@ impl ProseApp {
         settings::show(ui, &mut self.state);
         starter::show(ui, &mut self.state);
         project_settings::show(ui, &mut self.state);
+        labels::show(ui, &mut self.state);
         // Ctrl+F opens Find and replace, as in ProseCraft.
         if self.state.find.is_none()
             && self.state.library.is_some()

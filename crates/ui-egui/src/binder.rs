@@ -12,11 +12,7 @@ use crate::{AppState, Selection, fonts};
 
 /// A row of the binder tree: a selectable label exposed as a tree item with its level and
 /// selection, so a screen reader hears "Opening, level 2, selected".
-fn tree_row(ui: &mut Ui, palette: &Palette, label: &str, level: usize, selected: bool) -> bool {
-    tree_row_response(ui, palette, label, level, selected).clicked()
-}
-
-fn tree_row_response(
+fn tree_row(
     ui: &mut Ui,
     palette: &Palette,
     label: &str,
@@ -35,6 +31,67 @@ fn tree_row_response(
         node.set_selected(selected);
     });
     response
+}
+
+/// A row's label as ProseCraft's coloured dot (with its name for screen readers).
+fn label_dot(ui: &mut Ui, palette: &Palette, project: &Project, label: Option<&str>) {
+    if let Some(label) = label.and_then(|id| project.label(id)) {
+        let dot = crate::labels::dot(
+            ui,
+            crate::labels::label_color(&label.color, palette.text_muted),
+            8.0,
+        )
+        .on_hover_text(&label.name);
+        let name = format!("Label: {}", label.name);
+        ui.ctx().accesskit_node_builder(dot.id, move |node| {
+            node.set_role(Role::Image);
+            node.set_label(name);
+        });
+    }
+}
+
+/// The menu's Labels section: each label, then "No label" (`applyLabel`).
+fn label_choices(
+    ui: &mut Ui,
+    palette: &Palette,
+    project: &Project,
+    intents: &mut Vec<Intent>,
+    chapter: bool,
+    id: &str,
+    current: Option<&str>,
+) {
+    for label in &project.labels {
+        let checked = current == Some(label.id.as_str());
+        let response = ui
+            .horizontal(|ui| {
+                crate::labels::dot(
+                    ui,
+                    crate::labels::label_color(&label.color, palette.text_muted),
+                    8.0,
+                );
+                ui.add(egui::Button::selectable(checked, label.name.as_str()))
+            })
+            .inner;
+        if response.clicked() {
+            intents.push(Intent::SetLabel {
+                chapter,
+                id: id.to_owned(),
+                label: Some(label.id.clone()),
+            });
+            ui.close();
+        }
+    }
+    if ui
+        .add(egui::Button::selectable(current.is_none(), "No label"))
+        .clicked()
+    {
+        intents.push(Intent::SetLabel {
+            chapter,
+            id: id.to_owned(),
+            label: None,
+        });
+        ui.close();
+    }
 }
 
 /// A row's menu, both on right-click (ProseCraft's context menu) and from a quiet "⋯" button
@@ -180,6 +237,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
     egui::ScrollArea::vertical()
         .auto_shrink([false, false])
         .show(ui, |ui| {
+            let mut manage_labels = false;
             chosen = chapters(
                 ui,
                 &palette,
@@ -187,7 +245,11 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                 state.selection.as_ref(),
                 state.editable,
                 &mut state.intents,
+                &mut manage_labels,
             );
+            if manage_labels {
+                state.labels_dialog = Some(crate::labels::LabelsDraft::for_project(project));
+            }
             ui.add_space(14.0);
             ui.separator();
             ui.add_space(8.0);
@@ -218,6 +280,7 @@ fn chapters(
     selection: Option<&Selection>,
     editable: bool,
     intents: &mut Vec<Intent>,
+    manage_labels: &mut bool,
 ) -> Option<Selection> {
     let mut chosen = None;
     ui.horizontal(|ui| {
@@ -240,8 +303,47 @@ fn chapters(
         any = true;
         let selected = selection == Some(&Selection::Chapter(chapter.id.clone()));
         let title = crate::views::label_of(project, &chapter.id);
-        if tree_row(ui, palette, &title, 1, selected) {
+        let row = ui
+            .horizontal(|ui| {
+                let row = tree_row(ui, palette, &title, 1, selected);
+                label_dot(ui, palette, project, chapter.label_id.as_deref());
+                row
+            })
+            .inner;
+        if row.clicked() {
             chosen = Some(Selection::Chapter(chapter.id.clone()));
+        }
+        if editable {
+            row_menu(ui, &row, &format!("Actions for {title}"), |ui| {
+                label_choices(
+                    ui,
+                    palette,
+                    project,
+                    intents,
+                    true,
+                    &chapter.id,
+                    chapter.label_id.as_deref(),
+                );
+                ui.separator();
+                if ui.button("Add scene").clicked() {
+                    intents.push(Intent::AddScene {
+                        chapter: chapter.id.clone(),
+                    });
+                    ui.close();
+                }
+                if ui
+                    .button(RichText::new("Move to Trash").color(palette.danger))
+                    .clicked()
+                {
+                    intents.push(Intent::TrashChapter(chapter.id.clone()));
+                    ui.close();
+                }
+                ui.separator();
+                if ui.button("Manage labels…").clicked() {
+                    *manage_labels = true;
+                    ui.close();
+                }
+            });
         }
         for scene in project.scenes_in_chapter(&chapter.id) {
             let selected = selection == Some(&Selection::Document(scene.id.clone()));
@@ -251,8 +353,36 @@ fn chapters(
                 scene.title.as_str()
             };
             indent(ui, 1, |ui| {
-                if tree_row(ui, palette, title, 2, selected) {
+                let row = tree_row(ui, palette, title, 2, selected);
+                label_dot(ui, palette, project, scene.label_id.as_deref());
+                if row.clicked() {
                     chosen = Some(Selection::Document(scene.id.clone()));
+                }
+                if editable {
+                    row_menu(ui, &row, &format!("Actions for {title}"), |ui| {
+                        label_choices(
+                            ui,
+                            palette,
+                            project,
+                            intents,
+                            false,
+                            &scene.id,
+                            scene.label_id.as_deref(),
+                        );
+                        ui.separator();
+                        if ui
+                            .button(RichText::new("Move to Trash").color(palette.danger))
+                            .clicked()
+                        {
+                            intents.push(Intent::TrashDocument(scene.id.clone()));
+                            ui.close();
+                        }
+                        ui.separator();
+                        if ui.button("Manage labels…").clicked() {
+                            *manage_labels = true;
+                            ui.close();
+                        }
+                    });
                 }
             });
         }
@@ -314,7 +444,7 @@ fn wiki(
                 } else {
                     item.title.as_str()
                 };
-                let row = tree_row_response(ui, palette, title, item.depth + 1, selected);
+                let row = tree_row(ui, palette, title, item.depth + 1, selected);
                 if row.clicked() {
                     chosen = Some(Selection::Document(item.id.clone()));
                 }

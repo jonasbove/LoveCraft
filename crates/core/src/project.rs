@@ -215,6 +215,8 @@ pub struct Project {
     pub chapter_goals: Vec<(String, f64)>,
     /// Writing activity by day (`activity`): `YYYY-MM-DD`, edits, words added.
     pub activity: Vec<Activity>,
+    /// The citation library (`citations`), normalized as ProseCraft normalizes it on load.
+    pub citations: Vec<JsValue>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -393,6 +395,9 @@ impl Project {
                         .collect()
                 })
                 .unwrap_or_default(),
+            citations: crate::csl::normalize_csl_items(
+                project.get("citations").unwrap_or(&JsValue::Null),
+            ),
         })
     }
 

@@ -41,7 +41,8 @@ pub(super) fn matter_text(page: &MatterPage, title: String) -> String {
 
 /// `exportText`, byte for byte.
 pub fn export_text(book: &CompiledBook, options: &PublishOptions) -> Export {
-    let book = &resolve_book_citations(book);
+    let (book, bibliography) = resolve_book_citations(book, options);
+    let book = &book;
     let upper = options.chapter_heading_uppercase;
     let restart = options.footnotes_restart_per_chapter;
     let notes = resolve_book_footnotes(book, restart);
@@ -127,6 +128,15 @@ pub fn export_text(book: &CompiledBook, options: &PublishOptions) -> Export {
     }
     if !restart && !notes.all.is_empty() {
         blocks.push(notes_block(&notes.all, upper));
+    }
+    if let Some(bibliography) = bibliography.filter(|b| !b.entries.is_empty()) {
+        let mut lines = vec![if upper {
+            bibliography.heading.to_uppercase()
+        } else {
+            bibliography.heading.clone()
+        }];
+        lines.extend(bibliography.entries.iter().map(|e| e.text.clone()));
+        blocks.push(lines.join("\n"));
     }
     let text = format!(
         "{}\n",

@@ -303,7 +303,10 @@ fn plain_text_export_matches_prosecraft_byte_for_byte() {
     // The fixture's project is project data; wrap it as a stored project for the view.
     let mut stored = prosecraft_core::js::JsObject::new();
     stored.insert("project", fixture.get("project").cloned().expect("project"));
-    let project = Project::from_stored(&JsValue::Object(stored)).expect("project view");
+    let mut project = Project::from_stored(&JsValue::Object(stored)).expect("project view");
+    // These fixtures compiled the book without the citation library (`compileBook`'s
+    // `citations` left out), so every citation stays `[@key]`; see `export-citations.json`.
+    project.citations.clear();
     for (name, case) in fixture
         .get("exports")
         .and_then(JsValue::as_object)
@@ -342,7 +345,10 @@ fn markdown_export_matches_prosecraft_byte_for_byte() {
     let fixture = fixture("export-markdown.json");
     let mut stored = prosecraft_core::js::JsObject::new();
     stored.insert("project", fixture.get("project").cloned().expect("project"));
-    let project = Project::from_stored(&JsValue::Object(stored)).expect("project view");
+    let mut project = Project::from_stored(&JsValue::Object(stored)).expect("project view");
+    // These fixtures compiled the book without the citation library (`compileBook`'s
+    // `citations` left out), so every citation stays `[@key]`; see `export-citations.json`.
+    project.citations.clear();
     for (name, case) in fixture
         .get("exports")
         .and_then(JsValue::as_object)
@@ -373,7 +379,10 @@ fn html_export_matches_prosecraft_byte_for_byte() {
     let fixture = fixture("export-html.json");
     let mut stored = prosecraft_core::js::JsObject::new();
     stored.insert("project", fixture.get("project").cloned().expect("project"));
-    let project = Project::from_stored(&JsValue::Object(stored)).expect("project view");
+    let mut project = Project::from_stored(&JsValue::Object(stored)).expect("project view");
+    // These fixtures compiled the book without the citation library (`compileBook`'s
+    // `citations` left out), so every citation stays `[@key]`; see `export-citations.json`.
+    project.citations.clear();
     for (name, case) in fixture
         .get("exports")
         .and_then(JsValue::as_object)
@@ -414,7 +423,10 @@ fn epub_export_matches_prosecraft_entry_for_entry() {
     let fixture = fixture("export-epub.json");
     let mut stored = prosecraft_core::js::JsObject::new();
     stored.insert("project", fixture.get("project").cloned().expect("project"));
-    let project = Project::from_stored(&JsValue::Object(stored)).expect("project view");
+    let mut project = Project::from_stored(&JsValue::Object(stored)).expect("project view");
+    // These fixtures compiled the book without the citation library (`compileBook`'s
+    // `citations` left out), so every citation stays `[@key]`; see `export-citations.json`.
+    project.citations.clear();
     for (name, case) in fixture
         .get("exports")
         .and_then(JsValue::as_object)
@@ -461,4 +473,63 @@ fn epub_export_matches_prosecraft_entry_for_entry() {
             "{name}: mimetype is stored first"
         );
     }
+}
+
+/// Exports with citations, as ProseCraft writes them: each style's citations in the text (in
+/// the notes style, as footnotes), sources not in the library as `[@key]`, and the bibliography
+/// in Markdown, HTML and EPUB (none when it is turned off), in English and German.
+#[test]
+fn exports_with_citations_match_prosecraft() {
+    use prosecraft_core::project::Project;
+    use prosecraft_core::publish::{
+        PublishOptions, compile_book, epub_entries, export_html, export_markdown, export_text,
+    };
+    let fixture = fixture("export-citations.json");
+    let mut stored = prosecraft_core::js::JsObject::new();
+    stored.insert("project", fixture.get("project").cloned().expect("project"));
+    let project = Project::from_stored(&JsValue::Object(stored)).expect("project view");
+    assert_eq!(project.citations.len(), 5);
+    let text = |v: &JsValue, k: &str| {
+        v.get(k)
+            .and_then(JsValue::as_js_string)
+            .map(|s| s.to_string_lossy())
+            .unwrap_or_default()
+    };
+    let mut checked = 0;
+    for (name, case) in fixture
+        .get("exports")
+        .and_then(JsValue::as_object)
+        .expect("exports")
+        .iter()
+    {
+        let name = name.to_string_lossy();
+        let options = PublishOptions::read(case.get("options"));
+        let book = compile_book(&project, &options);
+        let utf8 = |bytes: Vec<u8>| String::from_utf8(bytes).expect("utf-8");
+        assert_eq!(
+            utf8(export_text(&book, &options).bytes),
+            text(case, "text"),
+            "{name}: text"
+        );
+        assert_eq!(
+            utf8(export_markdown(&book, &options).bytes),
+            text(case, "markdown"),
+            "{name}: markdown"
+        );
+        assert_eq!(
+            utf8(export_html(&book, &options).bytes),
+            text(case, "html"),
+            "{name}: html"
+        );
+        let entries = epub_entries(&book, &options, "urn:uuid:ID", "MODIFIED").expect("epub");
+        let want = case.get("epub").and_then(JsValue::as_array).expect("epub");
+        let names: Vec<String> = entries.iter().map(|(n, _)| n.clone()).collect();
+        let want_names: Vec<String> = want.iter().map(|e| text(e, "name")).collect();
+        assert_eq!(names, want_names, "{name}: epub entries");
+        for ((entry, bytes), w) in entries.iter().zip(want) {
+            assert_eq!(utf8(bytes.clone()), text(w, "text"), "{name}: {entry}");
+        }
+        checked += 1;
+    }
+    assert_eq!(checked, 6);
 }

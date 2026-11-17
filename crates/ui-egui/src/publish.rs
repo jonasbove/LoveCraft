@@ -256,7 +256,15 @@ pub(crate) fn show(
                     ui.set_width(CONTROLS_WIDTH - 12.0);
                     // `hasScreenplayDocuments`: the screenplay formats join the list.
                     let screenplay = project.documents.iter().any(|d| d.screenplay);
-                    controls(ui, palette, &options, &book, screenplay, edit);
+                    controls(
+                        ui,
+                        palette,
+                        &options,
+                        &book,
+                        screenplay,
+                        project.citations.len(),
+                        edit,
+                    );
                 });
         });
         ui.add_space(18.0);
@@ -266,12 +274,52 @@ pub(crate) fn show(
     });
 }
 
+/// A labelled choice, as ProseCraft's `option-row-select`: the title and hint, then the select.
+#[allow(clippy::too_many_arguments)]
+fn select_row(
+    ui: &mut Ui,
+    palette: &Palette,
+    editable: bool,
+    (id, name): (&str, &str),
+    hint: &str,
+    current_label: &str,
+    choices: &[(String, String)],
+    current: &str,
+    on_choose: &mut dyn FnMut(&str),
+) {
+    ui.horizontal(|ui| {
+        ui.vertical(|ui| {
+            ui.label(RichText::new(name).color(palette.text_primary));
+            ui.label(RichText::new(hint).size(11.0).color(palette.text_muted));
+        });
+        let mut chosen = current.to_owned();
+        ui.add_enabled_ui(editable, |ui| {
+            let combo = craft_ui::ComboBox::from_id_salt(id)
+                .selected_text(current_label)
+                .show_ui(ui, |ui| {
+                    for (value, label) in choices {
+                        ui.selectable_value(&mut chosen, value.clone(), label);
+                    }
+                });
+            ui.ctx().accesskit_node_builder(combo.response.id, |node| {
+                node.set_label(name);
+                node.set_value(current_label);
+            });
+        });
+        if chosen != current {
+            on_choose(&chosen);
+        }
+    });
+    ui.add_space(4.0);
+}
+
 fn controls(
     ui: &mut Ui,
     palette: &Palette,
     options: &PublishOptions,
     book: &prosecraft_core::publish::CompiledBook,
     screenplay: bool,
+    sources: usize,
     edit: &mut PublishEdit<'_>,
 ) {
     let editable = edit.editable;
@@ -450,6 +498,69 @@ fn controls(
         "Number footnotes from 1 in every chapter, with notes after it.",
     ) {
         set(edit, "footnotesRestartPerChapter", JsValue::Bool(value));
+    }
+    ui.separator();
+
+    // ProseCraft's Citations section: the style and language citations are written in, and
+    // whether a bibliography ends the book.
+    section_heading(
+        ui,
+        palette,
+        "Citations",
+        &format!(
+            "{sources} {}",
+            if sources == 1 { "source" } else { "sources" }
+        ),
+    );
+    ui.add_space(4.0);
+    let styles = prosecraft_core::citations::styles::styles();
+    let style_label = styles
+        .iter()
+        .find(|s| s.id == options.citation_style)
+        .map_or("APA 7th Edition".to_owned(), |s| s.label.clone());
+    select_row(
+        ui,
+        palette,
+        editable,
+        ("citation-style", "Citation style"),
+        "Applied to inline citations and the bibliography.",
+        &style_label,
+        &styles
+            .iter()
+            .map(|s| (s.id.clone(), s.label.clone()))
+            .collect::<Vec<_>>(),
+        &options.citation_style,
+        &mut |id| set(edit, "citationStyle", JsValue::str(id)),
+    );
+    let languages = [
+        ("en".to_owned(), "English".to_owned()),
+        ("de".to_owned(), "Deutsch".to_owned()),
+    ];
+    let language = if options.citation_locale == "de" {
+        "Deutsch"
+    } else {
+        "English"
+    };
+    select_row(
+        ui,
+        palette,
+        editable,
+        ("citation-language", "Citation language"),
+        "Used for terms like ed., pp., and n.d.",
+        language,
+        &languages,
+        &options.citation_locale,
+        &mut |id| set(edit, "citationLocale", JsValue::str(id)),
+    );
+    if let Some(value) = option_row(
+        ui,
+        palette,
+        editable,
+        options.include_bibliography,
+        "Include bibliography",
+        "Append a formatted reference list when citations are used.",
+    ) {
+        set(edit, "includeBibliography", JsValue::Bool(value));
     }
     ui.separator();
 

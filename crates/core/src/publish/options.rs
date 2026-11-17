@@ -57,6 +57,11 @@ pub struct PublishOptions {
     pub dedication: String,
     pub front_matter: Vec<MatterPage>,
     pub back_matter: Vec<MatterPage>,
+    /// The citation style (one of the eight built-in ids), its language (`en`, `de`), and
+    /// whether exports end with a bibliography.
+    pub citation_style: String,
+    pub citation_locale: String,
+    pub include_bibliography: bool,
 }
 
 impl Default for PublishOptions {
@@ -81,6 +86,9 @@ impl Default for PublishOptions {
             dedication: String::new(),
             front_matter: Vec::new(),
             back_matter: Vec::new(),
+            citation_style: "apa7".into(),
+            citation_locale: "en".into(),
+            include_bibliography: true,
         }
     }
 }
@@ -237,6 +245,22 @@ impl PublishOptions {
             footnotes_restart_per_chapter: flag(
                 value.get("footnotesRestartPerChapter"),
                 defaults.footnotes_restart_per_chapter,
+            ),
+            citation_style: value
+                .get("citationStyle")
+                .and_then(JsValue::as_js_string)
+                .map(JsString::to_string_lossy)
+                .filter(|s| crate::citations::styles::is_valid_style_id(s))
+                .unwrap_or(defaults.citation_style.clone()),
+            citation_locale: value
+                .get("citationLocale")
+                .and_then(JsValue::as_js_string)
+                .map(JsString::to_string_lossy)
+                .filter(|l| l == "de" || l == "en")
+                .unwrap_or(defaults.citation_locale.clone()),
+            include_bibliography: flag(
+                value.get("includeBibliography"),
+                defaults.include_bibliography,
             ),
             subtitle: text_field(value.get("subtitle"), 200).unwrap_or_default(),
             copyright: text_field(value.get("copyright"), 500).unwrap_or_default(),

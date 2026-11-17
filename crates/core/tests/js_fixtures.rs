@@ -577,3 +577,186 @@ fn citation_items_are_normalized_as_prosecraft_normalizes_them() {
     );
     assert_eq!(capped.warnings.len(), 1);
 }
+
+/// `formatCitation`, `formatBibliography` and `computeDisambiguation` in all eight styles, in
+/// English and German, on ProseCraft's own output: 22 sources (types, name forms, particles,
+/// corporate and missing authors, editors, 23 and 7 authors, editions, DOIs, links, no date),
+/// each cited eight ways (locators, labels, prefix and suffix, author left out), and clusters.
+#[test]
+fn citations_are_formatted_as_prosecraft_formats_them() {
+    use prosecraft_core::citations::format::{
+        CitationContext, CitationInput, compute_disambiguation, format_bibliography,
+        format_citation,
+    };
+    use std::collections::HashMap;
+    let fx = fixture("citations-format.json");
+    let list = |v: &JsValue, k: &str| {
+        v.get(k)
+            .and_then(JsValue::as_array)
+            .unwrap_or_default()
+            .to_vec()
+    };
+    let text = |v: &JsValue, k: &str| {
+        v.get(k)
+            .and_then(JsValue::as_js_string)
+            .map(|s| s.to_string_lossy())
+    };
+    let library = list(&fx, "library");
+    let variants = list(&fx, "variants");
+    let input = |item: &JsValue, v: &JsValue| CitationInput {
+        item: item.clone(),
+        locator: text(v, "locator"),
+        label: text(v, "label"),
+        prefix: text(v, "prefix"),
+        suffix: text(v, "suffix"),
+        suppress_author: v.get("suppressAuthor") == Some(&JsValue::Bool(true)),
+    };
+    let same =
+        |have: &prosecraft_core::citations::format::Formatted, want: &JsValue, what: &str| {
+            assert_eq!(
+                have.html,
+                text(want, "html").unwrap_or_default(),
+                "{what} (html)"
+            );
+            assert_eq!(
+                have.text,
+                text(want, "text").unwrap_or_default(),
+                "{what} (text)"
+            );
+        };
+    let mut checked = 0;
+    for case in list(&fx, "styles") {
+        let style = text(&case, "style").unwrap_or_default();
+        let locale = text(&case, "locale").unwrap_or_default();
+        let label = format!("{style}/{locale}");
+        let mut suffixes: Vec<(String, String)> = compute_disambiguation(&style, &library, &locale)
+            .into_iter()
+            .collect();
+        suffixes.sort();
+        let mut want_suffixes: Vec<(String, String)> = case
+            .get("yearSuffixes")
+            .and_then(JsValue::as_object)
+            .map(|o| {
+                o.iter()
+                    .map(|(k, v)| {
+                        (
+                            k.to_string_lossy(),
+                            text(
+                                &JsValue::Object({
+                                    let mut x = js::JsObject::new();
+                                    x.insert("v", v.clone());
+                                    x
+                                }),
+                                "v",
+                            )
+                            .unwrap_or_default(),
+                        )
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        want_suffixes.sort();
+        assert_eq!(suffixes, want_suffixes, "{label} suffixes");
+        let year_suffixes: HashMap<String, String> = suffixes.into_iter().collect();
+        let bibliography = format_bibliography(&style, &library, &locale);
+        let want = list(&case, "bibliography");
+        assert_eq!(bibliography.len(), want.len(), "{label}");
+        for (have, want) in bibliography.iter().zip(&want) {
+            assert_eq!(Some(have.id.clone()), text(want, "id"), "{label} order");
+            assert_eq!(
+                Some(have.html.clone()),
+                text(want, "html"),
+                "{label} {}",
+                have.id
+            );
+            assert_eq!(
+                Some(have.text.clone()),
+                text(want, "text"),
+                "{label} {}",
+                have.id
+            );
+            checked += 1;
+        }
+        for (i, (item, wants)) in library.iter().zip(list(&case, "singles")).enumerate() {
+            for (v, want) in variants.iter().zip(wants.as_array().unwrap_or_default()) {
+                let context = CitationContext {
+                    index: Some((i + 1) as f64),
+                    locale: locale.clone(),
+                    year_suffixes: Some(year_suffixes.clone()),
+                    ..CitationContext::default()
+                };
+                let have = format_citation(&style, &[input(item, v)], &context);
+                same(
+                    &have,
+                    want,
+                    &format!(
+                        "{label} {} {}",
+                        text(item, "id").unwrap_or_default(),
+                        js::stringify(v)
+                    ),
+                );
+                checked += 1;
+            }
+        }
+        let clusters = list(&case, "clusters");
+        let none = JsValue::Object(js::JsObject::new());
+        let with = |k: &str, v: &str| {
+            let mut o = js::JsObject::new();
+            o.insert(k, JsValue::str(v));
+            JsValue::Object(o)
+        };
+        let first = format_citation(
+            &style,
+            &[
+                input(&library[0], &none),
+                input(&library[2], &with("locator", "105")),
+                input(&library[1], &none),
+            ],
+            &CitationContext {
+                index: Some(4.0),
+                locale: locale.clone(),
+                year_suffixes: Some(year_suffixes.clone()),
+                ..CitationContext::default()
+            },
+        );
+        same(&first, &clusters[0], &format!("{label} cluster 1"));
+        let second = format_citation(
+            &style,
+            &[input(&library[2], &none), input(&library[17], &none)],
+            &CitationContext {
+                indices: Some(
+                    [("doe-roe".to_owned(), 3.0), ("two-same".to_owned(), 9.0)]
+                        .into_iter()
+                        .collect(),
+                ),
+                locale: locale.clone(),
+                library: Some(library.clone()),
+                ..CitationContext::default()
+            },
+        );
+        same(&second, &clusters[1], &format!("{label} cluster 2"));
+        let mut suppressed = input(&library[4], &none);
+        suppressed.suppress_author = true;
+        let third = format_citation(
+            &style,
+            &[input(&library[0], &with("prefix", "cf.")), suppressed],
+            &CitationContext {
+                locale: locale.clone(),
+                library: Some(library.clone()),
+                ..CitationContext::default()
+            },
+        );
+        same(&third, &clusters[2], &format!("{label} cluster 3"));
+        let empty = format_citation(
+            &style,
+            &[],
+            &CitationContext {
+                locale: locale.clone(),
+                ..CitationContext::default()
+            },
+        );
+        same(&empty, &clusters[3], &format!("{label} empty"));
+        checked += 4;
+    }
+    assert!(checked > 3000, "{checked}");
+}

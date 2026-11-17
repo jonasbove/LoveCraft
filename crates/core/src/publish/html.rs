@@ -511,9 +511,34 @@ fn chapter_html(
     )
 }
 
+/// `bibliographyHtml`.
+fn bibliography_html(
+    bibliography: Option<&crate::citations::bibliography::BookBibliography>,
+) -> String {
+    let Some(bibliography) = bibliography.filter(|b| !b.entries.is_empty()) else {
+        return String::new();
+    };
+    let entries: Vec<String> = bibliography
+        .entries
+        .iter()
+        .map(|e| format!("  <p class=\"bibliography-entry\">{}</p>", e.html))
+        .collect();
+    format!(
+        "<section class=\"matter-page back-matter bibliography\" aria-label=\"{}\">\n  <h2 class=\"matter-title\">{}</h2>\n{}\n</section>",
+        escape_xml_attribute(&bibliography.heading),
+        escape_xml(&bibliography.heading),
+        entries.join("\n")
+    )
+}
+
 /// `buildManuscriptBody`: every section of the book in order (`listManuscriptSections`).
-/// Covers and the bibliography aren't ported yet.
-fn manuscript_body(book: &CompiledBook, options: &PublishOptions, drop_caps: bool) -> String {
+/// Covers aren't ported yet.
+fn manuscript_body(
+    book: &CompiledBook,
+    options: &PublishOptions,
+    drop_caps: bool,
+    bibliography: Option<&crate::citations::bibliography::BookBibliography>,
+) -> String {
     let notes = resolve_book_footnotes(book, options.footnotes_restart_per_chapter);
     let mut sections = Vec::new();
     if options.include_title_page {
@@ -543,6 +568,9 @@ fn manuscript_body(book: &CompiledBook, options: &PublishOptions, drop_caps: boo
     for page in &book.back_matter {
         sections.push(matter_page(page, "back"));
     }
+    if crate::citations::bibliography::has_book_bibliography(book, options) {
+        sections.push(bibliography_html(bibliography));
+    }
     sections
         .into_iter()
         .filter(|s| !s.is_empty())
@@ -552,10 +580,11 @@ fn manuscript_body(book: &CompiledBook, options: &PublishOptions, drop_caps: boo
 
 /// `exportHtml`, byte for byte.
 pub fn export_html(book: &CompiledBook, options: &PublishOptions) -> Export {
-    let book = &resolve_book_citations(book);
+    let (book, bibliography) = resolve_book_citations(book, options);
+    let book = &book;
     let tokens = style_tokens(&options.style);
     let drop_caps = options.drop_caps && tokens.drop_cap;
-    let body = manuscript_body(book, options, drop_caps);
+    let body = manuscript_body(book, options, drop_caps, bibliography.as_ref());
     let html = format!(
         "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>{}</title>\n  <style>{}</style>\n</head>\n<body class=\"{}\">\n<div class=\"book\">\n{body}\n</div>\n</body>\n</html>",
         escape_xml(&book.title),

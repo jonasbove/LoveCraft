@@ -26,6 +26,7 @@ pub mod search;
 pub mod snapshots;
 pub mod starters;
 pub mod storage;
+pub mod storyboard;
 pub mod sync;
 pub mod timeline;
 pub mod wiki;

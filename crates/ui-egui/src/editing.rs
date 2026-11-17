@@ -90,6 +90,30 @@ pub enum Intent {
         id: String,
         label: Option<String>,
     },
+    /// The storyboard: a new card at a place (its title and note from its source), moving,
+    /// removing, and a card's title or note (a chapter card's note is its summary).
+    AddCard {
+        kind: String,
+        source: String,
+        title: String,
+        note: String,
+        x: f64,
+        y: f64,
+    },
+    MoveCard {
+        id: String,
+        x: f64,
+        y: f64,
+    },
+    RemoveCard(String),
+    SetCardTitle {
+        id: String,
+        title: String,
+    },
+    SetCardNote {
+        id: String,
+        note: String,
+    },
     /// The timeline: a new moment, one field of a moment, removing and moving one.
     AddMoment,
     SetMoment {
@@ -251,6 +275,24 @@ pub fn run(
         }
         Intent::SetLabel { chapter, id, label } => {
             prosecraft_core::labels::set_label(data, *chapter, id, label.as_deref())
+        }
+        Intent::AddCard {
+            kind,
+            source,
+            title,
+            note,
+            x,
+            y,
+        } => prosecraft_core::storyboard::add_card(data, new_id, kind, source, title, note, *x, *y),
+        Intent::MoveCard { id, x, y } => {
+            prosecraft_core::storyboard::move_card(data, new_id, id, *x, *y)
+        }
+        Intent::RemoveCard(id) => prosecraft_core::storyboard::remove_card(data, new_id, id),
+        Intent::SetCardTitle { id, title } => {
+            prosecraft_core::storyboard::set_card_title(data, new_id, id, title)
+        }
+        Intent::SetCardNote { id, note } => {
+            prosecraft_core::storyboard::set_card_note(data, new_id, id, note)
         }
         Intent::AddMoment => prosecraft_core::timeline::add_node(data, &new_id()),
         Intent::SetMoment { id, field, value } => {

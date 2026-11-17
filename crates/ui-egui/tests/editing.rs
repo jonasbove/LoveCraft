@@ -1161,3 +1161,179 @@ fn labels_are_applied_and_managed() {
     );
     assert!(text("id").starts_with("label-"), "{}", text("id"));
 }
+
+#[test]
+fn storyboard_cards_are_added_edited_nudged_and_removed() {
+    let (mut harness, memory) = app();
+    let data = |memory: &Memory| {
+        project(&memory.last(), "project-1")
+            .get("project")
+            .cloned()
+            .expect("data")
+    };
+    let card = |data: &JsValue, kind: &str| -> Option<JsValue> {
+        data.get("storyboardCards")
+            .and_then(JsValue::as_array)
+            .unwrap_or_default()
+            .iter()
+            .find(|c| {
+                c.get("kind")
+                    .and_then(JsValue::as_js_string)
+                    .is_some_and(|k| k.eq_str(kind))
+            })
+            .cloned()
+    };
+    let num = |c: &JsValue, k: &str| match c.get(k) {
+        Some(JsValue::Number(n)) => *n,
+        _ => f64::NAN,
+    };
+    harness
+        .get_by_role_and_label(Role::Tab, "Storyboard")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Add Chapter One near the canvas center")
+        .click();
+    harness.run_steps(12);
+    let added = card(&data(&memory), "chapter").expect("a chapter card");
+    let s = |c: &JsValue, k: &str| {
+        c.get(k)
+            .and_then(JsValue::as_js_string)
+            .map(|v| v.to_string_lossy())
+            .unwrap_or_default()
+    };
+    assert_eq!(
+        (s(&added, "title").as_str(), s(&added, "sourceId").as_str()),
+        ("Chapter One", "chapter-1")
+    );
+    let (x, y) = (num(&added, "x"), num(&added, "y"));
+
+    // The note of a chapter card is the chapter's summary.
+    let note =
+        harness.get_by_role_and_label(Role::MultilineTextInput, "Chapter summary for Chapter One");
+    note.focus();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::MultilineTextInput, "Chapter summary for Chapter One")
+        .type_text("The storm breaks.");
+    harness.run();
+    harness.key_press(egui::Key::Escape);
+    harness.run_steps(12);
+    let after = data(&memory);
+    let chapter = after
+        .get("chapters")
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+        .iter()
+        .find(|c| s(c, "id") == "chapter-1")
+        .cloned()
+        .expect("chapter");
+    assert!(
+        s(&chapter, "summary").ends_with("The storm breaks."),
+        "{}",
+        s(&chapter, "summary")
+    );
+    assert_eq!(
+        s(&card(&after, "chapter").expect("card"), "note"),
+        s(&chapter, "summary")
+    );
+
+    // Arrow keys nudge a focused card by 24.
+    harness
+        .get_by_role_and_label(
+            Role::Button,
+            "Move Chapter One. Use arrow keys to nudge the card, or drag to position it.",
+        )
+        .focus();
+    harness.run();
+    harness.key_press(egui::Key::ArrowRight);
+    harness.run_steps(12);
+    let moved = card(&data(&memory), "chapter").expect("card");
+    assert_eq!((num(&moved, "x"), num(&moved, "y")), (x + 24.0, y));
+
+    harness
+        .get_by_role_and_label(Role::Button, "Remove Chapter One from storyboard")
+        .click();
+    harness.run_steps(12);
+    assert!(
+        card(&data(&memory), "chapter").is_none(),
+        "the card is removed"
+    );
+    assert!(
+        card(&data(&memory), "scene").is_some(),
+        "the other cards stay"
+    );
+
+    // Dragging a Story element onto the canvas adds its card where it is dropped.
+    let from = harness
+        .get_by_role_and_label(Role::Button, "Drag Mara onto the storyboard canvas")
+        .rect()
+        .center();
+    let canvas = harness.get_by_label("Freeform storyboard").rect();
+    let to = canvas.center();
+    harness.event(egui::Event::PointerMoved(from));
+    harness.event(egui::Event::PointerButton {
+        pos: from,
+        button: egui::PointerButton::Primary,
+        pressed: true,
+        modifiers: egui::Modifiers::NONE,
+    });
+    harness.run();
+    for step in 1..=5 {
+        harness.event(egui::Event::PointerMoved(
+            from + (to - from) * (step as f32 / 5.0),
+        ));
+        harness.run();
+    }
+    harness.event(egui::Event::PointerButton {
+        pos: to,
+        button: egui::PointerButton::Primary,
+        pressed: false,
+        modifiers: egui::Modifiers::NONE,
+    });
+    harness.run_steps(12);
+    let dropped = card(&data(&memory), "Wiki").expect("the dropped wiki card");
+    assert_eq!(s(&dropped, "title"), "Mara");
+    assert!(
+        num(&dropped, "x") > 0.0 && num(&dropped, "y") > 0.0,
+        "placed on the canvas"
+    );
+    // A card dragged by its handle moves by as much.
+    let before = card(&data(&memory), "scene").expect("scene card");
+    let handle = harness
+        .get_by_role_and_label(
+            Role::Button,
+            "Move Opening. Use arrow keys to nudge the card, or drag to position it.",
+        )
+        .rect()
+        .center();
+    harness.event(egui::Event::PointerMoved(handle));
+    harness.event(egui::Event::PointerButton {
+        pos: handle,
+        button: egui::PointerButton::Primary,
+        pressed: true,
+        modifiers: egui::Modifiers::NONE,
+    });
+    harness.run();
+    for step in 1..=4 {
+        harness.event(egui::Event::PointerMoved(
+            handle + egui::vec2(12.0, 6.0) * step as f32,
+        ));
+        harness.run();
+    }
+    harness.event(egui::Event::PointerButton {
+        pos: handle + egui::vec2(48.0, 24.0),
+        button: egui::PointerButton::Primary,
+        pressed: false,
+        modifiers: egui::Modifiers::NONE,
+    });
+    harness.run_steps(12);
+    let after = card(&data(&memory), "scene").expect("scene card");
+    assert_eq!(
+        (
+            num(&after, "x") - num(&before, "x"),
+            num(&after, "y") - num(&before, "y")
+        ),
+        (48.0, 24.0)
+    );
+}

@@ -27,6 +27,7 @@ mod publish;
 mod settings;
 mod sidebar;
 mod starter;
+mod storyboard;
 pub mod theme;
 mod views;
 mod widgets;

@@ -24,6 +24,7 @@ mod footnote_editor;
 mod fountain_import;
 mod labels;
 mod library;
+mod markdown_import;
 mod project_settings;
 mod publish;
 mod screenplay_editor;
@@ -114,6 +115,9 @@ pub enum HostRequest {
     ImportScrivenerZip,
     /// Ask for a Scrivener project folder, then call [`ProseApp::import_scrivener_folder`].
     ImportScrivenerFolder,
+    /// Ask for a folder of Markdown files, then call [`ProseApp::import_markdown_folder`] with
+    /// them (or [`ProseApp::import_markdown_folder_failed`]).
+    ImportMarkdownFolder,
     /// Ask for a Fountain screenplay, then call [`ProseApp::import_fountain`].
     ImportFountain,
     /// Ask for a sync folder, then call [`ProseApp::set_sync_folder`].
@@ -276,6 +280,9 @@ pub struct AppState {
     /// A Scrivener project read and shown before it is imported, and one to import now.
     scrivener: Option<scrivener_import::ScrivenerPreview>,
     scrivener_done: Option<scrivener_import::ScrivenerPreview>,
+    /// A Markdown folder read and shown in the import dialog, and one to import now.
+    markdown_import: Option<markdown_import::MarkdownImportDraft>,
+    markdown_import_done: Option<markdown_import::MarkdownImportDraft>,
     /// The user's own wiki templates (a device setting), and a new list to save (a new one has
     /// no id yet).
     custom_starters: Vec<prosecraft_core::starters::custom::CustomStarter>,
@@ -951,6 +958,10 @@ impl ProseApp {
         scrivener_import::show(ui, &mut self.state);
         if let Some(preview) = self.state.scrivener_done.take() {
             self.finish_scrivener_import(preview);
+        }
+        markdown_import::show(ui, &mut self.state);
+        if let Some(draft) = self.state.markdown_import_done.take() {
+            self.finish_markdown_import(draft);
         }
         // Ctrl+F opens Find and replace, as in ProseCraft.
         if self.state.find.is_none()

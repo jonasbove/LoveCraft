@@ -2,5 +2,6 @@
 
 mod dom;
 pub mod epub;
+pub mod markdown_folder;
 pub mod rtf;
 pub mod scrivener;

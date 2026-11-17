@@ -557,3 +557,71 @@ fn a_composed_starter_is_saved_as_my_template_and_deleted() {
     );
     assert_eq!(saved(&memory), "[]");
 }
+
+#[test]
+fn a_markdown_folder_is_sorted_into_manuscript_and_wiki_then_imported() {
+    use prosecraft_core::import::markdown_folder::MarkdownFile;
+    let file = |path: &str, text: &str| MarkdownFile {
+        path: path.into(),
+        text: text.into(),
+    };
+    let memory = Memory::default();
+    let app = ProseApp::with_library(
+        ProjectLibrary::new("this-device".into()),
+        Box::new(memory.clone()),
+    );
+    let mut harness = harness(app);
+    harness.run();
+    harness.state_mut().import_markdown_folder(
+        "Vault",
+        vec![
+            file("Manuscript/01_one.md", "# One\n\nFirst, with a [[note]]."),
+            file("Manuscript/02_two.md", "Second *scene*."),
+            file("Notes/note.md", "# The Note\n\nWiki text."),
+        ],
+        2,
+    );
+    harness.run();
+    // The dialog: the folder's name, what was found, and ProseCraft's suggestions.
+    let name = harness.get_by_label("Project name");
+    assert_eq!(name.accesskit_node().value().as_deref(), Some("Vault"));
+    harness.get_by_label("3 Markdown file(s) found, 2 other file(s) ignored.");
+    harness.get_by_label("3 Markdown file(s) selected.");
+    // Notes skipped, and every file made a chapter.
+    harness.get_by_label("Use Notes as").click();
+    harness.run();
+    harness.get_by_role_and_label(Role::Button, "Skip").click();
+    harness.run();
+    harness.get_by_label("2 Markdown file(s) selected.");
+    harness.get_by_label("How to make chapters").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Every file is a chapter")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Import")
+        .click();
+    harness.run_steps(3);
+    harness.get_by_label_contains(
+        "Imported “Vault”: 2 chapter(s), 2 scene(s), 0 wiki page(s), 1 link(s) without a target page.",
+    );
+    // Each file a chapter, with the file as its one scene: both named after it.
+    for title in ["One", "Two"] {
+        assert_eq!(
+            harness
+                .query_all_by_role_and_label(Role::TreeItem, title)
+                .count(),
+            2
+        );
+    }
+    let saved = memory.saved.lock().unwrap().last().cloned().expect("saved");
+    assert!(saved.contains("First, with a note.") && !saved.contains("Wiki text."));
+
+    // A folder without Markdown says so.
+    harness
+        .state_mut()
+        .import_markdown_folder("Empty", Vec::new(), 4);
+    harness.run();
+    harness.get_by_label_contains("No Markdown files found in that folder.");
+}

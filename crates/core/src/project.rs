@@ -185,6 +185,17 @@ pub struct Project {
     pub snapshots: Vec<Snapshot>,
     pub timeline: Vec<TimelineNode>,
     pub storyboard_cards: usize,
+    /// Per-chapter word goals (`chapterGoals`), by chapter id.
+    pub chapter_goals: Vec<(String, f64)>,
+    /// Writing activity by day (`activity`): `YYYY-MM-DD`, edits, words added.
+    pub activity: Vec<Activity>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Activity {
+    pub date: String,
+    pub edits: f64,
+    pub words_added: f64,
 }
 
 impl Project {
@@ -328,6 +339,33 @@ impl Project {
                 })
                 .collect(),
             storyboard_cards: list(project, "storyboardCards").len(),
+            chapter_goals: project
+                .get("chapterGoals")
+                .and_then(JsValue::as_object)
+                .map(|goals| {
+                    goals
+                        .iter()
+                        .filter_map(|(id, n)| {
+                            n.as_number()
+                                .filter(|n| n.is_finite())
+                                .map(|n| (id.to_string_lossy(), n))
+                        })
+                        .collect()
+                })
+                .unwrap_or_default(),
+            activity: project
+                .get("activity")
+                .and_then(JsValue::as_object)
+                .map(|days| {
+                    days.iter()
+                        .map(|(date, day)| Activity {
+                            date: date.to_string_lossy(),
+                            edits: number(day, "edits").unwrap_or(0.0),
+                            words_added: number(day, "wordsAdded").unwrap_or(0.0),
+                        })
+                        .collect()
+                })
+                .unwrap_or_default(),
         })
     }
 
@@ -348,6 +386,13 @@ impl Project {
 
     pub fn document(&self, id: &str) -> Option<&Document> {
         self.documents.iter().find(|d| d.id == id)
+    }
+
+    pub fn chapter_goal(&self, chapter_id: &str) -> Option<f64> {
+        self.chapter_goals
+            .iter()
+            .find(|(id, _)| id == chapter_id)
+            .map(|(_, n)| *n)
     }
 
     pub fn label(&self, id: &str) -> Option<&Label> {

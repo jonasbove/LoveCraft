@@ -16,9 +16,12 @@
 )]
 
 mod binder;
+pub mod fonts;
 mod library;
 mod sidebar;
+pub mod theme;
 mod views;
+mod widgets;
 
 use std::collections::HashMap;
 
@@ -125,6 +128,9 @@ pub struct AppState {
     selection: Option<Selection>,
     /// The last message for the person: what was opened, or why it wasn't.
     status: Option<String>,
+    palette: theme::Palette,
+    /// The month the activity calendar shows, once the person has moved it.
+    activity_month: Option<(i32, u32)>,
 }
 
 impl AppState {
@@ -189,6 +195,11 @@ impl PaneContent<Pane> for AppState {
         false
     }
 
+    /// ProseCraft's sidebars have no title bars; the contents start at the top.
+    fn title_bar(&self, _pane: &Pane) -> bool {
+        false
+    }
+
     fn closable(&self, _pane: &Pane) -> bool {
         false
     }
@@ -201,6 +212,8 @@ impl PaneContent<Pane> for AppState {
 /// text never crashes the app.
 pub fn setup(ctx: &egui::Context) {
     ctx.set_missing_glyph_policy(egui::MissingGlyphPolicy::Tofu);
+    fonts::install(ctx);
+    theme::Palette::default().apply(ctx);
 }
 
 /// The whole app.
@@ -325,12 +338,19 @@ impl ProseApp {
         }
 
         let states = self.pane_states.clone();
-        let output = PaneHost::new(Id::unique("prosecraft-panes")).show(
-            ui,
-            &self.open,
-            |pane| states.get(pane).copied(),
-            &mut self.state,
-        );
+        let palette = self.state.palette;
+        let frame = egui::Frame::new()
+            .fill(palette.sidebar_bg)
+            .stroke(egui::Stroke::new(1.0, palette.border));
+        let output = PaneHost::new(Id::unique("prosecraft-panes"))
+            .frame(frame)
+            .body_margin(egui::Margin::symmetric(18, 16))
+            .show(
+                ui,
+                &self.open,
+                |pane| states.get(pane).copied(),
+                &mut self.state,
+            );
         for request in output.requests {
             let pane = *request.pane();
             let state = self

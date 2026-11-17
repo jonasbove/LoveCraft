@@ -15,7 +15,16 @@ workspace = true
 prosecraft-core = { workspace = true }
 egui = { workspace = true }
 craft-ui = { workspace = true }
+craft-fonts-build = { workspace = true }
 chrono = { workspace = true }
 
+# Installed system fonts as fallbacks (emoji, every script) on the desktop.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+craft-ui = { workspace = true, features = ["system_fonts"] }
+
+[build-dependencies]
+craft-fonts-build = { workspace = true }
+
 [dev-dependencies]
-egui_kittest = { workspace = true }
+# `wgpu` and `snapshot`: render the app offscreen to look at it (never a screen capture).
+egui_kittest = { workspace = true, features = ["wgpu", "snapshot"] }

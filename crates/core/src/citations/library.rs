@@ -386,21 +386,48 @@ pub struct SourceCitations {
 /// `countSourceCitations`: the documents whose text or footnotes cite `item` (by its id or
 /// cite key).
 pub fn count_source_citations(item: &JsValue, documents: &[Document]) -> SourceCitations {
-    let mut match_ids = vec![string_field(item, "id").unwrap_or_default()];
-    match_ids.extend(field(item, "citeKey"));
-    let cites = |html: &str| {
-        citation_ids_in_html(html)
+    CitedIndex::new(documents).count(item)
+}
+
+/// Each document's cited source ids (in its text and its footnotes), read once, so that
+/// [`count_source_citations`] can be answered for a whole library without reading every
+/// document again for each source.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CitedIndex {
+    documents: Vec<(String, std::collections::HashSet<String>)>,
+}
+
+impl CitedIndex {
+    pub fn new(documents: &[Document]) -> Self {
+        Self {
+            documents: documents
+                .iter()
+                .map(|doc| {
+                    let mut ids: std::collections::HashSet<String> =
+                        citation_ids_in_html(&doc.content).into_iter().collect();
+                    for footnote in &doc.footnotes {
+                        ids.extend(citation_ids_in_html(&footnote.html));
+                    }
+                    (doc.id.clone(), ids)
+                })
+                .collect(),
+        }
+    }
+
+    /// `countSourceCitations` for `item`: the documents citing it by id or cite key.
+    pub fn count(&self, item: &JsValue) -> SourceCitations {
+        let mut match_ids = vec![string_field(item, "id").unwrap_or_default()];
+        match_ids.extend(field(item, "citeKey"));
+        let doc_ids: Vec<String> = self
+            .documents
             .iter()
-            .any(|id| match_ids.contains(id))
-    };
-    let doc_ids: Vec<String> = documents
-        .iter()
-        .filter(|doc| cites(&doc.content) || doc.footnotes.iter().any(|f| cites(&f.html)))
-        .map(|doc| doc.id.clone())
-        .collect();
-    SourceCitations {
-        document_count: doc_ids.len(),
-        doc_ids,
+            .filter(|(_, ids)| match_ids.iter().any(|id| ids.contains(id)))
+            .map(|(id, _)| id.clone())
+            .collect();
+        SourceCitations {
+            document_count: doc_ids.len(),
+            doc_ids,
+        }
     }
 }
 

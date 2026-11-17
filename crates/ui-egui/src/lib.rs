@@ -306,6 +306,8 @@ pub struct AppState {
     sources: Option<sources::SourcesDialog>,
     /// The citation picker, while open.
     citation_picker: Option<citation_picker::CitationPicker>,
+    /// The editor's citation labels as last worked out.
+    cite_labels: std::cell::RefCell<prosecraft_core::citations::labels::LabelCache>,
     /// The Project Settings dialog, while open.
     project_settings: Option<project_settings::ProjectSettingsDraft>,
     /// The Settings dialog is open.
@@ -695,9 +697,20 @@ impl ProseApp {
 
     /// `commitCitationPicker`: the citation goes into the open scene's draft, new at a
     /// character or in place of an atom, and the caret after it.
-    fn place_citation(&mut self, document: &str, target: citation_picker::Target, html: &str) {
+    fn place_citation(
+        &mut self,
+        document: &str,
+        target: citation_picker::Target,
+        html: &str,
+        body: &str,
+    ) {
         let now = self.state.now;
-        let Some(draft) = self.state.draft.as_mut().filter(|d| d.document == document) else {
+        let Some(draft) = self
+            .state
+            .draft
+            .as_mut()
+            .filter(|d| d.document == document && d.body == body)
+        else {
             return;
         };
         let after = match target {
@@ -706,7 +719,12 @@ impl ProseApp {
                 at.min(draft.body.chars().count().saturating_sub(1)) + 1
             }
             citation_picker::Target::Edit { atom } => {
-                let Some(slot) = draft.doc.atoms.get_mut(atom) else {
+                let Some(slot) = draft
+                    .doc
+                    .atoms
+                    .get_mut(atom)
+                    .filter(|h| citation_picker::is_cite_marker(h))
+                else {
                     return;
                 };
                 html.clone_into(slot);
@@ -726,16 +744,21 @@ impl ProseApp {
     }
 
     /// `removeCitationFromPicker`: the open scene's `atom`th atom leaves its draft.
-    fn remove_citation(&mut self, document: &str, atom: usize) {
+    fn remove_citation(&mut self, document: &str, atom: usize, body: &str) {
         let now = self.state.now;
-        let Some(draft) = self.state.draft.as_mut().filter(|d| d.document == document) else {
+        let Some(draft) = self
+            .state
+            .draft
+            .as_mut()
+            .filter(|d| d.document == document && d.body == body)
+        else {
             return;
         };
         let seen = std::cell::Cell::new(0);
-        let (body, at) = draft.doc.remove_atoms(|_| {
+        let (body, at) = draft.doc.remove_atoms(|html| {
             let index = seen.get();
             seen.set(index + 1);
-            index == atom
+            index == atom && citation_picker::is_cite_marker(html)
         });
         if let Some(at) = at {
             draft.body = body;
@@ -850,12 +873,17 @@ impl ProseApp {
                     document,
                     target,
                     html,
+                    body,
                 } => {
-                    self.place_citation(document, *target, html);
+                    self.place_citation(document, *target, html, body);
                     continue;
                 }
-                editing::Intent::RemoveCitation { document, atom } => {
-                    self.remove_citation(document, *atom);
+                editing::Intent::RemoveCitation {
+                    document,
+                    atom,
+                    body,
+                } => {
+                    self.remove_citation(document, *atom, body);
                     continue;
                 }
                 editing::Intent::RemoveFootnote { document, id } => {

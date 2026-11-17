@@ -68,6 +68,9 @@ impl Entry {
 pub(crate) struct CitationPicker {
     pub document: String,
     pub target: Target,
+    /// The scene's text when the picker opened: a change to it (typing, a footnote, another
+    /// scene) closes the picker, so the target can't drift onto something else.
+    pub body: String,
     /// Where it opens (beside the caret or the citation), once the editor knows.
     pub pos: Option<egui::Pos2>,
     selected: Vec<Entry>,
@@ -78,10 +81,11 @@ pub(crate) struct CitationPicker {
 
 impl CitationPicker {
     /// The picker for a new citation, or seeded with an existing one's sources.
-    pub fn new(document: &str, target: Target, initial: &[CiteRefItem]) -> Self {
+    pub fn new(document: &str, body: &str, target: Target, initial: &[CiteRefItem]) -> Self {
         Self {
             document: document.to_owned(),
             target,
+            body: body.to_owned(),
             pos: None,
             selected: initial
                 .iter()
@@ -378,9 +382,47 @@ fn footer(
     outcome
 }
 
+/// Whether an atom's HTML is a citation marker (and not a footnote or an equation).
+pub(crate) fn is_cite_marker(html: &str) -> bool {
+    prosecraft_core::html::parse_fragment(html)
+        .first()
+        .is_some_and(|n| match n {
+            prosecraft_core::html::Node::Element(e) => e.name == "span" && e.has_class("cite-ref"),
+            prosecraft_core::html::Node::Text(_) => false,
+        })
+}
+
+/// Whether the picker still points where it did when it opened: the same scene, unchanged,
+/// in a view that shows it, and (when editing) a citation at its atom. ProseCraft closes the
+/// picker on these changes too.
+pub(crate) fn still_valid(
+    picker: &CitationPicker,
+    view: crate::WorkspaceView,
+    draft: Option<&crate::editing::Draft>,
+) -> bool {
+    matches!(
+        view,
+        crate::WorkspaceView::Outline | crate::WorkspaceView::Write
+    ) && draft.is_some_and(|d| {
+        d.document == picker.document
+            && d.body == picker.body
+            && match picker.target {
+                Target::Insert { .. } => true,
+                Target::Edit { atom } => d.doc.atoms.get(atom).is_some_and(|h| is_cite_marker(h)),
+            }
+    })
+}
+
 /// The picker.
 pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
     let palette = state.palette;
+    if state
+        .citation_picker
+        .as_ref()
+        .is_some_and(|p| !still_valid(p, state.view, state.draft.as_ref()))
+    {
+        state.citation_picker = None;
+    }
     let Some(project) = state
         .library
         .as_ref()
@@ -482,20 +524,24 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
     };
     let document = picker.document.clone();
     let target = picker.target;
+    let body = picker.body.clone();
     match outcome {
         Some(Outcome::Commit(html)) => {
             state.intents.push(Intent::PlaceCitation {
                 document,
                 target,
                 html,
+                body,
             });
             state.citation_picker = None;
         }
         Some(Outcome::Remove) => {
             if let Target::Edit { atom } = target {
-                state
-                    .intents
-                    .push(Intent::RemoveCitation { document, atom });
+                state.intents.push(Intent::RemoveCitation {
+                    document,
+                    atom,
+                    body,
+                });
             }
             state.citation_picker = None;
         }

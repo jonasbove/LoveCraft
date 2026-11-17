@@ -122,14 +122,17 @@ pub enum Intent {
     SetCitations(Vec<prosecraft_core::js::JsValue>),
     /// The citation picker's citation (its marker's HTML), new at a character of the open
     /// scene or in place of one of its atoms; and removing one. Handled with the editor's draft.
+    /// `body` is the scene's text the picker opened on: nothing happens if it changed since.
     PlaceCitation {
         document: String,
         target: crate::citation_picker::Target,
         html: String,
+        body: String,
     },
     RemoveCitation {
         document: String,
         atom: usize,
+        body: String,
     },
     /// `convertToScreenplay`: a prose scene made a screenplay, a snapshot of the prose first.
     ConvertToScreenplay {

@@ -1553,3 +1553,157 @@ fn storyboard_drawings_are_drawn_moved_labelled_and_deleted() {
         (30.0, 10.0)
     );
 }
+
+#[test]
+fn footnotes_are_inserted_written_removed_and_cleaned_up() {
+    let (mut harness, memory) = app();
+    let doc = |memory: &Memory| -> JsValue {
+        project(&memory.last(), "project-1")
+            .get("project")
+            .and_then(|p| p.get("documents"))
+            .and_then(JsValue::as_array)
+            .unwrap_or_default()
+            .iter()
+            .find(|d| {
+                d.get("id")
+                    .and_then(JsValue::as_js_string)
+                    .is_some_and(|i| i.eq_str("doc-1"))
+            })
+            .cloned()
+            .expect("doc-1")
+    };
+    let content = |d: &JsValue| {
+        d.get("content")
+            .and_then(JsValue::as_js_string)
+            .map(|s| s.to_string_lossy())
+            .unwrap_or_default()
+    };
+    let defs = |d: &JsValue| -> Vec<(String, String)> {
+        d.get("footnotes")
+            .and_then(JsValue::as_array)
+            .unwrap_or_default()
+            .iter()
+            .map(|f| {
+                let s = |k: &str| {
+                    f.get(k)
+                        .and_then(JsValue::as_js_string)
+                        .map(|v| v.to_string_lossy())
+                        .unwrap_or_default()
+                };
+                (s("id"), s("html"))
+            })
+            .collect()
+    };
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Tab, "Footnotes")
+        .click();
+    harness.run();
+    // Insert footnote at the caret (the end): its editor opens as footnote 2.
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Insert footnote")
+        .click();
+    harness.run_steps(4);
+    assert!(
+        harness.query_by_label("Footnote 2").is_some(),
+        "the editor is open on footnote 2"
+    );
+    assert!(harness.get_by_label("Footnote text").is_focused());
+    harness
+        .get_by_label("Footnote text")
+        .type_text("Second note.");
+    harness.run();
+    harness.get_by_role_and_label(Role::Button, "Done").click();
+    harness.run_steps(12);
+    let after = doc(&memory);
+    let notes = defs(&after);
+    assert_eq!(notes.len(), 2, "{notes:?}");
+    assert_eq!(notes[1].1, "Second note.");
+    let new_id = notes[1].0.clone();
+    assert!(new_id.starts_with("fn-") && new_id.len() == 9, "{new_id}");
+    assert!(content(&after).ends_with(&format!(r#".<sup class="footnote-ref" data-footnote-id="{new_id}" contenteditable="false"></sup></p>"#)), "{}", content(&after));
+
+    // Remove footnote 1 from the Footnotes tab: marker and definition go.
+    harness
+        .get_by_role_and_label(Role::Button, "Remove footnote 1")
+        .click();
+    harness.run_steps(12);
+    let after = doc(&memory);
+    assert!(!content(&after).contains("fn-1"), "{}", content(&after));
+    assert_eq!(
+        defs(&after).iter().map(|d| d.0.clone()).collect::<Vec<_>>(),
+        std::slice::from_ref(&new_id)
+    );
+
+    // Deleting the marker in the text leaves an unused definition; Clean up drops it.
+    let at = content(&after);
+    assert!(at.contains(&new_id));
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    // (The caret is where the removed footnote was: go to the end of the text.)
+    harness.key_press(egui::Key::ArrowDown);
+    harness.key_press(egui::Key::End);
+    harness.key_press(egui::Key::Backspace);
+    harness.run_steps(12);
+    harness
+        .get_by_role_and_label(Role::Button, "Clean up 1 orphan")
+        .click();
+    harness.run_steps(12);
+    let after = doc(&memory);
+    assert!(
+        !content(&after).contains("footnote-ref"),
+        "{}",
+        content(&after)
+    );
+    assert!(after.get("footnotes").is_none(), "no definitions are left");
+}
+
+#[test]
+fn a_footnote_keeps_its_formatting_when_edited() {
+    let (mut harness, memory) = app();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Tab, "Footnotes")
+        .click();
+    harness.run();
+    harness.get_by_role_and_label(Role::Button, "Edit").click();
+    harness.run_steps(3);
+    assert!(harness.query_by_label("Footnote 1").is_some());
+    let text = harness.get_by_label("Footnote text");
+    assert_eq!(
+        text.accesskit_node().value().as_deref(),
+        Some("A note with emphasis.")
+    );
+    text.type_text(" More.");
+    harness.run();
+    harness.get_by_role_and_label(Role::Button, "Done").click();
+    harness.run_steps(12);
+    let saved = memory.last();
+    let html = project(&saved, "project-1")
+        .get("project")
+        .and_then(|p| p.get("documents"))
+        .and_then(JsValue::as_array)
+        .and_then(|d| d.first().cloned())
+        .and_then(|d| {
+            d.get("footnotes")
+                .and_then(JsValue::as_array)
+                .and_then(|f| f.first().cloned())
+        })
+        .and_then(|f| {
+            f.get("html")
+                .and_then(JsValue::as_js_string)
+                .map(|s| s.to_string_lossy())
+        });
+    assert_eq!(
+        html.as_deref(),
+        Some("A note with <em>emphasis</em>. More.")
+    );
+}

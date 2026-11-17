@@ -118,6 +118,23 @@ pub enum Intent {
         id: String,
         note: String,
     },
+    /// Footnotes: a new one at a character of the open scene (handled with the editor's
+    /// draft), a definition's text, removing one (marker and definition), and dropping
+    /// definitions whose marker is gone.
+    InsertFootnote {
+        document: String,
+        at: usize,
+    },
+    SetFootnote {
+        document: String,
+        id: String,
+        html: String,
+    },
+    RemoveFootnote {
+        document: String,
+        id: String,
+    },
+    PruneFootnotes(String),
     /// The timeline: a new moment, one field of a moment, removing and moving one.
     AddMoment,
     SetMoment {
@@ -302,6 +319,17 @@ pub fn run(
         }
         Intent::SetCardNote { id, note } => {
             prosecraft_core::storyboard::set_card_note(data, new_id, id, note)
+        }
+        // Placed by the app, which holds the draft.
+        Intent::InsertFootnote { .. } => Ok(()),
+        Intent::SetFootnote { document, id, html } => {
+            prosecraft_core::footnotes::update_definition(data, document, id, html)
+        }
+        Intent::RemoveFootnote { document, id } => {
+            prosecraft_core::footnotes::remove(data, document, id)
+        }
+        Intent::PruneFootnotes(document) => {
+            prosecraft_core::footnotes::prune_orphans(data, document)
         }
         Intent::AddMoment => prosecraft_core::timeline::add_node(data, &new_id()),
         Intent::SetMoment { id, field, value } => {

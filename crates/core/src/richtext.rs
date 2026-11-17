@@ -492,6 +492,63 @@ impl RichDoc {
         self.text.clone()
     }
 
+    /// Puts an atom (its exact HTML, such as a footnote marker) at character `index`, formatted
+    /// as text typed there would be. Returns the new text.
+    pub fn insert_atom(&mut self, index: usize, html: &str) -> String {
+        let chars: Vec<char> = self.text.chars().collect();
+        let index = index.min(chars.len());
+        let inherit = if index > 0 && chars[index - 1] != '\n' {
+            self.marks.get(index - 1).cloned()
+        } else if chars.get(index).is_some_and(|c| *c != '\n') {
+            self.marks.get(index).cloned()
+        } else {
+            None
+        }
+        .unwrap_or_default();
+        let atoms_before = chars[..index].iter().filter(|c| **c == ATOM).count();
+        let byte = self
+            .text
+            .char_indices()
+            .nth(index)
+            .map_or(self.text.len(), |(b, _)| b);
+        self.text.insert(byte, ATOM);
+        self.marks.insert(index.min(self.marks.len()), inherit);
+        self.atoms
+            .insert(atoms_before.min(self.atoms.len()), html.to_owned());
+        self.empty_source = false;
+        if self.lines.is_empty() {
+            self.lines.push(LineKind::Paragraph);
+        }
+        self.text.clone()
+    }
+
+    /// Removes every atom whose HTML `matches`, with its character. Returns the new text and the
+    /// character index of the first one removed.
+    pub fn remove_atoms(&mut self, matches: impl Fn(&str) -> bool) -> (String, Option<usize>) {
+        let mut first = None;
+        let mut atom = 0;
+        let mut kept_atoms = Vec::new();
+        let mut text = String::new();
+        let mut marks = Vec::new();
+        for (i, c) in self.text.chars().enumerate() {
+            if c == ATOM {
+                let html = self.atoms.get(atom).cloned().unwrap_or_default();
+                atom += 1;
+                if matches(&html) {
+                    first.get_or_insert(i);
+                    continue;
+                }
+                kept_atoms.push(html);
+            }
+            text.push(c);
+            marks.push(self.marks.get(i).cloned().unwrap_or_default());
+        }
+        self.text = text;
+        self.marks = marks;
+        self.atoms = kept_atoms;
+        (self.text.clone(), first)
+    }
+
     /// Toggles `mark` over characters `range`: removed where every character has it, else added.
     pub fn toggle_mark(&mut self, range: std::ops::Range<usize>, mark: Mark) {
         let chars: Vec<char> = self.text.chars().collect();
@@ -543,6 +600,22 @@ mod tests {
     #[test]
     fn typing_keeps_formatting_and_atoms_follow_their_characters() {
         let mut doc = RichDoc::from_html(r#"<p>It was <em>dark</em><sup class="footnote-ref" data-footnote-id="n1" contenteditable="false"></sup>.</p>"#).unwrap_or_default();
+        // A second marker, typed inside the emphasis; then the first removed by its id.
+        let mut twice = doc.clone();
+        twice.insert_atom(
+            9,
+            r#"<sup class="footnote-ref" data-footnote-id="n2" contenteditable="false"></sup>"#,
+        );
+        assert_eq!(
+            twice.to_html(),
+            r#"<p>It was <em>da<sup class="footnote-ref" data-footnote-id="n2" contenteditable="false"></sup>rk</em><sup class="footnote-ref" data-footnote-id="n1" contenteditable="false"></sup>.</p>"#
+        );
+        let (_, at) = twice.remove_atoms(|html| html.contains(r#"data-footnote-id="n1""#));
+        assert_eq!(at, Some(12));
+        assert_eq!(
+            twice.to_html(),
+            r#"<p>It was <em>da<sup class="footnote-ref" data-footnote-id="n2" contenteditable="false"></sup>rk</em>.</p>"#
+        );
         // Type inside the emphasis: "dark" -> "darker".
         let text = doc.text.replace("dark", "darker");
         doc.apply_text(&text);

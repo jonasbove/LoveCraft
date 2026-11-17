@@ -1,0 +1,12 @@
+[package]
+name = "prosecraft-core"
+description = "prosecraft-rs core: the project model, storage formats and editing logic, with no UI"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true

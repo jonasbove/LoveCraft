@@ -294,16 +294,6 @@ fn setup_with(ctx: &egui::Context, system_fonts: bool) {
 pub struct ProseApp {
     state: AppState,
     open: Vec<Pane>,
-    setup_with(ctx, true);
-}
-
-/// [`setup`] without the system's fonts, for tests: text draws the same everywhere, and no
-/// font arriving late from the background index repaints in the middle of a test.
-pub fn setup_for_tests(ctx: &egui::Context) {
-    setup_with(ctx, false);
-}
-
-fn setup_with(ctx: &egui::Context, system_fonts: bool) {
     pane_states: HashMap<Pane, PaneState>,
     locked: Option<Locked>,
     ready: bool,

@@ -107,12 +107,26 @@ fn number(v: &JsValue, key: &str) -> Option<f64> {
 }
 
 const KINDS: [&str; 4] = ["chapter", "scene", "blank", "Wiki"];
+/// The former Story Spaces: a card of one of these is a Wiki card (`migrateStoryboardCard`,
+/// which ProseCraft applies when it loads a project, before it filters the cards).
+const LEGACY_SPACES: [&str; 4] = ["Characters", "Places", "Research", "Notes"];
+
+/// A card's kind after ProseCraft's Wiki migration.
+fn migrated_kind(card: &JsValue) -> Option<String> {
+    string(card, "kind").map(|k| {
+        if LEGACY_SPACES.contains(&k.as_str()) {
+            "Wiki".to_owned()
+        } else {
+            k
+        }
+    })
+}
 
 fn valid_card(card: &JsValue) -> bool {
     matches!(card, JsValue::Object(_))
         && string(card, "id").is_some()
         && string(card, "sourceId").is_some()
-        && string(card, "kind").is_some_and(|k| KINDS.contains(&k.as_str()))
+        && migrated_kind(card).is_some_and(|k| KINDS.contains(&k.as_str()))
         && string(card, "title").is_some()
         && string(card, "note").is_some()
 }
@@ -180,7 +194,7 @@ pub fn cards(project: &JsValue) -> Vec<Card> {
             row_id,
             x,
             y,
-            kind: string(&c, "kind").unwrap_or_default(),
+            kind: migrated_kind(&c).unwrap_or_default(),
             title: string(&c, "title").unwrap_or_default(),
             note: string(&c, "note").unwrap_or_default(),
         })
@@ -265,7 +279,11 @@ fn normalize(project: &mut JsValue, new_id: &mut dyn FnMut() -> String) -> Resul
     let cards = positioned(project, "")
         .into_iter()
         .map(|(mut card, x, y, row)| {
+            let kind = migrated_kind(&card);
             if let Some(o) = card.as_object_mut() {
+                if let Some(kind) = kind {
+                    o.insert("kind", JsValue::str(&kind));
+                }
                 o.insert("rowId", JsValue::str(&row));
                 o.insert("x", JsValue::Number(x));
                 o.insert("y", JsValue::Number(y));
@@ -450,13 +468,37 @@ mod tests {
             [
                 ("a".into(), "r2".into(), 40.0, 330.0),
                 ("b".into(), "r2".into(), 290.0, 330.0),
-                ("c".into(), "r1".into(), 11.0, -3.0)
+                ("c".into(), "r1".into(), 11.0, -3.0),
+                // A card of a former Story Space is a Wiki card, laid out after "c" in the first row.
+                ("d".into(), "r1".into(), 290.0, 40.0)
             ]
         );
         assert_eq!(js_round(-3.5), -3.0);
         assert_eq!(
             point_at_viewport_center(700.0, 600.0, (0.0, 0.0), 24.0, 1.0),
             (264.0, 244.0)
+        );
+    }
+
+    #[test]
+    fn cards_of_the_former_story_spaces_are_wiki_cards() {
+        let mut p = parse(r#"{"storyboardRows":[{"id":"r","title":"T"}],"storyboardCards":[{"id":"c","sourceId":"d","kind":"Characters","title":"Mara","note":"","rowId":"r","x":1,"y":2},{"id":"n","sourceId":"","kind":"Mystery","title":"?","note":""}]}"#).expect("json");
+        assert_eq!(
+            cards(&p)
+                .iter()
+                .map(|c| (c.id.as_str(), c.kind.as_str()))
+                .collect::<Vec<_>>(),
+            [("c", "Wiki")]
+        );
+        let mut n = 0;
+        let mut new_id = || {
+            n += 1;
+            format!("id{n}")
+        };
+        move_card(&mut p, &mut new_id, "c", 5.0, 6.0).expect("move");
+        assert_eq!(
+            stringify(&p),
+            r#"{"storyboardRows":[{"id":"r","title":"T"}],"storyboardCards":[{"id":"c","sourceId":"d","kind":"Wiki","title":"Mara","note":"","rowId":"r","x":5,"y":6}]}"#
         );
     }
 

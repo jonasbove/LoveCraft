@@ -171,7 +171,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                     );
                     not_ported(ui, &palette, "Storyboard", &text);
                 }
-                WorkspaceView::Timeline => timeline(ui, &palette, project),
+                WorkspaceView::Timeline => timeline(ui, &palette, project, &mut edit),
                 // Shown above, in its own two-column layout.
                 WorkspaceView::Publish => {}
             });
@@ -927,40 +927,232 @@ fn paint_extras(
     }
 }
 
-fn timeline(ui: &mut Ui, palette: &Palette, project: &Project) {
-    ui.add_space(28.0);
-    eyebrow(ui, palette, "Timeline");
-    ui.label(
-        RichText::new("Moments")
-            .font(fonts::serif(32.0))
-            .color(palette.text_heading),
+/// A text field that saves when it is left (or Enter, for a single line), so typing isn't a
+/// change per keystroke. Returns the new text then.
+#[allow(clippy::too_many_arguments)]
+fn saved_field(
+    ui: &mut Ui,
+    salt: (&str, &str),
+    value: &str,
+    hint: &str,
+    name: &str,
+    multiline: bool,
+    limit: usize,
+    editable: bool,
+    focus: bool,
+) -> Option<String> {
+    let id = ui.make_persistent_id(("saved-field", salt.0, salt.1));
+    let mut text = ui
+        .data(|d| d.get_temp::<String>(id))
+        .unwrap_or_else(|| value.to_owned());
+    let field = if multiline {
+        egui::TextEdit::multiline(&mut text).desired_rows(2)
+    } else {
+        egui::TextEdit::singleline(&mut text)
+    };
+    let response = ui.add_enabled(
+        editable,
+        field
+            .id(id.with("edit"))
+            .hint_text(hint)
+            .char_limit(limit)
+            .desired_width(f32::INFINITY),
     );
-    ui.add_space(14.0);
-    if project.timeline.is_empty() {
-        ui.label(RichText::new("No moments yet.").color(palette.text_muted));
+    name_field(ui, &response, name);
+    if focus {
+        response.request_focus();
     }
-    for node in &project.timeline {
-        card(palette).show(ui, |ui| {
-            ui.set_width(ui.available_width());
-            let when = [node.date.as_str(), node.time.as_str()]
-                .iter()
-                .filter(|s| !s.is_empty())
-                .copied()
-                .collect::<Vec<_>>()
-                .join(" ");
-            if !when.is_empty() {
-                ui.label(RichText::new(when).size(12.0).color(palette.text_muted));
-            }
+    if response.changed() {
+        ui.data_mut(|d| d.insert_temp(id, text.clone()));
+    }
+    if response.lost_focus() {
+        ui.data_mut(|d| d.remove_temp::<String>(id));
+        if text != value {
+            return Some(text);
+        }
+    }
+    None
+}
+
+/// ProseCraft's Timeline view: the story's moments in order, each with a title, a date, a
+/// time and a description, moved with the arrows (ProseCraft also drags them; that comes
+/// later) and removed with ×.
+fn timeline(ui: &mut Ui, palette: &Palette, project: &Project, edit: &mut Edit<'_>) {
+    use prosecraft_core::timeline::Field;
+    ui.add_space(28.0);
+    let count = project.timeline.len();
+    let mut add = false;
+    ui.horizontal(|ui| {
+        ui.vertical(|ui| {
+            eyebrow(ui, palette, "Follow your story");
+            ui.label(RichText::new("Timeline").font(fonts::serif(32.0)).color(palette.text_heading));
+            ui.label(RichText::new("Map the moments that move your story forward. Use the arrows to change their order.").color(palette.text_muted));
+        });
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::BOTTOM), |ui| {
+            add |= ui.add_enabled(edit.editable, egui::Button::new("+ Add moment")).clicked();
+            ui.label(RichText::new(format!("{count} {}", if count == 1 { "moment" } else { "moments" })).size(12.0).color(palette.text_muted));
+        });
+    });
+    ui.separator();
+    ui.add_space(8.0);
+    let focus_id = ui.make_persistent_id("timeline-focus-new");
+    // After "Add moment", the new (last) moment's title takes the focus, as in ProseCraft.
+    let focus_new = ui
+        .data_mut(|d| d.remove_temp::<usize>(focus_id))
+        .is_some_and(|n| n < count);
+    if count == 0 {
+        ui.add_space(30.0);
+        ui.vertical_centered(|ui| {
             ui.label(
-                RichText::new(node.title.as_str())
-                    .font(fonts::serif(18.0))
+                RichText::new("No moments yet")
+                    .font(fonts::serif(22.0))
                     .color(palette.text_heading),
             );
-            if !node.description.is_empty() {
-                ui.label(RichText::new(node.description.as_str()).color(palette.text_body));
+            ui.label(
+                RichText::new("Add your first event to begin charting the sequence of your story.")
+                    .color(palette.text_muted),
+            );
+        });
+    }
+    for (index, node) in project.timeline.iter().enumerate() {
+        let label = if node.title.trim().is_empty() {
+            format!("timeline moment {}", index + 1)
+        } else {
+            node.title.trim().to_owned()
+        };
+        card(palette).show(ui, |ui| {
+            ui.set_width(ui.available_width());
+            ui.horizontal(|ui| {
+                ui.label(
+                    RichText::new(format!("{:02}", index + 1))
+                        .font(fonts::semibold(12.0))
+                        .color(palette.eyebrow),
+                );
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    ui.add_enabled_ui(edit.editable, |ui| {
+                        let remove = ui.button("×").on_hover_text("Remove moment");
+                        name_field(ui, &remove, &format!("Remove {label}"));
+                        if remove.clicked() {
+                            edit.intents.push(Intent::RemoveMoment(node.id.clone()));
+                        }
+                        let later = ui
+                            .add_enabled(index + 1 < count, egui::Button::new("↓"))
+                            .on_hover_text("Move later");
+                        name_field(ui, &later, &format!("Move {label} later"));
+                        if later.clicked() {
+                            edit.intents.push(Intent::MoveMoment {
+                                id: node.id.clone(),
+                                offset: 1,
+                            });
+                        }
+                        let earlier = ui
+                            .add_enabled(index > 0, egui::Button::new("↑"))
+                            .on_hover_text("Move earlier");
+                        name_field(ui, &earlier, &format!("Move {label} earlier"));
+                        if earlier.clicked() {
+                            edit.intents.push(Intent::MoveMoment {
+                                id: node.id.clone(),
+                                offset: -1,
+                            });
+                        }
+                    });
+                    let focus = focus_new && index + 1 == count;
+                    if let Some(title) = saved_field(
+                        ui,
+                        ("title", &node.id),
+                        &node.title,
+                        "What happens here?",
+                        &format!("Title for timeline moment {}", index + 1),
+                        false,
+                        Field::Title.limit(),
+                        edit.editable,
+                        focus,
+                    ) {
+                        edit.intents.push(Intent::SetMoment {
+                            id: node.id.clone(),
+                            field: Field::Title,
+                            value: title,
+                        });
+                    }
+                });
+            });
+            ui.columns(2, |cols| {
+                cols[0].label(
+                    RichText::new("Date")
+                        .size(11.5)
+                        .color(palette.text_secondary),
+                );
+                if let Some(date) = saved_field(
+                    &mut cols[0],
+                    ("date", &node.id),
+                    &node.date,
+                    "Day 12, Third Age, 14 May 1842…",
+                    &format!("Date for {label}"),
+                    false,
+                    Field::Date.limit(),
+                    edit.editable,
+                    false,
+                ) {
+                    edit.intents.push(Intent::SetMoment {
+                        id: node.id.clone(),
+                        field: Field::Date,
+                        value: date,
+                    });
+                }
+                cols[1].label(
+                    RichText::new("Time")
+                        .size(11.5)
+                        .color(palette.text_secondary),
+                );
+                if let Some(time) = saved_field(
+                    &mut cols[1],
+                    ("time", &node.id),
+                    &node.time,
+                    "4:30 PM, dawn, midnight…",
+                    &format!("Time for {label}"),
+                    false,
+                    Field::Time.limit(),
+                    edit.editable,
+                    false,
+                ) {
+                    edit.intents.push(Intent::SetMoment {
+                        id: node.id.clone(),
+                        field: Field::Time,
+                        value: time,
+                    });
+                }
+            });
+            if let Some(description) = saved_field(
+                ui,
+                ("description", &node.id),
+                &node.description,
+                "Describe the moment, who is involved, and what changes…",
+                &format!("Description for {label}"),
+                true,
+                Field::Description.limit(),
+                edit.editable,
+                false,
+            ) {
+                edit.intents.push(Intent::SetMoment {
+                    id: node.id.clone(),
+                    field: Field::Description,
+                    value: description,
+                });
             }
         });
-        ui.add_space(10.0);
+        ui.add_space(8.0);
+    }
+    if count > 0 {
+        add |= ui
+            .add_enabled(
+                edit.editable,
+                egui::Button::new("+ Add moment — Place another event on your timeline."),
+            )
+            .clicked();
+    }
+    if add {
+        edit.intents.push(Intent::AddMoment);
+        ui.data_mut(|d| d.insert_temp(focus_id, count));
     }
 }
 

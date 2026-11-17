@@ -74,6 +74,9 @@ fn render_views() {
         .get_by_role_and_label(Role::Tab, "Snapshots")
         .click();
     save(&mut harness, "snapshots");
+    harness.get_by_role_and_label(Role::Tab, "Timeline").click();
+    save(&mut harness, "timeline");
+    harness.get_by_role_and_label(Role::Tab, "Write").click();
     harness.get_by_role_and_label(Role::Tab, "Progress").click();
     harness
         .get_by_role_and_label(Role::Button, "Search project")

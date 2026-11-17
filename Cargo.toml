@@ -15,6 +15,18 @@ repository = "https://github.com/jonasbove/prosecraft-rs"
 prosecraft-core = { path = "crates/core" }
 prosecraft-ui-egui = { path = "crates/ui-egui" }
 
+# foundation
+thiserror = "2"
+# Encrypted backups and sync files, read and written exactly as ProseCraft does: Argon2id derives
+# the key, XChaCha20-Poly1305 seals the records (RustCrypto, MIT OR Apache-2.0).
+argon2 = { version = "0.6", default-features = false, features = ["alloc"] }
+chacha20poly1305 = { version = "0.11", default-features = false, features = ["alloc"] }
+base64 = "0.23"
+# NFKC for passphrases, as ProseCraft's `passphrase.normalize("NFKC")` ((MIT OR Apache-2.0) AND Unicode-3.0).
+unicode-normalization = "0.1"
+zeroize = "1"
+getrandom = "0.3"
+
 # ui
 egui = { version = "0.37", default-features = false, features = ["default_fonts"] }
 eframe = { version = "0.37", default-features = false, features = ["accesskit", "clipboard", "default_fonts", "glow", "web_screen_reader"] }

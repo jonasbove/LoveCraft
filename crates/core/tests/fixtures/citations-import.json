@@ -1,0 +1,3023 @@
+{
+  "imports": [
+    {
+      "text": "\n@comment{Exported from Zotero Better BibTeX}\n@string{suhrkamp = \"Suhrkamp \" # {Verlag}}\n@string{jhi = {Journal of Historical } # \"Informatics\"}\n\n@book{habermas1962,\n  title = {{Strukturwandel der {\\\"O}ffentlichkeit}: Untersuchungen zu einer Kategorie der b{\\\"u}rgerlichen Gesellschaft},\n  author = {Habermas, J{\\\"u}rgen},\n  year = {1962},\n  month = oct,\n  publisher = suhrkamp,\n  address = {Frankfurt am Main},\n  isbn = {978-3-518-28491-9},\n  edition = {1},\n  language = {de}\n}\n\n@article{muller2021,\n  title = {Digitalisierung und {Quellenkritik} in der {Geschichtswissenschaft}},\n  author = {M\\\"{u}ller, Hans-Peter and {\\v{C}}ern{\\'y}, Tom{\\'a}{\\v{s}} and Fran{\\c{c}}ois Lef{\\`e}vre},\n  journal = jhi,\n  year = 2021,\n  month = mar,\n  volume = {14},\n  number = {2},\n  pages = {112--138},\n  doi = {10.1234/jhi.2021.14.2.112},\n  url = {https://example.org/~muller/digital_sources},\n  abstract = {Eine Analyse zu Gro{\\ss}projekten und {\\\"U}berlieferungsgeschichte.}\n}\n\n@incollection{ostergaard2019,\n  title = {Nordic Archival Practices},\n  author = {{\\O}stergaard, S{\\o}ren},\n  editor = {Lindqvist, Astrid and {Deutsche Forschungsgemeinschaft}},\n  booktitle = {European Archives in Transition},\n  date = {2019-11-04},\n  publisher = \"Campus\" # \" Verlag\",\n  location = {Berlin},\n  pages = {45--79},\n  isbn = {978-3-593-51000-2}\n}\n\n@inproceedings{garcia2020,\n  title = {Automatic Collations of {Medieval} Manuscripts},\n  author = {Garc{\\'{\\i}}a, Jos{\\'e} Mar{\\'{\\i}}a and Ludwig van Beethoven},\n  booktitle = {Proceedings of the Digital Humanities Conference},\n  year = {2020},\n  month = {July},\n  pages = {210--225},\n  address = {Utrecht}\n}\n\n@phdthesis{schroeder2018,\n  title = {Sp{\\\"a}tmittelalterliche Briefkultur am Oberrhein},\n  author = {Schr{\\\"o}der, Katharina},\n  school = {Universit{\\\"a}t Freiburg},\n  year = {2018},\n  address = {Freiburg im Breisgau}\n}\n\n@online{bundesarchiv2024,\n  title = {Digitales Archivportal --- Handreichung},\n  author = {{Bundesarchiv}},\n  year = {2024},\n  url = {https://www.bundesarchiv.de/handreichung}\n}\n",
+      "filename": "lib0.bib",
+      "result": {
+        "format": "bibtex",
+        "items": [
+          {
+            "id": "habermas1962",
+            "type": "book",
+            "title": "Strukturwandel der Öffentlichkeit: Untersuchungen zu einer Kategorie der bürgerlichen Gesellschaft",
+            "author": [
+              {
+                "family": "Habermas",
+                "given": "Jürgen"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  1962,
+                  10
+                ]
+              ]
+            },
+            "publisher": "Suhrkamp Verlag",
+            "publisher-place": "Frankfurt am Main",
+            "ISBN": "978-3-518-28491-9",
+            "edition": "1",
+            "language": "de",
+            "citeKey": "habermas1962",
+            "provider": "import"
+          },
+          {
+            "id": "muller2021",
+            "type": "article-journal",
+            "title": "Digitalisierung und Quellenkritik in der Geschichtswissenschaft",
+            "author": [
+              {
+                "family": "Müller",
+                "given": "Hans-Peter"
+              },
+              {
+                "family": "Černý",
+                "given": "Tomáš"
+              },
+              {
+                "family": "Lefèvre",
+                "given": "François"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2021,
+                  3
+                ]
+              ]
+            },
+            "container-title": "Journal of Historical Informatics",
+            "volume": "14",
+            "issue": "2",
+            "page": "112-138",
+            "DOI": "10.1234/jhi.2021.14.2.112",
+            "URL": "https://example.org/~muller/digital_sources",
+            "abstract-free": "Eine Analyse zu Großprojekten und Überlieferungsgeschichte.",
+            "citeKey": "muller2021",
+            "provider": "import"
+          },
+          {
+            "id": "ostergaard2019",
+            "type": "chapter",
+            "title": "Nordic Archival Practices",
+            "author": [
+              {
+                "family": "Østergaard",
+                "given": "Søren"
+              }
+            ],
+            "editor": [
+              {
+                "family": "Lindqvist",
+                "given": "Astrid"
+              },
+              {
+                "literal": "Deutsche Forschungsgemeinschaft"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2019,
+                  11,
+                  4
+                ]
+              ]
+            },
+            "container-title": "European Archives in Transition",
+            "publisher": "Campus Verlag",
+            "publisher-place": "Berlin",
+            "page": "45-79",
+            "ISBN": "978-3-593-51000-2",
+            "citeKey": "ostergaard2019",
+            "provider": "import"
+          },
+          {
+            "id": "garcia2020",
+            "type": "paper-conference",
+            "title": "Automatic Collations of Medieval Manuscripts",
+            "author": [
+              {
+                "family": "García",
+                "given": "José María"
+              },
+              {
+                "family": "van Beethoven",
+                "given": "Ludwig"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2020,
+                  7
+                ]
+              ]
+            },
+            "container-title": "Proceedings of the Digital Humanities Conference",
+            "publisher-place": "Utrecht",
+            "page": "210-225",
+            "citeKey": "garcia2020",
+            "provider": "import"
+          },
+          {
+            "id": "schroeder2018",
+            "type": "thesis",
+            "title": "Spätmittelalterliche Briefkultur am Oberrhein",
+            "author": [
+              {
+                "family": "Schröder",
+                "given": "Katharina"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2018
+                ]
+              ]
+            },
+            "publisher": "Universität Freiburg",
+            "publisher-place": "Freiburg im Breisgau",
+            "citeKey": "schroeder2018",
+            "provider": "import"
+          },
+          {
+            "id": "bundesarchiv2024",
+            "type": "webpage",
+            "title": "Digitales Archivportal — Handreichung",
+            "author": [
+              {
+                "literal": "Bundesarchiv"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2024
+                ]
+              ]
+            },
+            "URL": "https://www.bundesarchiv.de/handreichung",
+            "citeKey": "bundesarchiv2024",
+            "provider": "import"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "TY  - BOOK\nID  - popper1959\nAU  - Popper, Karl R.\nTI  - The Logic of Scientific\n  Discovery\nPY  - 1959///\nPB  - Hutchinson\nCY  - London\nSN  - 978-0-415-27844-7\nER  -\n\nTY  - JOUR\nID  - shannon1948\nAU  - Shannon, Claude E.\nT1  - A Mathematical Theory of Communication\nJF  - Bell System Technical Journal\nJO  - Bell Syst. Tech. J.\nDA  - 1948/07/01\nVL  - 27\nIS  - 3\nSP  - 379\nEP  - 423\nDO  - 10.1002/j.1538-7305.1948.tb01338.x\nUR  - https://example.org/shannon1948\nER  -\n\nTY  - CHAP\nID  - keller2022\nAU  - Keller, Anna\nA2  - Weber, Max\nA2  - Braun, Clara\nTI  - Methods of Textual Scholarship\n  in Practice\nT2  - Companion to Editorial Theory\nY1  - 2022/03//\nPB  - Walter de Gruyter\nCY  - Berlin\nSP  - 88\nEP  - 114\nSN  - 978-3-11-070000-0\nER  -\n",
+      "filename": "",
+      "result": {
+        "format": "ris",
+        "items": [
+          {
+            "id": "popper1959",
+            "type": "book",
+            "title": "The Logic of Scientific Discovery",
+            "author": [
+              {
+                "family": "Popper",
+                "given": "Karl R."
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  1959
+                ]
+              ]
+            },
+            "publisher": "Hutchinson",
+            "publisher-place": "London",
+            "ISBN": "978-0-415-27844-7",
+            "citeKey": "popper1959",
+            "provider": "import"
+          },
+          {
+            "id": "shannon1948",
+            "type": "article-journal",
+            "title": "A Mathematical Theory of Communication",
+            "author": [
+              {
+                "family": "Shannon",
+                "given": "Claude E."
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  1948,
+                  7,
+                  1
+                ]
+              ]
+            },
+            "container-title": "Bell System Technical Journal",
+            "volume": "27",
+            "issue": "3",
+            "page": "379-423",
+            "DOI": "10.1002/j.1538-7305.1948.tb01338.x",
+            "URL": "https://example.org/shannon1948",
+            "citeKey": "shannon1948",
+            "provider": "import"
+          },
+          {
+            "id": "keller2022",
+            "type": "chapter",
+            "title": "Methods of Textual Scholarship in Practice",
+            "author": [
+              {
+                "family": "Keller",
+                "given": "Anna"
+              }
+            ],
+            "editor": [
+              {
+                "family": "Weber",
+                "given": "Max"
+              },
+              {
+                "family": "Braun",
+                "given": "Clara"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2022,
+                  3
+                ]
+              ]
+            },
+            "container-title": "Companion to Editorial Theory",
+            "publisher": "Walter de Gruyter",
+            "publisher-place": "Berlin",
+            "page": "88-114",
+            "ISBN": "978-3-11-070000-0",
+            "citeKey": "keller2022",
+            "provider": "import"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "\n@book{valid2020,\n  title = {Valid Book},\n  author = {Valid, Author},\n  year = {2020}\n}\n@article{,\n  title = {Missing Key}\n}\n@book{valid2020,\n  title = {Duplicate Key Book},\n  author = {Second, Author},\n  year = {2021}\n}\n@article{unclosed2022,\n  title = {Never closed\n",
+      "filename": "",
+      "result": {
+        "format": "bibtex",
+        "items": [
+          {
+            "id": "valid2020",
+            "type": "book",
+            "title": "Valid Book",
+            "author": [
+              {
+                "family": "Valid",
+                "given": "Author"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2020
+                ]
+              ]
+            },
+            "citeKey": "valid2020",
+            "provider": "import"
+          },
+          {
+            "id": "valid2020-2",
+            "type": "book",
+            "title": "Duplicate Key Book",
+            "author": [
+              {
+                "family": "Second",
+                "given": "Author"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2021
+                ]
+              ]
+            },
+            "citeKey": "valid2020",
+            "provider": "import"
+          }
+        ],
+        "warnings": [
+          "Malformed BibTeX \"@article\" entry (invalid citekey) skipped.",
+          "Unclosed BibTeX \"@article\" entry near offset 221.",
+          "Duplicate citation id \"valid2020\" renamed to \"valid2020-2\"."
+        ]
+      }
+    },
+    {
+      "text": "\nTY  - BOOK\nID  - dup1\nTI  - First Book\nER  -\n\nTY  - BOOK\nID  - dup1\nTI  - Second Book\nER  -\n\nTY  - JOUR\nTI  - Missing End Tag\n",
+      "filename": "lib3.bib",
+      "result": {
+        "format": "bibtex",
+        "items": [],
+        "warnings": []
+      }
+    },
+    {
+      "text": "@book{a, title = {Plain}, author = {Doe, Jane and John Smith and {Lighthouse Society}}, year = {2020}, editor = {Ed, It}}",
+      "filename": "",
+      "result": {
+        "format": "bibtex",
+        "items": [
+          {
+            "id": "a",
+            "type": "book",
+            "title": "Plain",
+            "author": [
+              {
+                "family": "Doe",
+                "given": "Jane"
+              },
+              {
+                "family": "Smith",
+                "given": "John"
+              },
+              {
+                "literal": "Lighthouse Society"
+              }
+            ],
+            "editor": [
+              {
+                "family": "Ed",
+                "given": "It"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2020
+                ]
+              ]
+            },
+            "citeKey": "a",
+            "provider": "import"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "@inproceedings{conf, title = \"Quoted title\", booktitle = {Proc. of {X}}, pages = {1-5}, year = 2018, month = {jul}, publisher = {P}, address = {Oslo}}",
+      "filename": "",
+      "result": {
+        "format": "bibtex",
+        "items": [
+          {
+            "id": "conf",
+            "type": "paper-conference",
+            "title": "Quoted title",
+            "issued": {
+              "date-parts": [
+                [
+                  2018,
+                  7
+                ]
+              ]
+            },
+            "container-title": "Proc. of X",
+            "publisher": "P",
+            "publisher-place": "Oslo",
+            "page": "1-5",
+            "citeKey": "conf",
+            "provider": "import"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "@misc{web, title = {A page}, howpublished = {\\url{https://example.org}}, note = {Accessed 2024}, urldate = {2024-01-02}}",
+      "filename": "lib6.bib",
+      "result": {
+        "format": "bibtex",
+        "items": [
+          {
+            "id": "web",
+            "type": "document",
+            "title": "A page",
+            "citeKey": "web",
+            "provider": "import"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "@phdthesis{t, author = {Student, Sue}, title = {Fog}, school = {Harbour U}, year = {2017}}",
+      "filename": "",
+      "result": {
+        "format": "bibtex",
+        "items": [
+          {
+            "id": "t",
+            "type": "thesis",
+            "title": "Fog",
+            "author": [
+              {
+                "family": "Student",
+                "given": "Sue"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2017
+                ]
+              ]
+            },
+            "publisher": "Harbour U",
+            "citeKey": "t",
+            "provider": "import"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "@techreport{r, author = {Org}, title = {Report}, institution = {Inst}, number = {7}, year = {2001}}",
+      "filename": "",
+      "result": {
+        "format": "bibtex",
+        "items": [
+          {
+            "id": "r",
+            "type": "report",
+            "title": "Report",
+            "author": [
+              {
+                "family": "Org"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2001
+                ]
+              ]
+            },
+            "publisher": "Inst",
+            "issue": "7",
+            "citeKey": "r",
+            "provider": "import"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "@incollection{c, author = {Chap, C.}, title = {Ch}, booktitle = {Book}, editor = {E, E. and F, F.}, pages = {3--9}, year = {1999}, publisher = {Pub}}",
+      "filename": "lib9.bib",
+      "result": {
+        "format": "bibtex",
+        "items": [
+          {
+            "id": "c",
+            "type": "chapter",
+            "title": "Ch",
+            "author": [
+              {
+                "family": "Chap",
+                "given": "C."
+              }
+            ],
+            "editor": [
+              {
+                "family": "E",
+                "given": "E."
+              },
+              {
+                "family": "F",
+                "given": "F."
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  1999
+                ]
+              ]
+            },
+            "container-title": "Book",
+            "publisher": "Pub",
+            "page": "3-9",
+            "citeKey": "c",
+            "provider": "import"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "@article{x, title = {Unbalanced {brace}, year = {2000}}\n@article{y, title = {Next}, year = {2001}}",
+      "filename": "",
+      "result": {
+        "format": "bibtex",
+        "items": [],
+        "warnings": [
+          "Unclosed BibTeX \"@article\" entry near offset 0."
+        ]
+      }
+    },
+    {
+      "text": "@preamble{\"\\newcommand{\\noop}[1]{}\"}\n@string{a = {A}}\n@article{z, title = a # { and B}, journal = {J}, year = {2002}, volume = {3}, number = {4}}",
+      "filename": "",
+      "result": {
+        "format": "bibtex",
+        "items": [
+          {
+            "id": "z",
+            "type": "article-journal",
+            "title": "A and B",
+            "issued": {
+              "date-parts": [
+                [
+                  2002
+                ]
+              ]
+            },
+            "container-title": "J",
+            "volume": "3",
+            "issue": "4",
+            "citeKey": "z",
+            "provider": "import"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "@article{, title = {No key}}",
+      "filename": "lib12.bib",
+      "result": {
+        "format": "bibtex",
+        "items": [],
+        "warnings": [
+          "Malformed BibTeX \"@article\" entry (invalid citekey) skipped."
+        ]
+      }
+    },
+    {
+      "text": "@article{dup, title = {First}}\n@article{dup, title = {Second}}",
+      "filename": "",
+      "result": {
+        "format": "bibtex",
+        "items": [
+          {
+            "id": "dup",
+            "type": "article-journal",
+            "title": "First",
+            "citeKey": "dup",
+            "provider": "import"
+          },
+          {
+            "id": "dup-2",
+            "type": "article-journal",
+            "title": "Second",
+            "citeKey": "dup",
+            "provider": "import"
+          }
+        ],
+        "warnings": [
+          "Duplicate citation id \"dup\" renamed to \"dup-2\"."
+        ]
+      }
+    },
+    {
+      "text": "@online{o, author = {Online, O.}, title = {Online thing}, url = {https://o.example}, date = {2023-05-06}}",
+      "filename": "",
+      "result": {
+        "format": "bibtex",
+        "items": [
+          {
+            "id": "o",
+            "type": "webpage",
+            "title": "Online thing",
+            "author": [
+              {
+                "family": "Online",
+                "given": "O."
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2023,
+                  5,
+                  6
+                ]
+              ]
+            },
+            "URL": "https://o.example",
+            "citeKey": "o",
+            "provider": "import"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "no entries here",
+      "filename": "lib15.bib",
+      "result": {
+        "format": "bibtex",
+        "items": [],
+        "warnings": []
+      }
+    },
+    {
+      "text": "@book{acc, title = {\\'Ecole, na\\\"ive, {\\ss}, \\o, \\aa, \\c{c}, \\~n, ---, --, ``q''}, author = {{\\'E}mile Zola}}",
+      "filename": "",
+      "result": {
+        "format": "bibtex",
+        "items": [
+          {
+            "id": "acc",
+            "type": "book",
+            "title": "École, naïve, ß, ø, å, ç, ñ, —, –, ``q''",
+            "author": [
+              {
+                "family": "Zola",
+                "given": "Émile"
+              }
+            ],
+            "citeKey": "acc",
+            "provider": "import"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "TY  - BOOK\nID  - popper1959\nAU  - Popper, Karl R.\nTI  - The Logic of Scientific\n  Discovery\nPY  - 1959///\nPB  - Hutchinson\nCY  - London\nSN  - 978-0-415-27844-7\nER  -\n\nTY  - JOUR\nID  - shannon1948\nAU  - Shannon, Claude E.\nT1  - A Mathematical Theory of Communication\nJF  - Bell System Technical Journal\nJO  - Bell Syst. Tech. J.\nDA  - 1948/07/01\nVL  - 27\nIS  - 3\nSP  - 379\nEP  - 423\nDO  - 10.1002/j.1538-7305.1948.tb01338.x\nUR  - https://example.org/shannon1948\nER  -\n\nTY  - CHAP\nID  - keller2022\nAU  - Keller, Anna\nA2  - Weber, Max\nA2  - Braun, Clara\nTI  - Methods of Textual Scholarship\n  in Practice\nT2  - Companion to Editorial Theory\nY1  - 2022/03//\nPB  - Walter de Gruyter\nCY  - Berlin\nSP  - 88\nEP  - 114\nSN  - 978-3-11-070000-0\nER  -\n",
+      "filename": "lib0.ris",
+      "result": {
+        "format": "ris",
+        "items": [
+          {
+            "id": "popper1959",
+            "type": "book",
+            "title": "The Logic of Scientific Discovery",
+            "author": [
+              {
+                "family": "Popper",
+                "given": "Karl R."
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  1959
+                ]
+              ]
+            },
+            "publisher": "Hutchinson",
+            "publisher-place": "London",
+            "ISBN": "978-0-415-27844-7",
+            "citeKey": "popper1959",
+            "provider": "import"
+          },
+          {
+            "id": "shannon1948",
+            "type": "article-journal",
+            "title": "A Mathematical Theory of Communication",
+            "author": [
+              {
+                "family": "Shannon",
+                "given": "Claude E."
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  1948,
+                  7,
+                  1
+                ]
+              ]
+            },
+            "container-title": "Bell System Technical Journal",
+            "volume": "27",
+            "issue": "3",
+            "page": "379-423",
+            "DOI": "10.1002/j.1538-7305.1948.tb01338.x",
+            "URL": "https://example.org/shannon1948",
+            "citeKey": "shannon1948",
+            "provider": "import"
+          },
+          {
+            "id": "keller2022",
+            "type": "chapter",
+            "title": "Methods of Textual Scholarship in Practice",
+            "author": [
+              {
+                "family": "Keller",
+                "given": "Anna"
+              }
+            ],
+            "editor": [
+              {
+                "family": "Weber",
+                "given": "Max"
+              },
+              {
+                "family": "Braun",
+                "given": "Clara"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2022,
+                  3
+                ]
+              ]
+            },
+            "container-title": "Companion to Editorial Theory",
+            "publisher": "Walter de Gruyter",
+            "publisher-place": "Berlin",
+            "page": "88-114",
+            "ISBN": "978-3-11-070000-0",
+            "citeKey": "keller2022",
+            "provider": "import"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "\nTY  - BOOK\nID  - dup1\nTI  - First Book\nER  -\n\nTY  - BOOK\nID  - dup1\nTI  - Second Book\nER  -\n\nTY  - JOUR\nTI  - Missing End Tag\n",
+      "filename": "x.txt",
+      "result": {
+        "format": "ris",
+        "items": [
+          {
+            "id": "dup1",
+            "type": "book",
+            "title": "First Book",
+            "citeKey": "dup1",
+            "provider": "import"
+          },
+          {
+            "id": "dup1-2",
+            "type": "book",
+            "title": "Second Book",
+            "citeKey": "dup1",
+            "provider": "import"
+          }
+        ],
+        "warnings": [
+          "RIS record starting at line 12 is missing closing \"ER  -\"; skipped.",
+          "Duplicate citation id \"dup1\" renamed to \"dup1-2\"."
+        ]
+      }
+    },
+    {
+      "text": "TY  - JOUR\nAU  - Doe, Jane\nAU  - Roe, R.\nTI  - Tides\nJO  - Journal\nVL  - 12\nIS  - 3\nSP  - 101\nEP  - 120\nPY  - 2019/04/01/\nDO  - 10.1/x\nUR  - https://x.y\nER  - \n",
+      "filename": "lib2.ris",
+      "result": {
+        "format": "ris",
+        "items": [
+          {
+            "id": "doe-2019-p7qfqo",
+            "type": "article-journal",
+            "title": "Tides",
+            "author": [
+              {
+                "family": "Doe",
+                "given": "Jane"
+              },
+              {
+                "family": "Roe",
+                "given": "R."
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2019,
+                  4,
+                  1
+                ]
+              ]
+            },
+            "container-title": "Journal",
+            "volume": "12",
+            "issue": "3",
+            "page": "101-120",
+            "DOI": "10.1/x",
+            "URL": "https://x.y",
+            "provider": "import"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "TY  - BOOK\nA1  - Smith, Jo\nED  - Editor, Ed\nT1  - Book title\nPB  - Press\nCY  - Bristol\nDA  - 2020///\nSN  - 978\nER  -\nTY  - CHAP\nAU  - Chap, C\nT1  - Chapter\nT2  - Container\nSP  - 3\nY1  - 1999\nER  - ",
+      "filename": "x.txt",
+      "result": {
+        "format": "ris",
+        "items": [
+          {
+            "id": "smith-2020-9wx2fa",
+            "type": "book",
+            "title": "Book title",
+            "author": [
+              {
+                "family": "Smith",
+                "given": "Jo"
+              }
+            ],
+            "editor": [
+              {
+                "family": "Editor",
+                "given": "Ed"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2020
+                ]
+              ]
+            },
+            "publisher": "Press",
+            "publisher-place": "Bristol",
+            "ISBN": "978",
+            "provider": "import"
+          },
+          {
+            "id": "chap-1999-3sjpxj",
+            "type": "chapter",
+            "title": "Chapter",
+            "author": [
+              {
+                "family": "Chap",
+                "given": "C"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  1999
+                ]
+              ]
+            },
+            "container-title": "Container",
+            "page": "3",
+            "provider": "import"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "TY  - THES\nAU  - Student\nTI  - Thesis\nPB  - University\nPY  - 2017\nM3  - PhD\nER  - \nTY  - RPRT\nTI  - No end",
+      "filename": "lib4.ris",
+      "result": {
+        "format": "ris",
+        "items": [
+          {
+            "id": "student-2017-hx1xmj",
+            "type": "thesis",
+            "title": "Thesis",
+            "author": [
+              {
+                "family": "Student"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2017
+                ]
+              ]
+            },
+            "publisher": "University",
+            "provider": "import"
+          }
+        ],
+        "warnings": [
+          "RIS record starting at line 8 is missing closing \"ER  -\"; skipped."
+        ]
+      }
+    },
+    {
+      "text": "TY  - ELEC\nTI  - Page\nUR  - https://example.org\nY2  - 2024/01/02\nER  - ",
+      "filename": "x.txt",
+      "result": {
+        "format": "ris",
+        "items": [
+          {
+            "id": "page-1kzkvqp",
+            "type": "webpage",
+            "title": "Page",
+            "URL": "https://example.org",
+            "provider": "import"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "garbage\nTI  - before TY\nTY  - GEN\nTI  - generic\nER  - ",
+      "filename": "lib6.ris",
+      "result": {
+        "format": "ris",
+        "items": [
+          {
+            "id": "generic-1wyk1ou",
+            "type": "document",
+            "title": "generic",
+            "provider": "import"
+          }
+        ],
+        "warnings": [
+          "Ignored non-RIS text starting at line 1.",
+          "RIS tag \"TI\" at line 2 appeared outside a TY/ER record; ignored."
+        ]
+      }
+    },
+    {
+      "text": "",
+      "filename": "refs.json",
+      "result": {
+        "format": "csl-json",
+        "items": [],
+        "warnings": [
+          "Citation input is empty."
+        ]
+      }
+    },
+    {
+      "text": "{\"items\":[{\"id\":\"a\",\"type\":\"book\",\"title\":\"T\"}]}",
+      "filename": "",
+      "result": {
+        "format": "csl-json",
+        "items": [
+          {
+            "id": "a",
+            "type": "book",
+            "title": "T"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "{\"id\":\"single\",\"type\":\"book\",\"title\":\"One\"}",
+      "filename": "refs.json",
+      "result": {
+        "format": "csl-json",
+        "items": [
+          {
+            "id": "single",
+            "type": "book",
+            "title": "One"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "{\"nope\":true}",
+      "filename": "",
+      "result": {
+        "format": "csl-json",
+        "items": [],
+        "warnings": [
+          "Expected a CSL-JSON array of citation items."
+        ]
+      }
+    },
+    {
+      "text": "[{\"id\": \"broken\", ",
+      "filename": "refs.json",
+      "result": {
+        "format": "csl-json",
+        "items": [],
+        "warnings": [
+          "Invalid CSL-JSON input: Expected double-quoted property name in JSON at position 18 (line 1 column 19)"
+        ]
+      }
+    },
+    {
+      "text": "﻿[]",
+      "filename": "",
+      "result": {
+        "format": "csl-json",
+        "items": [],
+        "warnings": []
+      }
+    },
+    {
+      "text": "   \n",
+      "filename": "empty.bib",
+      "result": {
+        "format": "bibtex",
+        "items": [],
+        "warnings": [
+          "Citation input is empty."
+        ]
+      }
+    },
+    {
+      "text": "plain words",
+      "filename": "",
+      "result": {
+        "format": null,
+        "items": [],
+        "warnings": [
+          "Could not detect citation format (expected CSL-JSON, BibTeX, or RIS)."
+        ]
+      }
+    },
+    {
+      "text": "@article{q, title={T}}",
+      "filename": "refs.CSL",
+      "result": {
+        "format": "csl-json",
+        "items": [],
+        "warnings": [
+          "Invalid CSL-JSON input: Unexpected token '@', \"@article{q\"... is not valid JSON"
+        ]
+      }
+    }
+  ],
+  "bibtex": [
+    {
+      "text": "\n@comment{Exported from Zotero Better BibTeX}\n@string{suhrkamp = \"Suhrkamp \" # {Verlag}}\n@string{jhi = {Journal of Historical } # \"Informatics\"}\n\n@book{habermas1962,\n  title = {{Strukturwandel der {\\\"O}ffentlichkeit}: Untersuchungen zu einer Kategorie der b{\\\"u}rgerlichen Gesellschaft},\n  author = {Habermas, J{\\\"u}rgen},\n  year = {1962},\n  month = oct,\n  publisher = suhrkamp,\n  address = {Frankfurt am Main},\n  isbn = {978-3-518-28491-9},\n  edition = {1},\n  language = {de}\n}\n\n@article{muller2021,\n  title = {Digitalisierung und {Quellenkritik} in der {Geschichtswissenschaft}},\n  author = {M\\\"{u}ller, Hans-Peter and {\\v{C}}ern{\\'y}, Tom{\\'a}{\\v{s}} and Fran{\\c{c}}ois Lef{\\`e}vre},\n  journal = jhi,\n  year = 2021,\n  month = mar,\n  volume = {14},\n  number = {2},\n  pages = {112--138},\n  doi = {10.1234/jhi.2021.14.2.112},\n  url = {https://example.org/~muller/digital_sources},\n  abstract = {Eine Analyse zu Gro{\\ss}projekten und {\\\"U}berlieferungsgeschichte.}\n}\n\n@incollection{ostergaard2019,\n  title = {Nordic Archival Practices},\n  author = {{\\O}stergaard, S{\\o}ren},\n  editor = {Lindqvist, Astrid and {Deutsche Forschungsgemeinschaft}},\n  booktitle = {European Archives in Transition},\n  date = {2019-11-04},\n  publisher = \"Campus\" # \" Verlag\",\n  location = {Berlin},\n  pages = {45--79},\n  isbn = {978-3-593-51000-2}\n}\n\n@inproceedings{garcia2020,\n  title = {Automatic Collations of {Medieval} Manuscripts},\n  author = {Garc{\\'{\\i}}a, Jos{\\'e} Mar{\\'{\\i}}a and Ludwig van Beethoven},\n  booktitle = {Proceedings of the Digital Humanities Conference},\n  year = {2020},\n  month = {July},\n  pages = {210--225},\n  address = {Utrecht}\n}\n\n@phdthesis{schroeder2018,\n  title = {Sp{\\\"a}tmittelalterliche Briefkultur am Oberrhein},\n  author = {Schr{\\\"o}der, Katharina},\n  school = {Universit{\\\"a}t Freiburg},\n  year = {2018},\n  address = {Freiburg im Breisgau}\n}\n\n@online{bundesarchiv2024,\n  title = {Digitales Archivportal --- Handreichung},\n  author = {{Bundesarchiv}},\n  year = {2024},\n  url = {https://www.bundesarchiv.de/handreichung}\n}\n",
+      "result": {
+        "items": [
+          {
+            "id": "habermas1962",
+            "type": "book",
+            "citeKey": "habermas1962",
+            "provider": "import",
+            "title": "Strukturwandel der Öffentlichkeit: Untersuchungen zu einer Kategorie der bürgerlichen Gesellschaft",
+            "author": [
+              {
+                "family": "Habermas",
+                "given": "Jürgen"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  1962,
+                  10
+                ]
+              ]
+            },
+            "publisher": "Suhrkamp Verlag",
+            "publisher-place": "Frankfurt am Main",
+            "ISBN": "978-3-518-28491-9",
+            "edition": "1",
+            "language": "de"
+          },
+          {
+            "id": "muller2021",
+            "type": "article-journal",
+            "citeKey": "muller2021",
+            "provider": "import",
+            "title": "Digitalisierung und Quellenkritik in der Geschichtswissenschaft",
+            "author": [
+              {
+                "family": "Müller",
+                "given": "Hans-Peter"
+              },
+              {
+                "family": "Černý",
+                "given": "Tomáš"
+              },
+              {
+                "family": "Lefèvre",
+                "given": "François"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2021,
+                  3
+                ]
+              ]
+            },
+            "container-title": "Journal of Historical Informatics",
+            "volume": "14",
+            "issue": "2",
+            "page": "112-138",
+            "DOI": "10.1234/jhi.2021.14.2.112",
+            "URL": "https://example.org/~muller/digital_sources",
+            "abstract-free": "Eine Analyse zu Großprojekten und Überlieferungsgeschichte."
+          },
+          {
+            "id": "ostergaard2019",
+            "type": "chapter",
+            "citeKey": "ostergaard2019",
+            "provider": "import",
+            "title": "Nordic Archival Practices",
+            "author": [
+              {
+                "family": "Østergaard",
+                "given": "Søren"
+              }
+            ],
+            "editor": [
+              {
+                "family": "Lindqvist",
+                "given": "Astrid"
+              },
+              {
+                "literal": "Deutsche Forschungsgemeinschaft"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2019,
+                  11,
+                  4
+                ]
+              ]
+            },
+            "container-title": "European Archives in Transition",
+            "publisher": "Campus Verlag",
+            "publisher-place": "Berlin",
+            "page": "45-79",
+            "ISBN": "978-3-593-51000-2"
+          },
+          {
+            "id": "garcia2020",
+            "type": "paper-conference",
+            "citeKey": "garcia2020",
+            "provider": "import",
+            "title": "Automatic Collations of Medieval Manuscripts",
+            "author": [
+              {
+                "family": "García",
+                "given": "José María"
+              },
+              {
+                "family": "van Beethoven",
+                "given": "Ludwig"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2020,
+                  7
+                ]
+              ]
+            },
+            "container-title": "Proceedings of the Digital Humanities Conference",
+            "publisher-place": "Utrecht",
+            "page": "210-225"
+          },
+          {
+            "id": "schroeder2018",
+            "type": "thesis",
+            "citeKey": "schroeder2018",
+            "provider": "import",
+            "title": "Spätmittelalterliche Briefkultur am Oberrhein",
+            "author": [
+              {
+                "family": "Schröder",
+                "given": "Katharina"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2018
+                ]
+              ]
+            },
+            "publisher": "Universität Freiburg",
+            "publisher-place": "Freiburg im Breisgau"
+          },
+          {
+            "id": "bundesarchiv2024",
+            "type": "webpage",
+            "citeKey": "bundesarchiv2024",
+            "provider": "import",
+            "title": "Digitales Archivportal — Handreichung",
+            "author": [
+              {
+                "literal": "Bundesarchiv"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2024
+                ]
+              ]
+            },
+            "URL": "https://www.bundesarchiv.de/handreichung"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "TY  - BOOK\nID  - popper1959\nAU  - Popper, Karl R.\nTI  - The Logic of Scientific\n  Discovery\nPY  - 1959///\nPB  - Hutchinson\nCY  - London\nSN  - 978-0-415-27844-7\nER  -\n\nTY  - JOUR\nID  - shannon1948\nAU  - Shannon, Claude E.\nT1  - A Mathematical Theory of Communication\nJF  - Bell System Technical Journal\nJO  - Bell Syst. Tech. J.\nDA  - 1948/07/01\nVL  - 27\nIS  - 3\nSP  - 379\nEP  - 423\nDO  - 10.1002/j.1538-7305.1948.tb01338.x\nUR  - https://example.org/shannon1948\nER  -\n\nTY  - CHAP\nID  - keller2022\nAU  - Keller, Anna\nA2  - Weber, Max\nA2  - Braun, Clara\nTI  - Methods of Textual Scholarship\n  in Practice\nT2  - Companion to Editorial Theory\nY1  - 2022/03//\nPB  - Walter de Gruyter\nCY  - Berlin\nSP  - 88\nEP  - 114\nSN  - 978-3-11-070000-0\nER  -\n",
+      "result": {
+        "items": [],
+        "warnings": []
+      }
+    },
+    {
+      "text": "\n@book{valid2020,\n  title = {Valid Book},\n  author = {Valid, Author},\n  year = {2020}\n}\n@article{,\n  title = {Missing Key}\n}\n@book{valid2020,\n  title = {Duplicate Key Book},\n  author = {Second, Author},\n  year = {2021}\n}\n@article{unclosed2022,\n  title = {Never closed\n",
+      "result": {
+        "items": [
+          {
+            "id": "valid2020",
+            "type": "book",
+            "citeKey": "valid2020",
+            "provider": "import",
+            "title": "Valid Book",
+            "author": [
+              {
+                "family": "Valid",
+                "given": "Author"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2020
+                ]
+              ]
+            }
+          },
+          {
+            "id": "valid2020",
+            "type": "book",
+            "citeKey": "valid2020",
+            "provider": "import",
+            "title": "Duplicate Key Book",
+            "author": [
+              {
+                "family": "Second",
+                "given": "Author"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2021
+                ]
+              ]
+            }
+          }
+        ],
+        "warnings": [
+          "Malformed BibTeX \"@article\" entry (invalid citekey) skipped.",
+          "Unclosed BibTeX \"@article\" entry near offset 221."
+        ]
+      }
+    },
+    {
+      "text": "\nTY  - BOOK\nID  - dup1\nTI  - First Book\nER  -\n\nTY  - BOOK\nID  - dup1\nTI  - Second Book\nER  -\n\nTY  - JOUR\nTI  - Missing End Tag\n",
+      "result": {
+        "items": [],
+        "warnings": []
+      }
+    },
+    {
+      "text": "@book{a, title = {Plain}, author = {Doe, Jane and John Smith and {Lighthouse Society}}, year = {2020}, editor = {Ed, It}}",
+      "result": {
+        "items": [
+          {
+            "id": "a",
+            "type": "book",
+            "citeKey": "a",
+            "provider": "import",
+            "title": "Plain",
+            "author": [
+              {
+                "family": "Doe",
+                "given": "Jane"
+              },
+              {
+                "family": "Smith",
+                "given": "John"
+              },
+              {
+                "literal": "Lighthouse Society"
+              }
+            ],
+            "editor": [
+              {
+                "family": "Ed",
+                "given": "It"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2020
+                ]
+              ]
+            }
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "@inproceedings{conf, title = \"Quoted title\", booktitle = {Proc. of {X}}, pages = {1-5}, year = 2018, month = {jul}, publisher = {P}, address = {Oslo}}",
+      "result": {
+        "items": [
+          {
+            "id": "conf",
+            "type": "paper-conference",
+            "citeKey": "conf",
+            "provider": "import",
+            "title": "Quoted title",
+            "issued": {
+              "date-parts": [
+                [
+                  2018,
+                  7
+                ]
+              ]
+            },
+            "container-title": "Proc. of X",
+            "publisher": "P",
+            "publisher-place": "Oslo",
+            "page": "1-5"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "@misc{web, title = {A page}, howpublished = {\\url{https://example.org}}, note = {Accessed 2024}, urldate = {2024-01-02}}",
+      "result": {
+        "items": [
+          {
+            "id": "web",
+            "type": "document",
+            "citeKey": "web",
+            "provider": "import",
+            "title": "A page"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "@phdthesis{t, author = {Student, Sue}, title = {Fog}, school = {Harbour U}, year = {2017}}",
+      "result": {
+        "items": [
+          {
+            "id": "t",
+            "type": "thesis",
+            "citeKey": "t",
+            "provider": "import",
+            "title": "Fog",
+            "author": [
+              {
+                "family": "Student",
+                "given": "Sue"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2017
+                ]
+              ]
+            },
+            "publisher": "Harbour U"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "@techreport{r, author = {Org}, title = {Report}, institution = {Inst}, number = {7}, year = {2001}}",
+      "result": {
+        "items": [
+          {
+            "id": "r",
+            "type": "report",
+            "citeKey": "r",
+            "provider": "import",
+            "title": "Report",
+            "author": [
+              {
+                "family": "Org"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2001
+                ]
+              ]
+            },
+            "publisher": "Inst",
+            "issue": "7"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "@incollection{c, author = {Chap, C.}, title = {Ch}, booktitle = {Book}, editor = {E, E. and F, F.}, pages = {3--9}, year = {1999}, publisher = {Pub}}",
+      "result": {
+        "items": [
+          {
+            "id": "c",
+            "type": "chapter",
+            "citeKey": "c",
+            "provider": "import",
+            "title": "Ch",
+            "author": [
+              {
+                "family": "Chap",
+                "given": "C."
+              }
+            ],
+            "editor": [
+              {
+                "family": "E",
+                "given": "E."
+              },
+              {
+                "family": "F",
+                "given": "F."
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  1999
+                ]
+              ]
+            },
+            "container-title": "Book",
+            "publisher": "Pub",
+            "page": "3-9"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "@article{x, title = {Unbalanced {brace}, year = {2000}}\n@article{y, title = {Next}, year = {2001}}",
+      "result": {
+        "items": [],
+        "warnings": [
+          "Unclosed BibTeX \"@article\" entry near offset 0."
+        ]
+      }
+    },
+    {
+      "text": "@preamble{\"\\newcommand{\\noop}[1]{}\"}\n@string{a = {A}}\n@article{z, title = a # { and B}, journal = {J}, year = {2002}, volume = {3}, number = {4}}",
+      "result": {
+        "items": [
+          {
+            "id": "z",
+            "type": "article-journal",
+            "citeKey": "z",
+            "provider": "import",
+            "title": "A and B",
+            "issued": {
+              "date-parts": [
+                [
+                  2002
+                ]
+              ]
+            },
+            "container-title": "J",
+            "volume": "3",
+            "issue": "4"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "@article{, title = {No key}}",
+      "result": {
+        "items": [],
+        "warnings": [
+          "Malformed BibTeX \"@article\" entry (invalid citekey) skipped."
+        ]
+      }
+    },
+    {
+      "text": "@article{dup, title = {First}}\n@article{dup, title = {Second}}",
+      "result": {
+        "items": [
+          {
+            "id": "dup",
+            "type": "article-journal",
+            "citeKey": "dup",
+            "provider": "import",
+            "title": "First"
+          },
+          {
+            "id": "dup",
+            "type": "article-journal",
+            "citeKey": "dup",
+            "provider": "import",
+            "title": "Second"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "@online{o, author = {Online, O.}, title = {Online thing}, url = {https://o.example}, date = {2023-05-06}}",
+      "result": {
+        "items": [
+          {
+            "id": "o",
+            "type": "webpage",
+            "citeKey": "o",
+            "provider": "import",
+            "title": "Online thing",
+            "author": [
+              {
+                "family": "Online",
+                "given": "O."
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2023,
+                  5,
+                  6
+                ]
+              ]
+            },
+            "URL": "https://o.example"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "no entries here",
+      "result": {
+        "items": [],
+        "warnings": []
+      }
+    },
+    {
+      "text": "@book{acc, title = {\\'Ecole, na\\\"ive, {\\ss}, \\o, \\aa, \\c{c}, \\~n, ---, --, ``q''}, author = {{\\'E}mile Zola}}",
+      "result": {
+        "items": [
+          {
+            "id": "acc",
+            "type": "book",
+            "citeKey": "acc",
+            "provider": "import",
+            "title": "École, naïve, ß, ø, å, ç, ñ, —, –, ``q''",
+            "author": [
+              {
+                "family": "Zola",
+                "given": "Émile"
+              }
+            ]
+          }
+        ],
+        "warnings": []
+      }
+    }
+  ],
+  "ris": [
+    {
+      "text": "TY  - BOOK\nID  - popper1959\nAU  - Popper, Karl R.\nTI  - The Logic of Scientific\n  Discovery\nPY  - 1959///\nPB  - Hutchinson\nCY  - London\nSN  - 978-0-415-27844-7\nER  -\n\nTY  - JOUR\nID  - shannon1948\nAU  - Shannon, Claude E.\nT1  - A Mathematical Theory of Communication\nJF  - Bell System Technical Journal\nJO  - Bell Syst. Tech. J.\nDA  - 1948/07/01\nVL  - 27\nIS  - 3\nSP  - 379\nEP  - 423\nDO  - 10.1002/j.1538-7305.1948.tb01338.x\nUR  - https://example.org/shannon1948\nER  -\n\nTY  - CHAP\nID  - keller2022\nAU  - Keller, Anna\nA2  - Weber, Max\nA2  - Braun, Clara\nTI  - Methods of Textual Scholarship\n  in Practice\nT2  - Companion to Editorial Theory\nY1  - 2022/03//\nPB  - Walter de Gruyter\nCY  - Berlin\nSP  - 88\nEP  - 114\nSN  - 978-3-11-070000-0\nER  -\n",
+      "result": {
+        "items": [
+          {
+            "id": "popper1959",
+            "type": "book",
+            "provider": "import",
+            "citeKey": "popper1959",
+            "title": "The Logic of Scientific Discovery",
+            "author": [
+              {
+                "family": "Popper",
+                "given": "Karl R."
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  1959
+                ]
+              ]
+            },
+            "publisher": "Hutchinson",
+            "publisher-place": "London",
+            "ISBN": "978-0-415-27844-7"
+          },
+          {
+            "id": "shannon1948",
+            "type": "article-journal",
+            "provider": "import",
+            "citeKey": "shannon1948",
+            "title": "A Mathematical Theory of Communication",
+            "author": [
+              {
+                "family": "Shannon",
+                "given": "Claude E."
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  1948,
+                  7,
+                  1
+                ]
+              ]
+            },
+            "container-title": "Bell System Technical Journal",
+            "volume": "27",
+            "issue": "3",
+            "page": "379-423",
+            "DOI": "10.1002/j.1538-7305.1948.tb01338.x",
+            "URL": "https://example.org/shannon1948"
+          },
+          {
+            "id": "keller2022",
+            "type": "chapter",
+            "provider": "import",
+            "citeKey": "keller2022",
+            "title": "Methods of Textual Scholarship in Practice",
+            "author": [
+              {
+                "family": "Keller",
+                "given": "Anna"
+              }
+            ],
+            "editor": [
+              {
+                "family": "Weber",
+                "given": "Max"
+              },
+              {
+                "family": "Braun",
+                "given": "Clara"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2022,
+                  3
+                ]
+              ]
+            },
+            "container-title": "Companion to Editorial Theory",
+            "publisher": "Walter de Gruyter",
+            "publisher-place": "Berlin",
+            "page": "88-114",
+            "ISBN": "978-3-11-070000-0"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "\nTY  - BOOK\nID  - dup1\nTI  - First Book\nER  -\n\nTY  - BOOK\nID  - dup1\nTI  - Second Book\nER  -\n\nTY  - JOUR\nTI  - Missing End Tag\n",
+      "result": {
+        "items": [
+          {
+            "id": "dup1",
+            "type": "book",
+            "provider": "import",
+            "citeKey": "dup1",
+            "title": "First Book"
+          },
+          {
+            "id": "dup1",
+            "type": "book",
+            "provider": "import",
+            "citeKey": "dup1",
+            "title": "Second Book"
+          }
+        ],
+        "warnings": [
+          "RIS record starting at line 12 is missing closing \"ER  -\"; skipped."
+        ]
+      }
+    },
+    {
+      "text": "TY  - JOUR\nAU  - Doe, Jane\nAU  - Roe, R.\nTI  - Tides\nJO  - Journal\nVL  - 12\nIS  - 3\nSP  - 101\nEP  - 120\nPY  - 2019/04/01/\nDO  - 10.1/x\nUR  - https://x.y\nER  - \n",
+      "result": {
+        "items": [
+          {
+            "id": "",
+            "type": "article-journal",
+            "provider": "import",
+            "title": "Tides",
+            "author": [
+              {
+                "family": "Doe",
+                "given": "Jane"
+              },
+              {
+                "family": "Roe",
+                "given": "R."
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2019,
+                  4,
+                  1
+                ]
+              ]
+            },
+            "container-title": "Journal",
+            "volume": "12",
+            "issue": "3",
+            "page": "101-120",
+            "DOI": "10.1/x",
+            "URL": "https://x.y"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "TY  - BOOK\nA1  - Smith, Jo\nED  - Editor, Ed\nT1  - Book title\nPB  - Press\nCY  - Bristol\nDA  - 2020///\nSN  - 978\nER  -\nTY  - CHAP\nAU  - Chap, C\nT1  - Chapter\nT2  - Container\nSP  - 3\nY1  - 1999\nER  - ",
+      "result": {
+        "items": [
+          {
+            "id": "",
+            "type": "book",
+            "provider": "import",
+            "title": "Book title",
+            "author": [
+              {
+                "family": "Smith",
+                "given": "Jo"
+              }
+            ],
+            "editor": [
+              {
+                "family": "Editor",
+                "given": "Ed"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2020
+                ]
+              ]
+            },
+            "publisher": "Press",
+            "publisher-place": "Bristol",
+            "ISBN": "978"
+          },
+          {
+            "id": "",
+            "type": "chapter",
+            "provider": "import",
+            "title": "Chapter",
+            "author": [
+              {
+                "family": "Chap",
+                "given": "C"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  1999
+                ]
+              ]
+            },
+            "container-title": "Container",
+            "page": "3"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "TY  - THES\nAU  - Student\nTI  - Thesis\nPB  - University\nPY  - 2017\nM3  - PhD\nER  - \nTY  - RPRT\nTI  - No end",
+      "result": {
+        "items": [
+          {
+            "id": "",
+            "type": "thesis",
+            "provider": "import",
+            "title": "Thesis",
+            "author": [
+              {
+                "family": "Student"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2017
+                ]
+              ]
+            },
+            "publisher": "University"
+          }
+        ],
+        "warnings": [
+          "RIS record starting at line 8 is missing closing \"ER  -\"; skipped."
+        ]
+      }
+    },
+    {
+      "text": "TY  - ELEC\nTI  - Page\nUR  - https://example.org\nY2  - 2024/01/02\nER  - ",
+      "result": {
+        "items": [
+          {
+            "id": "",
+            "type": "webpage",
+            "provider": "import",
+            "title": "Page",
+            "URL": "https://example.org"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "garbage\nTI  - before TY\nTY  - GEN\nTI  - generic\nER  - ",
+      "result": {
+        "items": [
+          {
+            "id": "",
+            "type": "document",
+            "provider": "import",
+            "title": "generic"
+          }
+        ],
+        "warnings": [
+          "Ignored non-RIS text starting at line 1.",
+          "RIS tag \"TI\" at line 2 appeared outside a TY/ER record; ignored."
+        ]
+      }
+    }
+  ],
+  "latex": [
+    {
+      "input": "{\\\"o}",
+      "pages": false,
+      "out": "ö"
+    },
+    {
+      "input": "{\\\"o}",
+      "pages": true,
+      "out": "ö"
+    },
+    {
+      "input": "\\'e",
+      "pages": false,
+      "out": "é"
+    },
+    {
+      "input": "\\'e",
+      "pages": true,
+      "out": "é"
+    },
+    {
+      "input": "\\v{C}",
+      "pages": false,
+      "out": "Č"
+    },
+    {
+      "input": "\\v{C}",
+      "pages": true,
+      "out": "Č"
+    },
+    {
+      "input": "{\\ss}",
+      "pages": false,
+      "out": "ß"
+    },
+    {
+      "input": "{\\ss}",
+      "pages": true,
+      "out": "ß"
+    },
+    {
+      "input": "--",
+      "pages": false,
+      "out": "–"
+    },
+    {
+      "input": "--",
+      "pages": true,
+      "out": "-"
+    },
+    {
+      "input": "---",
+      "pages": false,
+      "out": "—"
+    },
+    {
+      "input": "---",
+      "pages": true,
+      "out": "—"
+    },
+    {
+      "input": "1--5",
+      "pages": false,
+      "out": "1–5"
+    },
+    {
+      "input": "1--5",
+      "pages": true,
+      "out": "1-5"
+    },
+    {
+      "input": "\\&",
+      "pages": false,
+      "out": "&"
+    },
+    {
+      "input": "\\&",
+      "pages": true,
+      "out": "&"
+    },
+    {
+      "input": "\\%",
+      "pages": false,
+      "out": "%"
+    },
+    {
+      "input": "\\%",
+      "pages": true,
+      "out": "%"
+    },
+    {
+      "input": "$x^2$",
+      "pages": false,
+      "out": "$x^2$"
+    },
+    {
+      "input": "$x^2$",
+      "pages": true,
+      "out": "$x^2$"
+    },
+    {
+      "input": "{\\em it}",
+      "pages": false,
+      "out": "\\em it"
+    },
+    {
+      "input": "{\\em it}",
+      "pages": true,
+      "out": "\\em it"
+    },
+    {
+      "input": "\\textit{t}",
+      "pages": false,
+      "out": "\\textitt"
+    },
+    {
+      "input": "\\textit{t}",
+      "pages": true,
+      "out": "\\textitt"
+    },
+    {
+      "input": "~",
+      "pages": false,
+      "out": ""
+    },
+    {
+      "input": "~",
+      "pages": true,
+      "out": ""
+    },
+    {
+      "input": "\\\\",
+      "pages": false,
+      "out": "\\\\"
+    },
+    {
+      "input": "\\\\",
+      "pages": true,
+      "out": "\\\\"
+    },
+    {
+      "input": "\\url{u}",
+      "pages": false,
+      "out": "\\urlu"
+    },
+    {
+      "input": "\\url{u}",
+      "pages": true,
+      "out": "\\urlu"
+    },
+    {
+      "input": "a\\,b",
+      "pages": false,
+      "out": "a\\,b"
+    },
+    {
+      "input": "a\\,b",
+      "pages": true,
+      "out": "a\\,b"
+    }
+  ],
+  "names": [
+    {
+      "names": [],
+      "list": ""
+    },
+    {
+      "names": [
+        {
+          "family": "Doe",
+          "given": "Jane"
+        }
+      ],
+      "list": "Doe, Jane"
+    },
+    {
+      "names": [
+        {
+          "family": "Doe"
+        },
+        {
+          "literal": "Org"
+        }
+      ],
+      "list": "Doe; Org"
+    },
+    {
+      "names": [
+        {
+          "family": "A"
+        },
+        {
+          "family": "B"
+        },
+        {
+          "family": "C"
+        }
+      ],
+      "list": "A; B; C"
+    },
+    {
+      "names": [
+        {
+          "given": "Only"
+        }
+      ],
+      "list": "Only"
+    }
+  ],
+  "parsedNames": [
+    {
+      "raw": "Doe, Jane; Roe, Richard",
+      "names": [
+        {
+          "family": "Doe",
+          "given": "Jane"
+        },
+        {
+          "family": "Roe",
+          "given": "Richard"
+        }
+      ]
+    },
+    {
+      "raw": "Jane Doe and Richard Roe",
+      "names": [
+        {
+          "family": "Roe",
+          "given": "Jane Doe and Richard"
+        }
+      ]
+    },
+    {
+      "raw": "  ",
+      "names": null
+    },
+    {
+      "raw": "Plato",
+      "names": [
+        {
+          "family": "Plato"
+        }
+      ]
+    },
+    {
+      "raw": "Doe, J.; ; Smith",
+      "names": [
+        {
+          "family": "Doe",
+          "given": "J."
+        },
+        {
+          "family": "Smith"
+        }
+      ]
+    },
+    {
+      "raw": "van der Berg, Anna",
+      "names": [
+        {
+          "family": "van der Berg",
+          "given": "Anna"
+        }
+      ]
+    }
+  ],
+  "library": {
+    "items": [
+      {
+        "id": "mueller2020",
+        "type": "book",
+        "title": "Ü",
+        "author": [
+          {
+            "family": "Müller"
+          }
+        ],
+        "issued": {
+          "date-parts": [
+            [
+              2020
+            ]
+          ]
+        },
+        "citeKey": "mueller2020"
+      },
+      {
+        "id": "x",
+        "type": "article-journal",
+        "title": "Y",
+        "issued": {
+          "literal": "Spring 1999"
+        }
+      },
+      {
+        "id": "z",
+        "type": "webpage",
+        "title": "Z",
+        "editor": [
+          {
+            "family": "Ed"
+          }
+        ],
+        "issued": {
+          "raw": "2001-02"
+        }
+      },
+      {
+        "id": "n",
+        "type": "thesis",
+        "title": "N"
+      }
+    ],
+    "years": [
+      "2020",
+      "Spring 1999",
+      "2001-02",
+      ""
+    ],
+    "contributors": [
+      "Müller",
+      "",
+      "Ed",
+      ""
+    ],
+    "types": [
+      {
+        "type": "book",
+        "label": "Book",
+        "manual": "book"
+      },
+      {
+        "type": "article-journal",
+        "label": "Article",
+        "manual": "article"
+      },
+      {
+        "type": "chapter",
+        "label": "Chapter",
+        "manual": "chapter"
+      },
+      {
+        "type": "webpage",
+        "label": "Website",
+        "manual": "website"
+      },
+      {
+        "type": "thesis",
+        "label": "Thesis",
+        "manual": null
+      },
+      {
+        "type": "report",
+        "label": "Report",
+        "manual": null
+      },
+      {
+        "type": "BOOK",
+        "label": "Book",
+        "manual": "book"
+      },
+      {
+        "type": "weird",
+        "label": "Weird",
+        "manual": null
+      }
+    ],
+    "manual": [
+      {
+        "kind": "book",
+        "type": "book"
+      },
+      {
+        "kind": "article",
+        "type": "article-journal"
+      },
+      {
+        "kind": "chapter",
+        "type": "chapter"
+      },
+      {
+        "kind": "website",
+        "type": "webpage"
+      }
+    ],
+    "keys": [
+      {
+        "params": {
+          "author": [
+            {
+              "family": "Müller"
+            }
+          ],
+          "year": "2020"
+        },
+        "existing": [
+          {
+            "id": "mueller2020",
+            "type": "book",
+            "title": "Ü",
+            "author": [
+              {
+                "family": "Müller"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2020
+                ]
+              ]
+            },
+            "citeKey": "mueller2020"
+          },
+          {
+            "id": "x",
+            "type": "article-journal",
+            "title": "Y",
+            "issued": {
+              "literal": "Spring 1999"
+            }
+          },
+          {
+            "id": "z",
+            "type": "webpage",
+            "title": "Z",
+            "editor": [
+              {
+                "family": "Ed"
+              }
+            ],
+            "issued": {
+              "raw": "2001-02"
+            }
+          },
+          {
+            "id": "n",
+            "type": "thesis",
+            "title": "N"
+          }
+        ],
+        "exclude": null,
+        "key": "mueller2020-2"
+      },
+      {
+        "params": {
+          "author": [
+            {
+              "family": "Müller"
+            }
+          ],
+          "year": "2020"
+        },
+        "existing": [
+          {
+            "id": "mueller2020",
+            "type": "book",
+            "title": "Ü",
+            "author": [
+              {
+                "family": "Müller"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2020
+                ]
+              ]
+            },
+            "citeKey": "mueller2020"
+          },
+          {
+            "id": "x",
+            "type": "article-journal",
+            "title": "Y",
+            "issued": {
+              "literal": "Spring 1999"
+            }
+          },
+          {
+            "id": "z",
+            "type": "webpage",
+            "title": "Z",
+            "editor": [
+              {
+                "family": "Ed"
+              }
+            ],
+            "issued": {
+              "raw": "2001-02"
+            }
+          },
+          {
+            "id": "n",
+            "type": "thesis",
+            "title": "N"
+          }
+        ],
+        "exclude": "mueller2020",
+        "key": "mueller2020"
+      },
+      {
+        "params": {
+          "editor": [
+            {
+              "literal": "Ørsted Society"
+            }
+          ],
+          "year": "c. 1850"
+        },
+        "existing": [
+          {
+            "id": "mueller2020",
+            "type": "book",
+            "title": "Ü",
+            "author": [
+              {
+                "family": "Müller"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2020
+                ]
+              ]
+            },
+            "citeKey": "mueller2020"
+          },
+          {
+            "id": "x",
+            "type": "article-journal",
+            "title": "Y",
+            "issued": {
+              "literal": "Spring 1999"
+            }
+          },
+          {
+            "id": "z",
+            "type": "webpage",
+            "title": "Z",
+            "editor": [
+              {
+                "family": "Ed"
+              }
+            ],
+            "issued": {
+              "raw": "2001-02"
+            }
+          },
+          {
+            "id": "n",
+            "type": "thesis",
+            "title": "N"
+          }
+        ],
+        "exclude": null,
+        "key": "rstedsociety1850"
+      },
+      {
+        "params": {
+          "title": "  The lighthouse keeper",
+          "year": ""
+        },
+        "existing": [
+          {
+            "id": "mueller2020",
+            "type": "book",
+            "title": "Ü",
+            "author": [
+              {
+                "family": "Müller"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2020
+                ]
+              ]
+            },
+            "citeKey": "mueller2020"
+          },
+          {
+            "id": "x",
+            "type": "article-journal",
+            "title": "Y",
+            "issued": {
+              "literal": "Spring 1999"
+            }
+          },
+          {
+            "id": "z",
+            "type": "webpage",
+            "title": "Z",
+            "editor": [
+              {
+                "family": "Ed"
+              }
+            ],
+            "issued": {
+              "raw": "2001-02"
+            }
+          },
+          {
+            "id": "n",
+            "type": "thesis",
+            "title": "N"
+          }
+        ],
+        "exclude": null,
+        "key": "the"
+      },
+      {
+        "params": {},
+        "existing": [],
+        "exclude": null,
+        "key": "ref"
+      },
+      {
+        "params": {
+          "author": [
+            {
+              "family": "Zoë"
+            }
+          ],
+          "year": "2021"
+        },
+        "existing": [
+          {
+            "id": "zoe2021",
+            "type": "book"
+          },
+          {
+            "id": "x",
+            "citeKey": "zoe2021-2",
+            "type": "book"
+          }
+        ],
+        "exclude": null,
+        "key": "zoe2021-3"
+      }
+    ],
+    "merges": [
+      {
+        "existing": [
+          {
+            "id": "mueller2020",
+            "type": "book",
+            "title": "Ü",
+            "author": [
+              {
+                "family": "Müller"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2020
+                ]
+              ]
+            },
+            "citeKey": "mueller2020"
+          },
+          {
+            "id": "x",
+            "type": "article-journal",
+            "title": "Y",
+            "issued": {
+              "literal": "Spring 1999"
+            }
+          },
+          {
+            "id": "z",
+            "type": "webpage",
+            "title": "Z",
+            "editor": [
+              {
+                "family": "Ed"
+              }
+            ],
+            "issued": {
+              "raw": "2001-02"
+            }
+          },
+          {
+            "id": "n",
+            "type": "thesis",
+            "title": "N"
+          }
+        ],
+        "imported": [
+          {
+            "id": "x",
+            "type": "book",
+            "title": "New x"
+          },
+          {
+            "id": "fresh",
+            "type": "book",
+            "title": "Fresh"
+          },
+          {
+            "id": "x",
+            "type": "book",
+            "title": "Another x"
+          }
+        ],
+        "result": {
+          "items": [
+            {
+              "id": "mueller2020",
+              "type": "book",
+              "title": "Ü",
+              "author": [
+                {
+                  "family": "Müller"
+                }
+              ],
+              "issued": {
+                "date-parts": [
+                  [
+                    2020
+                  ]
+                ]
+              },
+              "citeKey": "mueller2020"
+            },
+            {
+              "id": "x",
+              "type": "article-journal",
+              "title": "Y",
+              "issued": {
+                "literal": "Spring 1999"
+              }
+            },
+            {
+              "id": "z",
+              "type": "webpage",
+              "title": "Z",
+              "editor": [
+                {
+                  "family": "Ed"
+                }
+              ],
+              "issued": {
+                "raw": "2001-02"
+              }
+            },
+            {
+              "id": "n",
+              "type": "thesis",
+              "title": "N"
+            },
+            {
+              "id": "x-2",
+              "type": "book",
+              "title": "New x"
+            },
+            {
+              "id": "fresh",
+              "type": "book",
+              "title": "Fresh"
+            },
+            {
+              "id": "x-3",
+              "type": "book",
+              "title": "Another x"
+            }
+          ],
+          "addedCount": 3,
+          "warnings": [
+            "Duplicate citation id \"x\" renamed to \"x-2\".",
+            "Duplicate citation id \"x\" renamed to \"x-3\"."
+          ]
+        }
+      },
+      {
+        "existing": [],
+        "imported": [
+          {
+            "id": "mueller2020",
+            "type": "book",
+            "title": "Ü",
+            "author": [
+              {
+                "family": "Müller"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2020
+                ]
+              ]
+            },
+            "citeKey": "mueller2020"
+          },
+          {
+            "id": "x",
+            "type": "article-journal",
+            "title": "Y",
+            "issued": {
+              "literal": "Spring 1999"
+            }
+          },
+          {
+            "id": "z",
+            "type": "webpage",
+            "title": "Z",
+            "editor": [
+              {
+                "family": "Ed"
+              }
+            ],
+            "issued": {
+              "raw": "2001-02"
+            }
+          },
+          {
+            "id": "n",
+            "type": "thesis",
+            "title": "N"
+          }
+        ],
+        "result": {
+          "items": [
+            {
+              "id": "mueller2020",
+              "type": "book",
+              "title": "Ü",
+              "author": [
+                {
+                  "family": "Müller"
+                }
+              ],
+              "issued": {
+                "date-parts": [
+                  [
+                    2020
+                  ]
+                ]
+              },
+              "citeKey": "mueller2020"
+            },
+            {
+              "id": "x",
+              "type": "article-journal",
+              "title": "Y",
+              "issued": {
+                "literal": "Spring 1999"
+              }
+            },
+            {
+              "id": "z",
+              "type": "webpage",
+              "title": "Z",
+              "editor": [
+                {
+                  "family": "Ed"
+                }
+              ],
+              "issued": {
+                "raw": "2001-02"
+              }
+            },
+            {
+              "id": "n",
+              "type": "thesis",
+              "title": "N"
+            }
+          ],
+          "addedCount": 4,
+          "warnings": []
+        }
+      }
+    ],
+    "counts": [
+      {
+        "item": {
+          "id": "mueller2020",
+          "type": "book",
+          "title": "Ü",
+          "author": [
+            {
+              "family": "Müller"
+            }
+          ],
+          "issued": {
+            "date-parts": [
+              [
+                2020
+              ]
+            ]
+          },
+          "citeKey": "mueller2020"
+        },
+        "documents": [
+          {
+            "id": "d1",
+            "title": "",
+            "content": "<p><span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;mueller2020&quot;}]\"></span></p>"
+          },
+          {
+            "id": "d2",
+            "title": "",
+            "content": "<p>none</p>",
+            "footnotes": [
+              {
+                "id": "f",
+                "html": "n <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;x&quot;},{&quot;id&quot;:&quot;z&quot;}]\"></span>"
+              }
+            ]
+          },
+          {
+            "id": "d3",
+            "title": "",
+            "content": "<p><span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;mueller2020&quot;},{&quot;id&quot;:&quot;x&quot;}]\"></span></p>"
+          }
+        ],
+        "count": {
+          "documentCount": 2,
+          "docIds": [
+            "d1",
+            "d3"
+          ]
+        }
+      },
+      {
+        "item": {
+          "id": "x",
+          "type": "article-journal",
+          "title": "Y",
+          "issued": {
+            "literal": "Spring 1999"
+          }
+        },
+        "documents": [
+          {
+            "id": "d1",
+            "title": "",
+            "content": "<p><span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;mueller2020&quot;}]\"></span></p>"
+          },
+          {
+            "id": "d2",
+            "title": "",
+            "content": "<p>none</p>",
+            "footnotes": [
+              {
+                "id": "f",
+                "html": "n <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;x&quot;},{&quot;id&quot;:&quot;z&quot;}]\"></span>"
+              }
+            ]
+          },
+          {
+            "id": "d3",
+            "title": "",
+            "content": "<p><span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;mueller2020&quot;},{&quot;id&quot;:&quot;x&quot;}]\"></span></p>"
+          }
+        ],
+        "count": {
+          "documentCount": 2,
+          "docIds": [
+            "d2",
+            "d3"
+          ]
+        }
+      },
+      {
+        "item": {
+          "id": "z",
+          "type": "webpage",
+          "title": "Z",
+          "editor": [
+            {
+              "family": "Ed"
+            }
+          ],
+          "issued": {
+            "raw": "2001-02"
+          }
+        },
+        "documents": [
+          {
+            "id": "d1",
+            "title": "",
+            "content": "<p><span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;mueller2020&quot;}]\"></span></p>"
+          },
+          {
+            "id": "d2",
+            "title": "",
+            "content": "<p>none</p>",
+            "footnotes": [
+              {
+                "id": "f",
+                "html": "n <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;x&quot;},{&quot;id&quot;:&quot;z&quot;}]\"></span>"
+              }
+            ]
+          },
+          {
+            "id": "d3",
+            "title": "",
+            "content": "<p><span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;mueller2020&quot;},{&quot;id&quot;:&quot;x&quot;}]\"></span></p>"
+          }
+        ],
+        "count": {
+          "documentCount": 1,
+          "docIds": [
+            "d2"
+          ]
+        }
+      },
+      {
+        "item": {
+          "id": "n",
+          "type": "thesis",
+          "title": "N"
+        },
+        "documents": [
+          {
+            "id": "d1",
+            "title": "",
+            "content": "<p><span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;mueller2020&quot;}]\"></span></p>"
+          },
+          {
+            "id": "d2",
+            "title": "",
+            "content": "<p>none</p>",
+            "footnotes": [
+              {
+                "id": "f",
+                "html": "n <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;x&quot;},{&quot;id&quot;:&quot;z&quot;}]\"></span>"
+              }
+            ]
+          },
+          {
+            "id": "d3",
+            "title": "",
+            "content": "<p><span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;mueller2020&quot;},{&quot;id&quot;:&quot;x&quot;}]\"></span></p>"
+          }
+        ],
+        "count": {
+          "documentCount": 0,
+          "docIds": []
+        }
+      }
+    ],
+    "queries": [
+      {
+        "query": "",
+        "matches": [
+          true,
+          true,
+          true,
+          true
+        ]
+      },
+      {
+        "query": "müller",
+        "matches": [
+          true,
+          false,
+          false,
+          false
+        ]
+      },
+      {
+        "query": "MULLER",
+        "matches": [
+          false,
+          false,
+          false,
+          false
+        ]
+      },
+      {
+        "query": "2020",
+        "matches": [
+          true,
+          false,
+          false,
+          false
+        ]
+      },
+      {
+        "query": "lighthouse",
+        "matches": [
+          false,
+          false,
+          false,
+          false
+        ]
+      },
+      {
+        "query": "ed",
+        "matches": [
+          false,
+          false,
+          true,
+          false
+        ]
+      },
+      {
+        "query": "z",
+        "matches": [
+          false,
+          false,
+          true,
+          false
+        ]
+      },
+      {
+        "query": "spring",
+        "matches": [
+          false,
+          true,
+          false,
+          false
+        ]
+      }
+    ]
+  }
+}

@@ -36,6 +36,8 @@ enum Then {
     MarkdownFolder,
     /// Add this screenplay to the open project.
     Fountain,
+    /// Import this citation file into the Sources dialog.
+    Citations,
     /// Write these bytes where the person chose (a backup or an exported manuscript).
     Export(Vec<u8>),
     /// The folder to sync through.
@@ -256,6 +258,20 @@ impl eframe::App for DesktopApp {
                         }
                     }
                 }
+                (Then::Citations, Answer::Paths(paths)) => {
+                    if let Some(path) = paths.first() {
+                        let name = path
+                            .file_name()
+                            .map(|n| n.to_string_lossy().into_owned())
+                            .unwrap_or_default();
+                        match read_capped(path, CITATIONS_LIMIT) {
+                            Ok(bytes) => self
+                                .app
+                                .import_citation_file(&name, &String::from_utf8_lossy(&bytes)),
+                            Err(e) => eprintln!("{}: {e}", path.display()),
+                        }
+                    }
+                }
                 (Then::Export(text), Answer::Paths(paths)) => {
                     if let Some(path) = paths.first()
                         && let Err(e) = craft_atomic::atomic_write(path, &text)
@@ -285,6 +301,13 @@ impl eframe::App for DesktopApp {
                         .title("Open a ProseCraft backup")
                         .filter("ProseCraft backup", &["prosecraft", "json"]);
                     self.dialogs.ask(dialog, Then::Open);
+                }
+                HostRequest::ImportCitations => {
+                    let dialog = FileDialog::open().title("Import citation file").filter(
+                        "Citation file",
+                        &["bib", "bibtex", "ris", "json", "csljson"],
+                    );
+                    self.dialogs.ask(dialog, Then::Citations);
                 }
                 HostRequest::ImportFountain => {
                     let dialog = FileDialog::open()
@@ -346,6 +369,8 @@ impl eframe::App for DesktopApp {
 
 /// The most a Scrivener project may unpack to (the importer refuses anything larger).
 const SCRIVENER_LIMIT: u64 = 200 * 1024 * 1024;
+/// The largest citation file read for import (a large BibTeX library is a few megabytes).
+const CITATIONS_LIMIT: u64 = 32 * 1024 * 1024;
 /// ProseCraft skips any one file of a project folder larger than this.
 const MAX_SCRIVENER_ENTRY_BYTES: u64 = 50_000_000;
 

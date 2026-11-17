@@ -236,6 +236,15 @@ pub fn set_document_markdown(
     Ok(())
 }
 
+/// The project's citation library (`citations`), as the Sources dialog leaves it.
+pub fn set_citations(project: &mut JsValue, items: Vec<JsValue>) -> Result<(), EditError> {
+    project
+        .as_object_mut()
+        .ok_or(EditError::Shape)?
+        .insert("citations", JsValue::Array(items));
+    Ok(())
+}
+
 pub fn set_project_name(project: &mut JsValue, name: &str) -> Result<(), EditError> {
     project
         .as_object_mut()

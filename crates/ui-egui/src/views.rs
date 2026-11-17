@@ -94,6 +94,8 @@ struct Edit<'a> {
     /// The Markdown editor opened for content the rich editor can't hold, with the
     /// preference off.
     markdown_forced: &'a mut bool,
+    /// The Sources dialog (opened from the toolbar's "Sources…").
+    sources: &'a mut Option<crate::sources::SourcesDialog>,
 }
 
 pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
@@ -144,6 +146,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         markdown_mode,
         markdown_switch,
         markdown_forced,
+        sources,
         ..
     } = state;
     let entry = library.as_ref().and_then(|l| l.projects().get(*active));
@@ -186,6 +189,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         markdown_mode: *markdown_mode,
         markdown_switch,
         markdown_forced,
+        sources,
     };
     let mut chosen = None;
     egui::ScrollArea::vertical()
@@ -877,6 +881,12 @@ fn editor(
                     document: document.id.clone(),
                     at,
                 });
+            }
+            // ProseCraft's "Sources…": the project's citation library.
+            let sources = ui.button("Sources…").on_hover_text("Sources…");
+            name_field(ui, &sources, "Sources");
+            if sources.clicked() {
+                *edit.sources = Some(crate::sources::SourcesDialog::default());
             }
             // ProseCraft's "MD" button, when the Markdown editor is enabled.
             if edit.markdown_enabled {

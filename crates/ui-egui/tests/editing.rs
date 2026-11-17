@@ -2080,3 +2080,116 @@ fn the_citation_style_and_bibliography_are_chosen_in_publish() {
         Some(&JsValue::Bool(false))
     );
 }
+
+#[test]
+fn sources_are_added_imported_and_deleted() {
+    let (mut harness, memory) = app();
+    let ids = |memory: &Memory| -> Vec<String> {
+        project(&memory.last(), "project-1")
+            .get("project")
+            .and_then(|p| p.get("citations"))
+            .and_then(JsValue::as_array)
+            .unwrap_or_default()
+            .iter()
+            .filter_map(|i| i.get("id").and_then(JsValue::as_js_string))
+            .map(|s| s.to_string_lossy())
+            .collect()
+    };
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Sources")
+        .click();
+    harness.run();
+    harness.get_by_label_contains("Cited in 1 document");
+    harness.get_by_label("1 source in project");
+
+    // Add a book by hand: its key comes from the author and year.
+    harness
+        .get_by_role_and_label(Role::Button, "Add manually")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TextInput, "Title")
+        .focus();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TextInput, "Title")
+        .type_text("Tides and Lights");
+    harness
+        .get_by_role_and_label(
+            Role::TextInput,
+            "Authors (Last, First; separated by semicolons)",
+        )
+        .focus();
+    harness.run();
+    harness
+        .get_by_role_and_label(
+            Role::TextInput,
+            "Authors (Last, First; separated by semicolons)",
+        )
+        .type_text("Müller, Hans");
+    harness
+        .get_by_role_and_label(Role::TextInput, "Year")
+        .focus();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TextInput, "Year")
+        .type_text("2019");
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Add source")
+        .click();
+    harness.run_steps(12);
+    assert_eq!(ids(&memory), ["smith2020", "mueller2019"]);
+
+    // Import a BibTeX file: an id already in the library is renamed, as ProseCraft does.
+    harness.state_mut().import_citation_file(
+        "refs.bib",
+        "@book{smith2020, title={Lighthouses Revisited}}\n@article{roe2001, title={Fog}, author={Roe, R.}, journal={J}, year={2001}}",
+    );
+    harness.run_steps(12);
+    harness.get_by_label_contains("Imported 2 sources from refs.bib.");
+    harness
+        .get_by_label_contains("Duplicate citation id \"smith2020\" renamed to \"smith2020-2\".");
+    assert_eq!(
+        ids(&memory),
+        ["smith2020", "mueller2019", "smith2020-2", "roe2001"]
+    );
+
+    // The search narrows the list.
+    harness
+        .get_by_role_and_label(Role::TextInput, "Search sources")
+        .focus();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TextInput, "Search sources")
+        .type_text("fog");
+    harness.run();
+    assert!(harness.query_by_label("Delete Lighthouses").is_none());
+    assert!(harness.query_by_label("Delete Fog").is_some());
+    harness
+        .get_by_role_and_label(Role::TextInput, "Search sources")
+        .focus();
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    harness.key_press(egui::Key::Backspace);
+    harness.run();
+
+    // Deleting a cited source warns first.
+    harness
+        .get_by_role_and_label(Role::Button, "Delete Lighthouses")
+        .click();
+    harness.run();
+    harness.get_by_label_contains("Deleting this source will leave unresolved citations");
+    harness
+        .get_by_role_and_label(Role::Button, "Delete anyway")
+        .click();
+    harness.run_steps(12);
+    assert_eq!(ids(&memory), ["mueller2019", "smith2020-2", "roe2001"]);
+    harness.get_by_role_and_label(Role::Button, "Done").click();
+    harness.run();
+    assert!(harness.query_by_label("Search sources").is_none());
+}

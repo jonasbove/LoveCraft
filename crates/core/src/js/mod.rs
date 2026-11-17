@@ -17,11 +17,13 @@
 
 mod number;
 mod parse;
+mod parse_message;
 pub(crate) mod regexp;
 mod stringify;
 
 pub use number::{number_to_string, string_to_number};
 pub use parse::{MAX_DEPTH, ParseError, parse};
+pub use parse_message::parse_error_message;
 pub use stringify::{stable_stringify, stringify, stringify_pretty};
 
 use std::fmt;

@@ -482,3 +482,149 @@ pub fn normalize_csl_items_detailed(value: &JsValue) -> CslNormalization {
 pub fn normalize_csl_items(value: &JsValue) -> Vec<JsValue> {
     normalize_csl_items_detailed(value).items
 }
+
+const NAME_PARTICLES: [&str; 19] = [
+    "al", "d", "da", "de", "del", "della", "den", "der", "di", "dos", "du", "el", "la", "le",
+    "van", "von", "zu", "zum", "zur",
+];
+
+/// `cleanSingleLine` over a plain string.
+fn clean_line(text: &str, max: usize) -> Option<JsString> {
+    clean_single_line(Some(&JsValue::str(text)), max)
+}
+
+/// A name object from its parts, in ProseCraft's order (family, given, suffix), or `None`
+/// when it has neither a family nor a given name.
+fn name_of(
+    family: Option<JsString>,
+    given: Option<JsString>,
+    suffix: Option<JsString>,
+) -> Option<JsValue> {
+    if family.is_none() && given.is_none() {
+        return None;
+    }
+    let mut name = JsObject::new();
+    for (key, value) in [("family", family), ("given", given), ("suffix", suffix)] {
+        if let Some(value) = value {
+            name.insert(key, JsValue::String(value));
+        }
+    }
+    Some(JsValue::Object(name))
+}
+
+/// `parsePersonName`: one personal name ("Last, First", "Last, Jr., First" or "First Last")
+/// as a CSL name object, or `None` when nothing is left of it.
+pub fn parse_person_name(raw: &str) -> Option<JsValue> {
+    let trimmed = clean_line(raw, MAX_CITATION_NAME_PART_LENGTH * 2)?.to_string_lossy();
+    let part = |text: &str| clean_line(text, MAX_CITATION_NAME_PART_LENGTH);
+    if trimmed.contains(',') {
+        let parts: Vec<&str> = trimmed.split(',').map(js_trim).collect();
+        if parts.len() >= 3 {
+            let family = part(parts[0]);
+            let suffix = part(parts[1]);
+            let given = part(&parts[2..].join(", "));
+            return name_of(family, given, suffix);
+        }
+        let family = parts.first().and_then(|p| part(p));
+        let given = parts.get(1).and_then(|p| part(p));
+        return name_of(family, given, None);
+    }
+    let words: Vec<&str> = trimmed
+        .split(is_js_whitespace)
+        .filter(|w| !w.is_empty())
+        .collect();
+    if words.len() == 1 {
+        return name_of(part(words[0]), None, None);
+    }
+    let mut family_start = words.len().saturating_sub(1);
+    while family_start > 1
+        && NAME_PARTICLES.contains(&words[family_start - 1].to_lowercase().as_str())
+    {
+        family_start -= 1;
+    }
+    let given = part(&words[..family_start].join(" "));
+    let family = part(&words[family_start..].join(" "));
+    name_of(family, given, None)
+}
+
+/// `MONTH_NAMES`: English and German month names and abbreviations.
+fn month_by_name(name: &str) -> Option<f64> {
+    let month = match name {
+        "jan" | "january" | "januar" => 1,
+        "feb" | "february" | "februar" => 2,
+        "mar" | "march" | "maerz" | "märz" => 3,
+        "apr" | "april" => 4,
+        "may" | "mai" => 5,
+        "jun" | "june" | "juni" => 6,
+        "jul" | "july" | "juli" => 7,
+        "aug" | "august" => 8,
+        "sep" | "sept" | "september" => 9,
+        "oct" | "october" | "oktober" => 10,
+        "nov" | "november" => 11,
+        "dec" | "december" | "dezember" => 12,
+        _ => return None,
+    };
+    Some(f64::from(month))
+}
+
+/// What looking up a missing key in a plain JavaScript object (`{}`) finds: the members of
+/// `Object.prototype`. ProseCraft's tables (`MONTH_NAMES`, `BUILTIN_MONTHS`,
+/// `BIBTEX_TYPE_MAP`) are such objects, looked up with lower-case keys, and the only
+/// lower-case members are `constructor` (the function `Object`) and `__proto__`
+/// (`Object.prototype` itself).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Inherited {
+    Constructor,
+    Proto,
+}
+
+impl Inherited {
+    pub(crate) fn of(key: &str) -> Option<Self> {
+        match key {
+            "constructor" => Some(Self::Constructor),
+            "__proto__" => Some(Self::Proto),
+            _ => None,
+        }
+    }
+
+    /// `String(value)`.
+    pub(crate) fn text(self) -> &'static str {
+        match self {
+            Self::Constructor => "function Object() { [native code] }",
+            Self::Proto => "[object Object]",
+        }
+    }
+
+    /// The value as `JSON.stringify` writes it in an array (a function as `null`, the
+    /// prototype as `{}`); neither is a number or string, so normalization drops both.
+    pub(crate) fn value(self) -> JsValue {
+        match self {
+            Self::Constructor => JsValue::Null,
+            Self::Proto => JsValue::Object(JsObject::new()),
+        }
+    }
+}
+
+/// `parseMonthNumber` with what JavaScript returns for every input: a month number, or the
+/// `Object.prototype` member `MONTH_NAMES[name]` finds for `constructor` and `__proto__`.
+pub(crate) fn parse_month_value(raw: &str) -> Option<JsValue> {
+    let lower = js_trim(raw).to_lowercase();
+    let cleaned = lower.strip_suffix('.').unwrap_or(&lower);
+    if cleaned.is_empty() {
+        return None;
+    }
+    if (1..=2).contains(&cleaned.len()) && cleaned.bytes().all(|b| b.is_ascii_digit()) {
+        let number = crate::js::string_to_number(cleaned);
+        return (1.0..=12.0)
+            .contains(&number)
+            .then_some(JsValue::Number(number));
+    }
+    month_by_name(cleaned)
+        .map(JsValue::Number)
+        .or_else(|| Inherited::of(cleaned).map(Inherited::value))
+}
+
+/// `parseMonthNumber`: a month (1 to 12) from a number or an English or German month name.
+pub fn parse_month_number(raw: &str) -> Option<f64> {
+    parse_month_value(raw).and_then(|month| month.as_number())
+}

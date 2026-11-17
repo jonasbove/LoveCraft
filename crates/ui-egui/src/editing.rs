@@ -118,6 +118,8 @@ pub enum Intent {
         id: String,
         note: String,
     },
+    /// The Sources dialog's citation library.
+    SetCitations(Vec<prosecraft_core::js::JsValue>),
     /// `convertToScreenplay`: a prose scene made a screenplay, a snapshot of the prose first.
     ConvertToScreenplay {
         document: String,
@@ -289,6 +291,7 @@ pub fn run(
         Intent::MoveWikiPage { document, folder } => {
             prosecraft_core::wiki::move_page(data, document, folder.as_deref())
         }
+        Intent::SetCitations(items) => edit::set_citations(data, items.clone()),
         Intent::SaveLabels(labels) => {
             let labels: Vec<_> = labels
                 .iter()

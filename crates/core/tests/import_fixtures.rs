@@ -111,3 +111,144 @@ fn an_imported_epub_becomes_prosecraft_s_project() {
         js::stringify(all.get("project").unwrap_or(&JsValue::Null))
     );
 }
+
+#[test]
+fn rtf_reads_as_prosecraft_reads_it() {
+    let all = fixture("scrivener-import.json");
+    let cases = all
+        .get("rtf")
+        .and_then(JsValue::as_array)
+        .unwrap_or_default();
+    assert!(cases.len() >= 40);
+    let mut failures = Vec::new();
+    for case in cases {
+        let input = base64::engine::general_purpose::STANDARD
+            .decode(s(case, "input"))
+            .expect("base64");
+        let have = prosecraft_core::import::rtf::rtf_to_html(&input);
+        let want = s(case, "html");
+        if have != want {
+            failures.push(format!(
+                "{:?}\n  want {want:?}\n  have {have:?}",
+                String::from_utf8_lossy(&input)
+            ));
+        }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+fn report_json(r: &prosecraft_core::import::scrivener::ScrivenerReport) -> String {
+    format!(
+        r#"{{"chapters":{},"scenes":{},"wikiPages":{},"wikiFolders":{},"flattenedFolders":{},"skippedFiles":{},"itemsWithNotes":{},"missingFiles":{},"layout":"{}"}}"#,
+        r.chapters,
+        r.scenes,
+        r.wiki_pages,
+        r.wiki_folders,
+        r.flattened_folders,
+        r.skipped_files,
+        r.items_with_notes,
+        r.missing_files,
+        r.layout
+    )
+}
+
+#[test]
+fn scrivener_import_matches_prosecraft() {
+    use prosecraft_core::import::scrivener::{
+        build_scrivener_project, files_from_entries, files_from_zip,
+    };
+    let all = fixture("scrivener-import.json");
+    let mut failures = Vec::new();
+    let mut check =
+        |name: &str,
+         got: Result<(JsValue, prosecraft_core::import::scrivener::ScrivenerReport), String>,
+         case: &JsValue| {
+            match (case.get("error").and_then(JsValue::as_js_string), got) {
+                (Some(e), Err(g)) if e.to_string_lossy() == g => {}
+                (None, Ok((project, report))) => {
+                    let want = case.get("result").cloned().unwrap_or(JsValue::Null);
+                    let want_project = js::stringify(want.get("project").unwrap_or(&JsValue::Null));
+                    let want_report = js::stringify(want.get("report").unwrap_or(&JsValue::Null));
+                    if js::stringify(&project) != want_project {
+                        failures.push(format!(
+                            "{name} project:\n  want {want_project}\n  have {}",
+                            js::stringify(&project)
+                        ));
+                    }
+                    if report_json(&report) != want_report {
+                        failures.push(format!(
+                            "{name} report:\n  want {want_report}\n  have {}",
+                            report_json(&report)
+                        ));
+                    }
+                }
+                (want, got) => failures.push(format!(
+                    "{name}: want error {:?}, got {:?}",
+                    want.map(|e| e.to_string_lossy()),
+                    got.map(|(_, r)| r)
+                )),
+            }
+        };
+    let projects = all
+        .get("scrivener")
+        .and_then(JsValue::as_array)
+        .unwrap_or_default();
+    assert_eq!(projects.len(), 14);
+    for case in projects {
+        let name = s(case, "name");
+        let entries = case
+            .get("files")
+            .and_then(JsValue::as_array)
+            .unwrap_or_default()
+            .iter()
+            .map(|f| {
+                (
+                    s(f, "path"),
+                    base64::engine::general_purpose::STANDARD
+                        .decode(s(f, "bytes"))
+                        .expect("base64"),
+                )
+            })
+            .collect();
+        let project_name = case
+            .get("projectName")
+            .and_then(JsValue::as_js_string)
+            .map(|t| t.to_string_lossy());
+        let mut n = 0;
+        let got = files_from_entries(entries).and_then(|files| {
+            build_scrivener_project(
+                &files,
+                &mut || {
+                    n += 1;
+                    format!("id-{n}")
+                },
+                project_name.as_deref(),
+            )
+        });
+        check(&name, got.map_err(|e| e.0), case);
+    }
+    let zips = all
+        .get("zips")
+        .and_then(JsValue::as_array)
+        .unwrap_or_default();
+    assert_eq!(zips.len(), 4);
+    for case in zips {
+        let name = s(case, "name");
+        let data = base64::engine::general_purpose::STANDARD
+            .decode(s(case, "zip"))
+            .expect("base64");
+        let mut n = 0;
+        let got = files_from_zip(&data).and_then(|files| {
+            build_scrivener_project(
+                &files,
+                &mut || {
+                    n += 1;
+                    format!("id-{n}")
+                },
+                None,
+            )
+        });
+        check(&name, got.map_err(|e| e.0), case);
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}

@@ -386,3 +386,77 @@ fn an_imported_epub_becomes_a_project_that_opens() {
     harness.run();
     harness.get_by_label_contains("This EPUB is DRM-protected and can't be imported.");
 }
+
+#[test]
+fn a_scrivener_project_is_previewed_then_imported() {
+    use base64::Engine;
+    let all = prosecraft_core::js::parse(&fixture("scrivener-import.json")).expect("json");
+    let case = all
+        .get("scrivener")
+        .and_then(prosecraft_core::js::JsValue::as_array)
+        .unwrap_or_default()
+        .iter()
+        .find(|c| {
+            c.get("name")
+                .and_then(prosecraft_core::js::JsValue::as_js_string)
+                .is_some_and(|n| n.eq_str("wiki"))
+        })
+        .cloned()
+        .expect("case");
+    let text = |v: &prosecraft_core::js::JsValue, k: &str| {
+        v.get(k)
+            .and_then(prosecraft_core::js::JsValue::as_js_string)
+            .map(|s| s.to_string_lossy())
+            .unwrap_or_default()
+    };
+    let entries: Vec<(String, Vec<u8>)> = case
+        .get("files")
+        .and_then(prosecraft_core::js::JsValue::as_array)
+        .unwrap_or_default()
+        .iter()
+        .map(|f| {
+            (
+                text(f, "path"),
+                base64::engine::general_purpose::STANDARD
+                    .decode(text(f, "bytes"))
+                    .expect("base64"),
+            )
+        })
+        .collect();
+    let memory = Memory::default();
+    let app = ProseApp::with_library(
+        ProjectLibrary::new("this-device".into()),
+        Box::new(memory.clone()),
+    );
+    let mut harness = harness(app);
+    harness.run();
+    harness
+        .state_mut()
+        .import_scrivener_folder("Lighthouse.scriv", entries);
+    harness.run();
+    // The preview: its name (from the folder) and what it will create.
+    let name = harness.get_by_label("Project name");
+    assert_eq!(name.accesskit_node().value().as_deref(), Some("Lighthouse"));
+    harness.get_by_label("• 6 wiki page(s)");
+    harness.get_by_label("• 3 wiki folder(s)");
+    harness.get_by_label("• 1 file(s) such as PDFs and images were skipped");
+    harness.get_by_label("• 1 item(s) have notes that are not imported");
+    harness.get_by_label("Project name").focus();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    harness.get_by_label("Project name").type_text("The Keeper");
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Import")
+        .click();
+    harness.run_steps(3);
+    harness
+        .get_by_label_contains("Imported “The Keeper”: 1 chapter(s), 1 scene(s), 6 wiki page(s).");
+    harness.get_by_role_and_label(Role::TreeItem, "Mara");
+    let saved = memory.saved.lock().unwrap().last().cloned().expect("saved");
+    assert!(saved.contains("The Keeper") && saved.contains("Mara text."));
+
+    // A file that is not a zip says so.
+    harness.state_mut().import_scrivener_zip(b"not a zip");
+    harness.run();
+    harness.get_by_label_contains("Scrivener import: this file is not a readable zip archive.");
+}

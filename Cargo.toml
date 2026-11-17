@@ -28,6 +28,9 @@ craft-image-codecs = { git = "https://github.com/storytold/craft-libs", rev = "8
 
 # foundation
 thiserror = "2"
+# Text in legacy encodings decoded as the browser's TextDecoder does (the WHATWG Encoding
+# Standard; what craft-codepage uses for East Asian code pages). MIT OR Apache-2.0.
+encoding_rs = "0.8"
 # All date and time conversion goes through chrono (Rust house rule 5).
 chrono = { version = "0.4.45", default-features = false, features = ["std"] }
 # Encrypted backups and sync files, read and written exactly as ProseCraft does: Argon2id derives

@@ -1,0 +1,1475 @@
+{
+  "rtf": [
+    {
+      "input": "e1xydGYxXGFuc2kgSGVsbG9ccGFyIFdvcmxkXHBhcn0=",
+      "html": "<p>Hello</p><p>World</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2kgZmlyc3RcbGluZSBzZWNvbmRccGFyfQ==",
+      "html": "<p>first<br>second</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2kgSGVsbG8NCldvcmxkXHBhcn0=",
+      "html": "<p>HelloWorld</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2kgSGVsbG9cCldvcmxkXHBhcn0=",
+      "html": "<p>Hello</p><p>World</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2kgSGVsbG9cDQpXb3JsZFxwYXJ9",
+      "html": "<p>Hello</p><p>World</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2kgb25lXHBhcg0KdHdvXHBhcn0=",
+      "html": "<p>one</p><p>two</p>"
+    },
+    {
+      "input": "",
+      "html": "<p><br></p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2l9",
+      "html": "<p><br></p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2lccGFyfQ==",
+      "html": "<p><br></p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTIgTVwnZTRkY2hlblxwYXJ9",
+      "html": "<p>Mädchen</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTIgXCc5M3F1b3RlZFwnOTRccGFyfQ==",
+      "html": "<p>“quoted”</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2kgXHUyMjg/XHBhcn0=",
+      "html": "<p>ä</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2kgXHVjMFx1MjI4P1xwYXJ9",
+      "html": "<p>ä?</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2kgXHUtMTAxNzlcdS04NzA0XHBhcn0=",
+      "html": "<p>😀</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2kgXHUtMTAxNzk/XHUtODcwND9ccGFyfQ==",
+      "html": "<p>😀</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2kgXHVjMlx1MjAwMTNcJ2Q2XCdkMCB4XHBhcn0=",
+      "html": "<p>中 x</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2kgXGIgYm9sZCBcaSBib3RoXGkwIGJvbGRcYjAgcGxhaW5ccGFyfQ==",
+      "html": "<p><strong>bold <em>both</em>bold</strong>plain</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2kgXGkgXHVsIFxzdHJpa2UgYWxsXHBsYWluIG5vbmVccGFyfQ==",
+      "html": "<p><em><u><s>all</s></u></em>none</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2kgb25lXHBhclxwYXJ9",
+      "html": "<p>one</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2kgYVx0YWIgYlx+Y1xfZFwtZVxwYXJ9",
+      "html": "<p>\tab&nbsp;c&#8209;de</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2kgXHt4XH1cXHkgPCAmICJccGFyfQ==",
+      "html": "<p>{}\\xy &lt; &amp; &quot;</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2kge1xiIGJvbGR9IHBsYWluXHBhcn0=",
+      "html": "<p><strong>bold</strong> plain</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2kgYnJva2Vu",
+      "html": "<p>broken</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2kgXGIgYm9sZA==",
+      "html": "<p><strong>bold</strong></p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2kgYX0gZXh0cmFccGFyfQ==",
+      "html": "<p>a extra</p>"
+    },
+    {
+      "input": "XHJ0ZjEgbm8gZ3JvdXBz",
+      "html": "<p>no groups</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjAge1xmb250dGJse1xmMCBBcmlhbDt9fXtcY29sb3J0Ymw7XHJlZDBcZ3JlZW4wXGJsdWUwO317XCpcZ2VuZXJhdG9yIHh9e1xpbmZve1x0aXRsZSBUfX1ccGFyZCBWaXNpYmxle1xmb290bm90ZSBub3RlfVxwYXJ9",
+      "html": "<p>Visible</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTEgXCdjZlwnZjBcJ2U4XCdlMlwnZTVcJ2YyXHBhcn0=",
+      "html": "<p>Привет</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2lcYW5zaWNwZzkzNiBcJ2Q2XCdkMFwnY2VcJ2M0XHBhcn0=",
+      "html": "<p>ÖÐÎÄ</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2lcYW5zaWNwZzkzMiBcJzgyXCdhMFxwYXJ9",
+      "html": "<p>‚ </p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2lcYW5zaWNwZzY1MDAxIFwnZTJcJzgyXCdhY1xwYXJ9",
+      "html": "<p>€</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2lcYW5zaWNwZzY1MDAxIFwnZWZcJ2JiXCdiZkJPTVxwYXJ9",
+      "html": "<p>BOM</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2lcYW5zaWNwZzk0OSBcJ2M3XCdkMSBccGFyfQ==",
+      "html": "<p>한 </p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2lcYW5zaWNwZzk5OTk5IFwnZTRccGFyfQ==",
+      "html": "<p>ä</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2kgXGJcaSB4XGIwIHlcaTAgelxwYXJ9",
+      "html": "<p><strong><em>x</em></strong><em>y</em>z</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2kgXGIgeFxwYXJkIHlccGxhaW4gelxwYXJ9",
+      "html": "<p><strong>xy</strong>z</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2kgYVwnenogYlwnNFxwYXJ9",
+      "html": "<p>a bpar</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2kgXHVjMVx1ODM2NFwnODAgZXVyb1xwYXJ9",
+      "html": "<p>€ euro</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2kgXHU2NSBcdTY2XHU2NyB4XHBhcn0=",
+      "html": "<p>ABC</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2kge1wqXGlnbm9yZWQge1xiIG5lc3RlZH19IGFmdGVyXHBhcn0=",
+      "html": "<p> after</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2kge1xwaWN0XHBuZ2JsaXAgODk1MDRlNDd9IHRleHRccGFyfQ==",
+      "html": "<p> text</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2kgXGIge1xpIGlubmVyfSBccGFyIG5leHRccGFyfQ==",
+      "html": "<p><strong><em>inner</em> </strong></p><p><strong>next</strong></p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTEgXCdjZlxhbnNpY3BnLSBcJ2NmXHBhcn0=",
+      "html": "<p>ПÏ</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2kgXHVjeFx1MjI4Pz8gXGItIGJvbGRccGFyfQ==",
+      "html": "<p>ä? <strong>bold</strong></p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTIgcmF3IOT2XHBhcn0=",
+      "html": "<p>raw äö</p>"
+    },
+    {
+      "input": "e1xydGYxXGFuc2lcYW5zaWNwZzY1MDAxIHJhdyDigqxccGFyfQ==",
+      "html": "<p>raw ���</p>"
+    }
+  ],
+  "scrivener": [
+    {
+      "name": "docs",
+      "files": [
+        {
+          "path": "project.scrivx",
+          "bytes": "PFNjcml2ZW5lclByb2plY3QgVmVyc2lvbj0iMS4wIj48QmluZGVyPjxCaW5kZXJJdGVtIElEPSIxIiBUeXBlPSJEcmFmdEZvbGRlciI+PFRpdGxlPk1hbnVzY3JpcHQ8L1RpdGxlPjxDaGlsZHJlbj48QmluZGVySXRlbSBJRD0iNSIgVHlwZT0iVGV4dCI+PFRpdGxlPk9wZW5pbmc8L1RpdGxlPjwvQmluZGVySXRlbT48L0NoaWxkcmVuPjwvQmluZGVySXRlbT48L0JpbmRlcj48L1Njcml2ZW5lclByb2plY3Q+"
+        },
+        {
+          "path": "Files/Docs/1_synopsis.txt",
+          "bytes": "RHJhZnQgb3ZlcnZpZXcu"
+        },
+        {
+          "path": "Files/Docs/5.rtf",
+          "bytes": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjAge1xmb250dGJse1xmMCBBcmlhbDt9fVxwYXJkIEZpcnN0IHNjZW5lLlxwYXJ9"
+        },
+        {
+          "path": "Files/Docs/5_synopsis.txt",
+          "bytes": "ICBBIHNob3J0DQpzeW5vcHNpcyAg"
+        },
+        {
+          "path": "Files/Docs/5_notes.rtf",
+          "bytes": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjAge1xmb250dGJse1xmMCBBcmlhbDt9fVxwYXJkIEEgbm90ZVxwYXJ9"
+        }
+      ],
+      "projectName": null,
+      "result": {
+        "project": {
+          "id": "id-5",
+          "name": "Imported Scrivener project",
+          "author": "",
+          "documents": [
+            {
+              "id": "id-2",
+              "title": "Opening",
+              "content": "<p>First scene.</p>",
+              "chapterId": "id-1"
+            }
+          ],
+          "chapters": [
+            {
+              "id": "id-1",
+              "title": "Manuscript",
+              "expanded": true,
+              "summary": "Draft overview."
+            }
+          ],
+          "activeDocumentId": "id-2",
+          "projectGoal": 50000,
+          "chapterGoals": {},
+          "activity": {},
+          "storyboardCards": [],
+          "storyboardRows": [
+            {
+              "id": "id-6",
+              "title": "Timeline"
+            }
+          ],
+          "timelineNodes": [],
+          "noteFolders": [],
+          "researchFolderName": "",
+          "researchFolders": [],
+          "researchItems": [],
+          "publishOptions": {
+            "format": "pdf",
+            "style": "manuscript",
+            "customStyles": [],
+            "cover": {
+              "mode": "none",
+              "image": "",
+              "design": "classic",
+              "palette": "ink"
+            },
+            "includeTitlePage": true,
+            "includeCopyrightPage": false,
+            "includeTableOfContents": false,
+            "includeChapterTitles": true,
+            "includeSceneTitles": false,
+            "pageBreakBeforeChapters": true,
+            "sceneSeparator": "hash",
+            "dropCaps": true,
+            "footnotesRestartPerChapter": false,
+            "citationStyle": "apa7",
+            "citationLocale": "en",
+            "includeBibliography": true,
+            "subtitle": "",
+            "copyright": "",
+            "dedication": "",
+            "frontMatter": [],
+            "backMatter": []
+          }
+        },
+        "report": {
+          "chapters": 1,
+          "scenes": 1,
+          "wikiPages": 0,
+          "wikiFolders": 0,
+          "flattenedFolders": 0,
+          "skippedFiles": 0,
+          "itemsWithNotes": 1,
+          "missingFiles": 0,
+          "layout": "docs"
+        }
+      },
+      "error": null
+    },
+    {
+      "name": "data",
+      "files": [
+        {
+          "path": "project.scrivx",
+          "bytes": "PFNjcml2ZW5lclByb2plY3QgVmVyc2lvbj0iMS4wIj48QmluZGVyPjxCaW5kZXJJdGVtIFVVSUQ9IkQiIFR5cGU9IkRyYWZ0Rm9sZGVyIj48VGl0bGU+RHJhZnQ8L1RpdGxlPjxDaGlsZHJlbj48QmluZGVySXRlbSBVVUlEPSJBIiBUeXBlPSJUZXh0Ij48VGl0bGU+QWxwaGE8L1RpdGxlPjwvQmluZGVySXRlbT48QmluZGVySXRlbSBVVUlEPSJGIiBUeXBlPSJGb2xkZXIiPjxUaXRsZT5QYXJ0IE9uZTwvVGl0bGU+PENoaWxkcmVuPjxCaW5kZXJJdGVtIFVVSUQ9IkIiIFR5cGU9IlRleHQiPjxUaXRsZT5CZXRhPC9UaXRsZT48L0JpbmRlckl0ZW0+PC9DaGlsZHJlbj48L0JpbmRlckl0ZW0+PC9DaGlsZHJlbj48L0JpbmRlckl0ZW0+PC9CaW5kZXI+PC9TY3JpdmVuZXJQcm9qZWN0Pg=="
+        },
+        {
+          "path": "Files/Data/A/content.rtf",
+          "bytes": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjAge1xmb250dGJse1xmMCBBcmlhbDt9fVxwYXJkIEFscGhhIHRleHQgXGIgYm9sZFxiMCAuXHBhcn0="
+        },
+        {
+          "path": "Files/Data/B/content.rtf",
+          "bytes": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjAge1xmb250dGJse1xmMCBBcmlhbDt9fVxwYXJkIEJldGEgdGV4dC5ccGFyfQ=="
+        },
+        {
+          "path": "Files/Data/F/synopsis.txt",
+          "bytes": "UGFydCBzeW5vcHNpcw=="
+        },
+        {
+          "path": "Files/Data/B/notes.rtf",
+          "bytes": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjAge1xmb250dGJse1xmMCBBcmlhbDt9fVxwYXJkIG5ccGFyfQ=="
+        }
+      ],
+      "projectName": null,
+      "result": {
+        "project": {
+          "id": "id-7",
+          "name": "Imported Scrivener project",
+          "author": "",
+          "documents": [
+            {
+              "id": "id-2",
+              "title": "Alpha",
+              "content": "<p>Alpha text <strong>bold</strong>.</p>",
+              "chapterId": "id-1"
+            },
+            {
+              "id": "id-4",
+              "title": "Beta",
+              "content": "<p>Beta text.</p>",
+              "chapterId": "id-3"
+            }
+          ],
+          "chapters": [
+            {
+              "id": "id-1",
+              "title": "Draft",
+              "expanded": true,
+              "summary": ""
+            },
+            {
+              "id": "id-3",
+              "title": "Part One",
+              "expanded": true,
+              "summary": "Part synopsis"
+            }
+          ],
+          "activeDocumentId": "id-2",
+          "projectGoal": 50000,
+          "chapterGoals": {},
+          "activity": {},
+          "storyboardCards": [],
+          "storyboardRows": [
+            {
+              "id": "id-8",
+              "title": "Timeline"
+            }
+          ],
+          "timelineNodes": [],
+          "noteFolders": [],
+          "researchFolderName": "",
+          "researchFolders": [],
+          "researchItems": [],
+          "publishOptions": {
+            "format": "pdf",
+            "style": "manuscript",
+            "customStyles": [],
+            "cover": {
+              "mode": "none",
+              "image": "",
+              "design": "classic",
+              "palette": "ink"
+            },
+            "includeTitlePage": true,
+            "includeCopyrightPage": false,
+            "includeTableOfContents": false,
+            "includeChapterTitles": true,
+            "includeSceneTitles": false,
+            "pageBreakBeforeChapters": true,
+            "sceneSeparator": "hash",
+            "dropCaps": true,
+            "footnotesRestartPerChapter": false,
+            "citationStyle": "apa7",
+            "citationLocale": "en",
+            "includeBibliography": true,
+            "subtitle": "",
+            "copyright": "",
+            "dedication": "",
+            "frontMatter": [],
+            "backMatter": []
+          }
+        },
+        "report": {
+          "chapters": 2,
+          "scenes": 2,
+          "wikiPages": 0,
+          "wikiFolders": 0,
+          "flattenedFolders": 0,
+          "skippedFiles": 0,
+          "itemsWithNotes": 1,
+          "missingFiles": 0,
+          "layout": "data"
+        }
+      },
+      "error": null
+    },
+    {
+      "name": "folders",
+      "files": [
+        {
+          "path": "project.scrivx",
+          "bytes": "PFNjcml2ZW5lclByb2plY3QgVmVyc2lvbj0iMS4wIj48QmluZGVyPjxCaW5kZXJJdGVtIElEPSIxIiBUeXBlPSJEcmFmdEZvbGRlciI+PFRpdGxlPk1hbnVzY3JpcHQ8L1RpdGxlPjxDaGlsZHJlbj48QmluZGVySXRlbSBJRD0iMTAiIFR5cGU9IkZvbGRlciI+PFRpdGxlPkNoYXB0ZXIgT25lPC9UaXRsZT48Q2hpbGRyZW4+PEJpbmRlckl0ZW0gSUQ9IjExIiBUeXBlPSJUZXh0Ij48VGl0bGU+U2NlbmUgQTwvVGl0bGU+PC9CaW5kZXJJdGVtPjxCaW5kZXJJdGVtIElEPSIxMiIgVHlwZT0iVGV4dCI+PFRpdGxlPlNjZW5lIEI8L1RpdGxlPjxDaGlsZHJlbj48QmluZGVySXRlbSBJRD0iMTMiIFR5cGU9IlRleHQiPjxUaXRsZT5DaGlsZDwvVGl0bGU+PC9CaW5kZXJJdGVtPjwvQ2hpbGRyZW4+PC9CaW5kZXJJdGVtPjwvQ2hpbGRyZW4+PC9CaW5kZXJJdGVtPjxCaW5kZXJJdGVtIElEPSIyMCIgVHlwZT0iRm9sZGVyIj48VGl0bGU+Q2hhcHRlciBUd288L1RpdGxlPjxDaGlsZHJlbj48QmluZGVySXRlbSBJRD0iMjEiIFR5cGU9IkZvbGRlciI+PFRpdGxlPk5lc3RlZDwvVGl0bGU+PENoaWxkcmVuPjxCaW5kZXJJdGVtIElEPSIyMiIgVHlwZT0iVGV4dCI+PFRpdGxlPkRlZXA8L1RpdGxlPjwvQmluZGVySXRlbT48L0NoaWxkcmVuPjwvQmluZGVySXRlbT48L0NoaWxkcmVuPjwvQmluZGVySXRlbT48QmluZGVySXRlbSBJRD0iMzAiIFR5cGU9IlRleHQiPjxUaXRsZT5Mb29zZTwvVGl0bGU+PC9CaW5kZXJJdGVtPjxCaW5kZXJJdGVtIElEPSI0MCIgVHlwZT0iSW1hZ2UiPjxUaXRsZT5QaWN0dXJlPC9UaXRsZT48L0JpbmRlckl0ZW0+PC9DaGlsZHJlbj48L0JpbmRlckl0ZW0+PC9CaW5kZXI+PC9TY3JpdmVuZXJQcm9qZWN0Pg=="
+        },
+        {
+          "path": "Files/Docs/10.rtf",
+          "bytes": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjAge1xmb250dGJse1xmMCBBcmlhbDt9fVxwYXJkIEZvbGRlciB0ZXh0LlxwYXJ9"
+        },
+        {
+          "path": "Files/Docs/11.rtf",
+          "bytes": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjAge1xmb250dGJse1xmMCBBcmlhbDt9fVxwYXJkIEEuXHBhcn0="
+        },
+        {
+          "path": "Files/Docs/12.rtf",
+          "bytes": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjAge1xmb250dGJse1xmMCBBcmlhbDt9fVxwYXJkIEIuXHBhcn0="
+        },
+        {
+          "path": "Files/Docs/13.rtf",
+          "bytes": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjAge1xmb250dGJse1xmMCBBcmlhbDt9fVxwYXJkIEMuXHBhcn0="
+        },
+        {
+          "path": "Files/Docs/22.rtf",
+          "bytes": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjAge1xmb250dGJse1xmMCBBcmlhbDt9fVxwYXJkIEQuXHBhcn0="
+        },
+        {
+          "path": "Files/Docs/30.rtf",
+          "bytes": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjAge1xmb250dGJse1xmMCBBcmlhbDt9fVxwYXJkIEwuXHBhcn0="
+        }
+      ],
+      "projectName": null,
+      "result": {
+        "project": {
+          "id": "id-13",
+          "name": "Imported Scrivener project",
+          "author": "",
+          "documents": [
+            {
+              "id": "id-10",
+              "title": "Loose",
+              "content": "<p>L.</p>",
+              "chapterId": "id-1"
+            },
+            {
+              "id": "id-3",
+              "title": "Chapter One",
+              "content": "<p>Folder text.</p>",
+              "chapterId": "id-2"
+            },
+            {
+              "id": "id-4",
+              "title": "Scene A",
+              "content": "<p>A.</p>",
+              "chapterId": "id-2"
+            },
+            {
+              "id": "id-5",
+              "title": "Scene B",
+              "content": "<p>B.</p>",
+              "chapterId": "id-2"
+            },
+            {
+              "id": "id-6",
+              "title": "Child",
+              "content": "<p>C.</p>",
+              "chapterId": "id-2"
+            },
+            {
+              "id": "id-9",
+              "title": "Deep",
+              "content": "<p>D.</p>",
+              "chapterId": "id-8"
+            }
+          ],
+          "chapters": [
+            {
+              "id": "id-1",
+              "title": "Manuscript",
+              "expanded": true,
+              "summary": ""
+            },
+            {
+              "id": "id-2",
+              "title": "Chapter One",
+              "expanded": true,
+              "summary": ""
+            },
+            {
+              "id": "id-8",
+              "title": "Nested",
+              "expanded": true,
+              "summary": ""
+            }
+          ],
+          "activeDocumentId": "id-10",
+          "projectGoal": 50000,
+          "chapterGoals": {},
+          "activity": {},
+          "storyboardCards": [],
+          "storyboardRows": [
+            {
+              "id": "id-14",
+              "title": "Timeline"
+            }
+          ],
+          "timelineNodes": [],
+          "noteFolders": [],
+          "researchFolderName": "",
+          "researchFolders": [],
+          "researchItems": [],
+          "publishOptions": {
+            "format": "pdf",
+            "style": "manuscript",
+            "customStyles": [],
+            "cover": {
+              "mode": "none",
+              "image": "",
+              "design": "classic",
+              "palette": "ink"
+            },
+            "includeTitlePage": true,
+            "includeCopyrightPage": false,
+            "includeTableOfContents": false,
+            "includeChapterTitles": true,
+            "includeSceneTitles": false,
+            "pageBreakBeforeChapters": true,
+            "sceneSeparator": "hash",
+            "dropCaps": true,
+            "footnotesRestartPerChapter": false,
+            "citationStyle": "apa7",
+            "citationLocale": "en",
+            "includeBibliography": true,
+            "subtitle": "",
+            "copyright": "",
+            "dedication": "",
+            "frontMatter": [],
+            "backMatter": []
+          }
+        },
+        "report": {
+          "chapters": 3,
+          "scenes": 6,
+          "wikiPages": 0,
+          "wikiFolders": 0,
+          "flattenedFolders": 1,
+          "skippedFiles": 1,
+          "itemsWithNotes": 0,
+          "missingFiles": 0,
+          "layout": "docs"
+        }
+      },
+      "error": null
+    },
+    {
+      "name": "wiki",
+      "files": [
+        {
+          "path": "project.scrivx",
+          "bytes": "PFNjcml2ZW5lclByb2plY3QgVmVyc2lvbj0iMS4wIj48QmluZGVyPjxCaW5kZXJJdGVtIElEPSIxIiBUeXBlPSJEcmFmdEZvbGRlciI+PFRpdGxlPk1hbnVzY3JpcHQ8L1RpdGxlPjxDaGlsZHJlbj48QmluZGVySXRlbSBJRD0iNSIgVHlwZT0iVGV4dCI+PFRpdGxlPlM8L1RpdGxlPjwvQmluZGVySXRlbT48L0NoaWxkcmVuPjwvQmluZGVySXRlbT48QmluZGVySXRlbSBJRD0iMiIgVHlwZT0iUmVzZWFyY2hGb2xkZXIiPjxUaXRsZT5SZXNlYXJjaDwvVGl0bGU+PENoaWxkcmVuPjxCaW5kZXJJdGVtIElEPSI2MCIgVHlwZT0iRm9sZGVyIj48VGl0bGU+UGVvcGxlPC9UaXRsZT48Q2hpbGRyZW4+PEJpbmRlckl0ZW0gSUQ9IjYxIiBUeXBlPSJUZXh0Ij48VGl0bGU+TWFyYTwvVGl0bGU+PENoaWxkcmVuPjxCaW5kZXJJdGVtIElEPSI2MiIgVHlwZT0iVGV4dCI+PFRpdGxlPlN1YjwvVGl0bGU+PC9CaW5kZXJJdGVtPjwvQ2hpbGRyZW4+PC9CaW5kZXJJdGVtPjwvQ2hpbGRyZW4+PC9CaW5kZXJJdGVtPjxCaW5kZXJJdGVtIElEPSI2MyIgVHlwZT0iVGV4dCI+PFRpdGxlPkxvb3NlIHBhZ2U8L1RpdGxlPjwvQmluZGVySXRlbT48QmluZGVySXRlbSBJRD0iNjQiIFR5cGU9IlBERiI+PFRpdGxlPlBhcGVyPC9UaXRsZT48L0JpbmRlckl0ZW0+PC9DaGlsZHJlbj48L0JpbmRlckl0ZW0+PEJpbmRlckl0ZW0gSUQ9IjcwIiBUeXBlPSJGb2xkZXIiPjxUaXRsZT5PdGhlciBTdHVmZjwvVGl0bGU+PENoaWxkcmVuPjxCaW5kZXJJdGVtIElEPSI3MSIgVHlwZT0iVGV4dCI+PFRpdGxlPklkZWE8L1RpdGxlPjwvQmluZGVySXRlbT48L0NoaWxkcmVuPjwvQmluZGVySXRlbT48QmluZGVySXRlbSBJRD0iODAiIFR5cGU9IlRleHQiPjxUaXRsZT5Ub3Agbm90ZTwvVGl0bGU+PC9CaW5kZXJJdGVtPjxCaW5kZXJJdGVtIElEPSIzIiBUeXBlPSJUcmFzaEZvbGRlciI+PFRpdGxlPlRyYXNoPC9UaXRsZT48Q2hpbGRyZW4+PEJpbmRlckl0ZW0gSUQ9IjkwIiBUeXBlPSJUZXh0Ij48VGl0bGU+RGVsZXRlZDwvVGl0bGU+PC9CaW5kZXJJdGVtPjwvQ2hpbGRyZW4+PC9CaW5kZXJJdGVtPjxCaW5kZXJJdGVtIElEPSIyIiBUeXBlPSJSZXNlYXJjaEZvbGRlciI+PFRpdGxlPlJlc2VhcmNoPC9UaXRsZT48Q2hpbGRyZW4+PEJpbmRlckl0ZW0gSUQ9Ijk1IiBUeXBlPSJUZXh0Ij48VGl0bGU+U2Vjb25kIHJlc2VhcmNoPC9UaXRsZT48L0JpbmRlckl0ZW0+PC9DaGlsZHJlbj48L0JpbmRlckl0ZW0+PC9CaW5kZXI+PC9TY3JpdmVuZXJQcm9qZWN0Pg=="
+        },
+        {
+          "path": "Files/Docs/5.rtf",
+          "bytes": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjAge1xmb250dGJse1xmMCBBcmlhbDt9fVxwYXJkIFMuXHBhcn0="
+        },
+        {
+          "path": "Files/Docs/61.rtf",
+          "bytes": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjAge1xmb250dGJse1xmMCBBcmlhbDt9fVxwYXJkIE1hcmEgdGV4dC5ccGFyfQ=="
+        },
+        {
+          "path": "Files/Docs/63.rtf",
+          "bytes": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjAge1xmb250dGJse1xmMCBBcmlhbDt9fVxwYXJkIFBhZ2UuXHBhcn0="
+        },
+        {
+          "path": "Files/Docs/71.rtf",
+          "bytes": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjAge1xmb250dGJse1xmMCBBcmlhbDt9fVxwYXJkIElkZWEuXHBhcn0="
+        },
+        {
+          "path": "Files/Docs/80.rtf",
+          "bytes": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjAge1xmb250dGJse1xmMCBBcmlhbDt9fVxwYXJkIE5vdGUuXHBhcn0="
+        },
+        {
+          "path": "Files/Docs/90.rtf",
+          "bytes": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjAge1xmb250dGJse1xmMCBBcmlhbDt9fVxwYXJkIEdvbmUuXHBhcn0="
+        },
+        {
+          "path": "Files/Docs/62_notes.rtf",
+          "bytes": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjAge1xmb250dGJse1xmMCBBcmlhbDt9fVxwYXJkIHhccGFyfQ=="
+        }
+      ],
+      "projectName": null,
+      "result": {
+        "project": {
+          "id": "id-14",
+          "name": "Imported Scrivener project",
+          "author": "",
+          "documents": [
+            {
+              "id": "id-2",
+              "title": "S",
+              "content": "<p>S.</p>",
+              "chapterId": "id-1"
+            },
+            {
+              "id": "id-4",
+              "title": "Mara",
+              "content": "<p>Mara text.</p>",
+              "space": "Wiki",
+              "folderId": "id-3"
+            },
+            {
+              "id": "id-5",
+              "title": "Sub",
+              "content": "<p><br></p>",
+              "space": "Wiki",
+              "folderId": "id-3"
+            },
+            {
+              "id": "id-6",
+              "title": "Loose page",
+              "content": "<p>Page.</p>",
+              "space": "Wiki"
+            },
+            {
+              "id": "id-8",
+              "title": "Idea",
+              "content": "<p>Idea.</p>",
+              "space": "Wiki",
+              "folderId": "id-7"
+            },
+            {
+              "id": "id-9",
+              "title": "Top note",
+              "content": "<p>Note.</p>",
+              "space": "Wiki"
+            },
+            {
+              "id": "id-11",
+              "title": "Second research",
+              "content": "<p><br></p>",
+              "space": "Wiki",
+              "folderId": "id-10"
+            }
+          ],
+          "chapters": [
+            {
+              "id": "id-1",
+              "title": "Manuscript",
+              "expanded": true,
+              "summary": ""
+            }
+          ],
+          "activeDocumentId": "id-2",
+          "projectGoal": 50000,
+          "chapterGoals": {},
+          "activity": {},
+          "storyboardCards": [],
+          "storyboardRows": [
+            {
+              "id": "id-15",
+              "title": "Timeline"
+            }
+          ],
+          "timelineNodes": [],
+          "noteFolders": [],
+          "researchFolderName": "",
+          "researchFolders": [
+            {
+              "id": "id-3",
+              "title": "People",
+              "parentId": null
+            },
+            {
+              "id": "id-7",
+              "title": "Other Stuff",
+              "parentId": null
+            },
+            {
+              "id": "id-10",
+              "title": "Research",
+              "parentId": null
+            }
+          ],
+          "researchItems": [],
+          "publishOptions": {
+            "format": "pdf",
+            "style": "manuscript",
+            "customStyles": [],
+            "cover": {
+              "mode": "none",
+              "image": "",
+              "design": "classic",
+              "palette": "ink"
+            },
+            "includeTitlePage": true,
+            "includeCopyrightPage": false,
+            "includeTableOfContents": false,
+            "includeChapterTitles": true,
+            "includeSceneTitles": false,
+            "pageBreakBeforeChapters": true,
+            "sceneSeparator": "hash",
+            "dropCaps": true,
+            "footnotesRestartPerChapter": false,
+            "citationStyle": "apa7",
+            "citationLocale": "en",
+            "includeBibliography": true,
+            "subtitle": "",
+            "copyright": "",
+            "dedication": "",
+            "frontMatter": [],
+            "backMatter": []
+          }
+        },
+        "report": {
+          "chapters": 1,
+          "scenes": 1,
+          "wikiPages": 6,
+          "wikiFolders": 3,
+          "flattenedFolders": 0,
+          "skippedFiles": 1,
+          "itemsWithNotes": 1,
+          "missingFiles": 0,
+          "layout": "docs"
+        }
+      },
+      "error": null
+    },
+    {
+      "name": "missing",
+      "files": [
+        {
+          "path": "project.scrivx",
+          "bytes": "PFNjcml2ZW5lclByb2plY3QgVmVyc2lvbj0iMS4wIj48QmluZGVyPjxCaW5kZXJJdGVtIElEPSIxIiBUeXBlPSJEcmFmdEZvbGRlciI+PFRpdGxlPk1hbnVzY3JpcHQ8L1RpdGxlPjxDaGlsZHJlbj48QmluZGVySXRlbSBJRD0iNSIgVHlwZT0iVGV4dCI+PFRpdGxlPkVkaXRlZDwvVGl0bGU+PE1ldGFEYXRhPjxGaWxlRXh0ZW5zaW9uPnJ0ZjwvRmlsZUV4dGVuc2lvbj48L01ldGFEYXRhPjwvQmluZGVySXRlbT48QmluZGVySXRlbSBJRD0iNiIgVHlwZT0iVGV4dCI+PFRpdGxlPk5ldmVyIGVkaXRlZDwvVGl0bGU+PC9CaW5kZXJJdGVtPjxCaW5kZXJJdGVtIElEPSI3IiBUeXBlPSJUZXh0Ij48VGl0bGU+QnJva2VuPC9UaXRsZT48TWV0YURhdGE+PEZpbGVFeHRlbnNpb24+cnRmPC9GaWxlRXh0ZW5zaW9uPjwvTWV0YURhdGE+PC9CaW5kZXJJdGVtPjwvQ2hpbGRyZW4+PC9CaW5kZXJJdGVtPjwvQmluZGVyPjwvU2NyaXZlbmVyUHJvamVjdD4="
+        },
+        {
+          "path": "Files/Docs/7.rtf",
+          "bytes": "bm90IHJ0ZiBhdCBhbGwgAA=="
+        }
+      ],
+      "projectName": null,
+      "result": {
+        "project": {
+          "id": "id-7",
+          "name": "Imported Scrivener project",
+          "author": "",
+          "documents": [
+            {
+              "id": "id-2",
+              "title": "Edited",
+              "content": "<p><br></p>",
+              "chapterId": "id-1"
+            },
+            {
+              "id": "id-3",
+              "title": "Never edited",
+              "content": "<p><br></p>",
+              "chapterId": "id-1"
+            },
+            {
+              "id": "id-4",
+              "title": "Broken",
+              "content": "<p>not rtf at all </p>",
+              "chapterId": "id-1"
+            }
+          ],
+          "chapters": [
+            {
+              "id": "id-1",
+              "title": "Manuscript",
+              "expanded": true,
+              "summary": ""
+            }
+          ],
+          "activeDocumentId": "id-2",
+          "projectGoal": 50000,
+          "chapterGoals": {},
+          "activity": {},
+          "storyboardCards": [],
+          "storyboardRows": [
+            {
+              "id": "id-8",
+              "title": "Timeline"
+            }
+          ],
+          "timelineNodes": [],
+          "noteFolders": [],
+          "researchFolderName": "",
+          "researchFolders": [],
+          "researchItems": [],
+          "publishOptions": {
+            "format": "pdf",
+            "style": "manuscript",
+            "customStyles": [],
+            "cover": {
+              "mode": "none",
+              "image": "",
+              "design": "classic",
+              "palette": "ink"
+            },
+            "includeTitlePage": true,
+            "includeCopyrightPage": false,
+            "includeTableOfContents": false,
+            "includeChapterTitles": true,
+            "includeSceneTitles": false,
+            "pageBreakBeforeChapters": true,
+            "sceneSeparator": "hash",
+            "dropCaps": true,
+            "footnotesRestartPerChapter": false,
+            "citationStyle": "apa7",
+            "citationLocale": "en",
+            "includeBibliography": true,
+            "subtitle": "",
+            "copyright": "",
+            "dedication": "",
+            "frontMatter": [],
+            "backMatter": []
+          }
+        },
+        "report": {
+          "chapters": 1,
+          "scenes": 3,
+          "wikiPages": 0,
+          "wikiFolders": 0,
+          "flattenedFolders": 0,
+          "skippedFiles": 0,
+          "itemsWithNotes": 0,
+          "missingFiles": 1,
+          "layout": "docs"
+        }
+      },
+      "error": null
+    },
+    {
+      "name": "empty",
+      "files": [
+        {
+          "path": "project.scrivx",
+          "bytes": "PFNjcml2ZW5lclByb2plY3QgVmVyc2lvbj0iMS4wIj48QmluZGVyPjxCaW5kZXJJdGVtIElEPSIxIiBUeXBlPSJEcmFmdEZvbGRlciI+PFRpdGxlPk1hbnVzY3JpcHQ8L1RpdGxlPjwvQmluZGVySXRlbT48L0JpbmRlcj48L1Njcml2ZW5lclByb2plY3Q+"
+        }
+      ],
+      "projectName": null,
+      "result": {
+        "project": {
+          "id": "id-4",
+          "name": "Imported Scrivener project",
+          "author": "",
+          "documents": [
+            {
+              "id": "id-3",
+              "title": "Scene 1",
+              "content": "<p><br></p>",
+              "chapterId": "id-2"
+            }
+          ],
+          "chapters": [
+            {
+              "id": "id-2",
+              "title": "Chapter 1",
+              "expanded": true,
+              "summary": ""
+            }
+          ],
+          "activeDocumentId": "id-3",
+          "projectGoal": 50000,
+          "chapterGoals": {},
+          "activity": {},
+          "storyboardCards": [],
+          "storyboardRows": [
+            {
+              "id": "id-5",
+              "title": "Timeline"
+            }
+          ],
+          "timelineNodes": [],
+          "noteFolders": [],
+          "researchFolderName": "",
+          "researchFolders": [],
+          "researchItems": [],
+          "publishOptions": {
+            "format": "pdf",
+            "style": "manuscript",
+            "customStyles": [],
+            "cover": {
+              "mode": "none",
+              "image": "",
+              "design": "classic",
+              "palette": "ink"
+            },
+            "includeTitlePage": true,
+            "includeCopyrightPage": false,
+            "includeTableOfContents": false,
+            "includeChapterTitles": true,
+            "includeSceneTitles": false,
+            "pageBreakBeforeChapters": true,
+            "sceneSeparator": "hash",
+            "dropCaps": true,
+            "footnotesRestartPerChapter": false,
+            "citationStyle": "apa7",
+            "citationLocale": "en",
+            "includeBibliography": true,
+            "subtitle": "",
+            "copyright": "",
+            "dedication": "",
+            "frontMatter": [],
+            "backMatter": []
+          }
+        },
+        "report": {
+          "chapters": 0,
+          "scenes": 0,
+          "wikiPages": 0,
+          "wikiFolders": 0,
+          "flattenedFolders": 0,
+          "skippedFiles": 0,
+          "itemsWithNotes": 0,
+          "missingFiles": 0,
+          "layout": "docs"
+        }
+      },
+      "error": null
+    },
+    {
+      "name": "draft-text",
+      "files": [
+        {
+          "path": "project.scrivx",
+          "bytes": "PFNjcml2ZW5lclByb2plY3QgVmVyc2lvbj0iMS4wIj48QmluZGVyPjxCaW5kZXJJdGVtIElEPSIxIiBUeXBlPSJEcmFmdEZvbGRlciI+PFRpdGxlPk1hbnVzY3JpcHQ8L1RpdGxlPjxDaGlsZHJlbj48QmluZGVySXRlbSBJRD0iNSIgVHlwZT0iVGV4dCI+PFRpdGxlPk9uZTwvVGl0bGU+PC9CaW5kZXJJdGVtPjwvQ2hpbGRyZW4+PC9CaW5kZXJJdGVtPjwvQmluZGVyPjwvU2NyaXZlbmVyUHJvamVjdD4="
+        },
+        {
+          "path": "Files/Docs/1.rtf",
+          "bytes": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjAge1xmb250dGJse1xmMCBBcmlhbDt9fVxwYXJkIERyYWZ0J3Mgb3duIHRleHQuXHBhcn0="
+        },
+        {
+          "path": "Files/Docs/5.rtf",
+          "bytes": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjAge1xmb250dGJse1xmMCBBcmlhbDt9fVxwYXJkIE9uZS5ccGFyfQ=="
+        }
+      ],
+      "projectName": null,
+      "result": {
+        "project": {
+          "id": "id-6",
+          "name": "Imported Scrivener project",
+          "author": "",
+          "documents": [
+            {
+              "id": "id-2",
+              "title": "Manuscript",
+              "content": "<p>Draft's own text.</p>",
+              "chapterId": "id-1"
+            },
+            {
+              "id": "id-3",
+              "title": "One",
+              "content": "<p>One.</p>",
+              "chapterId": "id-1"
+            }
+          ],
+          "chapters": [
+            {
+              "id": "id-1",
+              "title": "Manuscript",
+              "expanded": true,
+              "summary": ""
+            }
+          ],
+          "activeDocumentId": "id-2",
+          "projectGoal": 50000,
+          "chapterGoals": {},
+          "activity": {},
+          "storyboardCards": [],
+          "storyboardRows": [
+            {
+              "id": "id-7",
+              "title": "Timeline"
+            }
+          ],
+          "timelineNodes": [],
+          "noteFolders": [],
+          "researchFolderName": "",
+          "researchFolders": [],
+          "researchItems": [],
+          "publishOptions": {
+            "format": "pdf",
+            "style": "manuscript",
+            "customStyles": [],
+            "cover": {
+              "mode": "none",
+              "image": "",
+              "design": "classic",
+              "palette": "ink"
+            },
+            "includeTitlePage": true,
+            "includeCopyrightPage": false,
+            "includeTableOfContents": false,
+            "includeChapterTitles": true,
+            "includeSceneTitles": false,
+            "pageBreakBeforeChapters": true,
+            "sceneSeparator": "hash",
+            "dropCaps": true,
+            "footnotesRestartPerChapter": false,
+            "citationStyle": "apa7",
+            "citationLocale": "en",
+            "includeBibliography": true,
+            "subtitle": "",
+            "copyright": "",
+            "dedication": "",
+            "frontMatter": [],
+            "backMatter": []
+          }
+        },
+        "report": {
+          "chapters": 1,
+          "scenes": 2,
+          "wikiPages": 0,
+          "wikiFolders": 0,
+          "flattenedFolders": 0,
+          "skippedFiles": 0,
+          "itemsWithNotes": 0,
+          "missingFiles": 0,
+          "layout": "docs"
+        }
+      },
+      "error": null
+    },
+    {
+      "name": "wrapped",
+      "files": [
+        {
+          "path": "My Novel.scriv/project.scrivx",
+          "bytes": "PFNjcml2ZW5lclByb2plY3QgVmVyc2lvbj0iMS4wIj48QmluZGVyPjxCaW5kZXJJdGVtIElEPSIxIiBUeXBlPSJEcmFmdEZvbGRlciI+PFRpdGxlPk1hbnVzY3JpcHQ8L1RpdGxlPjxDaGlsZHJlbj48QmluZGVySXRlbSBJRD0iNSIgVHlwZT0iVGV4dCI+PFRpdGxlPk9wZW5pbmc8L1RpdGxlPjwvQmluZGVySXRlbT48L0NoaWxkcmVuPjwvQmluZGVySXRlbT48L0JpbmRlcj48L1Njcml2ZW5lclByb2plY3Q+"
+        },
+        {
+          "path": "My Novel.scriv/Files/Docs/5.rtf",
+          "bytes": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjAge1xmb250dGJse1xmMCBBcmlhbDt9fVxwYXJkIFdyYXBwZWQuXHBhcn0="
+        },
+        {
+          "path": "Other/project.scrivx",
+          "bytes": "PHgvPg=="
+        }
+      ],
+      "projectName": null,
+      "result": null,
+      "error": "Scrivener import: project.scrivx has no Binder."
+    },
+    {
+      "name": "named",
+      "files": [
+        {
+          "path": "project.scrivx",
+          "bytes": "PFNjcml2ZW5lclByb2plY3QgVmVyc2lvbj0iMS4wIj48QmluZGVyPjxCaW5kZXJJdGVtIElEPSIxIiBUeXBlPSJEcmFmdEZvbGRlciI+PFRpdGxlPk1hbnVzY3JpcHQ8L1RpdGxlPjxDaGlsZHJlbj48QmluZGVySXRlbSBJRD0iNSIgVHlwZT0iVGV4dCI+PFRpdGxlPiAgU3BhY2VkCiB0aXRsZSAgPC9UaXRsZT48L0JpbmRlckl0ZW0+PC9DaGlsZHJlbj48L0JpbmRlckl0ZW0+PC9CaW5kZXI+PC9TY3JpdmVuZXJQcm9qZWN0Pg=="
+        },
+        {
+          "path": "Files/Docs/5.rtf",
+          "bytes": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjAge1xmb250dGJse1xmMCBBcmlhbDt9fVxwYXJkIHhccGFyfQ=="
+        }
+      ],
+      "projectName": "  Given Name.scriv ",
+      "result": {
+        "project": {
+          "id": "id-5",
+          "name": "Given Name",
+          "author": "",
+          "documents": [
+            {
+              "id": "id-2",
+              "title": "Spaced title",
+              "content": "<p>x</p>",
+              "chapterId": "id-1"
+            }
+          ],
+          "chapters": [
+            {
+              "id": "id-1",
+              "title": "Manuscript",
+              "expanded": true,
+              "summary": ""
+            }
+          ],
+          "activeDocumentId": "id-2",
+          "projectGoal": 50000,
+          "chapterGoals": {},
+          "activity": {},
+          "storyboardCards": [],
+          "storyboardRows": [
+            {
+              "id": "id-6",
+              "title": "Timeline"
+            }
+          ],
+          "timelineNodes": [],
+          "noteFolders": [],
+          "researchFolderName": "",
+          "researchFolders": [],
+          "researchItems": [],
+          "publishOptions": {
+            "format": "pdf",
+            "style": "manuscript",
+            "customStyles": [],
+            "cover": {
+              "mode": "none",
+              "image": "",
+              "design": "classic",
+              "palette": "ink"
+            },
+            "includeTitlePage": true,
+            "includeCopyrightPage": false,
+            "includeTableOfContents": false,
+            "includeChapterTitles": true,
+            "includeSceneTitles": false,
+            "pageBreakBeforeChapters": true,
+            "sceneSeparator": "hash",
+            "dropCaps": true,
+            "footnotesRestartPerChapter": false,
+            "citationStyle": "apa7",
+            "citationLocale": "en",
+            "includeBibliography": true,
+            "subtitle": "",
+            "copyright": "",
+            "dedication": "",
+            "frontMatter": [],
+            "backMatter": []
+          }
+        },
+        "report": {
+          "chapters": 1,
+          "scenes": 1,
+          "wikiPages": 0,
+          "wikiFolders": 0,
+          "flattenedFolders": 0,
+          "skippedFiles": 0,
+          "itemsWithNotes": 0,
+          "missingFiles": 0,
+          "layout": "docs"
+        }
+      },
+      "error": null
+    },
+    {
+      "name": "untitled",
+      "files": [
+        {
+          "path": "project.scrivx",
+          "bytes": "PFNjcml2ZW5lclByb2plY3QgVmVyc2lvbj0iMS4wIj48QmluZGVyPjxCaW5kZXJJdGVtIElEPSIxIiBUeXBlPSJEcmFmdEZvbGRlciI+PFRpdGxlPjwvVGl0bGU+PENoaWxkcmVuPjxCaW5kZXJJdGVtIElEPSI1IiBUeXBlPSJUZXh0Ij48VGl0bGU+PC9UaXRsZT48L0JpbmRlckl0ZW0+PEJpbmRlckl0ZW0gSUQ9IjYiIFR5cGU9IkZvbGRlciI+PFRpdGxlPjwvVGl0bGU+PC9CaW5kZXJJdGVtPjwvQ2hpbGRyZW4+PC9CaW5kZXJJdGVtPjwvQmluZGVyPjwvU2NyaXZlbmVyUHJvamVjdD4="
+        }
+      ],
+      "projectName": null,
+      "result": {
+        "project": {
+          "id": "id-6",
+          "name": "Imported Scrivener project",
+          "author": "",
+          "documents": [
+            {
+              "id": "id-2",
+              "title": "Untitled scene",
+              "content": "<p><br></p>",
+              "chapterId": "id-1"
+            }
+          ],
+          "chapters": [
+            {
+              "id": "id-1",
+              "title": "Draft",
+              "expanded": true,
+              "summary": ""
+            }
+          ],
+          "activeDocumentId": "id-2",
+          "projectGoal": 50000,
+          "chapterGoals": {},
+          "activity": {},
+          "storyboardCards": [],
+          "storyboardRows": [
+            {
+              "id": "id-7",
+              "title": "Timeline"
+            }
+          ],
+          "timelineNodes": [],
+          "noteFolders": [],
+          "researchFolderName": "",
+          "researchFolders": [],
+          "researchItems": [],
+          "publishOptions": {
+            "format": "pdf",
+            "style": "manuscript",
+            "customStyles": [],
+            "cover": {
+              "mode": "none",
+              "image": "",
+              "design": "classic",
+              "palette": "ink"
+            },
+            "includeTitlePage": true,
+            "includeCopyrightPage": false,
+            "includeTableOfContents": false,
+            "includeChapterTitles": true,
+            "includeSceneTitles": false,
+            "pageBreakBeforeChapters": true,
+            "sceneSeparator": "hash",
+            "dropCaps": true,
+            "footnotesRestartPerChapter": false,
+            "citationStyle": "apa7",
+            "citationLocale": "en",
+            "includeBibliography": true,
+            "subtitle": "",
+            "copyright": "",
+            "dedication": "",
+            "frontMatter": [],
+            "backMatter": []
+          }
+        },
+        "report": {
+          "chapters": 1,
+          "scenes": 1,
+          "wikiPages": 0,
+          "wikiFolders": 0,
+          "flattenedFolders": 0,
+          "skippedFiles": 0,
+          "itemsWithNotes": 0,
+          "missingFiles": 0,
+          "layout": "docs"
+        }
+      },
+      "error": null
+    },
+    {
+      "name": "long-synopsis",
+      "files": [
+        {
+          "path": "project.scrivx",
+          "bytes": "PFNjcml2ZW5lclByb2plY3QgVmVyc2lvbj0iMS4wIj48QmluZGVyPjxCaW5kZXJJdGVtIElEPSIxIiBUeXBlPSJEcmFmdEZvbGRlciI+PFRpdGxlPk1hbnVzY3JpcHQ8L1RpdGxlPjxDaGlsZHJlbj48QmluZGVySXRlbSBJRD0iNiIgVHlwZT0iRm9sZGVyIj48VGl0bGU+RjwvVGl0bGU+PENoaWxkcmVuPjxCaW5kZXJJdGVtIElEPSI3IiBUeXBlPSJUZXh0Ij48VGl0bGU+czwvVGl0bGU+PC9CaW5kZXJJdGVtPjwvQ2hpbGRyZW4+PC9CaW5kZXJJdGVtPjwvQ2hpbGRyZW4+PC9CaW5kZXJJdGVtPjwvQmluZGVyPjwvU2NyaXZlbmVyUHJvamVjdD4="
+        },
+        {
+          "path": "Files/Docs/6_synopsis.txt",
+          "bytes": "d29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCA="
+        },
+        {
+          "path": "Files/Docs/7.rtf",
+          "bytes": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjAge1xmb250dGJse1xmMCBBcmlhbDt9fVxwYXJkIHhccGFyfQ=="
+        }
+      ],
+      "projectName": null,
+      "result": {
+        "project": {
+          "id": "id-6",
+          "name": "Imported Scrivener project",
+          "author": "",
+          "documents": [
+            {
+              "id": "id-3",
+              "title": "s",
+              "content": "<p>x</p>",
+              "chapterId": "id-2"
+            }
+          ],
+          "chapters": [
+            {
+              "id": "id-2",
+              "title": "F",
+              "expanded": true,
+              "summary": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word"
+            }
+          ],
+          "activeDocumentId": "id-3",
+          "projectGoal": 50000,
+          "chapterGoals": {},
+          "activity": {},
+          "storyboardCards": [],
+          "storyboardRows": [
+            {
+              "id": "id-7",
+              "title": "Timeline"
+            }
+          ],
+          "timelineNodes": [],
+          "noteFolders": [],
+          "researchFolderName": "",
+          "researchFolders": [],
+          "researchItems": [],
+          "publishOptions": {
+            "format": "pdf",
+            "style": "manuscript",
+            "customStyles": [],
+            "cover": {
+              "mode": "none",
+              "image": "",
+              "design": "classic",
+              "palette": "ink"
+            },
+            "includeTitlePage": true,
+            "includeCopyrightPage": false,
+            "includeTableOfContents": false,
+            "includeChapterTitles": true,
+            "includeSceneTitles": false,
+            "pageBreakBeforeChapters": true,
+            "sceneSeparator": "hash",
+            "dropCaps": true,
+            "footnotesRestartPerChapter": false,
+            "citationStyle": "apa7",
+            "citationLocale": "en",
+            "includeBibliography": true,
+            "subtitle": "",
+            "copyright": "",
+            "dedication": "",
+            "frontMatter": [],
+            "backMatter": []
+          }
+        },
+        "report": {
+          "chapters": 1,
+          "scenes": 1,
+          "wikiPages": 0,
+          "wikiFolders": 0,
+          "flattenedFolders": 0,
+          "skippedFiles": 0,
+          "itemsWithNotes": 0,
+          "missingFiles": 0,
+          "layout": "docs"
+        }
+      },
+      "error": null
+    },
+    {
+      "name": "bad-xml",
+      "files": [
+        {
+          "path": "project.scrivx",
+          "bytes": "PFNjcml2ZW5lclByb2plY3Q+PEJpbmRlcj4="
+        }
+      ],
+      "projectName": null,
+      "result": null,
+      "error": "Scrivener import: project.scrivx is not valid XML."
+    },
+    {
+      "name": "no-binder",
+      "files": [
+        {
+          "path": "project.scrivx",
+          "bytes": "PFNjcml2ZW5lclByb2plY3QvPg=="
+        }
+      ],
+      "projectName": null,
+      "result": null,
+      "error": "Scrivener import: project.scrivx has no Binder."
+    },
+    {
+      "name": "no-scrivx",
+      "files": [
+        {
+          "path": "Files/Docs/1.rtf",
+          "bytes": "e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjAge1xmb250dGJse1xmMCBBcmlhbDt9fVxwYXJkIHhccGFyfQ=="
+        }
+      ],
+      "projectName": null,
+      "result": null,
+      "error": "Scrivener import: project.scrivx is missing."
+    }
+  ],
+  "zips": [
+    {
+      "name": "zip",
+      "zip": "UEsDBBQAAAAIAPuccV1Y6OEThgAAAOYAAAAaAAAATm92ZWwuc2NyaXYvcHJvamVjdC5zY3JpdnizCU4uyixLzUstCijKz0pNLlEISy0qzszPs1Uy1DNQsrNxysxLSS2C0Z4lqbkKni5ASSWFkMqCVFsll6LEtBK3/BygJFB1SGZJTqqdb2JeaTHQ3IISG32IiI1zRmZOSlFqHoZBpjCDQlIrSuAmRGUWFKSmwHXrIzQBOQizUMVhTtVH95MdAFBLAwQUAAAACAD7nHFdLrRG3kUAAABKAAAAHAAAAE5vdmVsLnNjcml2L0ZpbGVzL0RvY3MvNS5ydGarjikqSTOMScwrzgQTyQXphkamRjEpqWlpBgrVMWn5eSUlSTlAhoGCY1FmYo51bW1MQWJRioJbUX6uQqJCVWaBHkigFgBQSwMEFAAAAAgA+5xxXTmc+wYGAAAABAAAABgAAABfX01BQ09TWC9Ob3ZlbC5zY3Jpdi8uX3jLKs3LBgBQSwMEFAAAAAgA+5xxXTmc+wYGAAAABAAAABUAAABOb3ZlbC5zY3Jpdi8uRFNfU3RvcmXLKs3LBgBQSwECFAAUAAAACAD7nHFdWOjhE4YAAADmAAAAGgAAAAAAAAAAAAAAAAAAAAAATm92ZWwuc2NyaXYvcHJvamVjdC5zY3JpdnhQSwECFAAUAAAACAD7nHFdLrRG3kUAAABKAAAAHAAAAAAAAAAAAAAAAAC+AAAATm92ZWwuc2NyaXYvRmlsZXMvRG9jcy81LnJ0ZlBLAQIUABQAAAAIAPuccV05nPsGBgAAAAQAAAAYAAAAAAAAAAAAAAAAAD0BAABfX01BQ09TWC9Ob3ZlbC5zY3Jpdi8uX3hQSwECFAAUAAAACAD7nHFdOZz7BgYAAAAEAAAAFQAAAAAAAAAAAAAAAAB5AQAATm92ZWwuc2NyaXYvLkRTX1N0b3JlUEsFBgAAAAAEAAQAGwEAALIBAAAAAA==",
+      "result": {
+        "project": {
+          "id": "id-5",
+          "name": "Novel",
+          "author": "",
+          "documents": [
+            {
+              "id": "id-2",
+              "title": "Zipped",
+              "content": "<p>From a zip.</p>",
+              "chapterId": "id-1"
+            }
+          ],
+          "chapters": [
+            {
+              "id": "id-1",
+              "title": "Manuscript",
+              "expanded": true,
+              "summary": ""
+            }
+          ],
+          "activeDocumentId": "id-2",
+          "projectGoal": 50000,
+          "chapterGoals": {},
+          "activity": {},
+          "storyboardCards": [],
+          "storyboardRows": [
+            {
+              "id": "id-6",
+              "title": "Timeline"
+            }
+          ],
+          "timelineNodes": [],
+          "noteFolders": [],
+          "researchFolderName": "",
+          "researchFolders": [],
+          "researchItems": [],
+          "publishOptions": {
+            "format": "pdf",
+            "style": "manuscript",
+            "customStyles": [],
+            "cover": {
+              "mode": "none",
+              "image": "",
+              "design": "classic",
+              "palette": "ink"
+            },
+            "includeTitlePage": true,
+            "includeCopyrightPage": false,
+            "includeTableOfContents": false,
+            "includeChapterTitles": true,
+            "includeSceneTitles": false,
+            "pageBreakBeforeChapters": true,
+            "sceneSeparator": "hash",
+            "dropCaps": true,
+            "footnotesRestartPerChapter": false,
+            "citationStyle": "apa7",
+            "citationLocale": "en",
+            "includeBibliography": true,
+            "subtitle": "",
+            "copyright": "",
+            "dedication": "",
+            "frontMatter": [],
+            "backMatter": []
+          }
+        },
+        "report": {
+          "chapters": 1,
+          "scenes": 1,
+          "wikiPages": 0,
+          "wikiFolders": 0,
+          "flattenedFolders": 0,
+          "skippedFiles": 0,
+          "itemsWithNotes": 0,
+          "missingFiles": 0,
+          "layout": "docs"
+        }
+      },
+      "error": null
+    },
+    {
+      "name": "zip-traversal",
+      "zip": "UEsDBBQAAAAIAPuccV1HDuwPZQAAAJAAAAAWAAAALi4vZXZpbC9wcm9qZWN0LnNjcml2eLMJTi7KLEvNSy0KKMrPSk0uUQhLLSrOzM+zVTLUM1Cys3HKzEtJLYLRniWpuQqeLkBJJYWQyoJUWyWXosS0Erf8HKAkUHVIZklOqp1vYl5pMdDcghIbfYiIjT5CP5wDZKDbbgcAUEsBAhQAFAAAAAgA+5xxXUcO7A9lAAAAkAAAABYAAAAAAAAAAAAAAAAAAAAAAC4uL2V2aWwvcHJvamVjdC5zY3JpdnhQSwUGAAAAAAEAAQBEAAAAmQAAAAAA",
+      "result": null,
+      "error": "Scrivener import: the project contains an unsafe path."
+    },
+    {
+      "name": "zip-absolute",
+      "zip": "UEsDBBQAAAAIAPuccV1HDuwPZQAAAJAAAAATAAAAL2Ficy9wcm9qZWN0LnNjcml2eLMJTi7KLEvNSy0KKMrPSk0uUQhLLSrOzM+zVTLUM1Cys3HKzEtJLYLRniWpuQqeLkBJJYWQyoJUWyWXosS0Erf8HKAkUHVIZklOqp1vYl5pMdDcghIbfYiIjT5CP5wDZKDbbgcAUEsBAhQAFAAAAAgA+5xxXUcO7A9lAAAAkAAAABMAAAAAAAAAAAAAAAAAAAAAAC9hYnMvcHJvamVjdC5zY3JpdnhQSwUGAAAAAAEAAQBBAAAAlgAAAAAA",
+      "result": null,
+      "error": "Scrivener import: the project contains an absolute path."
+    },
+    {
+      "name": "not-zip",
+      "zip": "bm90IGEgemlw",
+      "result": null,
+      "error": "Scrivener import: this file is not a readable zip archive."
+    }
+  ]
+}

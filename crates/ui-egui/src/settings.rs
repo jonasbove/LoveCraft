@@ -130,16 +130,35 @@ fn import_manuscript(ui: &mut Ui, state: &mut AppState) {
             .color(palette.text_heading),
     );
     ui.add_space(4.0);
-    if ui
-        .add_enabled(state.has_home, egui::Button::new("Import EPUB…"))
-        .clicked()
-    {
-        state.requests.push(crate::HostRequest::ImportEpub);
-    }
+    ui.horizontal_wrapped(|ui| {
+        for (label, request) in [
+            ("Import EPUB…", crate::HostRequest::ImportEpub),
+            (
+                "Import Scrivener zip…",
+                crate::HostRequest::ImportScrivenerZip,
+            ),
+            (
+                "Import Scrivener folder…",
+                crate::HostRequest::ImportScrivenerFolder,
+            ),
+        ] {
+            if ui
+                .add_enabled(state.has_home, egui::Button::new(label))
+                .clicked()
+            {
+                state.requests.push(request);
+            }
+        }
+    });
     help(
         ui,
         &palette,
         "Creates a new project from an EPUB file. Chapter structure and supported illustrations are preserved, and the cover becomes the project cover when it can be embedded.",
+    );
+    help(
+        ui,
+        &palette,
+        "Creates a new project from a Scrivener project (.scriv), as a zip or as a folder. Manuscript chapters and scenes become chapters and scenes, the research folder becomes wiki pages. Labels, status, keywords, notes and snapshots are not imported.",
     );
 }
 

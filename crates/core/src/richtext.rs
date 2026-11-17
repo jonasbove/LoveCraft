@@ -28,6 +28,64 @@ pub enum LineKind {
     Bullet,
     /// A numbered list item; neighbours share one list.
     Numbered,
+    /// A screenplay element: `<p data-sp="…">`. `bare` is an empty one written without the
+    /// editor's `<br>` (as a new screenplay scene starts: `<p data-sp="scene-heading"></p>`).
+    Screenplay {
+        kind: ScreenplayKind,
+        bare: bool,
+    },
+}
+
+/// The `data-sp` values ProseCraft keeps (its sanitizer's `screenplayTypes`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ScreenplayKind {
+    SceneHeading,
+    Action,
+    Character,
+    Dialogue,
+    Parenthetical,
+    Transition,
+    Centered,
+    Section,
+    Synopsis,
+    Note,
+    PageBreak,
+}
+
+impl ScreenplayKind {
+    pub const ALL: [Self; 11] = [
+        Self::SceneHeading,
+        Self::Action,
+        Self::Character,
+        Self::Dialogue,
+        Self::Parenthetical,
+        Self::Transition,
+        Self::Centered,
+        Self::Section,
+        Self::Synopsis,
+        Self::Note,
+        Self::PageBreak,
+    ];
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::SceneHeading => "scene-heading",
+            Self::Action => "action",
+            Self::Character => "character",
+            Self::Dialogue => "dialogue",
+            Self::Parenthetical => "parenthetical",
+            Self::Transition => "transition",
+            Self::Centered => "centered",
+            Self::Section => "section",
+            Self::Synopsis => "synopsis",
+            Self::Note => "note",
+            Self::PageBreak => "page-break",
+        }
+    }
+
+    pub fn from_name(name: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|k| k.as_str() == name)
+    }
 }
 
 impl LineKind {
@@ -41,6 +99,7 @@ impl LineKind {
             Self::Quote => ("p", Some("blockquote")),
             Self::Bullet => ("li", Some("ul")),
             Self::Numbered => ("li", Some("ol")),
+            Self::Screenplay { .. } => ("p", None),
         }
     }
 }
@@ -203,6 +262,20 @@ impl Reader {
         Some(())
     }
 
+    /// A `<p data-sp>` paragraph: a screenplay element (empty without a `<br>` too).
+    fn screenplay(&mut self, element: &Element) -> Option<()> {
+        let [(name, value)] = element.attrs.as_slice() else {
+            return None;
+        };
+        let kind = (name == "data-sp")
+            .then(|| ScreenplayKind::from_name(value))
+            .flatten()?;
+        let bare = element.children.is_empty();
+        let mut plain = element.clone();
+        plain.attrs.clear();
+        self.block(&plain, LineKind::Screenplay { kind, bare })
+    }
+
     /// One block: its children are inline content; ProseCraft's empty block is `<br>` alone.
     fn block(&mut self, element: &Element, kind: LineKind) -> Option<()> {
         if !element.attrs.is_empty() {
@@ -254,6 +327,7 @@ impl RichDoc {
                 Some(())
             };
             match element.name.as_str() {
+                "p" if element.attr("data-sp").is_some() => reader.screenplay(element)?,
                 "p" => reader.block(element, LineKind::Paragraph)?,
                 "h1" => reader.block(element, LineKind::Heading1)?,
                 "h2" => reader.block(element, LineKind::Heading2)?,
@@ -317,9 +391,19 @@ impl RichDoc {
                 }
                 container = wanted;
             }
-            out.push_str(&format!("<{block}>"));
-            if start == end {
-                out.push_str("<br>");
+            match kind {
+                LineKind::Screenplay { kind, bare } => {
+                    out.push_str(&format!(r#"<p data-sp="{}">"#, kind.as_str()));
+                    if start == end && !bare {
+                        out.push_str("<br>");
+                    }
+                }
+                _ => {
+                    out.push_str(&format!("<{block}>"));
+                    if start == end {
+                        out.push_str("<br>");
+                    }
+                }
             }
             let mut open: Vec<&Tag> = Vec::new();
             for i in start..end {
@@ -458,6 +542,8 @@ impl RichDoc {
         self.lines.drain((line + 1).min(end)..end);
         let follow = match kind {
             LineKind::Heading1 | LineKind::Heading2 | LineKind::Heading3 => LineKind::Paragraph,
+            // A new screenplay element is written as the editor writes it (with its `<br>`).
+            LineKind::Screenplay { kind, .. } => LineKind::Screenplay { kind, bare: false },
             other => other,
         };
         let breaks_added = inserted.iter().filter(|c| **c == '\n').count();
@@ -698,7 +784,8 @@ mod tests {
     #[test]
     fn refuses_what_it_cannot_write_back() {
         for html in [
-            r#"<p data-sp="action">x</p>"#,
+            r#"<p data-sp="action" class="x">x</p>"#,
+            r#"<p data-sp="unknown">x</p>"#,
             "<p>a<br>b</p>",
             "<table><tr><td>x</td></tr></table>",
             "<p><img src=\"data:image/png;base64,AA==\"></p>",

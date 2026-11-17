@@ -26,6 +26,7 @@ mod labels;
 mod library;
 mod project_settings;
 mod publish;
+mod screenplay_editor;
 mod scrivener_import;
 mod settings;
 mod sidebar;

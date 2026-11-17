@@ -142,6 +142,9 @@ pub struct Comment {
     pub id: String,
     pub document_id: String,
     pub quote: String,
+    /// The text around the quote, to find it again after edits.
+    pub prefix: String,
+    pub suffix: String,
     pub body: String,
     pub author: String,
     pub created_at: f64,
@@ -313,6 +316,8 @@ impl Project {
                     id: text(c, "id"),
                     document_id: text(c, "documentId"),
                     quote: text(c, "quote"),
+                    prefix: text(c, "prefix"),
+                    suffix: text(c, "suffix"),
                     body: text(c, "body"),
                     author: text(c, "author"),
                     created_at: number(c, "createdAt").unwrap_or(0.0),

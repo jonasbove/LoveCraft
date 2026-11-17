@@ -187,3 +187,64 @@ fn markdown_matches_prosecraft() {
         failures.join("\n")
     );
 }
+
+#[test]
+fn comment_anchors_match_prosecraft() {
+    use prosecraft_core::comments::{Anchor, build_anchor, comment_text, locate_anchor};
+    let fixture = fixture("comments.json");
+    let units = |v: &JsValue| {
+        v.as_js_string()
+            .map(|s| s.units().to_vec())
+            .expect("string")
+    };
+    for case in fixture
+        .get("texts")
+        .and_then(JsValue::as_array)
+        .expect("texts")
+    {
+        let html = text(case, "html");
+        assert_eq!(
+            comment_text(&html),
+            units(case.get("text").expect("text")),
+            "{html}"
+        );
+    }
+    let sample = units(fixture.get("sample").expect("sample"));
+    let read = |a: &JsValue| Anchor {
+        quote: units(a.get("quote").expect("q")),
+        prefix: units(a.get("prefix").expect("p")),
+        suffix: units(a.get("suffix").expect("s")),
+    };
+    for case in fixture
+        .get("anchors")
+        .and_then(JsValue::as_array)
+        .expect("anchors")
+    {
+        let n = |k: &str| case.get(k).and_then(JsValue::as_number).expect(k) as usize;
+        let want = case.get("anchor").filter(|a| !a.is_null()).map(read);
+        assert_eq!(
+            build_anchor(&sample, n("start"), n("end")),
+            want,
+            "{} {}",
+            n("start"),
+            n("end")
+        );
+    }
+    let edited = units(fixture.get("edited").expect("edited"));
+    for case in fixture
+        .get("located")
+        .and_then(JsValue::as_array)
+        .expect("located")
+    {
+        let found = case.get("found").filter(|f| !f.is_null()).map(|f| {
+            (
+                f.get("start").and_then(JsValue::as_number).expect("s") as usize,
+                f.get("end").and_then(JsValue::as_number).expect("e") as usize,
+            )
+        });
+        assert_eq!(
+            locate_anchor(&edited, &read(case.get("anchor").expect("anchor"))),
+            found
+        );
+    }
+}

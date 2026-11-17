@@ -29,6 +29,10 @@ impl ProseApp {
         };
         self.state.sync.available = home.store.supports_sync();
         self.state.sync.craftcloud = home.store.has_craftcloud();
+        self.state.comment_author = home
+            .store
+            .load_setting(crate::COMMENT_AUTHOR_KEY)
+            .unwrap_or_default();
         self.state.theme = home
             .store
             .load_setting(crate::settings::THEME_KEY)

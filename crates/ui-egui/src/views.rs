@@ -78,6 +78,11 @@ struct Edit<'a> {
     intents: &'a mut Vec<Intent>,
     save_state: &'a SaveState,
     now: f64,
+    /// The editor's Comment button: the passage chosen, and the sidebar tab to show.
+    pending_comment: &'a mut Option<crate::PendingComment>,
+    side_tab: &'a mut crate::SideTab,
+    /// A passage to select ("Go to" in the Comments tab): document, editor start and end.
+    comment_goto: &'a mut Option<(String, usize, usize)>,
 }
 
 pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
@@ -113,6 +118,9 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         now_ms,
         book_id,
         requests,
+        pending_comment,
+        side_tab,
+        comment_goto,
         ..
     } = state;
     let entry = library.as_ref().and_then(|l| l.projects().get(*active));
@@ -138,6 +146,9 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         intents,
         save_state,
         now: *now,
+        pending_comment,
+        side_tab,
+        comment_goto,
     };
     let mut chosen = None;
     egui::ScrollArea::vertical()
@@ -717,6 +728,31 @@ fn editor(
                     changed_format = true;
                 }
             }
+            ui.separator();
+            // ProseCraft's comment button: a comment on the selected passage.
+            let selected = selection.clone().filter(|r| !r.is_empty());
+            let comment = ui
+                .add_enabled(selected.is_some(), egui::Button::new("Comment"))
+                .on_hover_text("Comment on the selected text");
+            name_field(ui, &comment, "Comment");
+            if comment.clicked()
+                && let Some(range) = selected
+            {
+                use prosecraft_core::comments::{build_anchor, editor_text};
+                let text = editor_text::comment_text(&draft.body);
+                let (start, end) = (
+                    editor_text::to_comment(&draft.body, range.start),
+                    editor_text::to_comment(&draft.body, range.end),
+                );
+                // Whitespace alone has nothing to anchor to.
+                if let Some(anchor) = build_anchor(&text, start, end) {
+                    *edit.pending_comment = Some(crate::PendingComment {
+                        document: document.id.clone(),
+                        anchor,
+                    });
+                    *edit.side_tab = crate::SideTab::Comments;
+                }
+            }
         });
     });
     if changed_format {
@@ -726,6 +762,23 @@ fn editor(
     }
     ui.add_space(14.0);
 
+    // "Go to" from the Comments tab: select the passage.
+    // Applied once the click that asked for it is over, so the click doesn't take the focus.
+    let settled = ui.input(|i| !i.pointer.any_down() && !i.pointer.any_released());
+    if let Some((_, start, end)) = edit
+        .comment_goto
+        .take_if(|(d, ..)| settled && *d == document.id)
+    {
+        let mut state = egui::TextEdit::load_state(ui.ctx(), body_id).unwrap_or_default();
+        state
+            .cursor
+            .set_char_range(Some(egui::text::CCursorRange::two(
+                egui::text::CCursor::new(start),
+                egui::text::CCursor::new(end),
+            )));
+        state.store(ui.ctx(), body_id);
+        ui.memory_mut(|m| m.request_focus(body_id));
+    }
     let doc_for_layout = draft.doc.clone();
     let layout_palette = *palette;
     let mut layouter = move |ui: &Ui, text: &dyn egui::TextBuffer, wrap_width: f32| {

@@ -12,6 +12,7 @@
 
 pub mod about;
 pub mod cite;
+pub mod comments;
 pub mod edit;
 pub mod html;
 pub mod js;

@@ -606,3 +606,122 @@ fn a_snapshot_is_taken_restored_and_deleted() {
             .is_some_and(|i| i.eq_str(&id))
     }));
 }
+
+#[test]
+fn a_comment_is_added_on_a_selection_resolved_and_found_again() {
+    let (mut harness, memory) = app();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    // Select "dark" in "It was dark.": Home, seven to the right, four with Shift.
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    // To the start of the first line (focus puts the caret at the end).
+    for _ in 0..3 {
+        harness.key_press_modifiers(egui::Modifiers::NONE, egui::Key::ArrowUp);
+    }
+    harness.key_press_modifiers(egui::Modifiers::NONE, egui::Key::Home);
+    for _ in 0..7 {
+        harness.key_press_modifiers(egui::Modifiers::NONE, egui::Key::ArrowRight);
+    }
+    for _ in 0..4 {
+        harness.key_press_modifiers(egui::Modifiers::SHIFT, egui::Key::ArrowRight);
+    }
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Comment")
+        .click();
+    harness.run();
+    harness.get_by_label("Comment text").focus();
+    harness
+        .get_by_label("Comment text")
+        .type_text("Darker still?");
+    harness.get_by_label("Author name").focus();
+    harness.get_by_label("Author name").type_text("Editor");
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Add comment")
+        .click();
+    harness.run_steps(12);
+
+    let saved = memory.last();
+    let comments = project(&saved, "project-1")
+        .get("project")
+        .and_then(|p| p.get("comments"))
+        .and_then(JsValue::as_array)
+        .expect("comments")
+        .to_vec();
+    let new = comments
+        .iter()
+        .find(|c| {
+            c.get("body")
+                .and_then(JsValue::as_js_string)
+                .is_some_and(|b| b.eq_str("Darker still?"))
+        })
+        .expect("the new comment");
+    let field = |k: &str| {
+        new.get(k)
+            .and_then(JsValue::as_js_string)
+            .map(|s| s.to_string_lossy())
+            .unwrap_or_default()
+    };
+    // Footnote markers and citations aren't part of the comment text, as in ProseCraft.
+    assert_eq!(
+        (
+            field("quote"),
+            field("prefix"),
+            field("suffix"),
+            field("author"),
+            field("documentId")
+        ),
+        (
+            "dark".into(),
+            "It was ".into(),
+            ".Then .".into(),
+            "Editor".into(),
+            "doc-1".into()
+        )
+    );
+    assert_eq!(new.get("resolved"), Some(&JsValue::Bool(false)));
+
+    // Resolve it, then find the passage again.
+    harness
+        .get_by_role_and_label(Role::Button, "Resolve comment “Darker still?” on “dark”")
+        .click();
+    harness.run_steps(12);
+    let saved = memory.last();
+    let resolved = project(&saved, "project-1")
+        .get("project")
+        .and_then(|p| p.get("comments"))
+        .and_then(JsValue::as_array)
+        .expect("comments")
+        .iter()
+        .any(|c| {
+            c.get("body")
+                .and_then(JsValue::as_js_string)
+                .is_some_and(|b| b.eq_str("Darker still?"))
+                && c.get("resolved") == Some(&JsValue::Bool(true))
+        });
+    assert!(resolved, "resolved");
+    // A resolved comment is hidden until resolved ones are shown.
+    harness
+        .get_by_role_and_label(Role::CheckBox, "Show resolved (1)")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Go to comment “Darker still?” on “dark”")
+        .click();
+    harness.run_steps(3);
+    // The editor's selection, as a screen reader reads it.
+    let selected = harness
+        .get_by_label("Scene text")
+        .accesskit_node()
+        .text_selection()
+        .map(|range| range.text());
+    assert_eq!(
+        selected.as_deref(),
+        Some("dark"),
+        "Go to selects the passage"
+    );
+}

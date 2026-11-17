@@ -18,6 +18,7 @@ tested against what the original really reads and writes, not against our readin
 | `export-html.json` | `exportHtml` for the same book under five option sets covering the four built-in styles, drop caps, per-chapter footnotes and every scene separator |
 | `export-epub.json` | `exportEpub` for the same book under four option sets, as the unzipped entries in order (the random book id and the time replaced by `urn:uuid:ID` and `MODIFIED`) |
 | `sync.json` | An encrypted sync folder and a single encrypted sync file written by ProseCraft's own providers, `safeName` cases, and eleven `mergeProjects` cases (every branch; `Math.random` pinned) |
+| `comments.json` | `commentText` (ProseCraft's comment-dom over jsdom) for the rich corpus and fixture scenes, and `buildAnchor` / `locateAnchor` cases (repeated phrases, whitespace, astral characters, edits) |
 | `bundle-plain.prosecraft` | A plain backup with two projects that touch every stored field, including a field from a "future release" |
 | `bundle-encrypted.prosecraft` | The same projects as an encrypted backup; `bundle-encrypted.key.json` holds its test passphrase and key |
 

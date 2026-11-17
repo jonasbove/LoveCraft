@@ -1,0 +1,232 @@
+{
+  "texts": [
+    {
+      "html": "<p>It was <em>dark</em>. Then it was <strong>not</strong>.</p>\n",
+      "text": "It was dark. Then it was not.\n"
+    },
+    {
+      "html": "<p>A <em>quiet</em> <s>loud</s> word and <code>code</code>.</p>\n",
+      "text": "A quiet loud word and code.\n"
+    },
+    {
+      "html": "<h1>Title</h1>\n<h2>Heading</h2>\n<h3>Subheading</h3>\n<p>Body text.</p>\n",
+      "text": "Title\nHeading\nSubheading\nBody text.\n"
+    },
+    {
+      "html": "<blockquote>\n<p>A quoted line.</p>\n</blockquote>\n<p>After the quote.</p>\n",
+      "text": "\nA quoted line.\n\nAfter the quote.\n"
+    },
+    {
+      "html": "<blockquote>\n<p>First quoted paragraph.</p>\n<p>Second quoted paragraph.</p>\n</blockquote>\n",
+      "text": "\nFirst quoted paragraph.\nSecond quoted paragraph.\n\n"
+    },
+    {
+      "html": "<ul>\n<li>one</li>\n<li>two</li>\n<li>three</li>\n</ul>\n",
+      "text": "\none\ntwo\nthree\n\n"
+    },
+    {
+      "html": "<ol>\n<li>first</li>\n<li>second</li>\n</ol>\n",
+      "text": "\nfirst\nsecond\n\n"
+    },
+    {
+      "html": "<ul>\n<li><em>styled</em> item</li>\n<li>plain item</li>\n</ul>\n",
+      "text": "\nstyled item\nplain item\n\n"
+    },
+    {
+      "html": "<p>A note.<sup class=\"footnote-ref\" data-footnote-id=\"n1\" contenteditable=\"false\"></sup></p>\n",
+      "text": "A note.\n"
+    },
+    {
+      "html": "<p>See <a href=\"https://example.com\">the site</a> now.</p>\n",
+      "text": "See the site now.\n"
+    },
+    {
+      "html": "<p><em><strong>bold italic</strong></em> and <strong>bold with <em>italic</em> inside</strong></p>\n",
+      "text": "bold italic and bold with italic inside\n"
+    },
+    {
+      "html": "<p>Line one\nline two in the same paragraph.</p>\n",
+      "text": "Line one\nline two in the same paragraph.\n"
+    },
+    {
+      "html": "<hr>\n<p>After a rule.</p>\n",
+      "text": "\nAfter a rule.\n"
+    },
+    {
+      "html": "<p>Inline math <span class=\"math-inline\" data-tex=\"x^2\"></span> here.</p>\n",
+      "text": "Inline math  here.\n"
+    },
+    {
+      "html": "<p><u>underlined</u> text</p>\n",
+      "text": "underlined text\n"
+    },
+    {
+      "html": "<p>Smart quotes “like these” and an em dash — here.</p>\n",
+      "text": "Smart quotes “like these” and an em dash — here.\n"
+    },
+    {
+      "html": "",
+      "text": ""
+    },
+    {
+      "html": "<p>It was <em>dark</em>.<sup class=\"footnote-ref\" data-footnote-id=\"fn-1\" contenteditable=\"false\"></sup></p><p>Then <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020&quot;}]\">(Smith 2020)</span>.</p>",
+      "text": "It was dark.Then (Smith 2020)."
+    },
+    {
+      "html": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+      "text": "Notes about Mara. 𝔐𝔞𝔯𝔞"
+    },
+    {
+      "html": "<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>",
+      "text": "INT. LIGHTHOUSE - NIGHT"
+    },
+    {
+      "html": "<p>The cat sat. The cat ran. The cat sat again.</p>",
+      "text": "The cat sat. The cat ran. The cat sat again."
+    },
+    {
+      "html": "<p>a&nbsp;b &amp; c</p><p>  spaced  </p><ul><li>one</li><li>two</li></ul>",
+      "text": "a b & c  spaced  onetwo"
+    },
+    {
+      "html": "<p>Emoji 🌊 and 𝔐 here.</p><p>x<br>y</p>",
+      "text": "Emoji 🌊 and 𝔐 here.xy"
+    }
+  ],
+  "sample": "The cat sat. The cat ran. The cat sat again. 🌊 end",
+  "anchors": [
+    {
+      "start": 4,
+      "end": 7,
+      "anchor": {
+        "quote": "cat",
+        "prefix": "The ",
+        "suffix": " sat. The cat ran. The c"
+      }
+    },
+    {
+      "start": 17,
+      "end": 20,
+      "anchor": {
+        "quote": "cat",
+        "prefix": "The cat sat. The ",
+        "suffix": " ran. The cat sat again."
+      }
+    },
+    {
+      "start": 30,
+      "end": 33,
+      "anchor": {
+        "quote": "cat",
+        "prefix": "t sat. The cat ran. The ",
+        "suffix": " sat again. 🌊 end"
+      }
+    },
+    {
+      "start": 0,
+      "end": 0,
+      "anchor": null
+    },
+    {
+      "start": 12,
+      "end": 13,
+      "anchor": null
+    },
+    {
+      "start": 45,
+      "end": 47,
+      "anchor": {
+        "quote": "🌊",
+        "prefix": "ran. The cat sat again. ",
+        "suffix": " end"
+      }
+    },
+    {
+      "start": 40,
+      "end": 100,
+      "anchor": {
+        "quote": "ain. 🌊 end",
+        "prefix": " cat ran. The cat sat ag",
+        "suffix": ""
+      }
+    },
+    {
+      "start": 7,
+      "end": 4,
+      "anchor": {
+        "quote": "cat",
+        "prefix": "The ",
+        "suffix": " sat. The cat ran. The c"
+      }
+    }
+  ],
+  "edited": "Intro. The cat sat. The cat ran! The dog sat again. 🌊 end",
+  "located": [
+    {
+      "anchor": {
+        "quote": "cat",
+        "prefix": "The ",
+        "suffix": " sat. The cat ran. The c"
+      },
+      "found": {
+        "start": 11,
+        "end": 14
+      }
+    },
+    {
+      "anchor": {
+        "quote": "cat",
+        "prefix": "The cat sat. The ",
+        "suffix": " ran. The cat sat again."
+      },
+      "found": {
+        "start": 24,
+        "end": 27
+      }
+    },
+    {
+      "anchor": {
+        "quote": "cat",
+        "prefix": "t sat. The cat ran. The ",
+        "suffix": " sat again. 🌊 end"
+      },
+      "found": {
+        "start": 11,
+        "end": 14
+      }
+    },
+    {
+      "anchor": {
+        "quote": "🌊",
+        "prefix": "ran. The cat sat again. ",
+        "suffix": " end"
+      },
+      "found": {
+        "start": 52,
+        "end": 54
+      }
+    },
+    {
+      "anchor": {
+        "quote": "ain. 🌊 end",
+        "prefix": " cat ran. The cat sat ag",
+        "suffix": ""
+      },
+      "found": {
+        "start": 47,
+        "end": 58
+      }
+    },
+    {
+      "anchor": {
+        "quote": "cat",
+        "prefix": "The ",
+        "suffix": " sat. The cat ran. The c"
+      },
+      "found": {
+        "start": 11,
+        "end": 14
+      }
+    }
+  ]
+}

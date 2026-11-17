@@ -63,6 +63,13 @@ fn render_views() {
         .get_by_role_and_label(Role::TreeItem, "Opening Scene")
         .click();
     save(&mut harness, "write-scene");
+    harness.get_by_role_and_label(Role::Tab, "Comments").click();
+    save(&mut harness, "comments");
+    harness
+        .get_by_role_and_label(Role::Tab, "Snapshots")
+        .click();
+    save(&mut harness, "snapshots");
+    harness.get_by_role_and_label(Role::Tab, "Progress").click();
     harness
         .get_by_role_and_label(Role::TreeItem, "Chapter One")
         .click();

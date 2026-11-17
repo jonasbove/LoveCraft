@@ -118,6 +118,11 @@ pub enum Intent {
         id: String,
         note: String,
     },
+    /// `convertToScreenplay`: a prose scene made a screenplay, a snapshot of the prose first.
+    ConvertToScreenplay {
+        document: String,
+        now: f64,
+    },
     /// Footnotes: a new one at a character of the open scene (handled with the editor's
     /// draft), a definition's text, removing one (marker and definition), and dropping
     /// definitions whose marker is gone.
@@ -319,6 +324,31 @@ pub fn run(
         }
         Intent::SetCardNote { id, note } => {
             prosecraft_core::storyboard::set_card_note(data, new_id, id, note)
+        }
+        Intent::ConvertToScreenplay { document, now } => {
+            prosecraft_core::snapshots::snapshot_before(
+                data,
+                document,
+                &new_id(),
+                *now,
+                "before-restore",
+                "Before screenplay conversion",
+            )?;
+            let docs = match data.as_object_mut().and_then(|o| o.get_mut("documents")) {
+                Some(JsValue::Array(list)) => list,
+                _ => return Err(prosecraft_core::edit::EditError::Shape),
+            };
+            let doc = docs
+                .iter_mut()
+                .find(|d| {
+                    d.get("id")
+                        .and_then(JsValue::as_js_string)
+                        .is_some_and(|i| i.eq_str(document))
+                })
+                .and_then(JsValue::as_object_mut)
+                .ok_or_else(|| prosecraft_core::edit::EditError::NoDocument(document.clone()))?;
+            prosecraft_core::screenplay::convert::convert_document(doc);
+            Ok(())
         }
         // Placed by the app, which holds the draft.
         Intent::InsertFootnote { .. } => Ok(()),

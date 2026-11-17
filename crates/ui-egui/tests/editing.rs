@@ -1853,3 +1853,116 @@ fn a_screenplay_is_written_element_by_element() {
         content(&memory)
     );
 }
+
+#[test]
+fn fountain_exports_from_the_publish_view_of_a_project_with_a_screenplay() {
+    let (mut harness, _memory) = app();
+    harness.get_by_role_and_label(Role::Tab, "Publish").click();
+    harness.run();
+    for (role, name) in [
+        (Role::RadioButton, "Fountain (fountain)"),
+        (Role::Button, "Export Fountain"),
+    ] {
+        harness.get_by_role_and_label(role, name).scroll_to_me();
+        harness.run();
+        harness.get_by_role_and_label(role, name).click();
+        harness.run_steps(4);
+    }
+    let requests = harness.state_mut().take_requests();
+    let Some(prosecraft_ui_egui::HostRequest::ExportFile {
+        file_name, bytes, ..
+    }) = requests.first()
+    else {
+        panic!("an export was asked for: {requests:?}");
+    };
+    assert!(file_name.ends_with(".fountain"), "{file_name}");
+    let fountain = String::from_utf8_lossy(bytes);
+    assert!(fountain.starts_with("Title: The Lighthouse"), "{fountain}");
+    assert!(
+        fountain.contains("\n\nINT. LIGHTHOUSE - NIGHT\n"),
+        "{fountain}"
+    );
+}
+
+#[test]
+fn a_prose_scene_of_a_screenplay_project_converts_with_a_snapshot() {
+    let (mut harness, memory) = app();
+    // Make the project a screenplay project.
+    harness
+        .get_by_role_and_label(Role::Button, "Project settings")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::ComboBox, "Project type")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Screenplay")
+        .click();
+    harness.run();
+    harness.get_by_role_and_label(Role::Button, "Save").click();
+    harness.run_steps(4);
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Convert this scene to screenplay")
+        .click();
+    harness.run();
+    harness.get_by_label_contains("Convert “Opening Scene” to screenplay format? A snapshot of the prose version will be saved first.");
+    harness
+        .get_by_role_and_label(Role::Button, "Convert")
+        .click();
+    harness.run_steps(12);
+    let saved = memory.last();
+    let data = project(&saved, "project-1")
+        .get("project")
+        .cloned()
+        .expect("data");
+    let doc = data
+        .get("documents")
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+        .iter()
+        .find(|d| {
+            d.get("id")
+                .and_then(JsValue::as_js_string)
+                .is_some_and(|i| i.eq_str("doc-1"))
+        })
+        .cloned()
+        .expect("doc-1");
+    let s = |v: &JsValue, k: &str| {
+        v.get(k)
+            .and_then(JsValue::as_js_string)
+            .map(|t| t.to_string_lossy())
+            .unwrap_or_default()
+    };
+    assert_eq!(s(&doc, "format"), "screenplay");
+    assert!(s(&doc, "content").starts_with(r#"<p data-sp="scene-heading">INT./EXT. LOCATION - DAY</p><p data-sp="action">It was <em>dark</em>.</p>"#), "{}", s(&doc, "content"));
+    let snapshot = data
+        .get("snapshots")
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+        .last()
+        .cloned()
+        .expect("a snapshot");
+    assert_eq!(
+        (
+            s(&snapshot, "reason").as_str(),
+            s(&snapshot, "note").as_str()
+        ),
+        ("before-restore", "Before screenplay conversion")
+    );
+    assert!(
+        s(&snapshot, "content").contains("It was <em>dark</em>"),
+        "the prose is kept"
+    );
+    // Now the scene is written in the screenplay editor.
+    assert!(
+        harness
+            .query_by_role_and_label(Role::Button, "Convert this scene to screenplay")
+            .is_none()
+    );
+    harness.get_by_label("Element type");
+}

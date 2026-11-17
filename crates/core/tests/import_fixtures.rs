@@ -458,3 +458,72 @@ fn screenplay_scenes_are_editable_and_write_back_exactly() {
     );
     assert!(RichDoc::from_html(r#"<p data-sp="unknown">x</p>"#).is_none());
 }
+
+#[test]
+fn a_book_exports_to_fountain_as_prosecraft_exports_it() {
+    use prosecraft_core::project::Project;
+    use prosecraft_core::publish::{PublishOptions, compile_book};
+    use prosecraft_core::screenplay::export::book_to_fountain;
+    let all = fixture("fountain.json");
+    for book in all
+        .get("books")
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+    {
+        let mut data = js::JsObject::new();
+        data.insert("name", JsValue::str(&s(book, "title")));
+        data.insert("author", JsValue::str(&s(book, "author")));
+        data.insert(
+            "documents",
+            all.get("documents").cloned().unwrap_or(JsValue::Null),
+        );
+        data.insert(
+            "chapters",
+            all.get("chapters").cloned().unwrap_or(JsValue::Null),
+        );
+        let mut stored = js::JsObject::new();
+        stored.insert("project", JsValue::Object(data));
+        let project = Project::from_stored(&JsValue::Object(stored)).expect("project");
+        let compiled = compile_book(&project, &PublishOptions::read(None));
+        assert_eq!(
+            book_to_fountain(&compiled),
+            s(book, "fountain"),
+            "{}",
+            s(book, "title")
+        );
+    }
+}
+
+#[test]
+fn prose_converts_to_a_screenplay_as_prosecraft_converts_it() {
+    use prosecraft_core::screenplay::convert::{convert_document, prose_to_screenplay_elements};
+    let all = fixture("fountain.json");
+    let conversions = all
+        .get("conversions")
+        .and_then(JsValue::as_array)
+        .unwrap_or_default();
+    assert_eq!(conversions.len(), 11);
+    for case in conversions {
+        let have = js::stringify(&JsValue::Array(
+            prose_to_screenplay_elements(&s(case, "html"))
+                .iter()
+                .map(element_json)
+                .collect(),
+        ));
+        assert_eq!(
+            have,
+            js::stringify(case.get("elements").unwrap_or(&JsValue::Null)),
+            "{:?}",
+            s(case, "html")
+        );
+    }
+    let first = s(&conversions[0], "html");
+    let mut doc = js::parse(&format!(r#"{{"id":"d1","title":"Prose","content":{},"chapterId":"c1","markdownSource":"Mara: x","labelId":"l1"}}"#, js::stringify(&JsValue::str(&first)))).expect("json");
+    if let Some(o) = doc.as_object_mut() {
+        convert_document(o);
+    }
+    assert_eq!(
+        js::stringify(&doc),
+        js::stringify(all.get("converted").unwrap_or(&JsValue::Null))
+    );
+}

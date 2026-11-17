@@ -83,6 +83,8 @@ struct Edit<'a> {
     side_tab: &'a mut crate::SideTab,
     /// A passage to select ("Go to" in the Comments tab): document, editor start and end.
     comment_goto: &'a mut Option<(String, usize, usize)>,
+    /// Now, in milliseconds since the epoch (for snapshots).
+    now_ms: f64,
     /// A footnote to open in the footnote editor: document and id.
     footnote_open: &'a mut Option<(String, String)>,
 }
@@ -168,6 +170,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         side_tab,
         comment_goto,
         footnote_open,
+        now_ms: *now_ms,
     };
     let mut chosen = None;
     egui::ScrollArea::vertical()
@@ -696,9 +699,35 @@ fn editor(
             .and_then(|s| s.cursor.char_range())
             .map_or(cursor, |r| r.primary.index.0);
     }
-    // ProseCraft's Screenplay bar, above the formatting toolbar.
+    // ProseCraft's Screenplay bar, above the formatting toolbar; for a prose scene of a
+    // screenplay project, with "Convert this scene to screenplay" (asked first).
     if screenplay {
         changed_format |= crate::screenplay_editor::bar(ui, palette, draft, body_id, cursor);
+        if !document.screenplay {
+            let asking = ui.make_persistent_id(("convert-to-screenplay", &document.id));
+            if ui.data(|d| d.get_temp::<bool>(asking)).unwrap_or(false) {
+                let name = if document.title.is_empty() {
+                    "Untitled scene"
+                } else {
+                    document.title.as_str()
+                };
+                ui.label(format!("Convert “{name}” to screenplay format? A snapshot of the prose version will be saved first."));
+                ui.horizontal(|ui| {
+                    if ui.button(RichText::new("Convert").strong()).clicked() {
+                        edit.intents.push(Intent::ConvertToScreenplay {
+                            document: document.id.clone(),
+                            now: edit.now_ms,
+                        });
+                        ui.data_mut(|d| d.remove_temp::<bool>(asking));
+                    }
+                    if ui.button("Cancel").clicked() {
+                        ui.data_mut(|d| d.remove_temp::<bool>(asking));
+                    }
+                });
+            } else if ui.button("Convert this scene to screenplay").clicked() {
+                ui.data_mut(|d| d.insert_temp(asking, true));
+            }
+        }
         ui.add_space(6.0);
     }
     // ProseCraft's formatting toolbar.

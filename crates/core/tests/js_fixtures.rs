@@ -63,3 +63,31 @@ fn numbers_print_like_javascript_string() {
         );
     }
 }
+
+#[test]
+fn plain_text_and_word_counts_match_prosecraft() {
+    use prosecraft_core::html::{PlainTextOptions, RichText, html_to_plain_text, html_word_count};
+    let cases = fixture("plain-text.json");
+    for case in cases.as_array().unwrap_or_default() {
+        let clean = text(case, "clean");
+        let omit = html_to_plain_text(
+            &clean,
+            &PlainTextOptions {
+                rich: RichText::Omit,
+            },
+        );
+        assert_eq!(omit, text(case, "omit"), "omit for {clean}");
+        let source = html_to_plain_text(
+            &clean,
+            &PlainTextOptions {
+                rich: RichText::Source,
+            },
+        );
+        assert_eq!(source, text(case, "source"), "source for {clean}");
+        let words = case
+            .get("words")
+            .and_then(JsValue::as_number)
+            .unwrap_or(-1.0);
+        assert_eq!(html_word_count(&clean) as f64, words, "words for {clean}");
+    }
+}

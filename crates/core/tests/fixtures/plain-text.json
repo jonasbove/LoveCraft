@@ -1,0 +1,107 @@
+[
+  {
+    "input": "<p>It was <em>dark</em>.<sup class=\"footnote-ref\" data-footnote-id=\"fn-1\" contenteditable=\"false\"></sup></p><p>Then <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020&quot;}]\">(Smith 2020)</span>.</p>",
+    "clean": "<p>It was <em>dark</em>.<sup class=\"footnote-ref\" data-footnote-id=\"fn-1\" contenteditable=\"false\"></sup></p><p>Then <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020&quot;}]\" contenteditable=\"false\"></span>.</p>",
+    "omit": "It was dark.\n\nThen .",
+    "source": "It was dark.\n\nThen .",
+    "words": 5
+  },
+  {
+    "input": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+    "clean": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+    "omit": "Notes about Mara. 𝔐𝔞𝔯𝔞",
+    "source": "Notes about Mara. 𝔐𝔞𝔯𝔞",
+    "words": 4
+  },
+  {
+    "input": "<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>",
+    "clean": "<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>",
+    "omit": "INT. LIGHTHOUSE - NIGHT",
+    "source": "INT. LIGHTHOUSE - NIGHT",
+    "words": 4
+  },
+  {
+    "input": "<p>One  two\tthree</p><p>  </p><p>four<br>five</p>",
+    "clean": "<p>One  two\tthree</p><p>  </p><p>four<br>five</p>",
+    "omit": "One two three\n\nfour\nfive",
+    "source": "One two three\n\nfour\nfive",
+    "words": 5
+  },
+  {
+    "input": "<h1>Title</h1><blockquote><p>Quoted <em>words</em> here</p></blockquote><hr><p>after</p>",
+    "clean": "<h1>Title</h1><blockquote><p>Quoted <em>words</em> here</p></blockquote><hr><p>after</p>",
+    "omit": "Title\n\nQuoted words here\n\nafter",
+    "source": "Title\n\nQuoted words here\n\nafter",
+    "words": 5
+  },
+  {
+    "input": "<ul><li>first item</li><li>second <strong>bold</strong></li></ul><ol><li>one</li><li><p>two</p></li></ol>",
+    "clean": "<ul><li>first item</li><li>second <strong>bold</strong></li></ul><ol><li>one</li><li><p>two</p></li></ol>",
+    "omit": "• first item\n• second bold\n1. one\n2. two",
+    "source": "• first item\n• second bold\n1. one\n2. two",
+    "words": 10
+  },
+  {
+    "input": "<p>a&nbsp;b &amp; c&lt;d&gt; &#x1F600; &mdash;</p><p>  ﻿x</p>",
+    "clean": "<p>a&nbsp;b &amp; c&lt;d&gt; 😀 —</p><p>&nbsp; ﻿x</p>",
+    "omit": "a b & c<d> 😀 —\n\nx",
+    "source": "a b & c<d> 😀 —\n\nx",
+    "words": 7
+  },
+  {
+    "input": "<p>Math <span class=\"math-inline\" data-tex=\"x^2\"></span> inline.</p><div class=\"math-block\" data-tex=\"E=mc^2\"></div><div class=\"mermaid-diagram\" data-source=\"graph TD; A--&gt;B\"></div><p>end</p>",
+    "clean": "<p>Math <span class=\"math-inline\" data-tex=\"x^2\"></span> inline.</p><div class=\"math-block\" data-tex=\"E=mc^2\"></div><div class=\"mermaid-diagram\" data-source=\"graph TD; A-->B\"></div><p>end</p>",
+    "omit": "Math inline.\n\nend",
+    "source": "Math $x^2$ inline.\n\n$$\nE=mc^2\n$$\n\n[Diagram]\ngraph TD; A-->B\n\nend",
+    "words": 3
+  },
+  {
+    "input": "<p>Note<sup class=\"footnote-ref\" data-footnote-id=\"fn-1\" contenteditable=\"false\"></sup> here.</p>",
+    "clean": "<p>Note<sup class=\"footnote-ref\" data-footnote-id=\"fn-1\" contenteditable=\"false\"></sup> here.</p>",
+    "omit": "Note here.",
+    "source": "Note here.",
+    "words": 2
+  },
+  {
+    "input": "<div><div>nested <div>blocks</div> text</div></div><pre>code\n  kept</pre>",
+    "clean": "<div><div>nested <div>blocks</div> text</div></div><pre>code\n  kept</pre>",
+    "omit": "nested\n\nblocks\n\ntext\n\ncode\nkept",
+    "source": "nested\n\nblocks\n\ntext\n\ncode\nkept",
+    "words": 5
+  },
+  {
+    "input": "<p>unclosed paragraph<p>second",
+    "clean": "<p>unclosed paragraph</p><p>second</p>",
+    "omit": "unclosed paragraph\n\nsecond",
+    "source": "unclosed paragraph\n\nsecond",
+    "words": 3
+  },
+  {
+    "input": "<table><tr><td>cell one</td><td>cell two</td></tr></table>",
+    "clean": "<table><tbody><tr><td>cell one</td><td>cell two</td></tr></tbody></table>",
+    "omit": "cell onecell two",
+    "source": "cell onecell two",
+    "words": 3
+  },
+  {
+    "input": "<p><img src=\"data:image/png;base64,AA==\" alt=\"pic\"> caption</p>",
+    "clean": "<p><img src=\"data:image/png;base64,AA==\" alt=\"pic\"> caption</p>",
+    "omit": "caption",
+    "source": "caption",
+    "words": 1
+  },
+  {
+    "input": "",
+    "clean": "",
+    "omit": "",
+    "source": "",
+    "words": 0
+  },
+  {
+    "input": "plain text without tags",
+    "clean": "plain text without tags",
+    "omit": "plain text without tags",
+    "source": "plain text without tags",
+    "words": 4
+  }
+]

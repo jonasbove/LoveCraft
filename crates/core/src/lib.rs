@@ -11,5 +11,7 @@
 )]
 
 pub mod about;
+pub mod html;
 pub mod js;
+pub mod project;
 pub mod storage;

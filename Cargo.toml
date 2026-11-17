@@ -15,8 +15,14 @@ repository = "https://github.com/jonasbove/prosecraft-rs"
 prosecraft-core = { path = "crates/core" }
 prosecraft-ui-egui = { path = "crates/ui-egui" }
 
+# shared Craft libraries (storytold/craft-libs), pinned by commit
+craft-ui = { git = "https://github.com/storytold/craft-libs", rev = "8672aff3d85ccad8f2a391304139d192a7d08dd5", version = "=0.1.0" }
+craft-html = { git = "https://github.com/storytold/craft-libs", rev = "8672aff3d85ccad8f2a391304139d192a7d08dd5", version = "=0.1.0" }
+
 # foundation
 thiserror = "2"
+# All date and time conversion goes through chrono (Rust house rule 5).
+chrono = { version = "0.4.45", default-features = false, features = ["std"] }
 # Encrypted backups and sync files, read and written exactly as ProseCraft does: Argon2id derives
 # the key, XChaCha20-Poly1305 seals the records (RustCrypto, MIT OR Apache-2.0).
 argon2 = { version = "0.6", default-features = false, features = ["alloc"] }
@@ -55,3 +61,16 @@ opt-level = 3
 lto = "thin"
 codegen-units = 16
 debug = 0
+
+# The suite's egui and winit, as craft-libs and the other Craft apps build them.
+[patch.crates-io]
+ecolor = { git = "https://github.com/storytold/egui.git", rev = "6d518fc799681571963842f95b55a6b68431b15a" }
+emath = { git = "https://github.com/storytold/egui.git", rev = "6d518fc799681571963842f95b55a6b68431b15a" }
+epaint = { git = "https://github.com/storytold/egui.git", rev = "6d518fc799681571963842f95b55a6b68431b15a" }
+epaint_default_fonts = { git = "https://github.com/storytold/egui.git", rev = "6d518fc799681571963842f95b55a6b68431b15a" }
+egui = { git = "https://github.com/storytold/egui.git", rev = "6d518fc799681571963842f95b55a6b68431b15a" }
+egui-winit = { git = "https://github.com/storytold/egui.git", rev = "6d518fc799681571963842f95b55a6b68431b15a" }
+egui_glow = { git = "https://github.com/storytold/egui.git", rev = "6d518fc799681571963842f95b55a6b68431b15a" }
+egui_kittest = { git = "https://github.com/storytold/egui.git", rev = "6d518fc799681571963842f95b55a6b68431b15a" }
+eframe = { git = "https://github.com/storytold/egui.git", rev = "6d518fc799681571963842f95b55a6b68431b15a" }
+winit = { git = "https://github.com/storytold/winit.git", rev = "a517b3846ee8457d84ee4975110bfda6797c44dc" }

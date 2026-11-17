@@ -55,6 +55,21 @@ mod tests {
 
     use super::{prosecraft_folder, sync_folder};
 
+    /// Runs `ask` again while the fake client is "busy": a test writing its script can race a
+    /// fork in another test that briefly holds the file open (ETXTBSY), which is the test's
+    /// problem, not the client's.
+    fn retry_busy<T>(mut ask: impl FnMut() -> Result<T, String>) -> Result<T, String> {
+        for _ in 0..50 {
+            match ask() {
+                Err(e) if e.contains("Text file busy") => {
+                    std::thread::sleep(std::time::Duration::from_millis(20))
+                }
+                other => return other,
+            }
+        }
+        ask()
+    }
+
     fn fake(dir: &std::path::Path, json: &str) -> std::io::Result<std::path::PathBuf> {
         let program = dir.join("craftcloud");
         std::fs::write(&program, format!("#!/bin/sh\nprintf '%s' '{json}'\n"))?;
@@ -72,7 +87,7 @@ mod tests {
         )
         .expect("fake client");
         assert_eq!(
-            prosecraft_folder(&program).expect("folder"),
+            retry_busy(|| prosecraft_folder(&program)).expect("folder"),
             cloud.join("ProseCraft")
         );
         assert!(cloud.join("ProseCraft").is_dir());
@@ -87,7 +102,7 @@ mod tests {
         )
         .expect("fake client");
         assert!(
-            sync_folder(&program)
+            retry_busy(|| sync_folder(&program))
                 .expect_err("signed out")
                 .contains("isn't signed in")
         );

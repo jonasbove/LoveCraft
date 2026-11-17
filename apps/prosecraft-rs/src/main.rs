@@ -53,6 +53,9 @@ impl LibraryStore for DiskStore {
             )
         })
     }
+    fn today(&self) -> String {
+        chrono::Local::now().format("%Y-%m-%d").to_string()
+    }
     fn supports_sync(&self) -> bool {
         true
     }

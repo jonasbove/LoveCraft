@@ -49,6 +49,13 @@ pub trait LibraryStore {
     fn now_ms(&self) -> f64;
     /// A new random id for a chapter or scene (a UUID, as ProseCraft's `crypto.randomUUID()`).
     fn new_id(&mut self) -> String;
+    /// Today's date as `YYYY-MM-DD` in local time, for writing activity (ProseCraft's
+    /// `dateKey`). Without a local clock, the UTC date of [`Self::now_ms`].
+    fn today(&self) -> String {
+        chrono::DateTime::from_timestamp_millis(self.now_ms() as i64)
+            .map(|t| t.format("%Y-%m-%d").to_string())
+            .unwrap_or_default()
+    }
     /// Whether this host can sync through a folder (the desktop app).
     fn supports_sync(&self) -> bool {
         false
@@ -528,10 +535,17 @@ impl ProseApp {
         let Some(draft) = self.state.draft.clone().filter(editing::Draft::is_dirty) else {
             return;
         };
-        self.change(|data, _| editing::commit_draft(&draft, data));
+        let today = self
+            .home
+            .as_ref()
+            .map(|h| h.store.today())
+            .unwrap_or_default();
+        self.change(|data, _| editing::commit_draft(&draft, data, &today));
         if let Some(current) = self.state.draft.as_mut() {
             current.title_dirty = false;
             current.body_dirty = false;
+            current.edits = 0;
+            current.words_added = 0.0;
         }
     }
 

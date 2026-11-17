@@ -801,3 +801,68 @@ fn find_and_replace_across_the_project() {
         .map(|r| r.text());
     assert_eq!(selected.as_deref(), Some("dusk"));
 }
+
+#[test]
+fn goals_are_set_and_writing_is_recorded_as_activity() {
+    let (mut harness, memory) = app();
+    harness
+        .get_by_role_and_label(Role::TextInput, "Word count goal")
+        .focus();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    harness
+        .get_by_role_and_label(Role::TextInput, "Word count goal")
+        .type_text("60000");
+    harness.key_press(egui::Key::Enter);
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TextInput, "Chapter One word goal")
+        .focus();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    harness
+        .get_by_role_and_label(Role::TextInput, "Chapter One word goal")
+        .type_text("3000");
+    harness.key_press(egui::Key::Enter);
+    harness.run_steps(12);
+    let saved = memory.last();
+    let data = project(&saved, "project-1")
+        .get("project")
+        .cloned()
+        .expect("data");
+    assert_eq!(
+        data.get("projectGoal").and_then(JsValue::as_number),
+        Some(60000.0)
+    );
+    assert_eq!(
+        data.get("chapterGoals")
+            .and_then(|g| g.get("chapter-1"))
+            .and_then(JsValue::as_number),
+        Some(3000.0)
+    );
+
+    // Writing three words is recorded for today (the test store's clock: 2027-01-15).
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness.get_by_label("Scene text").focus();
+    harness
+        .get_by_label("Scene text")
+        .type_text(" Three more words");
+    harness.run_steps(12);
+    let saved = memory.last();
+    let day = project(&saved, "project-1")
+        .get("project")
+        .and_then(|p| p.get("activity"))
+        .and_then(|a| a.get("2027-01-15"))
+        .cloned()
+        .expect("today's activity");
+    assert_eq!(
+        day.get("wordsAdded").and_then(JsValue::as_number),
+        Some(3.0)
+    );
+    assert!(
+        day.get("edits")
+            .and_then(JsValue::as_number)
+            .is_some_and(|e| e >= 1.0)
+    );
+}

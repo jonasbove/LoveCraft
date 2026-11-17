@@ -3,7 +3,7 @@
 //! shared font stack, with the system's fonts for emoji and every other script.
 
 use craft_fonts_build::EmbeddedFace;
-use craft_ui::fonts::{CraftFace, Family, I18nScripts, UiFonts};
+use craft_ui::fonts::{CraftFace, Family, I18nScripts, SystemFonts, UiFonts};
 use egui::{FontData, FontFamily, FontId};
 
 /// The faces `build.rs` embedded from craft-fonts (empty without a checkout).
@@ -29,13 +29,20 @@ fn families_of(face: &str) -> Vec<FontFamily> {
 }
 
 /// Installs the stack in `ctx`. Every named family exists even without craft-fonts (egui's
-/// default faces then stand in), so text set in them never fails.
-pub fn install(ctx: &egui::Context) {
+/// default faces then stand in), so text set in them never fails. Without `system`, installed
+/// fonts aren't used, so text draws the same on every machine and no font arrives late from
+/// the background index (for tests).
+pub fn install(ctx: &egui::Context, system: bool) {
     let craft: Vec<CraftFace> = CRAFT_FONTS.iter().cloned().map(CraftFace::from).collect();
     let mut fonts = UiFonts::new(&I18nScripts)
         .languages(&["en"])
         .ui_language("en")
-        .craft_faces(&craft);
+        .craft_faces(&craft)
+        .system_fonts(if system {
+            SystemFonts::AfterCraft
+        } else {
+            SystemFonts::Off
+        });
     for (name, data) in APP_FACES {
         let families = families_of(name);
         if !families.is_empty() {

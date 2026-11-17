@@ -153,6 +153,32 @@ pub fn set_chapter_summary(
     Ok(())
 }
 
+/// Sets one of the project's `publishOptions`, keeping the others (and any this version
+/// doesn't know). A missing or malformed `publishOptions` starts as an empty object, which
+/// ProseCraft reads with its defaults.
+pub fn set_publish_option(
+    project: &mut JsValue,
+    key: &str,
+    value: JsValue,
+) -> Result<(), EditError> {
+    let data = project.as_object_mut().ok_or(EditError::Shape)?;
+    if data
+        .get("publishOptions")
+        .and_then(JsValue::as_object)
+        .is_none()
+    {
+        data.insert(
+            "publishOptions",
+            JsValue::Object(crate::js::JsObject::new()),
+        );
+    }
+    data.get_mut("publishOptions")
+        .and_then(JsValue::as_object_mut)
+        .ok_or(EditError::Shape)?
+        .insert(key, value);
+    Ok(())
+}
+
 pub fn set_document_title(project: &mut JsValue, id: &str, title: &str) -> Result<(), EditError> {
     find_mut(project, "documents", id)?.insert("title", JsValue::str(title));
     Ok(())

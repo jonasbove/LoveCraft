@@ -110,16 +110,24 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         editable,
         save_state,
         now,
+        requests,
         ..
     } = state;
-    let project = library
-        .as_ref()
-        .and_then(|l| l.projects().get(*active))
-        .map(|p| &p.view);
-    let Some(project) = project else {
+    let entry = library.as_ref().and_then(|l| l.projects().get(*active));
+    let Some(entry) = entry else {
         column(ui, |ui| welcome(ui, &palette));
         return;
     };
+    let project = &entry.view;
+    if *view == WorkspaceView::Publish {
+        let mut edit = crate::publish::PublishEdit {
+            editable: *editable,
+            intents,
+            requests,
+        };
+        crate::publish::show(ui, &palette, &entry.stored, project, &mut edit);
+        return;
+    }
     let mut edit = Edit {
         editable: *editable,
         draft,
@@ -142,9 +150,8 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                     not_ported(ui, &palette, "Storyboard", &text);
                 }
                 WorkspaceView::Timeline => timeline(ui, &palette, project),
-                WorkspaceView::Publish => {
-                    not_ported(ui, &palette, "Publish", "Publishing isn't ported yet.")
-                }
+                // Shown above, in its own two-column layout.
+                WorkspaceView::Publish => {}
             });
         });
     if let Some(selection) = chosen {
@@ -192,7 +199,7 @@ fn not_ported(ui: &mut Ui, palette: &Palette, title: &str, text: &str) {
 }
 
 /// Gives a text field an accessible name (its placeholder isn't one).
-fn name_field(ui: &Ui, response: &egui::Response, name: &str) {
+pub(crate) fn name_field(ui: &Ui, response: &egui::Response, name: &str) {
     let name = name.to_owned();
     ui.ctx()
         .accesskit_node_builder(response.id, move |node| node.set_label(name));
@@ -293,6 +300,7 @@ fn plain(html: &str) -> String {
         html,
         &PlainTextOptions {
             rich: RichMode::Source,
+            ..Default::default()
         },
     )
 }

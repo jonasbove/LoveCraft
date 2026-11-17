@@ -13,13 +13,26 @@ use prosecraft_core::storage::stamp::stamp_project;
 #[derive(Clone, Debug, PartialEq)]
 pub enum Intent {
     AddChapter,
-    AddScene { chapter: String },
+    AddScene {
+        chapter: String,
+    },
     TrashDocument(String),
     TrashChapter(String),
     RestoreDocument(String),
     RestoreChapter(String),
-    SetChapterSummary { chapter: String, summary: String },
-    SetChapterTitle { chapter: String, title: String },
+    SetChapterSummary {
+        chapter: String,
+        summary: String,
+    },
+    SetChapterTitle {
+        chapter: String,
+        title: String,
+    },
+    /// One of the project's `publishOptions`.
+    SetPublishOption {
+        key: String,
+        value: JsValue,
+    },
 }
 
 /// The scene or page being typed into.
@@ -92,6 +105,9 @@ pub fn run(
             edit::set_chapter_summary(data, chapter, summary)
         }
         Intent::SetChapterTitle { chapter, title } => edit::set_chapter_title(data, chapter, title),
+        Intent::SetPublishOption { key, value } => {
+            edit::set_publish_option(data, key, value.clone())
+        }
     }
 }
 

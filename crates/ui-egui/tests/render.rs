@@ -64,4 +64,6 @@ fn render_views() {
         .get_by_role_and_label(Role::TreeItem, "Chapter One")
         .click();
     save(&mut harness, "write-chapter");
+    harness.get_by_role_and_label(Role::Tab, "Publish").click();
+    save(&mut harness, "publish");
 }

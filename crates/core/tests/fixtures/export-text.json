@@ -1,0 +1,285 @@
+{
+  "project": {
+    "id": "project-1",
+    "name": "The Lighthouse 🌊 Keeper",
+    "author": "A. Writer",
+    "kind": "novel",
+    "activeDocumentId": "doc-1",
+    "projectGoal": 80000,
+    "chapterGoals": {
+      "2": 1.5,
+      "10": 3,
+      "chapter-1": 2500,
+      "-1": 4,
+      "01": 5
+    },
+    "activity": {
+      "2026-11-01": {
+        "edits": 12,
+        "wordsAdded": 345
+      },
+      "2026-11-02": {
+        "edits": 0.5,
+        "wordsAdded": -3
+      }
+    },
+    "chapters": [
+      {
+        "id": "chapter-1",
+        "title": "Chapter One",
+        "expanded": true,
+        "summary": "It begins.",
+        "labelId": "label-1"
+      },
+      {
+        "id": "chapter-2",
+        "title": "Chapitre deux — « voilà »",
+        "expanded": false,
+        "trashed": true
+      },
+      {
+        "id": "chapter-3",
+        "title": "Chapter 7",
+        "expanded": true,
+        "summary": ""
+      },
+      {
+        "id": "chapter-4",
+        "title": "Epilogue",
+        "expanded": true
+      }
+    ],
+    "documents": [
+      {
+        "id": "doc-1",
+        "title": "Opening Scene",
+        "chapterId": "chapter-1",
+        "content": "<p>It was <em>dark</em>.<sup class=\"footnote-ref\" data-footnote-id=\"fn-1\" contenteditable=\"false\"></sup></p><p>Then <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020&quot;}]\">(Smith 2020)</span>.</p>",
+        "footnotes": [
+          {
+            "id": "fn-1",
+            "html": "A note with <em>emphasis</em>."
+          }
+        ]
+      },
+      {
+        "id": "doc-2",
+        "title": "Mara",
+        "space": "Wiki",
+        "folderId": "folder-1",
+        "content": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+        "character": {
+          "role": "Protagonist",
+          "age": "32",
+          "pronouns": "she/her"
+        }
+      },
+      {
+        "id": "doc-3",
+        "title": "INT. LIGHTHOUSE - NIGHT",
+        "chapterId": "chapter-1",
+        "format": "screenplay",
+        "content": "<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>",
+        "markdownSource": "INT. LIGHTHOUSE - NIGHT"
+      },
+      {
+        "id": "doc-4",
+        "title": "Morning",
+        "chapterId": "chapter-3",
+        "content": "<p>The sea was calm.<sup class=\"footnote-ref\" data-footnote-id=\"a\" contenteditable=\"false\"></sup></p><ul><li>bread</li><li>salt</li></ul><p>Then <strong>nothing</strong>.<sup class=\"footnote-ref\" data-footnote-id=\"b\" contenteditable=\"false\"></sup></p>",
+        "footnotes": [
+          {
+            "id": "a",
+            "html": "Calm, mostly."
+          },
+          {
+            "id": "b",
+            "html": "Truly <em>nothing</em>."
+          }
+        ]
+      },
+      {
+        "id": "doc-5",
+        "title": "Noon",
+        "chapterId": "chapter-3",
+        "content": "<p>Light.</p><p>More light.</p>"
+      },
+      {
+        "id": "doc-6",
+        "title": "Empty",
+        "chapterId": "chapter-3",
+        "content": "<p><br></p>"
+      },
+      {
+        "id": "doc-7",
+        "title": "Gone",
+        "chapterId": "chapter-3",
+        "content": "<p>Trashed text.</p>",
+        "trashed": true
+      },
+      {
+        "id": "doc-8",
+        "title": "",
+        "chapterId": "chapter-4",
+        "content": "<h2>After</h2><blockquote><p>A quote.</p></blockquote><p>Last line.<sup class=\"footnote-ref\" data-footnote-id=\"z\" contenteditable=\"false\"></sup></p>",
+        "footnotes": [
+          {
+            "id": "z",
+            "html": "The end."
+          }
+        ]
+      }
+    ],
+    "storyboardRows": [
+      {
+        "id": "row-1",
+        "title": "Act I"
+      }
+    ],
+    "storyboardCards": [
+      {
+        "id": "card-1",
+        "sourceId": "doc-1",
+        "rowId": "row-1",
+        "x": 12.5,
+        "y": 0.30000000000000004,
+        "kind": "scene",
+        "title": "Opening",
+        "note": ""
+      }
+    ],
+    "storyboardDrawings": [
+      {
+        "id": "draw-1",
+        "type": "arrow",
+        "x1": 0,
+        "y1": 1e+21,
+        "x2": 1e-7,
+        "y2": 123456789.125
+      }
+    ],
+    "timelineNodes": [
+      {
+        "id": "t-1",
+        "title": "Day One",
+        "date": "2026-01-01",
+        "time": "",
+        "description": "Start"
+      }
+    ],
+    "labels": [
+      {
+        "id": "label-1",
+        "name": "Draft",
+        "color": "#d69e2e"
+      }
+    ],
+    "comments": [
+      {
+        "id": "comment-1",
+        "documentId": "doc-1",
+        "quote": "dark",
+        "prefix": "It was \ud83c",
+        "suffix": ".",
+        "body": "Darker?",
+        "author": "Editor",
+        "createdAt": 1763370000000,
+        "resolved": false
+      }
+    ],
+    "snapshots": [
+      {
+        "id": "snap-1",
+        "documentId": "doc-1",
+        "createdAt": 1763360000000,
+        "title": "Opening Scene",
+        "content": "<p>It was dark.</p>",
+        "reason": "manual",
+        "note": "first"
+      }
+    ],
+    "citations": [
+      {
+        "id": "smith2020",
+        "type": "book",
+        "title": "Lighthouses",
+        "author": [
+          {
+            "family": "Smith",
+            "given": "Jo"
+          }
+        ],
+        "issued": {
+          "date-parts": [
+            [
+              2020
+            ]
+          ]
+        }
+      }
+    ],
+    "publishOptions": {
+      "futureOption": {
+        "nested": [
+          1,
+          2.25,
+          null,
+          true
+        ]
+      }
+    },
+    "futureField": {
+      "kept": "as is",
+      "n": 7
+    }
+  },
+  "exports": {
+    "defaults": {
+      "options": {},
+      "text": "The Lighthouse 🌊 Keeper\n\nby A. Writer\n\nCHAPTER ONE\n\nIt was dark.[1]\n\nThen [@smith2020].\n\n#\n\nINT. LIGHTHOUSE - NIGHT\n\nCHAPTER 1\n\nThe sea was calm.[2]\n\n• bread\n• salt\n\nThen nothing.[3]\n\n#\n\nLight.\n\nMore light.\n\nEPILOGUE\n\nAfter\n\nA quote.\n\nLast line.[4]\n\nNOTES\n[1] A note with emphasis.\n[2] Calm, mostly.\n[3] Truly nothing.\n[4] The end.\n"
+    },
+    "everything": {
+      "options": {
+        "style": "modern",
+        "includeTableOfContents": true,
+        "includeSceneTitles": true,
+        "includeCopyrightPage": true,
+        "sceneSeparator": "asterisks",
+        "subtitle": "A Novel",
+        "copyright": "© 2026 A. Writer",
+        "dedication": "For the keepers.",
+        "frontMatter": [
+          {
+            "id": "f1",
+            "title": "Epigraph",
+            "body": "Some words."
+          },
+          {
+            "id": "f2",
+            "title": "",
+            "body": "",
+            "blank": true
+          }
+        ],
+        "backMatter": [
+          {
+            "id": "b1",
+            "title": "Acknowledgments",
+            "body": "Thank you."
+          }
+        ]
+      },
+      "text": "The Lighthouse 🌊 Keeper\n\nA Novel\n\nby A. Writer\n\n© 2026 A. Writer\n\nFor the keepers.\n\nContents\n1. Chapter One\n2. Chapter 1\n3. Epilogue\n\nEpigraph\n\nSome words.\n\nChapter One\n\nOpening Scene\n\nIt was dark.[1]\n\nThen [@smith2020].\n\n* * *\n\nINT. LIGHTHOUSE - NIGHT\n\nINT. LIGHTHOUSE - NIGHT\n\nChapter 1\n\nMorning\n\nThe sea was calm.[2]\n\n• bread\n• salt\n\nThen nothing.[3]\n\n* * *\n\nNoon\n\nLight.\n\nMore light.\n\nEpilogue\n\nUntitled scene\n\nAfter\n\nA quote.\n\nLast line.[4]\n\nAcknowledgments\n\nThank you.\n\nNotes\n[1] A note with emphasis.\n[2] Calm, mostly.\n[3] Truly nothing.\n[4] The end.\n"
+    },
+    "perChapter": {
+      "options": {
+        "footnotesRestartPerChapter": true,
+        "sceneSeparator": "none",
+        "includeTitlePage": false,
+        "includeChapterTitles": false
+      },
+      "text": "It was dark.[1]\n\nThen [@smith2020].\n\nINT. LIGHTHOUSE - NIGHT\n\nNOTES\n[1] A note with emphasis.\n\nThe sea was calm.[1]\n\n• bread\n• salt\n\nThen nothing.[2]\n\nLight.\n\nMore light.\n\nNOTES\n[1] Calm, mostly.\n[2] Truly nothing.\n\nAfter\n\nA quote.\n\nLast line.[1]\n\nNOTES\n[1] The end.\n"
+    }
+  },
+  "filename": "the-lighthouse-keeper.txt"
+}

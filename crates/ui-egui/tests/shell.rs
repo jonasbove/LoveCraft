@@ -21,7 +21,7 @@ fn harness(app: ProseApp) -> Harness<'static, ProseApp> {
         .build_ui_state(|ui, app: &mut ProseApp| app.show(ui), app);
     // What the app does on its first frame, done before the harness's first frame too: the
     // fixtures have emoji and other characters no bundled font draws, and they must not crash.
-    prosecraft_ui_egui::setup(&harness.ctx);
+    prosecraft_ui_egui::setup_for_tests(&harness.ctx);
     harness
 }
 

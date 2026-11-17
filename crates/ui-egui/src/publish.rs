@@ -1,13 +1,14 @@
 //! The Publish view, as ProseCraft's `PublishView.svelte` lays it out: settings on the left
 //! (summary, Format, Style, Manuscript, Front matter, the Export button) and the manuscript's
 //! preview on the right. Settings are saved in the project's `publishOptions`, as ProseCraft
-//! saves them. Markdown and plain text are the exporters ported so far; the other formats
+//! saves them. HTML, Markdown and plain text are the exporters ported so far; the other formats
 //! can be chosen (the choice is kept) but say they aren't ported yet.
 
 use egui::{CornerRadius, Frame, Margin, RichText, Stroke, Ui};
 use prosecraft_core::js::JsValue;
 use prosecraft_core::publish::{
-    PublishOptions, SceneSeparator, compile_book, export_markdown, export_text, slugify_filename,
+    PublishOptions, SceneSeparator, compile_book, export_html, export_markdown, export_text,
+    slugify_filename,
 };
 
 use crate::editing::Intent;
@@ -51,7 +52,7 @@ const FORMATS: [(&str, &str, &str, &str); 6] = [
 ];
 
 /// Formats that can be exported here.
-const PORTED: [&str; 2] = ["markdown", "text"];
+const PORTED: [&str; 3] = ["markdown", "html", "text"];
 
 /// ProseCraft's built-in styles (`PRESETS`).
 const STYLES: [(&str, &str, &str); 4] = [
@@ -527,6 +528,8 @@ fn controls(
     if ui.add_enabled(can_export, button).clicked() {
         let export = if format.0 == "markdown" {
             export_markdown(book, options)
+        } else if format.0 == "html" {
+            export_html(book, options)
         } else {
             export_text(book, options)
         };
@@ -539,7 +542,7 @@ fn controls(
     }
     let note = if !ported {
         format!(
-            "{} export isn't ported yet; Markdown and plain text are.",
+            "{} export isn't ported yet; HTML, Markdown and plain text are.",
             format.1
         )
     } else if book.scenes() == 0 {

@@ -358,6 +358,17 @@ impl ProseApp {
         self.state.draft = None;
         self.state.selection = scene.map(Selection::Document);
         self.state.view = WorkspaceView::Write;
+        // As ProseCraft, Project Settings opens next, to name the project.
+        if let Some(project) = self
+            .state
+            .library
+            .as_ref()
+            .and_then(|l| l.projects().get(self.state.active))
+        {
+            self.state.project_settings = Some(
+                crate::project_settings::ProjectSettingsDraft::for_project(&project.view),
+            );
+        }
         self.state.status = Some(match saved {
             Ok(()) => "Created a new project.".into(),
             Err(error) => format!("Created a new project, but couldn't save your library: {error}"),

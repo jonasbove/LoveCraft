@@ -251,4 +251,53 @@ fn a_new_project_starts_from_a_wiki_template() {
     // The new project is open at its first scene, in the Write view.
     harness.get_by_role_and_label(Role::TreeItem, "Scene 1");
     assert!(harness.query_by_label("Scene text").is_some());
+
+    // Project Settings opens next, as in ProseCraft: name the project and add an author.
+    let name = harness.get_by_role_and_label(Role::TextInput, "Project name");
+    name.focus();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    harness
+        .get_by_role_and_label(Role::TextInput, "Project name")
+        .type_text("The Long Night");
+    harness
+        .get_by_role_and_label(Role::TextInput, "Author name")
+        .focus();
+    harness
+        .get_by_role_and_label(Role::TextInput, "Author name")
+        .type_text("  A. Writer ");
+    harness.run();
+    harness.get_by_role_and_label(Role::Button, "Save").click();
+    // The library is written after the pause that follows a change.
+    harness.run_steps(12);
+    let saved = store.0.lock().expect("saved").clone().expect("saved");
+    let library = prosecraft_core::js::parse(&saved).expect("json");
+    let data = library
+        .get("projects")
+        .and_then(|p| p.as_array())
+        .expect("projects")[0]
+        .get("project")
+        .cloned()
+        .expect("data");
+    let field = |k: &str| {
+        data.get(k)
+            .and_then(|v| v.as_js_string())
+            .map(|s| s.to_string_lossy())
+            .unwrap_or_default()
+    };
+    assert_eq!(
+        (field("name"), field("author"), field("kind")),
+        ("The Long Night".into(), "A. Writer".into(), "novel".into())
+    );
+    // The gear opens it again.
+    harness
+        .get_by_role_and_label(Role::Button, "Project settings")
+        .click();
+    harness.run();
+    assert_eq!(
+        harness
+            .get_by_role_and_label(Role::TextInput, "Project name")
+            .value()
+            .as_deref(),
+        Some("The Long Night")
+    );
 }

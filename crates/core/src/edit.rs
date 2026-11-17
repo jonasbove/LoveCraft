@@ -201,6 +201,31 @@ pub fn set_project_name(project: &mut JsValue, name: &str) -> Result<(), EditErr
     Ok(())
 }
 
+/// `saveProjectSettings`: the name (trimmed, required), the author (trimmed) and the type.
+/// ProseCraft limits both fields to 100 characters in the form.
+pub fn set_project_details(
+    project: &mut JsValue,
+    name: &str,
+    author: &str,
+    screenplay: bool,
+) -> Result<(), EditError> {
+    let name = name.trim_matches(crate::html::is_js_whitespace);
+    if name.is_empty() {
+        return Err(EditError::Shape);
+    }
+    let object = project.as_object_mut().ok_or(EditError::Shape)?;
+    object.insert("name", JsValue::str(name));
+    object.insert(
+        "author",
+        JsValue::str(author.trim_matches(crate::html::is_js_whitespace)),
+    );
+    object.insert(
+        "kind",
+        JsValue::str(if screenplay { "screenplay" } else { "novel" }),
+    );
+    Ok(())
+}
+
 /// `moveToTrash` for one document.
 pub fn trash_document(project: &mut JsValue, id: &str) -> Result<(), EditError> {
     find_mut(project, "documents", id)?.insert("trashed", JsValue::Bool(true));

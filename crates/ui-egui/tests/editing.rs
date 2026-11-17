@@ -725,3 +725,79 @@ fn a_comment_is_added_on_a_selection_resolved_and_found_again() {
         "Go to selects the passage"
     );
 }
+
+#[test]
+fn find_and_replace_across_the_project() {
+    let (mut harness, memory) = app();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::F);
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TextInput, "Find")
+        .type_text("dark");
+    harness.run();
+    let status = |h: &Harness<'_, ProseApp>| {
+        h.get_by_role(Role::Status)
+            .accesskit_node()
+            .label()
+            .unwrap_or_default()
+    };
+    assert_eq!(status(&harness), "1 hit in 1 document");
+    harness
+        .get_by_role_and_label(Role::TextInput, "Replace")
+        .focus();
+    harness
+        .get_by_role_and_label(Role::TextInput, "Replace")
+        .type_text("dusk");
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Replace all")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Replace")
+        .click();
+    harness.run_steps(12);
+    assert_eq!(status(&harness), "Replaced 1 match in 1 document");
+    let saved = memory.last();
+    let stored = project(&saved, "project-1");
+    let scene = document(stored, "doc-1").expect("scene");
+    let content = scene
+        .get("content")
+        .and_then(JsValue::as_js_string)
+        .map(|c| c.to_string_lossy())
+        .unwrap_or_default();
+    assert!(content.starts_with("<p>It was <em>dusk</em>."), "{content}");
+    let before = stored
+        .get("project")
+        .and_then(|p| p.get("snapshots"))
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+        .iter()
+        .any(|s| {
+            s.get("note")
+                .and_then(JsValue::as_js_string)
+                .is_some_and(|n| n.eq_str("Before replace"))
+                && s.get("content")
+                    .and_then(JsValue::as_js_string)
+                    .is_some_and(|c| c.to_string_lossy().contains("<em>dark</em>"))
+        });
+    assert!(before, "a snapshot of the scene was saved first");
+
+    // Find the new word and go to it: the scene opens with the match selected.
+    harness
+        .get_by_role_and_label(Role::TextInput, "Find")
+        .focus();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    harness
+        .get_by_role_and_label(Role::TextInput, "Find")
+        .type_text("dusk");
+    harness.run();
+    harness.key_press(egui::Key::Enter);
+    harness.run_steps(3);
+    let selected = harness
+        .get_by_label("Scene text")
+        .accesskit_node()
+        .text_selection()
+        .map(|r| r.text());
+    assert_eq!(selected.as_deref(), Some("dusk"));
+}

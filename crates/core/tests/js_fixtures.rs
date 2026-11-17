@@ -307,3 +307,141 @@ fn starters_build_as_prosecraft_builds_them() {
         starter_blueprint("fantasy")
     );
 }
+
+#[test]
+fn search_and_replace_match_prosecraft() {
+    use prosecraft_core::search::{
+        SearchOptions, find_first_match, replace_in_documents, search_documents,
+    };
+    let fixture = fixture("search.json");
+    let documents = fixture
+        .get("documents")
+        .and_then(JsValue::as_array)
+        .expect("docs")
+        .to_vec();
+    let chapters = fixture
+        .get("chapters")
+        .and_then(JsValue::as_array)
+        .expect("chapters")
+        .to_vec();
+    let flag = |o: &JsValue, k: &str| matches!(o.get(k), Some(JsValue::Bool(true)));
+    let opts = |o: &JsValue| SearchOptions {
+        case_sensitive: flag(o, "caseSensitive"),
+        whole_word: flag(o, "wholeWord"),
+        include_trashed: flag(o, "includeTrashed"),
+    };
+    let n = |v: &JsValue, k: &str| v.get(k).and_then(JsValue::as_number).expect(k) as usize;
+    for case in fixture
+        .get("searches")
+        .and_then(JsValue::as_array)
+        .expect("searches")
+    {
+        let query = text(case, "query");
+        let got = search_documents(
+            &documents,
+            &chapters,
+            &query,
+            opts(case.get("options").expect("o")),
+        );
+        let want = case.get("hits").and_then(JsValue::as_array).expect("hits");
+        assert_eq!(got.len(), want.len(), "{query:?}");
+        for (g, w) in got.iter().zip(want) {
+            let snippet = w
+                .get("snippet")
+                .and_then(JsValue::as_js_string)
+                .map(|s| s.units().to_vec())
+                .expect("snippet");
+            let chapter = w
+                .get("chapterTitle")
+                .and_then(JsValue::as_js_string)
+                .map(|s| s.to_string_lossy());
+            assert_eq!(
+                (
+                    g.document_id.as_str(),
+                    &g.snippet,
+                    g.match_start,
+                    g.match_length,
+                    g.matches,
+                    g.wiki,
+                    &g.chapter_title
+                ),
+                (
+                    text(w, "documentId").as_str(),
+                    &snippet,
+                    n(w, "matchStart"),
+                    n(w, "matchLength"),
+                    n(w, "matches"),
+                    text(w, "kind") == "wiki",
+                    &chapter
+                ),
+                "{query:?}"
+            );
+        }
+    }
+    for case in fixture
+        .get("replaces")
+        .and_then(JsValue::as_array)
+        .expect("replaces")
+    {
+        let mut docs = documents.clone();
+        let options = case.get("options").expect("o");
+        let result = replace_in_documents(
+            &mut docs,
+            &text(case, "query"),
+            &text(case, "replacement"),
+            opts(options),
+            flag(options, "includeTitles"),
+            None,
+        );
+        let changed: Vec<(String, usize)> = case
+            .get("changed")
+            .and_then(JsValue::as_array)
+            .expect("changed")
+            .iter()
+            .map(|c| (text(c, "id"), n(c, "count")))
+            .collect();
+        assert_eq!(result.changed, changed, "{}", text(case, "query"));
+        assert_eq!(result.total, n(case, "total"));
+        for want in case
+            .get("documents")
+            .and_then(JsValue::as_array)
+            .expect("docs")
+        {
+            let got = docs
+                .iter()
+                .find(|d| d.get("id") == want.get("id"))
+                .expect("doc");
+            assert_eq!(js::stringify(got), js::stringify(want));
+        }
+    }
+    let mut docs = documents.clone();
+    let only = replace_in_documents(
+        &mut docs,
+        "dark",
+        "light",
+        SearchOptions::default(),
+        false,
+        Some(&["s2".to_owned(), "w1".to_owned()]),
+    );
+    assert_eq!(only.total, n(fixture.get("only").expect("only"), "total"));
+    for case in fixture
+        .get("firsts")
+        .and_then(JsValue::as_array)
+        .expect("firsts")
+    {
+        let want = case
+            .get("match")
+            .filter(|m| !m.is_null())
+            .map(|m| (n(m, "start"), n(m, "end")));
+        assert_eq!(
+            find_first_match(
+                &text(case, "text"),
+                &text(case, "query"),
+                opts(case.get("options").expect("o"))
+            ),
+            want,
+            "{}",
+            text(case, "text")
+        );
+    }
+}

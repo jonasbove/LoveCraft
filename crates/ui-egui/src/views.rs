@@ -98,6 +98,13 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         if let Some(index) = segmented(ui, &palette, "workspace-tab", &labels, current, 13.0) {
             state.view = WorkspaceView::ALL.get(index).copied().unwrap_or_default();
         }
+        if state.library.is_some() {
+            let search = ui.button("Search").on_hover_text("Search project (Ctrl+F)");
+            name_field(ui, &search, "Search project");
+            if search.clicked() {
+                state.find = Some(crate::find::FindState::new());
+            }
+        }
     });
     if let Some(status) = &state.status {
         ui.horizontal(|ui| {

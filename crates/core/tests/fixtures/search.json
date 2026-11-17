@@ -1,0 +1,724 @@
+{
+  "documents": [
+    {
+      "id": "doc-1",
+      "title": "Opening Scene",
+      "chapterId": "chapter-1",
+      "content": "<p>It was <em>dark</em>.<sup class=\"footnote-ref\" data-footnote-id=\"fn-1\" contenteditable=\"false\"></sup></p><p>Then <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020&quot;}]\">(Smith 2020)</span>.</p>",
+      "footnotes": [
+        {
+          "id": "fn-1",
+          "html": "A note with <em>emphasis</em>."
+        }
+      ]
+    },
+    {
+      "id": "doc-2",
+      "title": "Mara",
+      "space": "Wiki",
+      "folderId": "folder-1",
+      "content": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+      "character": {
+        "role": "Protagonist",
+        "age": "32",
+        "pronouns": "she/her"
+      }
+    },
+    {
+      "id": "doc-3",
+      "title": "INT. LIGHTHOUSE - NIGHT",
+      "chapterId": "chapter-1",
+      "format": "screenplay",
+      "content": "<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>",
+      "markdownSource": "INT. LIGHTHOUSE - NIGHT"
+    },
+    {
+      "id": "doc-4",
+      "title": "Morning",
+      "chapterId": "chapter-3",
+      "content": "<p>The sea was calm.<sup class=\"footnote-ref\" data-footnote-id=\"a\" contenteditable=\"false\"></sup></p><ul><li>bread</li><li>salt</li></ul><p>Then <strong>nothing</strong>.<sup class=\"footnote-ref\" data-footnote-id=\"b\" contenteditable=\"false\"></sup></p>",
+      "footnotes": [
+        {
+          "id": "a",
+          "html": "Calm, mostly."
+        },
+        {
+          "id": "b",
+          "html": "Truly <em>nothing</em>."
+        }
+      ]
+    },
+    {
+      "id": "doc-5",
+      "title": "Noon",
+      "chapterId": "chapter-3",
+      "content": "<p>Light.</p><p>More light.</p>"
+    },
+    {
+      "id": "doc-6",
+      "title": "Empty",
+      "chapterId": "chapter-3",
+      "content": "<p><br></p>"
+    },
+    {
+      "id": "doc-7",
+      "title": "Gone",
+      "chapterId": "chapter-3",
+      "content": "<p>Trashed text.</p>",
+      "trashed": true
+    },
+    {
+      "id": "doc-8",
+      "title": "",
+      "chapterId": "chapter-4",
+      "content": "<h2>After</h2><blockquote><p>A quote.</p></blockquote><p>Last line.<sup class=\"footnote-ref\" data-footnote-id=\"z\" contenteditable=\"false\"></sup></p>",
+      "footnotes": [
+        {
+          "id": "z",
+          "html": "The end."
+        }
+      ]
+    },
+    {
+      "id": "s1",
+      "title": "Käpten's log",
+      "chapterId": "chapter-1",
+      "content": "<p>The Kapten met the käpten. KAPTEN!</p><p>Cat, catalogue, the cat's hat. 🌊 cat</p>"
+    },
+    {
+      "id": "s2",
+      "title": "Spanning",
+      "chapterId": "chapter-3",
+      "content": "<p>It was da<em>rk</em> and dark &amp; darker.</p>",
+      "markdownSource": "It was da*rk*"
+    },
+    {
+      "id": "s3",
+      "title": "Trashed dark",
+      "chapterId": "chapter-1",
+      "content": "<p>dark dark</p>",
+      "trashed": true
+    },
+    {
+      "id": "w1",
+      "title": "Dark lore",
+      "space": "Wiki",
+      "content": "<p>Notes about the dark tower. 한국어 dark.</p>"
+    },
+    {
+      "id": "x1",
+      "title": "Loose",
+      "content": "<p>dark but in no chapter</p>"
+    }
+  ],
+  "chapters": [
+    {
+      "id": "chapter-1",
+      "title": "Chapter One",
+      "expanded": true,
+      "summary": "It begins.",
+      "labelId": "label-1"
+    },
+    {
+      "id": "chapter-2",
+      "title": "Chapitre deux — « voilà »",
+      "expanded": false,
+      "trashed": true
+    },
+    {
+      "id": "chapter-3",
+      "title": "Chapter 7",
+      "expanded": true,
+      "summary": ""
+    },
+    {
+      "id": "chapter-4",
+      "title": "Epilogue",
+      "expanded": true
+    }
+  ],
+  "searches": [
+    {
+      "query": "dark",
+      "options": {},
+      "hits": [
+        {
+          "documentId": "w1",
+          "title": "Dark lore",
+          "kind": "wiki",
+          "snippet": "Dark lore",
+          "matchStart": 0,
+          "matchLength": 4,
+          "matches": 3
+        },
+        {
+          "documentId": "doc-1",
+          "title": "Opening Scene",
+          "kind": "scene",
+          "chapterTitle": "Chapter One",
+          "snippet": "It was dark. Then (Smith 2020).",
+          "matchStart": 7,
+          "matchLength": 4,
+          "matches": 1
+        },
+        {
+          "documentId": "s2",
+          "title": "Spanning",
+          "kind": "scene",
+          "chapterTitle": "Chapter 7",
+          "snippet": "It was dark and dark & darker.",
+          "matchStart": 7,
+          "matchLength": 4,
+          "matches": 3
+        }
+      ]
+    },
+    {
+      "query": "Dark",
+      "options": {
+        "caseSensitive": true
+      },
+      "hits": [
+        {
+          "documentId": "w1",
+          "title": "Dark lore",
+          "kind": "wiki",
+          "snippet": "Dark lore",
+          "matchStart": 0,
+          "matchLength": 4,
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "query": "dark",
+      "options": {
+        "wholeWord": true
+      },
+      "hits": [
+        {
+          "documentId": "w1",
+          "title": "Dark lore",
+          "kind": "wiki",
+          "snippet": "Dark lore",
+          "matchStart": 0,
+          "matchLength": 4,
+          "matches": 3
+        },
+        {
+          "documentId": "doc-1",
+          "title": "Opening Scene",
+          "kind": "scene",
+          "chapterTitle": "Chapter One",
+          "snippet": "It was dark. Then (Smith 2020).",
+          "matchStart": 7,
+          "matchLength": 4,
+          "matches": 1
+        },
+        {
+          "documentId": "s2",
+          "title": "Spanning",
+          "kind": "scene",
+          "chapterTitle": "Chapter 7",
+          "snippet": "It was dark and dark & darker.",
+          "matchStart": 7,
+          "matchLength": 4,
+          "matches": 2
+        }
+      ]
+    },
+    {
+      "query": "kapten",
+      "options": {},
+      "hits": [
+        {
+          "documentId": "s1",
+          "title": "Käpten's log",
+          "kind": "scene",
+          "chapterTitle": "Chapter One",
+          "snippet": "Käpten's log",
+          "matchStart": 0,
+          "matchLength": 6,
+          "matches": 4
+        }
+      ]
+    },
+    {
+      "query": "KAPTEN",
+      "options": {
+        "caseSensitive": true
+      },
+      "hits": [
+        {
+          "documentId": "s1",
+          "title": "Käpten's log",
+          "kind": "scene",
+          "chapterTitle": "Chapter One",
+          "snippet": "The Kapten met the käpten. KAPTEN! Cat, catalogue, the cat's hat. 🌊 cat",
+          "matchStart": 27,
+          "matchLength": 6,
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "query": "cat",
+      "options": {
+        "wholeWord": true
+      },
+      "hits": [
+        {
+          "documentId": "s1",
+          "title": "Käpten's log",
+          "kind": "scene",
+          "chapterTitle": "Chapter One",
+          "snippet": "The Kapten met the käpten. KAPTEN! Cat, catalogue, the cat's hat. 🌊 cat",
+          "matchStart": 35,
+          "matchLength": 3,
+          "matches": 3
+        }
+      ]
+    },
+    {
+      "query": "cat",
+      "options": {},
+      "hits": [
+        {
+          "documentId": "s1",
+          "title": "Käpten's log",
+          "kind": "scene",
+          "chapterTitle": "Chapter One",
+          "snippet": "The Kapten met the käpten. KAPTEN! Cat, catalogue, the cat's hat. 🌊 cat",
+          "matchStart": 35,
+          "matchLength": 3,
+          "matches": 4
+        }
+      ]
+    },
+    {
+      "query": "dark",
+      "options": {
+        "includeTrashed": true
+      },
+      "hits": [
+        {
+          "documentId": "s3",
+          "title": "Trashed dark",
+          "kind": "scene",
+          "chapterTitle": "Chapter One",
+          "snippet": "Trashed dark",
+          "matchStart": 8,
+          "matchLength": 4,
+          "matches": 3
+        },
+        {
+          "documentId": "w1",
+          "title": "Dark lore",
+          "kind": "wiki",
+          "snippet": "Dark lore",
+          "matchStart": 0,
+          "matchLength": 4,
+          "matches": 3
+        },
+        {
+          "documentId": "doc-1",
+          "title": "Opening Scene",
+          "kind": "scene",
+          "chapterTitle": "Chapter One",
+          "snippet": "It was dark. Then (Smith 2020).",
+          "matchStart": 7,
+          "matchLength": 4,
+          "matches": 1
+        },
+        {
+          "documentId": "s2",
+          "title": "Spanning",
+          "kind": "scene",
+          "chapterTitle": "Chapter 7",
+          "snippet": "It was dark and dark & darker.",
+          "matchStart": 7,
+          "matchLength": 4,
+          "matches": 3
+        }
+      ]
+    },
+    {
+      "query": "  the  ",
+      "options": {},
+      "hits": [
+        {
+          "documentId": "doc-1",
+          "title": "Opening Scene",
+          "kind": "scene",
+          "chapterTitle": "Chapter One",
+          "snippet": "It was dark. Then (Smith 2020).",
+          "matchStart": 13,
+          "matchLength": 3,
+          "matches": 1
+        },
+        {
+          "documentId": "s1",
+          "title": "Käpten's log",
+          "kind": "scene",
+          "chapterTitle": "Chapter One",
+          "snippet": "The Kapten met the käpten. KAPTEN! Cat, catalogue, the cat's hat. 🌊 cat",
+          "matchStart": 0,
+          "matchLength": 3,
+          "matches": 3
+        },
+        {
+          "documentId": "doc-4",
+          "title": "Morning",
+          "kind": "scene",
+          "chapterTitle": "Chapter 7",
+          "snippet": "The sea was calm. • bread • salt Then nothing.",
+          "matchStart": 0,
+          "matchLength": 3,
+          "matches": 2
+        },
+        {
+          "documentId": "w1",
+          "title": "Dark lore",
+          "kind": "wiki",
+          "snippet": "Notes about the dark tower. 한국어 dark.",
+          "matchStart": 12,
+          "matchLength": 3,
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "query": "🌊",
+      "options": {},
+      "hits": [
+        {
+          "documentId": "s1",
+          "title": "Käpten's log",
+          "kind": "scene",
+          "chapterTitle": "Chapter One",
+          "snippet": "The Kapten met the käpten. KAPTEN! Cat, catalogue, the cat's hat. 🌊 cat",
+          "matchStart": 66,
+          "matchLength": 2,
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "query": "",
+      "options": {},
+      "hits": []
+    },
+    {
+      "query": "nothing here",
+      "options": {},
+      "hits": []
+    },
+    {
+      "query": "한국어",
+      "options": {},
+      "hits": [
+        {
+          "documentId": "w1",
+          "title": "Dark lore",
+          "kind": "wiki",
+          "snippet": "Notes about the dark tower. 한국어 dark.",
+          "matchStart": 28,
+          "matchLength": 3,
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "query": "&",
+      "options": {},
+      "hits": [
+        {
+          "documentId": "s2",
+          "title": "Spanning",
+          "kind": "scene",
+          "chapterTitle": "Chapter 7",
+          "snippet": "It was dark and dark & darker.",
+          "matchStart": 21,
+          "matchLength": 1,
+          "matches": 1
+        }
+      ]
+    }
+  ],
+  "replaces": [
+    {
+      "query": "dark",
+      "replacement": "light",
+      "options": {},
+      "changed": [
+        {
+          "id": "doc-1",
+          "count": 1
+        },
+        {
+          "id": "s2",
+          "count": 2
+        },
+        {
+          "id": "w1",
+          "count": 2
+        }
+      ],
+      "total": 5,
+      "documents": [
+        {
+          "id": "doc-1",
+          "title": "Opening Scene",
+          "chapterId": "chapter-1",
+          "content": "<p>It was <em>light</em>.<sup class=\"footnote-ref\" data-footnote-id=\"fn-1\" contenteditable=\"false\"></sup></p><p>Then <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020&quot;}]\">(Smith 2020)</span>.</p>",
+          "footnotes": [
+            {
+              "id": "fn-1",
+              "html": "A note with <em>emphasis</em>."
+            }
+          ]
+        },
+        {
+          "id": "s2",
+          "title": "Spanning",
+          "chapterId": "chapter-3",
+          "content": "<p>It was da<em>rk</em> and light &amp; lighter.</p>"
+        },
+        {
+          "id": "w1",
+          "title": "Dark lore",
+          "space": "Wiki",
+          "content": "<p>Notes about the light tower. 한국어 light.</p>"
+        }
+      ]
+    },
+    {
+      "query": "dark",
+      "replacement": "",
+      "options": {
+        "wholeWord": true
+      },
+      "changed": [
+        {
+          "id": "doc-1",
+          "count": 1
+        },
+        {
+          "id": "s2",
+          "count": 1
+        },
+        {
+          "id": "w1",
+          "count": 2
+        }
+      ],
+      "total": 4,
+      "documents": [
+        {
+          "id": "doc-1",
+          "title": "Opening Scene",
+          "chapterId": "chapter-1",
+          "content": "<p>It was <em></em>.<sup class=\"footnote-ref\" data-footnote-id=\"fn-1\" contenteditable=\"false\"></sup></p><p>Then <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020&quot;}]\">(Smith 2020)</span>.</p>",
+          "footnotes": [
+            {
+              "id": "fn-1",
+              "html": "A note with <em>emphasis</em>."
+            }
+          ]
+        },
+        {
+          "id": "s2",
+          "title": "Spanning",
+          "chapterId": "chapter-3",
+          "content": "<p>It was da<em>rk</em> and  &amp; darker.</p>"
+        },
+        {
+          "id": "w1",
+          "title": "Dark lore",
+          "space": "Wiki",
+          "content": "<p>Notes about the  tower. 한국어 .</p>"
+        }
+      ]
+    },
+    {
+      "query": "kapten",
+      "replacement": "Captain",
+      "options": {},
+      "changed": [
+        {
+          "id": "s1",
+          "count": 3
+        }
+      ],
+      "total": 3,
+      "documents": [
+        {
+          "id": "s1",
+          "title": "Käpten's log",
+          "chapterId": "chapter-1",
+          "content": "<p>The Captain met the Captain. Captain!</p><p>Cat, catalogue, the cat's hat. 🌊 cat</p>"
+        }
+      ]
+    },
+    {
+      "query": "Dark",
+      "replacement": "Night",
+      "options": {
+        "caseSensitive": true,
+        "includeTitles": true
+      },
+      "changed": [
+        {
+          "id": "w1",
+          "count": 1
+        }
+      ],
+      "total": 1,
+      "documents": [
+        {
+          "id": "w1",
+          "title": "Night lore",
+          "space": "Wiki",
+          "content": "<p>Notes about the dark tower. 한국어 dark.</p>"
+        }
+      ]
+    },
+    {
+      "query": "dark",
+      "replacement": "x",
+      "options": {
+        "includeTrashed": true
+      },
+      "changed": [
+        {
+          "id": "doc-1",
+          "count": 1
+        },
+        {
+          "id": "s2",
+          "count": 2
+        },
+        {
+          "id": "s3",
+          "count": 2
+        },
+        {
+          "id": "w1",
+          "count": 2
+        }
+      ],
+      "total": 7,
+      "documents": [
+        {
+          "id": "doc-1",
+          "title": "Opening Scene",
+          "chapterId": "chapter-1",
+          "content": "<p>It was <em>x</em>.<sup class=\"footnote-ref\" data-footnote-id=\"fn-1\" contenteditable=\"false\"></sup></p><p>Then <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020&quot;}]\">(Smith 2020)</span>.</p>",
+          "footnotes": [
+            {
+              "id": "fn-1",
+              "html": "A note with <em>emphasis</em>."
+            }
+          ]
+        },
+        {
+          "id": "s2",
+          "title": "Spanning",
+          "chapterId": "chapter-3",
+          "content": "<p>It was da<em>rk</em> and x &amp; xer.</p>"
+        },
+        {
+          "id": "s3",
+          "title": "Trashed dark",
+          "chapterId": "chapter-1",
+          "content": "<p>x x</p>",
+          "trashed": true
+        },
+        {
+          "id": "w1",
+          "title": "Dark lore",
+          "space": "Wiki",
+          "content": "<p>Notes about the x tower. 한국어 x.</p>"
+        }
+      ]
+    },
+    {
+      "query": "&",
+      "replacement": "and",
+      "options": {},
+      "changed": [
+        {
+          "id": "s2",
+          "count": 1
+        }
+      ],
+      "total": 1,
+      "documents": [
+        {
+          "id": "s2",
+          "title": "Spanning",
+          "chapterId": "chapter-3",
+          "content": "<p>It was da<em>rk</em> and dark and darker.</p>"
+        }
+      ]
+    }
+  ],
+  "only": {
+    "changed": [
+      {
+        "id": "s2",
+        "count": 2
+      },
+      {
+        "id": "w1",
+        "count": 2
+      }
+    ],
+    "total": 4
+  },
+  "firsts": [
+    {
+      "text": "The Käpten sails",
+      "query": "kapten",
+      "options": {},
+      "match": {
+        "start": 4,
+        "end": 10
+      }
+    },
+    {
+      "text": "a cat and the cat",
+      "query": "cat",
+      "options": {
+        "wholeWord": true
+      },
+      "match": {
+        "start": 2,
+        "end": 5
+      }
+    },
+    {
+      "text": "concatenate",
+      "query": "cat",
+      "options": {
+        "wholeWord": true
+      },
+      "match": null
+    },
+    {
+      "text": "Ünïcödé text",
+      "query": "unicode",
+      "options": {},
+      "match": {
+        "start": 0,
+        "end": 7
+      }
+    },
+    {
+      "text": "x",
+      "query": "",
+      "options": {},
+      "match": null
+    }
+  ]
+}

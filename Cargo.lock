@@ -3326,6 +3326,7 @@ dependencies = [
  "craft-zip",
  "encoding_rs",
  "getrandom 0.3.4",
+ "regress",
  "thiserror 2.0.21",
  "unicode-normalization",
  "zeroize",
@@ -3518,6 +3519,15 @@ checksum = "60dc65c0ff1a7ae1294b0c67b9f14baf70b644404010370171787bfac1038fc0"
 dependencies = [
  "libredox",
  "thiserror 2.0.21",
+]
+
+[[package]]
+name = "regress"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32eef8b209c3c1c15dbad02c1f30f9539f00dc7253e0cbcdaae442a50a09d7c1"
+dependencies = [
+ "memchr",
 ]
 
 [[package]]

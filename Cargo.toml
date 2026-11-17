@@ -41,6 +41,9 @@ base64 = "0.23"
 # NFKC for passphrases, as ProseCraft's `passphrase.normalize("NFKC")` ((MIT OR Apache-2.0) AND Unicode-3.0).
 unicode-normalization = "0.1"
 zeroize = "1"
+# ECMAScript regular expressions, for marked's rules to match as they do in JavaScript
+# (MIT OR Apache-2.0).
+regress = "0.12"
 # The platform data folder for the library (MIT OR Apache-2.0).
 dirs = "6"
 tempfile = "3"

@@ -17,6 +17,7 @@
 
 mod number;
 mod parse;
+pub(crate) mod regexp;
 mod stringify;
 
 pub use number::{number_to_string, string_to_number};

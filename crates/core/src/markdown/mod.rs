@@ -1,6 +1,7 @@
 //! Scene HTML as Markdown, as ProseCraft writes it (`src/lib/publish/markdown.ts`), for the
 //! Markdown export and open sync folders.
 
+pub(crate) mod marked;
 mod turndown;
 
 use crate::html::sanitize::is_valid_footnote_id;
@@ -55,5 +56,49 @@ pub fn html_to_markdown(html: &str, footnotes: &[FootnoteDef]) -> String {
         definitions.join("\n")
     } else {
         format!("{body}\n\n{}", definitions.join("\n"))
+    }
+}
+
+/// `markdownToHtml`: Markdown as HTML, as ProseCraft's configured marked renders it. Raw HTML
+/// in the Markdown passes through: callers sanitize it, as ProseCraft's do.
+pub fn markdown_to_html(markdown: &str) -> String {
+    marked::parse(markdown)
+}
+
+/// Scene HTML and the footnote definitions taken out of it.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MarkdownDocument {
+    pub html: String,
+    pub footnotes: Vec<FootnoteDef>,
+}
+
+/// `markdownToDocument`: the body as HTML, and each `[^id]:` definition's text as sanitized
+/// inline HTML. A repeated id keeps its first place and its last text.
+pub fn markdown_to_document(markdown: &str) -> MarkdownDocument {
+    let tokens = marked::lex(markdown);
+    let mut footnotes: Vec<FootnoteDef> = Vec::new();
+    for token in tokens
+        .iter()
+        .filter(|t| t.kind == marked::Kind::FootnoteDef)
+    {
+        if !is_valid_footnote_id(&token.id) {
+            continue;
+        }
+        let html = if token.text.is_empty() {
+            String::new()
+        } else {
+            sanitize_inline_html(&marked::parse_inline(&token.text))
+        };
+        match footnotes.iter_mut().find(|f| f.id == token.id) {
+            Some(existing) => existing.html = html,
+            None => footnotes.push(FootnoteDef {
+                id: token.id.clone(),
+                html,
+            }),
+        }
+    }
+    MarkdownDocument {
+        html: marked::parse_tokens(&tokens),
+        footnotes,
     }
 }

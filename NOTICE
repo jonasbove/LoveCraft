@@ -13,5 +13,10 @@ Christie, whose whitespace collapsing is adapted from collapse-whitespace, Copyr
 Luc Thevenard, both distributed under the MIT licence. Their notices are reproduced in
 licenses/turndown.txt.
 
+crates/core/src/markdown/marked/ is a port of marked 18.1.1, Copyright (c) 2018+ MarkedJS and
+Copyright (c) 2011-2018 Christopher Jeffrey, distributed under the MIT licence, which also
+carries the notice of Markdown, Copyright (c) 2004 John Gruber. Its LICENSE file is reproduced
+in licenses/marked.txt.
+
 prosecraft-rs is an independent project. It is not affiliated with or endorsed by the
 ProseCraft project or its author.

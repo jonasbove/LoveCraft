@@ -44,6 +44,9 @@ fn footer(ui: &mut Ui, state: &mut AppState) {
         if state.has_home && state.library.is_some() && ui.button("Export backup…").clicked() {
             state.export_wanted = true;
         }
+        if state.has_home && ui.button("Settings…").clicked() {
+            state.settings_open = true;
+        }
     });
 }
 

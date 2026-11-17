@@ -21,6 +21,9 @@ impl LibraryStore for Nowhere {
     fn new_id(&mut self) -> String {
         "new".into()
     }
+    fn supports_sync(&self) -> bool {
+        true
+    }
 }
 
 fn fixture(name: &str) -> String {
@@ -66,4 +69,11 @@ fn render_views() {
     save(&mut harness, "write-chapter");
     harness.get_by_role_and_label(Role::Tab, "Publish").click();
     save(&mut harness, "publish");
+    harness
+        .get_by_role_and_label(Role::Button, "Settings…")
+        .click();
+    harness
+        .state_mut()
+        .set_sync_folder("/home/writer/Nextcloud/ProseCraft".into());
+    save(&mut harness, "settings");
 }

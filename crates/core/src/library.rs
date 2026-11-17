@@ -105,6 +105,13 @@ impl Library {
         }
     }
 
+    /// After a sync: the library holds the merged working set. Records this build can't read
+    /// (not valid stored projects) aren't part of a sync and are kept as they are.
+    pub fn replace_synced(&mut self, synced: Vec<JsValue>) {
+        self.projects.retain(|p| !is_stored_project(p));
+        self.projects.extend(synced);
+    }
+
     /// `mergeIncomingProjects`: each incoming project replaces the library's copy when it is
     /// newer (`updatedAt`, then `revision`); new projects are added.
     pub fn merge(&mut self, incoming: Vec<JsValue>) -> ImportResult {

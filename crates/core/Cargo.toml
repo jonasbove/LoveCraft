@@ -10,3 +10,16 @@ publish = false
 
 [lints]
 workspace = true
+
+[dependencies]
+thiserror = { workspace = true }
+argon2 = { workspace = true }
+chacha20poly1305 = { workspace = true }
+base64 = { workspace = true }
+unicode-normalization = { workspace = true }
+zeroize = { workspace = true }
+
+# The operating system's random numbers on the desktop. The web build supplies the browser's
+# `crypto.getRandomValues` through `RandomSource` instead.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+getrandom = { workspace = true }

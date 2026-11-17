@@ -11,3 +11,5 @@
 )]
 
 pub mod about;
+pub mod js;
+pub mod storage;

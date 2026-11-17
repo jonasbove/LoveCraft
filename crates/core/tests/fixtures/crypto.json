@@ -1,0 +1,148 @@
+[
+  {
+    "passphrase": "correct horse battery",
+    "header": {
+      "version": 1,
+      "kdf": {
+        "algorithm": "argon2id",
+        "memoryKiB": 19456,
+        "iterations": 2,
+        "parallelism": 1,
+        "salt": "mT6iAvlEBcotHr4VgyPdoQ=="
+      },
+      "wrappedKey": {
+        "nonce": "hMcO3CuedSTtxyEL9LECi1594V9TIbZy",
+        "ciphertext": "dwllAAjUOsjn2i1LTdFYiZRgwrRBWGRJhKQH2yf+ipdEFQ2c9XnH7ZNWBnnb2QfD"
+      }
+    },
+    "kek": "ef215f4e43706800f657f394103f693b8b407fbe6d80e503b3c6d5726fe772a9",
+    "vaultKey": "63640b26f2fe49c07a91e0b9b1615cf5cb56454862b299f6a8f24034a511a1a6",
+    "meta": {
+      "kind": "document",
+      "id": "doc-\ud83d",
+      "projectId": "project-1",
+      "deviceId": "device-a",
+      "updatedAt": 1763370000000.5,
+      "revision": 3
+    },
+    "payload": {
+      "title": "T",
+      "n": [
+        1,
+        0.1,
+        0,
+        1e+21
+      ],
+      "lone": "x\udfffy"
+    },
+    "envelope": {
+      "version": 1,
+      "kind": "document",
+      "id": "doc-\ud83d",
+      "projectId": "project-1",
+      "deviceId": "device-a",
+      "updatedAt": 1763370000000.5,
+      "revision": 3,
+      "nonce": "zhULjSI+ga8ObSILO49XI9kKRAfBmNqq",
+      "body": "bt++F/peNgdMvD/ncWqmrPpDdRc1P/fhkHVpd/Ox8cP5OXEX6Gg4QAg7v5/2XGjgQNrvnUwny3HSZl4sCZ4rEJhpIg=="
+    }
+  },
+  {
+    "passphrase": "ﬁnal Ｐａｓｓ ⅷ é",
+    "header": {
+      "version": 1,
+      "kdf": {
+        "algorithm": "argon2id",
+        "memoryKiB": 64,
+        "iterations": 1,
+        "parallelism": 1,
+        "salt": "oUwkIND+DqpinqIdX8kLpw=="
+      },
+      "wrappedKey": {
+        "nonce": "RnH7IDqknT9GXzQvucQRuql9cBF/fVWn",
+        "ciphertext": "3yNd8h4dzTVCxmm7RLbcBHLsA7GajDSAjJgzV7QPyb9Cr7V2RJTNSGEys8bFD4st"
+      },
+      "hint": "a hint"
+    },
+    "kek": "0185a5e7bdb85664ee60424f2d7d8f6c4bcc39ecc0c2324f00d204264652122e",
+    "vaultKey": "236f0a3e67fe3ccb46a2f39f689212a4e112e08d3eebe6baafa36ef38ec8b632",
+    "meta": {
+      "kind": "document",
+      "id": "doc-\ud83d",
+      "projectId": "project-1",
+      "deviceId": "device-a",
+      "updatedAt": 1763370000000.5,
+      "revision": 3
+    },
+    "payload": {
+      "title": "T",
+      "n": [
+        1,
+        0.1,
+        0,
+        1e+21
+      ],
+      "lone": "x\udfffy"
+    },
+    "envelope": {
+      "version": 1,
+      "kind": "document",
+      "id": "doc-\ud83d",
+      "projectId": "project-1",
+      "deviceId": "device-a",
+      "updatedAt": 1763370000000.5,
+      "revision": 3,
+      "nonce": "g8wkQqDtfFoxX6e4a20S8z/m6p93ja/P",
+      "body": "B/Echgf8V9E6KlwlO22hlFHOb0rLqHIsHrGbbJ3VAiFD0WqodtRTxn32WCrFIiZ7c6UP4k4+9+Orm5DsulI6tvLpGA=="
+    }
+  },
+  {
+    "passphrase": "pass\ud800word",
+    "header": {
+      "version": 1,
+      "kdf": {
+        "algorithm": "argon2id",
+        "memoryKiB": 64,
+        "iterations": 1,
+        "parallelism": 1,
+        "salt": "pcf3Bt3kToPck3XvQGvmjQ=="
+      },
+      "wrappedKey": {
+        "nonce": "FdOmlnqlQLLFKVsaqVZlDy8GuUhIREMc",
+        "ciphertext": "Ph7E0kXJaoDh0DNEw7vypFEuDJeJdNcOx6e9cHy9MLMg+zETpqBILsaM8v1vIcZB"
+      },
+      "hint": "a hint"
+    },
+    "kek": "f52469e4e17432594ca93485268a5dbe7dda8a6761e7397c8bfe233c732e4d5a",
+    "vaultKey": "509e805dfc42f6df28dd71b03c81c2c5584c03884f51ff9286e018b3e6ba6b36",
+    "meta": {
+      "kind": "document",
+      "id": "doc-\ud83d",
+      "projectId": "project-1",
+      "deviceId": "device-a",
+      "updatedAt": 1763370000000.5,
+      "revision": 3
+    },
+    "payload": {
+      "title": "T",
+      "n": [
+        1,
+        0.1,
+        0,
+        1e+21
+      ],
+      "lone": "x\udfffy"
+    },
+    "envelope": {
+      "version": 1,
+      "kind": "document",
+      "id": "doc-\ud83d",
+      "projectId": "project-1",
+      "deviceId": "device-a",
+      "updatedAt": 1763370000000.5,
+      "revision": 3,
+      "nonce": "jBSVjhf0Bk7tpEt2BYh1WBXxgZO6juhE",
+      "body": "xI98Hhg90PZD1wF/cBHW40QXV3r8JCUxNxQJrGpYqLAFKw6WObpu2j52oN1D/d1Kt8eXcbv2aSDGJRp6e2dWcB/2VA=="
+    }
+  }
+]

@@ -445,3 +445,70 @@ fn search_and_replace_match_prosecraft() {
         );
     }
 }
+
+#[test]
+fn custom_starters_match_prosecraft() {
+    use prosecraft_core::starters::custom::{
+        CUSTOM_STARTERS_KEY, add_custom_folder, add_custom_page, custom_starters_json,
+        custom_starters_value, normalize_custom_starters, remove_custom_folder, remove_custom_page,
+        rename_custom_folder, rename_custom_page,
+    };
+    use prosecraft_core::starters::{
+        Blueprint, all_keys, filter_blueprint, read_blueprint, starter_blueprint,
+    };
+    let all = fixture("custom-starters.json");
+    assert_eq!(text(&all, "key"), CUSTOM_STARTERS_KEY);
+    let normalized = normalize_custom_starters(all.get("stored").expect("stored"));
+    assert_eq!(
+        js::stringify(&custom_starters_value(&normalized)),
+        js::stringify(all.get("normalized").expect("normalized"))
+    );
+    assert_eq!(custom_starters_json(&normalized), text(&all, "saved"));
+    // The same edits as ProseCraft's, step by step.
+    let mut working = starter_blueprint("fantasy");
+    working = add_custom_folder(&working, "  My folder ");
+    let folder = working
+        .folders
+        .last()
+        .map(|f| f.key.clone())
+        .unwrap_or_default();
+    working = add_custom_page(&working, &folder, " Page one ", "<p>Hi</p>");
+    working = add_custom_page(&working, &folder, "", "");
+    working = add_custom_folder(&working, "");
+    working = rename_custom_folder(&working, &folder, " Renamed ");
+    let first = working
+        .folders
+        .iter()
+        .find(|f| f.key == folder)
+        .map(|f| f.pages[0].key.clone())
+        .unwrap_or_default();
+    working = rename_custom_page(&working, &first, "   ");
+    let second = working
+        .folders
+        .iter()
+        .find(|f| f.key == folder)
+        .map(|f| f.pages[1].key.clone())
+        .unwrap_or_default();
+    working = remove_custom_page(&working, &second);
+    let head = working.folders[0].key.clone();
+    working = remove_custom_folder(&working, &head);
+    let as_value = |b: &Blueprint| {
+        custom_starters_value(&[prosecraft_core::starters::custom::CustomStarter {
+            id: "x".into(),
+            name: "x".into(),
+            blueprint: b.clone(),
+        }])
+    };
+    let want = |key: &str| read_blueprint(all.get(key).expect(key));
+    assert_eq!(
+        js::stringify(&as_value(&working)),
+        js::stringify(&as_value(&want("working")))
+    );
+    let keys: Vec<String> = all_keys(&working)
+        .into_iter()
+        .enumerate()
+        .filter(|(i, _)| i % 3 != 1)
+        .map(|(_, k)| k)
+        .collect();
+    assert_eq!(filter_blueprint(&working, &keys), want("template"));
+}

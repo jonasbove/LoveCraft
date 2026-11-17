@@ -5,6 +5,8 @@
 //! default publishing options are ProseCraft's own, exported from its code into `data.json`
 //! by the fixture generator, so the templates are exactly ProseCraft's.
 
+pub mod custom;
+
 use std::sync::OnceLock;
 
 use crate::js::{self, JsObject, JsValue};
@@ -61,7 +63,8 @@ fn s(v: &JsValue, key: &str) -> String {
         .unwrap_or_default()
 }
 
-fn read_blueprint(v: &JsValue) -> Blueprint {
+/// A blueprint as ProseCraft writes it (`{ folders: [{ key, name, pages: [{ key, title, html }] }] }`).
+pub fn read_blueprint(v: &JsValue) -> Blueprint {
     let folders = v
         .get("folders")
         .and_then(JsValue::as_array)

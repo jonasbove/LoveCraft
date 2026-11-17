@@ -276,6 +276,10 @@ pub struct AppState {
     /// A Scrivener project read and shown before it is imported, and one to import now.
     scrivener: Option<scrivener_import::ScrivenerPreview>,
     scrivener_done: Option<scrivener_import::ScrivenerPreview>,
+    /// The user's own wiki templates (a device setting), and a new list to save (a new one has
+    /// no id yet).
+    custom_starters: Vec<prosecraft_core::starters::custom::CustomStarter>,
+    custom_starters_save: Option<Vec<prosecraft_core::starters::custom::CustomStarter>>,
     /// The Labels dialog, while open.
     labels_dialog: Option<labels::LabelsDraft>,
     /// The Project Settings dialog, while open.
@@ -684,6 +688,32 @@ impl ProseApp {
         }
     }
 
+    /// The templates the Start-from dialog changed, saved as the device setting
+    /// (`saveCustomStarters`), with ids for new ones, then read back as saved.
+    fn save_custom_starters(&mut self) {
+        use prosecraft_core::starters::custom::{
+            CUSTOM_STARTERS_KEY, custom_starters_json, load_custom_starters,
+        };
+        let Some(home) = self.home.as_mut() else {
+            return;
+        };
+        let Some(mut next) = self.state.custom_starters_save.take() else {
+            return;
+        };
+        for template in next.iter_mut().filter(|t| t.id.is_empty()) {
+            template.id = home.store.new_id();
+        }
+        let json = custom_starters_json(&next);
+        match home.store.save_setting(CUSTOM_STARTERS_KEY, Some(&json)) {
+            Ok(()) => self.state.custom_starters = load_custom_starters(Some(&json)),
+            Err(_) => {
+                if let Some(draft) = self.state.starter.as_mut() {
+                    draft.failed("Could not save the template on this device.");
+                }
+            }
+        }
+    }
+
     /// Writes the library now if it has changes.
     fn save_now(&mut self) {
         let Some(home) = self.home.as_mut() else {
@@ -935,6 +965,7 @@ impl ProseApp {
         }
         self.passphrase_dialog(ui);
         self.handle_sync_actions();
+        self.save_custom_starters();
         if let Some(theme) = self.state.theme_choice.take() {
             self.state.theme = theme;
             if let Some(home) = self.home.as_mut()

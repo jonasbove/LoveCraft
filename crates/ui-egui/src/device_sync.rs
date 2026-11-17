@@ -33,6 +33,11 @@ impl ProseApp {
             .store
             .load_setting(crate::COMMENT_AUTHOR_KEY)
             .unwrap_or_default();
+        self.state.custom_starters = prosecraft_core::starters::custom::load_custom_starters(
+            home.store
+                .load_setting(prosecraft_core::starters::custom::CUSTOM_STARTERS_KEY)
+                .as_deref(),
+        );
         self.state.theme = home
             .store
             .load_setting(crate::settings::THEME_KEY)

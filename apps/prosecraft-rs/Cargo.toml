@@ -1,0 +1,17 @@
+[package]
+name = "prosecraft-rs"
+description = "prosecraft-rs desktop app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+prosecraft-core = { workspace = true }
+prosecraft-ui-egui = { workspace = true }
+eframe = { workspace = true, features = ["wayland", "x11"] }

@@ -1,0 +1,26 @@
+name: CI
+
+# Quality gates for every push to main and every pull request (`cargo xtask ci`), through the
+# suite's shared gate workflow in craft-common-actions.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  gate:
+    uses: storytold/craft-common-actions/.github/workflows/gate.yml@main
+    with:
+      os: '["ubuntu-24.04"]'
+      craft-fonts-ref: ""
+      tools: ""
+      targets: wasm32-unknown-unknown
+      packages: libxkbcommon-dev libwayland-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev

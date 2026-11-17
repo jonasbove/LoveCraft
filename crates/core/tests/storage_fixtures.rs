@@ -406,3 +406,59 @@ fn html_export_matches_prosecraft_byte_for_byte() {
         assert_eq!(export.file_name, "the-lighthouse-keeper.html");
     }
 }
+
+#[test]
+fn epub_export_matches_prosecraft_entry_for_entry() {
+    use prosecraft_core::project::Project;
+    use prosecraft_core::publish::{PublishOptions, compile_book, epub_entries, export_epub_with};
+    let fixture = fixture("export-epub.json");
+    let mut stored = prosecraft_core::js::JsObject::new();
+    stored.insert("project", fixture.get("project").cloned().expect("project"));
+    let project = Project::from_stored(&JsValue::Object(stored)).expect("project view");
+    for (name, case) in fixture
+        .get("exports")
+        .and_then(JsValue::as_object)
+        .expect("exports")
+        .iter()
+    {
+        let name = name.to_string_lossy();
+        let options = PublishOptions::read(case.get("options"));
+        let book = compile_book(&project, &options);
+        let got = epub_entries(&book, &options, "urn:uuid:ID", "MODIFIED").expect("entries");
+        let want: Vec<(String, String)> = case
+            .get("entries")
+            .and_then(JsValue::as_array)
+            .expect("entries")
+            .iter()
+            .map(|e| {
+                let text = |k: &str| {
+                    e.get(k)
+                        .and_then(JsValue::as_js_string)
+                        .and_then(JsString::as_string)
+                        .expect("text")
+                };
+                (text("name"), text("text"))
+            })
+            .collect();
+        let names: Vec<&str> = got.iter().map(|(n, _)| n.as_str()).collect();
+        assert_eq!(
+            names,
+            want.iter().map(|(n, _)| n.as_str()).collect::<Vec<_>>(),
+            "{name}: entry order"
+        );
+        for ((entry, bytes), (_, text)) in got.iter().zip(&want) {
+            assert_eq!(&String::from_utf8_lossy(bytes), text, "{name}: {entry}");
+        }
+        // The package: the stored mimetype first, as OCF requires, and every entry inside.
+        let epub = export_epub_with(&book, &options, "urn:uuid:ID", "MODIFIED").expect("epub");
+        assert!(
+            epub.bytes.starts_with(b"PK\x03\x04") && epub.bytes[30..38] == *b"mimetype",
+            "{name}"
+        );
+        assert_eq!(
+            &epub.bytes[38..58],
+            b"application/epub+zip",
+            "{name}: mimetype is stored first"
+        );
+    }
+}

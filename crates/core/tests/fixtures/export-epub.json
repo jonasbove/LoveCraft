@@ -1,0 +1,476 @@
+{
+  "project": {
+    "id": "project-1",
+    "name": "The Lighthouse 🌊 Keeper",
+    "author": "A. Writer",
+    "kind": "novel",
+    "activeDocumentId": "doc-1",
+    "projectGoal": 80000,
+    "chapterGoals": {
+      "2": 1.5,
+      "10": 3,
+      "chapter-1": 2500,
+      "-1": 4,
+      "01": 5
+    },
+    "activity": {
+      "2026-11-01": {
+        "edits": 12,
+        "wordsAdded": 345
+      },
+      "2026-11-02": {
+        "edits": 0.5,
+        "wordsAdded": -3
+      }
+    },
+    "chapters": [
+      {
+        "id": "chapter-1",
+        "title": "Chapter One",
+        "expanded": true,
+        "summary": "It begins.",
+        "labelId": "label-1"
+      },
+      {
+        "id": "chapter-2",
+        "title": "Chapitre deux — « voilà »",
+        "expanded": false,
+        "trashed": true
+      },
+      {
+        "id": "chapter-3",
+        "title": "Chapter 7",
+        "expanded": true,
+        "summary": ""
+      },
+      {
+        "id": "chapter-4",
+        "title": "Epilogue",
+        "expanded": true
+      }
+    ],
+    "documents": [
+      {
+        "id": "doc-1",
+        "title": "Opening Scene",
+        "chapterId": "chapter-1",
+        "content": "<p>It was <em>dark</em>.<sup class=\"footnote-ref\" data-footnote-id=\"fn-1\" contenteditable=\"false\"></sup></p><p>Then <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020&quot;}]\">(Smith 2020)</span>.</p>",
+        "footnotes": [
+          {
+            "id": "fn-1",
+            "html": "A note with <em>emphasis</em>."
+          }
+        ]
+      },
+      {
+        "id": "doc-2",
+        "title": "Mara",
+        "space": "Wiki",
+        "folderId": "folder-1",
+        "content": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+        "character": {
+          "role": "Protagonist",
+          "age": "32",
+          "pronouns": "she/her"
+        }
+      },
+      {
+        "id": "doc-3",
+        "title": "INT. LIGHTHOUSE - NIGHT",
+        "chapterId": "chapter-1",
+        "format": "screenplay",
+        "content": "<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>",
+        "markdownSource": "INT. LIGHTHOUSE - NIGHT"
+      },
+      {
+        "id": "doc-4",
+        "title": "Morning",
+        "chapterId": "chapter-3",
+        "content": "<p>The sea was calm.<sup class=\"footnote-ref\" data-footnote-id=\"a\" contenteditable=\"false\"></sup></p><ul><li>bread</li><li>salt</li></ul><p>Then <strong>nothing</strong>.<sup class=\"footnote-ref\" data-footnote-id=\"b\" contenteditable=\"false\"></sup></p>",
+        "footnotes": [
+          {
+            "id": "a",
+            "html": "Calm, mostly."
+          },
+          {
+            "id": "b",
+            "html": "Truly <em>nothing</em>."
+          }
+        ]
+      },
+      {
+        "id": "doc-5",
+        "title": "Noon",
+        "chapterId": "chapter-3",
+        "content": "<p>Light.</p><p>More light.</p>"
+      },
+      {
+        "id": "doc-6",
+        "title": "Empty",
+        "chapterId": "chapter-3",
+        "content": "<p><br></p>"
+      },
+      {
+        "id": "doc-7",
+        "title": "Gone",
+        "chapterId": "chapter-3",
+        "content": "<p>Trashed text.</p>",
+        "trashed": true
+      },
+      {
+        "id": "doc-8",
+        "title": "",
+        "chapterId": "chapter-4",
+        "content": "<h2>After</h2><blockquote><p>A quote.</p></blockquote><p>Last line.<sup class=\"footnote-ref\" data-footnote-id=\"z\" contenteditable=\"false\"></sup></p>",
+        "footnotes": [
+          {
+            "id": "z",
+            "html": "The end."
+          }
+        ]
+      }
+    ],
+    "storyboardRows": [
+      {
+        "id": "row-1",
+        "title": "Act I"
+      }
+    ],
+    "storyboardCards": [
+      {
+        "id": "card-1",
+        "sourceId": "doc-1",
+        "rowId": "row-1",
+        "x": 12.5,
+        "y": 0.30000000000000004,
+        "kind": "scene",
+        "title": "Opening",
+        "note": ""
+      }
+    ],
+    "storyboardDrawings": [
+      {
+        "id": "draw-1",
+        "type": "arrow",
+        "x1": 0,
+        "y1": 1e+21,
+        "x2": 1e-7,
+        "y2": 123456789.125
+      }
+    ],
+    "timelineNodes": [
+      {
+        "id": "t-1",
+        "title": "Day One",
+        "date": "2026-01-01",
+        "time": "",
+        "description": "Start"
+      }
+    ],
+    "labels": [
+      {
+        "id": "label-1",
+        "name": "Draft",
+        "color": "#d69e2e"
+      }
+    ],
+    "comments": [
+      {
+        "id": "comment-1",
+        "documentId": "doc-1",
+        "quote": "dark",
+        "prefix": "It was \ud83c",
+        "suffix": ".",
+        "body": "Darker?",
+        "author": "Editor",
+        "createdAt": 1763370000000,
+        "resolved": false
+      }
+    ],
+    "snapshots": [
+      {
+        "id": "snap-1",
+        "documentId": "doc-1",
+        "createdAt": 1763360000000,
+        "title": "Opening Scene",
+        "content": "<p>It was dark.</p>",
+        "reason": "manual",
+        "note": "first"
+      }
+    ],
+    "citations": [
+      {
+        "id": "smith2020",
+        "type": "book",
+        "title": "Lighthouses",
+        "author": [
+          {
+            "family": "Smith",
+            "given": "Jo"
+          }
+        ],
+        "issued": {
+          "date-parts": [
+            [
+              2020
+            ]
+          ]
+        }
+      }
+    ],
+    "publishOptions": {
+      "futureOption": {
+        "nested": [
+          1,
+          2.25,
+          null,
+          true
+        ]
+      }
+    },
+    "futureField": {
+      "kept": "as is",
+      "n": 7
+    }
+  },
+  "exports": {
+    "defaults": {
+      "options": {},
+      "entries": [
+        {
+          "name": "mimetype",
+          "text": "application/epub+zip"
+        },
+        {
+          "name": "META-INF/container.xml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\">\n  <rootfiles>\n    <rootfile full-path=\"OEBPS/content.opf\" media-type=\"application/oebps-package+xml\" />\n  </rootfiles>\n</container>\n"
+        },
+        {
+          "name": "OEBPS/content.opf",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\" unique-identifier=\"book-id\" xml:lang=\"en\">\n  <metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\">\n    <dc:identifier id=\"book-id\">urn:uuid:ID</dc:identifier>\n    <dc:title>The Lighthouse 🌊 Keeper</dc:title>\n    <dc:creator>A. Writer</dc:creator>\n    <dc:language>en</dc:language>\n    \n    <meta property=\"dcterms:modified\">MODIFIED</meta>\n  </metadata>\n  <manifest>\n    <item id=\"nav\" href=\"nav.xhtml\" media-type=\"application/xhtml+xml\" properties=\"nav\" />\n    <item id=\"ncx\" href=\"toc.ncx\" media-type=\"application/x-dtbncx+xml\" />\n    <item id=\"css\" href=\"styles.css\" media-type=\"text/css\" />\n    <item id=\"titlepage\" href=\"text/titlepage.xhtml\" media-type=\"application/xhtml+xml\" />\n    <item id=\"chapter-1\" href=\"text/chapter-1.xhtml\" media-type=\"application/xhtml+xml\" />\n    <item id=\"chapter-2\" href=\"text/chapter-2.xhtml\" media-type=\"application/xhtml+xml\" />\n    <item id=\"chapter-3\" href=\"text/chapter-3.xhtml\" media-type=\"application/xhtml+xml\" />\n  </manifest>\n  <spine toc=\"ncx\">\n    <itemref idref=\"titlepage\" />\n    <itemref idref=\"chapter-1\" />\n    <itemref idref=\"chapter-2\" />\n    <itemref idref=\"chapter-3\" />\n  </spine>\n</package>\n"
+        },
+        {
+          "name": "OEBPS/nav.xhtml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xml:lang=\"en\" lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <title>Contents</title>\n  <link rel=\"stylesheet\" type=\"text/css\" href=\"styles.css\" />\n</head>\n<body>\n  <nav epub:type=\"toc\" id=\"toc\">\n    <h1>Contents</h1>\n    <ol>\n      <li><a href=\"text/chapter-1.xhtml\">Chapter One</a></li>\n      <li><a href=\"text/chapter-2.xhtml\">Chapter 1</a></li>\n      <li><a href=\"text/chapter-3.xhtml\">Epilogue</a></li>\n    </ol>\n  </nav>\n</body>\n</html>\n"
+        },
+        {
+          "name": "OEBPS/toc.ncx",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<ncx xmlns=\"http://www.daisy.org/z3986/2005/ncx/\" version=\"2005-1\">\n  <head>\n    <meta name=\"dtb:uid\" content=\"urn:uuid:ID\" />\n    <meta name=\"dtb:depth\" content=\"1\" />\n    <meta name=\"dtb:totalPageCount\" content=\"0\" />\n    <meta name=\"dtb:maxPageNumber\" content=\"0\" />\n  </head>\n  <docTitle><text>The Lighthouse 🌊 Keeper</text></docTitle>\n  <navMap>\n    <navPoint id=\"nav-1\" playOrder=\"1\">\n      <navLabel><text>Chapter One</text></navLabel>\n      <content src=\"text/chapter-1.xhtml\" />\n    </navPoint>\n    <navPoint id=\"nav-2\" playOrder=\"2\">\n      <navLabel><text>Chapter 1</text></navLabel>\n      <content src=\"text/chapter-2.xhtml\" />\n    </navPoint>\n    <navPoint id=\"nav-3\" playOrder=\"3\">\n      <navLabel><text>Epilogue</text></navLabel>\n      <content src=\"text/chapter-3.xhtml\" />\n    </navPoint>\n  </navMap>\n</ncx>\n"
+        },
+        {
+          "name": "OEBPS/styles.css",
+          "text": "body {\n  margin: 0;\n  color: #1d211d;\n  font-family: Georgia, 'Times New Roman', serif;\n  font-size: 1em;\n  line-height: 2;\n}\nh1, h2, h3, p, div, blockquote, ul, ol, li { margin-top: 0; }\n.cover-page-body { margin: 0; padding: 0; }\n.cover { margin: 0; padding: 0; text-align: center; }\n.cover img { max-width: 100%; max-height: 100vh; }\n.titlepage, .dedication-page { text-align: center; }\n.title-page { margin-top: 28%; }\n.book-title { font-size: 2.2em; font-weight: 500; line-height: 1.2; margin-bottom: 0.4em; }\n.book-subtitle { font-size: 1.1em; font-style: italic; color: #666; margin-bottom: 2.5em; }\n.book-author { font-size: 1em; letter-spacing: 0.08em; text-transform: uppercase; color: #666; }\n.book-copyright { margin-top: 4em; font-size: 0.72em; line-height: 1.6; color: #666; }\n.dedication { margin-top: 28%; font-style: italic; }\n.copyright-page { margin-top: 28%; text-align: center; }\n.copyright-page p { margin: 0; color: #666; font-size: 0.82em; line-height: 1.65; }\n.matter-title {\n  margin: 0 0 1.2em;\n  font-size: 1.5em;\n  font-weight: 600;\n  line-height: 1.25;\n  text-align: center;\n  text-indent: 0;\n}\n.matter-page { margin-top: 10%; }\n.matter-page p {\n  margin: 0 0 0em;\n  text-align: left;\n  text-indent: 0;\n}\n.bibliography p.bibliography-entry {\n  margin: 0 0 0.7em;\n  padding-left: 2em;\n  text-indent: -2em;\n  text-align: left;\n}\n.contents-page { margin-top: 8%; }\n.contents-page .toc-list { margin: 0; padding: 0; list-style: none; }\n.contents-page .toc-list li { margin: 0 0 0.7em; }\n.contents-page a { color: inherit; text-decoration: none; }\n.chapter-break { break-before: page; page-break-before: always; }\n.chapter-title {\n  margin: 0em 0 1.5em;\n  font-size: 1.17em;\n  font-weight: 600;\n  letter-spacing: 0.1em;\n  line-height: 1.25;\n  text-align: center;\n  text-transform: uppercase;\n}\n.scene p {\n  margin: 0 0 0em;\n  text-indent: 2em;\n  text-align: left;\n}\n.scene p:first-of-type { text-indent: 0; }\n.scene h1, .scene h2, .scene h3 {\n  margin: 1.2em 0 0.55em;\n  font-weight: 600;\n  line-height: 1.3;\n  text-indent: 0;\n}\n.scene h1 { font-size: 1.45em; }\n.scene h2 { font-size: 1.28em; }\n.scene h3 { font-size: 1.12em; }\n.scene blockquote {\n  margin: 1.1em 1.4em;\n  padding-left: 1em;\n  border-left: 2px solid #d9dbd4;\n  color: #666;\n  font-style: italic;\n  text-indent: 0;\n}\n.scene ul, .scene ol { margin: 0 0 0em; padding-left: 1.5em; }\n.scene li { text-indent: 0; }\n.scene a { color: inherit; text-decoration-color: #b9bdb5; text-underline-offset: 2px; }\n.scene img { display: block; max-width: 100%; max-height: min(4in, 60vh); height: auto; margin: 0.75em auto; object-fit: contain; }\n.scene .math-inline { display: inline; text-indent: 0; white-space: nowrap; }\n.scene .math-inline img { display: inline-block; max-width: none; max-height: 1.6em; width: auto; height: auto; margin: 0 0.08em; vertical-align: middle; }\n.scene .math-block, .scene .mermaid-diagram, .scene .calc-worksheet { display: block; max-width: 100%; margin: 0.85em auto; text-align: center; text-indent: 0; }\n.scene .math-block img, .scene .mermaid-diagram img, .scene .calc-worksheet img { display: block; max-width: 100%; max-height: 60vh; width: auto; height: auto; margin: 0 auto; object-fit: contain; }\n.scene .rich-render-error { font-family: monospace; font-size: 0.85em; white-space: pre-wrap; }\n.scene .eyebrow {\n  margin: 0 0 0.6em;\n  color: #777;\n  font-family: sans-serif;\n  font-size: 0.62em;\n  font-weight: 700;\n  letter-spacing: 0.13em;\n  line-height: 1.5;\n  text-indent: 0;\n}\n.scene-title {\n  margin: 1em 0 0.6em;\n  font-size: 1em;\n  font-style: italic;\n  font-weight: 600;\n  text-indent: 0;\n}\n.scene-break {\n  margin: 1em 0;\n  color: #777;\n  font-size: 0.9em;\n  letter-spacing: 0.45em;\n  text-align: center;\n  text-indent: 0;\n}\n.scene-break-blank { height: 1em; margin: 0; }\n.scene-break-line span {\n  display: block;\n  width: 3.2em;\n  margin: 0 auto;\n  border-top: 1px solid #d9dbd4;\n}\n.footnotes {\n  margin-top: 2em;\n  padding-top: 0.9em;\n  border-top: 1px solid #d9dbd4;\n  font-size: 0.88em;\n}\n.footnotes aside { margin: 0 0 0.55em; text-indent: 0; }\n.footnotes aside p { margin: 0; text-indent: 0; }\n.footnote-number { font-weight: 600; margin-right: 0.25em; }\n.footnote-ref { text-decoration: none; }\n.footnote-backref { text-decoration: none; margin-left: 0.3em; }\n\n"
+        },
+        {
+          "name": "OEBPS/text/titlepage.xhtml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xml:lang=\"en\" lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <title>The Lighthouse 🌊 Keeper</title>\n  <link rel=\"stylesheet\" type=\"text/css\" href=\"../styles.css\" />\n</head>\n<body class=\"titlepage\">\n<div class=\"title-page\">\n  <h1 class=\"book-title\">The Lighthouse 🌊 Keeper</h1>\n  <p class=\"book-author\">by A. Writer</p>\n</div>\n</body>\n</html>\n"
+        },
+        {
+          "name": "OEBPS/text/chapter-1.xhtml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xml:lang=\"en\" lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <title>Chapter One</title>\n  <link rel=\"stylesheet\" type=\"text/css\" href=\"../styles.css\" />\n</head>\n<body class=\"chapter-page\">\n<section class=\"chapter\"><h2 class=\"chapter-title\">Chapter One</h2>\n<div class=\"scene\"><p>It was <em>dark</em>.<a epub:type=\"noteref\" href=\"#fn-1\" id=\"fnref-1\" class=\"footnote-ref\"><sup>1</sup></a></p><p>Then [@smith2020].</p></div><div class=\"scene-break\" aria-hidden=\"true\">#</div>\n<div class=\"scene\"><p>INT. LIGHTHOUSE - NIGHT</p></div>\n<section class=\"footnotes\" epub:type=\"footnotes\">\n  <aside epub:type=\"footnote\" id=\"fn-1\" class=\"footnote\"><p><span class=\"footnote-number\">1.</span> A note with <em>emphasis</em>. <a href=\"#fnref-1\" class=\"footnote-backref\" aria-label=\"Back to reference 1\">↩</a></p></aside>\n</section></section>\n</body>\n</html>\n"
+        },
+        {
+          "name": "OEBPS/text/chapter-2.xhtml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xml:lang=\"en\" lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <title>Chapter 1</title>\n  <link rel=\"stylesheet\" type=\"text/css\" href=\"../styles.css\" />\n</head>\n<body class=\"chapter-page\">\n<section class=\"chapter chapter-break\"><h2 class=\"chapter-title\">Chapter 1</h2>\n<div class=\"scene\"><p>The sea was calm.<a epub:type=\"noteref\" href=\"#fn-2\" id=\"fnref-2\" class=\"footnote-ref\"><sup>2</sup></a></p><ul><li>bread</li><li>salt</li></ul><p>Then <strong>nothing</strong>.<a epub:type=\"noteref\" href=\"#fn-3\" id=\"fnref-3\" class=\"footnote-ref\"><sup>3</sup></a></p></div><div class=\"scene-break\" aria-hidden=\"true\">#</div>\n<div class=\"scene\"><p>Light.</p><p>More light.</p></div>\n<section class=\"footnotes\" epub:type=\"footnotes\">\n  <aside epub:type=\"footnote\" id=\"fn-2\" class=\"footnote\"><p><span class=\"footnote-number\">2.</span> Calm, mostly. <a href=\"#fnref-2\" class=\"footnote-backref\" aria-label=\"Back to reference 2\">↩</a></p></aside>\n  <aside epub:type=\"footnote\" id=\"fn-3\" class=\"footnote\"><p><span class=\"footnote-number\">3.</span> Truly <em>nothing</em>. <a href=\"#fnref-3\" class=\"footnote-backref\" aria-label=\"Back to reference 3\">↩</a></p></aside>\n</section></section>\n</body>\n</html>\n"
+        },
+        {
+          "name": "OEBPS/text/chapter-3.xhtml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xml:lang=\"en\" lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <title>Epilogue</title>\n  <link rel=\"stylesheet\" type=\"text/css\" href=\"../styles.css\" />\n</head>\n<body class=\"chapter-page\">\n<section class=\"chapter chapter-break\"><h2 class=\"chapter-title\">Epilogue</h2>\n<div class=\"scene\"><h2>After</h2><blockquote><p>A quote.</p></blockquote><p>Last line.<a epub:type=\"noteref\" href=\"#fn-4\" id=\"fnref-4\" class=\"footnote-ref\"><sup>4</sup></a></p></div>\n<section class=\"footnotes\" epub:type=\"footnotes\">\n  <aside epub:type=\"footnote\" id=\"fn-4\" class=\"footnote\"><p><span class=\"footnote-number\">4.</span> The end. <a href=\"#fnref-4\" class=\"footnote-backref\" aria-label=\"Back to reference 4\">↩</a></p></aside>\n</section></section>\n</body>\n</html>\n"
+        }
+      ]
+    },
+    "everything": {
+      "options": {
+        "style": "modern",
+        "includeTableOfContents": true,
+        "includeSceneTitles": true,
+        "includeCopyrightPage": true,
+        "sceneSeparator": "asterisks",
+        "subtitle": "A Novel <&>",
+        "copyright": "© 2026 A. Writer\nAll rights reserved.",
+        "dedication": "For the keepers.",
+        "frontMatter": [
+          {
+            "id": "f1",
+            "title": "Epigraph",
+            "body": "Some words.\n\nMore & more."
+          },
+          {
+            "id": "f2",
+            "title": "",
+            "body": "",
+            "blank": true
+          }
+        ],
+        "backMatter": [
+          {
+            "id": "b1",
+            "title": "Acknowledgments",
+            "body": "Thank you."
+          }
+        ]
+      },
+      "entries": [
+        {
+          "name": "mimetype",
+          "text": "application/epub+zip"
+        },
+        {
+          "name": "META-INF/container.xml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\">\n  <rootfiles>\n    <rootfile full-path=\"OEBPS/content.opf\" media-type=\"application/oebps-package+xml\" />\n  </rootfiles>\n</container>\n"
+        },
+        {
+          "name": "OEBPS/content.opf",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\" unique-identifier=\"book-id\" xml:lang=\"en\">\n  <metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\">\n    <dc:identifier id=\"book-id\">urn:uuid:ID</dc:identifier>\n    <dc:title>The Lighthouse 🌊 Keeper</dc:title>\n    <dc:creator>A. Writer</dc:creator>\n    <dc:language>en</dc:language>\n    \n    <meta property=\"dcterms:modified\">MODIFIED</meta>\n  </metadata>\n  <manifest>\n    <item id=\"nav\" href=\"nav.xhtml\" media-type=\"application/xhtml+xml\" properties=\"nav\" />\n    <item id=\"ncx\" href=\"toc.ncx\" media-type=\"application/x-dtbncx+xml\" />\n    <item id=\"css\" href=\"styles.css\" media-type=\"text/css\" />\n    <item id=\"titlepage\" href=\"text/titlepage.xhtml\" media-type=\"application/xhtml+xml\" />\n    <item id=\"copyright\" href=\"text/copyright.xhtml\" media-type=\"application/xhtml+xml\" />\n    <item id=\"dedication\" href=\"text/dedication.xhtml\" media-type=\"application/xhtml+xml\" />\n    <item id=\"contents\" href=\"text/contents.xhtml\" media-type=\"application/xhtml+xml\" />\n    <item id=\"front-matter-1\" href=\"text/front-matter-1.xhtml\" media-type=\"application/xhtml+xml\" />\n    <item id=\"front-matter-2\" href=\"text/front-matter-2.xhtml\" media-type=\"application/xhtml+xml\" />\n    <item id=\"chapter-1\" href=\"text/chapter-1.xhtml\" media-type=\"application/xhtml+xml\" />\n    <item id=\"chapter-2\" href=\"text/chapter-2.xhtml\" media-type=\"application/xhtml+xml\" />\n    <item id=\"chapter-3\" href=\"text/chapter-3.xhtml\" media-type=\"application/xhtml+xml\" />\n    <item id=\"back-matter-1\" href=\"text/back-matter-1.xhtml\" media-type=\"application/xhtml+xml\" />\n  </manifest>\n  <spine toc=\"ncx\">\n    <itemref idref=\"titlepage\" />\n    <itemref idref=\"copyright\" />\n    <itemref idref=\"dedication\" />\n    <itemref idref=\"contents\" />\n    <itemref idref=\"front-matter-1\" />\n    <itemref idref=\"front-matter-2\" />\n    <itemref idref=\"chapter-1\" />\n    <itemref idref=\"chapter-2\" />\n    <itemref idref=\"chapter-3\" />\n    <itemref idref=\"back-matter-1\" />\n  </spine>\n</package>\n"
+        },
+        {
+          "name": "OEBPS/nav.xhtml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xml:lang=\"en\" lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <title>Contents</title>\n  <link rel=\"stylesheet\" type=\"text/css\" href=\"styles.css\" />\n</head>\n<body>\n  <nav epub:type=\"toc\" id=\"toc\">\n    <h1>Contents</h1>\n    <ol>\n      <li><a href=\"text/chapter-1.xhtml\">Chapter One</a></li>\n      <li><a href=\"text/chapter-2.xhtml\">Chapter 1</a></li>\n      <li><a href=\"text/chapter-3.xhtml\">Epilogue</a></li>\n    </ol>\n  </nav>\n</body>\n</html>\n"
+        },
+        {
+          "name": "OEBPS/toc.ncx",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<ncx xmlns=\"http://www.daisy.org/z3986/2005/ncx/\" version=\"2005-1\">\n  <head>\n    <meta name=\"dtb:uid\" content=\"urn:uuid:ID\" />\n    <meta name=\"dtb:depth\" content=\"1\" />\n    <meta name=\"dtb:totalPageCount\" content=\"0\" />\n    <meta name=\"dtb:maxPageNumber\" content=\"0\" />\n  </head>\n  <docTitle><text>The Lighthouse 🌊 Keeper</text></docTitle>\n  <navMap>\n    <navPoint id=\"nav-1\" playOrder=\"1\">\n      <navLabel><text>Chapter One</text></navLabel>\n      <content src=\"text/chapter-1.xhtml\" />\n    </navPoint>\n    <navPoint id=\"nav-2\" playOrder=\"2\">\n      <navLabel><text>Chapter 1</text></navLabel>\n      <content src=\"text/chapter-2.xhtml\" />\n    </navPoint>\n    <navPoint id=\"nav-3\" playOrder=\"3\">\n      <navLabel><text>Epilogue</text></navLabel>\n      <content src=\"text/chapter-3.xhtml\" />\n    </navPoint>\n  </navMap>\n</ncx>\n"
+        },
+        {
+          "name": "OEBPS/styles.css",
+          "text": "body {\n  margin: 0;\n  color: #1d211d;\n  font-family: 'IBM Plex Serif', 'Literata', Georgia, serif;\n  font-size: 1em;\n  line-height: 1.45;\n}\nh1, h2, h3, p, div, blockquote, ul, ol, li { margin-top: 0; }\n.cover-page-body { margin: 0; padding: 0; }\n.cover { margin: 0; padding: 0; text-align: center; }\n.cover img { max-width: 100%; max-height: 100vh; }\n.titlepage, .dedication-page { text-align: center; }\n.title-page { margin-top: 28%; }\n.book-title { font-size: 2.2em; font-weight: 500; line-height: 1.2; margin-bottom: 0.4em; }\n.book-subtitle { font-size: 1.1em; font-style: italic; color: #666; margin-bottom: 2.5em; }\n.book-author { font-size: 1em; letter-spacing: 0.08em; text-transform: uppercase; color: #666; }\n.book-copyright { margin-top: 4em; font-size: 0.72em; line-height: 1.6; color: #666; }\n.dedication { margin-top: 28%; font-style: italic; }\n.copyright-page { margin-top: 28%; text-align: center; }\n.copyright-page p { margin: 0; color: #666; font-size: 0.82em; line-height: 1.65; }\n.matter-title {\n  margin: 0 0 1.2em;\n  font-size: 1.5em;\n  font-weight: 600;\n  line-height: 1.25;\n  text-align: center;\n  text-indent: 0;\n}\n.matter-page { margin-top: 10%; }\n.matter-page p {\n  margin: 0 0 0.65em;\n  text-align: left;\n  text-indent: 0;\n}\n.bibliography p.bibliography-entry {\n  margin: 0 0 0.7em;\n  padding-left: 2em;\n  text-indent: -2em;\n  text-align: left;\n}\n.contents-page { margin-top: 8%; }\n.contents-page .toc-list { margin: 0; padding: 0; list-style: none; }\n.contents-page .toc-list li { margin: 0 0 0.7em; }\n.contents-page a { color: inherit; text-decoration: none; }\n.chapter-break { break-before: page; page-break-before: always; }\n.chapter-title {\n  margin: 0.8em 0 1.8em;\n  font-size: 2.18em;\n  font-weight: 600;\n  letter-spacing: 0;\n  line-height: 1.25;\n  text-align: left;\n  text-transform: none;\n}\n.scene p {\n  margin: 0 0 0.65em;\n  text-indent: 0em;\n  text-align: left;\n}\n.scene p:first-of-type { text-indent: 0; }\n.scene h1, .scene h2, .scene h3 {\n  margin: 1.2em 0 0.55em;\n  font-weight: 600;\n  line-height: 1.3;\n  text-indent: 0;\n}\n.scene h1 { font-size: 1.45em; }\n.scene h2 { font-size: 1.28em; }\n.scene h3 { font-size: 1.12em; }\n.scene blockquote {\n  margin: 1.1em 1.4em;\n  padding-left: 1em;\n  border-left: 2px solid #d9dbd4;\n  color: #666;\n  font-style: italic;\n  text-indent: 0;\n}\n.scene ul, .scene ol { margin: 0 0 0.65em; padding-left: 1.5em; }\n.scene li { text-indent: 0; }\n.scene a { color: inherit; text-decoration-color: #b9bdb5; text-underline-offset: 2px; }\n.scene img { display: block; max-width: 100%; max-height: min(4in, 60vh); height: auto; margin: 0.75em auto; object-fit: contain; }\n.scene .math-inline { display: inline; text-indent: 0; white-space: nowrap; }\n.scene .math-inline img { display: inline-block; max-width: none; max-height: 1.6em; width: auto; height: auto; margin: 0 0.08em; vertical-align: middle; }\n.scene .math-block, .scene .mermaid-diagram, .scene .calc-worksheet { display: block; max-width: 100%; margin: 0.85em auto; text-align: center; text-indent: 0; }\n.scene .math-block img, .scene .mermaid-diagram img, .scene .calc-worksheet img { display: block; max-width: 100%; max-height: 60vh; width: auto; height: auto; margin: 0 auto; object-fit: contain; }\n.scene .rich-render-error { font-family: monospace; font-size: 0.85em; white-space: pre-wrap; }\n.scene .eyebrow {\n  margin: 0 0 0.6em;\n  color: #777;\n  font-family: sans-serif;\n  font-size: 0.62em;\n  font-weight: 700;\n  letter-spacing: 0.13em;\n  line-height: 1.5;\n  text-indent: 0;\n}\n.scene-title {\n  margin: 1em 0 0.6em;\n  font-size: 1em;\n  font-style: italic;\n  font-weight: 600;\n  text-indent: 0;\n}\n.scene-break {\n  margin: 1.1em 0;\n  color: #777;\n  font-size: 0.9em;\n  letter-spacing: 0.45em;\n  text-align: center;\n  text-indent: 0;\n}\n.scene-break-blank { height: 1.1em; margin: 0; }\n.scene-break-line span {\n  display: block;\n  width: 3.2em;\n  margin: 0 auto;\n  border-top: 1px solid #d9dbd4;\n}\n.footnotes {\n  margin-top: 2em;\n  padding-top: 0.9em;\n  border-top: 1px solid #d9dbd4;\n  font-size: 0.88em;\n}\n.footnotes aside { margin: 0 0 0.55em; text-indent: 0; }\n.footnotes aside p { margin: 0; text-indent: 0; }\n.footnote-number { font-weight: 600; margin-right: 0.25em; }\n.footnote-ref { text-decoration: none; }\n.footnote-backref { text-decoration: none; margin-left: 0.3em; }\n\n"
+        },
+        {
+          "name": "OEBPS/text/titlepage.xhtml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xml:lang=\"en\" lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <title>The Lighthouse 🌊 Keeper</title>\n  <link rel=\"stylesheet\" type=\"text/css\" href=\"../styles.css\" />\n</head>\n<body class=\"titlepage\">\n<div class=\"title-page\">\n  <h1 class=\"book-title\">The Lighthouse 🌊 Keeper</h1>\n  <p class=\"book-subtitle\">A Novel &lt;&amp;&gt;</p>\n  <p class=\"book-author\">by A. Writer</p>\n</div>\n</body>\n</html>\n"
+        },
+        {
+          "name": "OEBPS/text/copyright.xhtml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xml:lang=\"en\" lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <title>Copyright</title>\n  <link rel=\"stylesheet\" type=\"text/css\" href=\"../styles.css\" />\n</head>\n<body class=\"copyright-page-body\">\n<div class=\"copyright-page\"><p>© 2026 A. Writer<br />All rights reserved.</p></div>\n</body>\n</html>\n"
+        },
+        {
+          "name": "OEBPS/text/dedication.xhtml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xml:lang=\"en\" lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <title>Dedication</title>\n  <link rel=\"stylesheet\" type=\"text/css\" href=\"../styles.css\" />\n</head>\n<body class=\"dedication-page\">\n<div class=\"dedication\"><p>For the keepers.</p></div>\n</body>\n</html>\n"
+        },
+        {
+          "name": "OEBPS/text/contents.xhtml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xml:lang=\"en\" lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <title>Contents</title>\n  <link rel=\"stylesheet\" type=\"text/css\" href=\"../styles.css\" />\n</head>\n<body class=\"contents-page-body\">\n<nav class=\"contents-page\" aria-label=\"Table of contents\">\n  <h1 class=\"matter-title\">Contents</h1>\n  <ol class=\"toc-list\">\n    <li><a href=\"chapter-1.xhtml\">Chapter One</a></li>\n    <li><a href=\"chapter-2.xhtml\">Chapter 1</a></li>\n    <li><a href=\"chapter-3.xhtml\">Epilogue</a></li>\n  </ol>\n</nav>\n</body>\n</html>\n"
+        },
+        {
+          "name": "OEBPS/text/front-matter-1.xhtml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xml:lang=\"en\" lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <title>Epigraph</title>\n  <link rel=\"stylesheet\" type=\"text/css\" href=\"../styles.css\" />\n</head>\n<body class=\"front-matter-page\">\n<section class=\"matter-page front-matter\">\n  <h1 class=\"matter-title\">Epigraph</h1>\n  <p>Some words.</p>\n  <p>More &amp; more.</p>\n</section>\n</body>\n</html>\n"
+        },
+        {
+          "name": "OEBPS/text/front-matter-2.xhtml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xml:lang=\"en\" lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <title>Blank page</title>\n  <link rel=\"stylesheet\" type=\"text/css\" href=\"../styles.css\" />\n</head>\n<body class=\"front-matter-page\">\n<section class=\"matter-page front-matter\">\n</section>\n</body>\n</html>\n"
+        },
+        {
+          "name": "OEBPS/text/chapter-1.xhtml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xml:lang=\"en\" lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <title>Chapter One</title>\n  <link rel=\"stylesheet\" type=\"text/css\" href=\"../styles.css\" />\n</head>\n<body class=\"chapter-page\">\n<section class=\"chapter\"><h2 class=\"chapter-title\">Chapter One</h2>\n<div class=\"scene\"><h3 class=\"scene-title\">Opening Scene</h3><p>It was <em>dark</em>.<a epub:type=\"noteref\" href=\"#fn-1\" id=\"fnref-1\" class=\"footnote-ref\"><sup>1</sup></a></p><p>Then [@smith2020].</p></div><div class=\"scene-break\" aria-hidden=\"true\">* * *</div>\n<div class=\"scene\"><h3 class=\"scene-title\">INT. LIGHTHOUSE - NIGHT</h3><p>INT. LIGHTHOUSE - NIGHT</p></div>\n<section class=\"footnotes\" epub:type=\"footnotes\">\n  <aside epub:type=\"footnote\" id=\"fn-1\" class=\"footnote\"><p><span class=\"footnote-number\">1.</span> A note with <em>emphasis</em>. <a href=\"#fnref-1\" class=\"footnote-backref\" aria-label=\"Back to reference 1\">↩</a></p></aside>\n</section></section>\n</body>\n</html>\n"
+        },
+        {
+          "name": "OEBPS/text/chapter-2.xhtml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xml:lang=\"en\" lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <title>Chapter 1</title>\n  <link rel=\"stylesheet\" type=\"text/css\" href=\"../styles.css\" />\n</head>\n<body class=\"chapter-page\">\n<section class=\"chapter chapter-break\"><h2 class=\"chapter-title\">Chapter 1</h2>\n<div class=\"scene\"><h3 class=\"scene-title\">Morning</h3><p>The sea was calm.<a epub:type=\"noteref\" href=\"#fn-2\" id=\"fnref-2\" class=\"footnote-ref\"><sup>2</sup></a></p><ul><li>bread</li><li>salt</li></ul><p>Then <strong>nothing</strong>.<a epub:type=\"noteref\" href=\"#fn-3\" id=\"fnref-3\" class=\"footnote-ref\"><sup>3</sup></a></p></div><div class=\"scene-break\" aria-hidden=\"true\">* * *</div>\n<div class=\"scene\"><h3 class=\"scene-title\">Noon</h3><p>Light.</p><p>More light.</p></div>\n<section class=\"footnotes\" epub:type=\"footnotes\">\n  <aside epub:type=\"footnote\" id=\"fn-2\" class=\"footnote\"><p><span class=\"footnote-number\">2.</span> Calm, mostly. <a href=\"#fnref-2\" class=\"footnote-backref\" aria-label=\"Back to reference 2\">↩</a></p></aside>\n  <aside epub:type=\"footnote\" id=\"fn-3\" class=\"footnote\"><p><span class=\"footnote-number\">3.</span> Truly <em>nothing</em>. <a href=\"#fnref-3\" class=\"footnote-backref\" aria-label=\"Back to reference 3\">↩</a></p></aside>\n</section></section>\n</body>\n</html>\n"
+        },
+        {
+          "name": "OEBPS/text/chapter-3.xhtml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xml:lang=\"en\" lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <title>Epilogue</title>\n  <link rel=\"stylesheet\" type=\"text/css\" href=\"../styles.css\" />\n</head>\n<body class=\"chapter-page\">\n<section class=\"chapter chapter-break\"><h2 class=\"chapter-title\">Epilogue</h2>\n<div class=\"scene\"><h3 class=\"scene-title\">Untitled scene</h3><h2>After</h2><blockquote><p>A quote.</p></blockquote><p>Last line.<a epub:type=\"noteref\" href=\"#fn-4\" id=\"fnref-4\" class=\"footnote-ref\"><sup>4</sup></a></p></div>\n<section class=\"footnotes\" epub:type=\"footnotes\">\n  <aside epub:type=\"footnote\" id=\"fn-4\" class=\"footnote\"><p><span class=\"footnote-number\">4.</span> The end. <a href=\"#fnref-4\" class=\"footnote-backref\" aria-label=\"Back to reference 4\">↩</a></p></aside>\n</section></section>\n</body>\n</html>\n"
+        },
+        {
+          "name": "OEBPS/text/back-matter-1.xhtml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xml:lang=\"en\" lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <title>Acknowledgments</title>\n  <link rel=\"stylesheet\" type=\"text/css\" href=\"../styles.css\" />\n</head>\n<body class=\"back-matter-page\">\n<section class=\"matter-page back-matter\">\n  <h1 class=\"matter-title\">Acknowledgments</h1>\n  <p>Thank you.</p>\n</section>\n</body>\n</html>\n"
+        }
+      ]
+    },
+    "classicPerChapter": {
+      "options": {
+        "style": "classic",
+        "footnotesRestartPerChapter": true,
+        "sceneSeparator": "line",
+        "includeChapterTitles": false
+      },
+      "entries": [
+        {
+          "name": "mimetype",
+          "text": "application/epub+zip"
+        },
+        {
+          "name": "META-INF/container.xml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\">\n  <rootfiles>\n    <rootfile full-path=\"OEBPS/content.opf\" media-type=\"application/oebps-package+xml\" />\n  </rootfiles>\n</container>\n"
+        },
+        {
+          "name": "OEBPS/content.opf",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\" unique-identifier=\"book-id\" xml:lang=\"en\">\n  <metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\">\n    <dc:identifier id=\"book-id\">urn:uuid:ID</dc:identifier>\n    <dc:title>The Lighthouse 🌊 Keeper</dc:title>\n    <dc:creator>A. Writer</dc:creator>\n    <dc:language>en</dc:language>\n    \n    <meta property=\"dcterms:modified\">MODIFIED</meta>\n  </metadata>\n  <manifest>\n    <item id=\"nav\" href=\"nav.xhtml\" media-type=\"application/xhtml+xml\" properties=\"nav\" />\n    <item id=\"ncx\" href=\"toc.ncx\" media-type=\"application/x-dtbncx+xml\" />\n    <item id=\"css\" href=\"styles.css\" media-type=\"text/css\" />\n    <item id=\"titlepage\" href=\"text/titlepage.xhtml\" media-type=\"application/xhtml+xml\" />\n    <item id=\"chapter-1\" href=\"text/chapter-1.xhtml\" media-type=\"application/xhtml+xml\" />\n    <item id=\"chapter-2\" href=\"text/chapter-2.xhtml\" media-type=\"application/xhtml+xml\" />\n    <item id=\"chapter-3\" href=\"text/chapter-3.xhtml\" media-type=\"application/xhtml+xml\" />\n  </manifest>\n  <spine toc=\"ncx\">\n    <itemref idref=\"titlepage\" />\n    <itemref idref=\"chapter-1\" />\n    <itemref idref=\"chapter-2\" />\n    <itemref idref=\"chapter-3\" />\n  </spine>\n</package>\n"
+        },
+        {
+          "name": "OEBPS/nav.xhtml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xml:lang=\"en\" lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <title>Contents</title>\n  <link rel=\"stylesheet\" type=\"text/css\" href=\"styles.css\" />\n</head>\n<body>\n  <nav epub:type=\"toc\" id=\"toc\">\n    <h1>Contents</h1>\n    <ol>\n      <li><a href=\"text/chapter-1.xhtml\">Chapter One</a></li>\n      <li><a href=\"text/chapter-2.xhtml\">Chapter 1</a></li>\n      <li><a href=\"text/chapter-3.xhtml\">Epilogue</a></li>\n    </ol>\n  </nav>\n</body>\n</html>\n"
+        },
+        {
+          "name": "OEBPS/toc.ncx",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<ncx xmlns=\"http://www.daisy.org/z3986/2005/ncx/\" version=\"2005-1\">\n  <head>\n    <meta name=\"dtb:uid\" content=\"urn:uuid:ID\" />\n    <meta name=\"dtb:depth\" content=\"1\" />\n    <meta name=\"dtb:totalPageCount\" content=\"0\" />\n    <meta name=\"dtb:maxPageNumber\" content=\"0\" />\n  </head>\n  <docTitle><text>The Lighthouse 🌊 Keeper</text></docTitle>\n  <navMap>\n    <navPoint id=\"nav-1\" playOrder=\"1\">\n      <navLabel><text>Chapter One</text></navLabel>\n      <content src=\"text/chapter-1.xhtml\" />\n    </navPoint>\n    <navPoint id=\"nav-2\" playOrder=\"2\">\n      <navLabel><text>Chapter 1</text></navLabel>\n      <content src=\"text/chapter-2.xhtml\" />\n    </navPoint>\n    <navPoint id=\"nav-3\" playOrder=\"3\">\n      <navLabel><text>Epilogue</text></navLabel>\n      <content src=\"text/chapter-3.xhtml\" />\n    </navPoint>\n  </navMap>\n</ncx>\n"
+        },
+        {
+          "name": "OEBPS/styles.css",
+          "text": "body {\n  margin: 0;\n  color: #1d211d;\n  font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;\n  font-size: 1em;\n  line-height: 1.5;\n}\nh1, h2, h3, p, div, blockquote, ul, ol, li { margin-top: 0; }\n.cover-page-body { margin: 0; padding: 0; }\n.cover { margin: 0; padding: 0; text-align: center; }\n.cover img { max-width: 100%; max-height: 100vh; }\n.titlepage, .dedication-page { text-align: center; }\n.title-page { margin-top: 28%; }\n.book-title { font-size: 2.2em; font-weight: 500; line-height: 1.2; margin-bottom: 0.4em; }\n.book-subtitle { font-size: 1.1em; font-style: italic; color: #666; margin-bottom: 2.5em; }\n.book-author { font-size: 1em; letter-spacing: 0.08em; text-transform: uppercase; color: #666; }\n.book-copyright { margin-top: 4em; font-size: 0.72em; line-height: 1.6; color: #666; }\n.dedication { margin-top: 28%; font-style: italic; }\n.copyright-page { margin-top: 28%; text-align: center; }\n.copyright-page p { margin: 0; color: #666; font-size: 0.82em; line-height: 1.65; }\n.matter-title {\n  margin: 0 0 1.2em;\n  font-size: 1.5em;\n  font-weight: 600;\n  line-height: 1.25;\n  text-align: center;\n  text-indent: 0;\n}\n.matter-page { margin-top: 10%; }\n.matter-page p {\n  margin: 0 0 0em;\n  text-align: justify;\n  text-indent: 0;\n}\n.bibliography p.bibliography-entry {\n  margin: 0 0 0.7em;\n  padding-left: 2em;\n  text-indent: -2em;\n  text-align: left;\n}\n.contents-page { margin-top: 8%; }\n.contents-page .toc-list { margin: 0; padding: 0; list-style: none; }\n.contents-page .toc-list li { margin: 0 0 0.7em; }\n.contents-page a { color: inherit; text-decoration: none; }\n.chapter-break { break-before: page; page-break-before: always; }\n.chapter-title {\n  margin: 1.2em 0 2em;\n  font-size: 1.57em;\n  font-weight: 600;\n  letter-spacing: 0.1em;\n  line-height: 1.25;\n  text-align: center;\n  text-transform: uppercase;\n}\n.scene p {\n  margin: 0 0 0em;\n  text-indent: 1.5em;\n  text-align: justify;\n}\n.scene p:first-of-type { text-indent: 0; }\n.scene h1, .scene h2, .scene h3 {\n  margin: 1.2em 0 0.55em;\n  font-weight: 600;\n  line-height: 1.3;\n  text-indent: 0;\n}\n.scene h1 { font-size: 1.45em; }\n.scene h2 { font-size: 1.28em; }\n.scene h3 { font-size: 1.12em; }\n.scene blockquote {\n  margin: 1.1em 1.4em;\n  padding-left: 1em;\n  border-left: 2px solid #d9dbd4;\n  color: #666;\n  font-style: italic;\n  text-indent: 0;\n}\n.scene ul, .scene ol { margin: 0 0 0em; padding-left: 1.5em; }\n.scene li { text-indent: 0; }\n.scene a { color: inherit; text-decoration-color: #b9bdb5; text-underline-offset: 2px; }\n.scene img { display: block; max-width: 100%; max-height: min(4in, 60vh); height: auto; margin: 0.75em auto; object-fit: contain; }\n.scene .math-inline { display: inline; text-indent: 0; white-space: nowrap; }\n.scene .math-inline img { display: inline-block; max-width: none; max-height: 1.6em; width: auto; height: auto; margin: 0 0.08em; vertical-align: middle; }\n.scene .math-block, .scene .mermaid-diagram, .scene .calc-worksheet { display: block; max-width: 100%; margin: 0.85em auto; text-align: center; text-indent: 0; }\n.scene .math-block img, .scene .mermaid-diagram img, .scene .calc-worksheet img { display: block; max-width: 100%; max-height: 60vh; width: auto; height: auto; margin: 0 auto; object-fit: contain; }\n.scene .rich-render-error { font-family: monospace; font-size: 0.85em; white-space: pre-wrap; }\n.scene .eyebrow {\n  margin: 0 0 0.6em;\n  color: #777;\n  font-family: sans-serif;\n  font-size: 0.62em;\n  font-weight: 700;\n  letter-spacing: 0.13em;\n  line-height: 1.5;\n  text-indent: 0;\n}\n.scene-title {\n  margin: 1em 0 0.6em;\n  font-size: 1em;\n  font-style: italic;\n  font-weight: 600;\n  text-indent: 0;\n}\n.scene-break {\n  margin: 1.2em 0;\n  color: #777;\n  font-size: 0.9em;\n  letter-spacing: 0.45em;\n  text-align: center;\n  text-indent: 0;\n}\n.scene-break-blank { height: 1.2em; margin: 0; }\n.scene-break-line span {\n  display: block;\n  width: 3.2em;\n  margin: 0 auto;\n  border-top: 1px solid #d9dbd4;\n}\n.footnotes {\n  margin-top: 2em;\n  padding-top: 0.9em;\n  border-top: 1px solid #d9dbd4;\n  font-size: 0.88em;\n}\n.footnotes aside { margin: 0 0 0.55em; text-indent: 0; }\n.footnotes aside p { margin: 0; text-indent: 0; }\n.footnote-number { font-weight: 600; margin-right: 0.25em; }\n.footnote-ref { text-decoration: none; }\n.footnote-backref { text-decoration: none; margin-left: 0.3em; }\n\n.scene .drop-cap { text-indent: 0; }\n.drop-caps .scene .drop-cap::first-letter {\n  float: left;\n  padding: 0.06em 0.09em 0 0;\n  font-size: 4.5em;\n  font-weight: 600;\n  line-height: 0.82;\n}\n\n"
+        },
+        {
+          "name": "OEBPS/text/titlepage.xhtml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xml:lang=\"en\" lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <title>The Lighthouse 🌊 Keeper</title>\n  <link rel=\"stylesheet\" type=\"text/css\" href=\"../styles.css\" />\n</head>\n<body class=\"titlepage\">\n<div class=\"title-page\">\n  <h1 class=\"book-title\">The Lighthouse 🌊 Keeper</h1>\n  <p class=\"book-author\">by A. Writer</p>\n</div>\n</body>\n</html>\n"
+        },
+        {
+          "name": "OEBPS/text/chapter-1.xhtml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xml:lang=\"en\" lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <title>Chapter One</title>\n  <link rel=\"stylesheet\" type=\"text/css\" href=\"../styles.css\" />\n</head>\n<body class=\"chapter-page drop-caps\">\n<section class=\"chapter\">\n<div class=\"scene\"><p class=\"drop-cap\">It was <em>dark</em>.<a epub:type=\"noteref\" href=\"#fn-1\" id=\"fnref-1\" class=\"footnote-ref\"><sup>1</sup></a></p><p>Then [@smith2020].</p></div><div class=\"scene-break scene-break-line\" aria-hidden=\"true\"><span></span></div>\n<div class=\"scene\"><p>INT. LIGHTHOUSE - NIGHT</p></div>\n<section class=\"footnotes\" epub:type=\"footnotes\">\n  <aside epub:type=\"footnote\" id=\"fn-1\" class=\"footnote\"><p><span class=\"footnote-number\">1.</span> A note with <em>emphasis</em>. <a href=\"#fnref-1\" class=\"footnote-backref\" aria-label=\"Back to reference 1\">↩</a></p></aside>\n</section></section>\n</body>\n</html>\n"
+        },
+        {
+          "name": "OEBPS/text/chapter-2.xhtml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xml:lang=\"en\" lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <title>Chapter 1</title>\n  <link rel=\"stylesheet\" type=\"text/css\" href=\"../styles.css\" />\n</head>\n<body class=\"chapter-page drop-caps\">\n<section class=\"chapter chapter-break\">\n<div class=\"scene\"><p class=\"drop-cap\">The sea was calm.<a epub:type=\"noteref\" href=\"#fn-1\" id=\"fnref-1\" class=\"footnote-ref\"><sup>1</sup></a></p><ul><li>bread</li><li>salt</li></ul><p>Then <strong>nothing</strong>.<a epub:type=\"noteref\" href=\"#fn-2\" id=\"fnref-2\" class=\"footnote-ref\"><sup>2</sup></a></p></div><div class=\"scene-break scene-break-line\" aria-hidden=\"true\"><span></span></div>\n<div class=\"scene\"><p>Light.</p><p>More light.</p></div>\n<section class=\"footnotes\" epub:type=\"footnotes\">\n  <aside epub:type=\"footnote\" id=\"fn-1\" class=\"footnote\"><p><span class=\"footnote-number\">1.</span> Calm, mostly. <a href=\"#fnref-1\" class=\"footnote-backref\" aria-label=\"Back to reference 1\">↩</a></p></aside>\n  <aside epub:type=\"footnote\" id=\"fn-2\" class=\"footnote\"><p><span class=\"footnote-number\">2.</span> Truly <em>nothing</em>. <a href=\"#fnref-2\" class=\"footnote-backref\" aria-label=\"Back to reference 2\">↩</a></p></aside>\n</section></section>\n</body>\n</html>\n"
+        },
+        {
+          "name": "OEBPS/text/chapter-3.xhtml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xml:lang=\"en\" lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <title>Epilogue</title>\n  <link rel=\"stylesheet\" type=\"text/css\" href=\"../styles.css\" />\n</head>\n<body class=\"chapter-page drop-caps\">\n<section class=\"chapter chapter-break\">\n<div class=\"scene\"><h2>After</h2><blockquote><p>A quote.</p></blockquote><p class=\"drop-cap\">Last line.<a epub:type=\"noteref\" href=\"#fn-1\" id=\"fnref-1\" class=\"footnote-ref\"><sup>1</sup></a></p></div>\n<section class=\"footnotes\" epub:type=\"footnotes\">\n  <aside epub:type=\"footnote\" id=\"fn-1\" class=\"footnote\"><p><span class=\"footnote-number\">1.</span> The end. <a href=\"#fnref-1\" class=\"footnote-backref\" aria-label=\"Back to reference 1\">↩</a></p></aside>\n</section></section>\n</body>\n</html>\n"
+        }
+      ]
+    },
+    "ebook": {
+      "options": {
+        "style": "ebook",
+        "sceneSeparator": "none",
+        "includeTitlePage": false
+      },
+      "entries": [
+        {
+          "name": "mimetype",
+          "text": "application/epub+zip"
+        },
+        {
+          "name": "META-INF/container.xml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\">\n  <rootfiles>\n    <rootfile full-path=\"OEBPS/content.opf\" media-type=\"application/oebps-package+xml\" />\n  </rootfiles>\n</container>\n"
+        },
+        {
+          "name": "OEBPS/content.opf",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\" unique-identifier=\"book-id\" xml:lang=\"en\">\n  <metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\">\n    <dc:identifier id=\"book-id\">urn:uuid:ID</dc:identifier>\n    <dc:title>The Lighthouse 🌊 Keeper</dc:title>\n    <dc:creator>A. Writer</dc:creator>\n    <dc:language>en</dc:language>\n    \n    <meta property=\"dcterms:modified\">MODIFIED</meta>\n  </metadata>\n  <manifest>\n    <item id=\"nav\" href=\"nav.xhtml\" media-type=\"application/xhtml+xml\" properties=\"nav\" />\n    <item id=\"ncx\" href=\"toc.ncx\" media-type=\"application/x-dtbncx+xml\" />\n    <item id=\"css\" href=\"styles.css\" media-type=\"text/css\" />\n    <item id=\"chapter-1\" href=\"text/chapter-1.xhtml\" media-type=\"application/xhtml+xml\" />\n    <item id=\"chapter-2\" href=\"text/chapter-2.xhtml\" media-type=\"application/xhtml+xml\" />\n    <item id=\"chapter-3\" href=\"text/chapter-3.xhtml\" media-type=\"application/xhtml+xml\" />\n  </manifest>\n  <spine toc=\"ncx\">\n    <itemref idref=\"chapter-1\" />\n    <itemref idref=\"chapter-2\" />\n    <itemref idref=\"chapter-3\" />\n  </spine>\n</package>\n"
+        },
+        {
+          "name": "OEBPS/nav.xhtml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xml:lang=\"en\" lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <title>Contents</title>\n  <link rel=\"stylesheet\" type=\"text/css\" href=\"styles.css\" />\n</head>\n<body>\n  <nav epub:type=\"toc\" id=\"toc\">\n    <h1>Contents</h1>\n    <ol>\n      <li><a href=\"text/chapter-1.xhtml\">Chapter One</a></li>\n      <li><a href=\"text/chapter-2.xhtml\">Chapter 1</a></li>\n      <li><a href=\"text/chapter-3.xhtml\">Epilogue</a></li>\n    </ol>\n  </nav>\n</body>\n</html>\n"
+        },
+        {
+          "name": "OEBPS/toc.ncx",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<ncx xmlns=\"http://www.daisy.org/z3986/2005/ncx/\" version=\"2005-1\">\n  <head>\n    <meta name=\"dtb:uid\" content=\"urn:uuid:ID\" />\n    <meta name=\"dtb:depth\" content=\"1\" />\n    <meta name=\"dtb:totalPageCount\" content=\"0\" />\n    <meta name=\"dtb:maxPageNumber\" content=\"0\" />\n  </head>\n  <docTitle><text>The Lighthouse 🌊 Keeper</text></docTitle>\n  <navMap>\n    <navPoint id=\"nav-1\" playOrder=\"1\">\n      <navLabel><text>Chapter One</text></navLabel>\n      <content src=\"text/chapter-1.xhtml\" />\n    </navPoint>\n    <navPoint id=\"nav-2\" playOrder=\"2\">\n      <navLabel><text>Chapter 1</text></navLabel>\n      <content src=\"text/chapter-2.xhtml\" />\n    </navPoint>\n    <navPoint id=\"nav-3\" playOrder=\"3\">\n      <navLabel><text>Epilogue</text></navLabel>\n      <content src=\"text/chapter-3.xhtml\" />\n    </navPoint>\n  </navMap>\n</ncx>\n"
+        },
+        {
+          "name": "OEBPS/styles.css",
+          "text": "body {\n  margin: 0;\n  color: #1d211d;\n  font-family: Georgia, 'Times New Roman', serif;\n  font-size: 1em;\n  line-height: 1.6;\n}\nh1, h2, h3, p, div, blockquote, ul, ol, li { margin-top: 0; }\n.cover-page-body { margin: 0; padding: 0; }\n.cover { margin: 0; padding: 0; text-align: center; }\n.cover img { max-width: 100%; max-height: 100vh; }\n.titlepage, .dedication-page { text-align: center; }\n.title-page { margin-top: 28%; }\n.book-title { font-size: 2.2em; font-weight: 500; line-height: 1.2; margin-bottom: 0.4em; }\n.book-subtitle { font-size: 1.1em; font-style: italic; color: #666; margin-bottom: 2.5em; }\n.book-author { font-size: 1em; letter-spacing: 0.08em; text-transform: uppercase; color: #666; }\n.book-copyright { margin-top: 4em; font-size: 0.72em; line-height: 1.6; color: #666; }\n.dedication { margin-top: 28%; font-style: italic; }\n.copyright-page { margin-top: 28%; text-align: center; }\n.copyright-page p { margin: 0; color: #666; font-size: 0.82em; line-height: 1.65; }\n.matter-title {\n  margin: 0 0 1.2em;\n  font-size: 1.5em;\n  font-weight: 600;\n  line-height: 1.25;\n  text-align: center;\n  text-indent: 0;\n}\n.matter-page { margin-top: 10%; }\n.matter-page p {\n  margin: 0 0 0em;\n  text-align: left;\n  text-indent: 0;\n}\n.bibliography p.bibliography-entry {\n  margin: 0 0 0.7em;\n  padding-left: 2em;\n  text-indent: -2em;\n  text-align: left;\n}\n.contents-page { margin-top: 8%; }\n.contents-page .toc-list { margin: 0; padding: 0; list-style: none; }\n.contents-page .toc-list li { margin: 0 0 0.7em; }\n.contents-page a { color: inherit; text-decoration: none; }\n.chapter-break { break-before: page; page-break-before: always; }\n.chapter-title {\n  margin: 1em 0 1.4em;\n  font-size: 1.57em;\n  font-weight: 600;\n  letter-spacing: 0;\n  line-height: 1.25;\n  text-align: left;\n  text-transform: none;\n}\n.scene p {\n  margin: 0 0 0em;\n  text-indent: 1.4em;\n  text-align: left;\n}\n.scene p:first-of-type { text-indent: 0; }\n.scene h1, .scene h2, .scene h3 {\n  margin: 1.2em 0 0.55em;\n  font-weight: 600;\n  line-height: 1.3;\n  text-indent: 0;\n}\n.scene h1 { font-size: 1.45em; }\n.scene h2 { font-size: 1.28em; }\n.scene h3 { font-size: 1.12em; }\n.scene blockquote {\n  margin: 1.1em 1.4em;\n  padding-left: 1em;\n  border-left: 2px solid #d9dbd4;\n  color: #666;\n  font-style: italic;\n  text-indent: 0;\n}\n.scene ul, .scene ol { margin: 0 0 0em; padding-left: 1.5em; }\n.scene li { text-indent: 0; }\n.scene a { color: inherit; text-decoration-color: #b9bdb5; text-underline-offset: 2px; }\n.scene img { display: block; max-width: 100%; max-height: min(4in, 60vh); height: auto; margin: 0.75em auto; object-fit: contain; }\n.scene .math-inline { display: inline; text-indent: 0; white-space: nowrap; }\n.scene .math-inline img { display: inline-block; max-width: none; max-height: 1.6em; width: auto; height: auto; margin: 0 0.08em; vertical-align: middle; }\n.scene .math-block, .scene .mermaid-diagram, .scene .calc-worksheet { display: block; max-width: 100%; margin: 0.85em auto; text-align: center; text-indent: 0; }\n.scene .math-block img, .scene .mermaid-diagram img, .scene .calc-worksheet img { display: block; max-width: 100%; max-height: 60vh; width: auto; height: auto; margin: 0 auto; object-fit: contain; }\n.scene .rich-render-error { font-family: monospace; font-size: 0.85em; white-space: pre-wrap; }\n.scene .eyebrow {\n  margin: 0 0 0.6em;\n  color: #777;\n  font-family: sans-serif;\n  font-size: 0.62em;\n  font-weight: 700;\n  letter-spacing: 0.13em;\n  line-height: 1.5;\n  text-indent: 0;\n}\n.scene-title {\n  margin: 1em 0 0.6em;\n  font-size: 1em;\n  font-style: italic;\n  font-weight: 600;\n  text-indent: 0;\n}\n.scene-break {\n  margin: 1.1em 0;\n  color: #777;\n  font-size: 0.9em;\n  letter-spacing: 0.45em;\n  text-align: center;\n  text-indent: 0;\n}\n.scene-break-blank { height: 1.1em; margin: 0; }\n.scene-break-line span {\n  display: block;\n  width: 3.2em;\n  margin: 0 auto;\n  border-top: 1px solid #d9dbd4;\n}\n.footnotes {\n  margin-top: 2em;\n  padding-top: 0.9em;\n  border-top: 1px solid #d9dbd4;\n  font-size: 0.88em;\n}\n.footnotes aside { margin: 0 0 0.55em; text-indent: 0; }\n.footnotes aside p { margin: 0; text-indent: 0; }\n.footnote-number { font-weight: 600; margin-right: 0.25em; }\n.footnote-ref { text-decoration: none; }\n.footnote-backref { text-decoration: none; margin-left: 0.3em; }\n\n"
+        },
+        {
+          "name": "OEBPS/text/chapter-1.xhtml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xml:lang=\"en\" lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <title>Chapter One</title>\n  <link rel=\"stylesheet\" type=\"text/css\" href=\"../styles.css\" />\n</head>\n<body class=\"chapter-page\">\n<section class=\"chapter\"><h2 class=\"chapter-title\">Chapter One</h2>\n<div class=\"scene\"><p>It was <em>dark</em>.<a epub:type=\"noteref\" href=\"#fn-1\" id=\"fnref-1\" class=\"footnote-ref\"><sup>1</sup></a></p><p>Then [@smith2020].</p></div>\n<div class=\"scene\"><p>INT. LIGHTHOUSE - NIGHT</p></div>\n<section class=\"footnotes\" epub:type=\"footnotes\">\n  <aside epub:type=\"footnote\" id=\"fn-1\" class=\"footnote\"><p><span class=\"footnote-number\">1.</span> A note with <em>emphasis</em>. <a href=\"#fnref-1\" class=\"footnote-backref\" aria-label=\"Back to reference 1\">↩</a></p></aside>\n</section></section>\n</body>\n</html>\n"
+        },
+        {
+          "name": "OEBPS/text/chapter-2.xhtml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xml:lang=\"en\" lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <title>Chapter 1</title>\n  <link rel=\"stylesheet\" type=\"text/css\" href=\"../styles.css\" />\n</head>\n<body class=\"chapter-page\">\n<section class=\"chapter chapter-break\"><h2 class=\"chapter-title\">Chapter 1</h2>\n<div class=\"scene\"><p>The sea was calm.<a epub:type=\"noteref\" href=\"#fn-2\" id=\"fnref-2\" class=\"footnote-ref\"><sup>2</sup></a></p><ul><li>bread</li><li>salt</li></ul><p>Then <strong>nothing</strong>.<a epub:type=\"noteref\" href=\"#fn-3\" id=\"fnref-3\" class=\"footnote-ref\"><sup>3</sup></a></p></div>\n<div class=\"scene\"><p>Light.</p><p>More light.</p></div>\n<section class=\"footnotes\" epub:type=\"footnotes\">\n  <aside epub:type=\"footnote\" id=\"fn-2\" class=\"footnote\"><p><span class=\"footnote-number\">2.</span> Calm, mostly. <a href=\"#fnref-2\" class=\"footnote-backref\" aria-label=\"Back to reference 2\">↩</a></p></aside>\n  <aside epub:type=\"footnote\" id=\"fn-3\" class=\"footnote\"><p><span class=\"footnote-number\">3.</span> Truly <em>nothing</em>. <a href=\"#fnref-3\" class=\"footnote-backref\" aria-label=\"Back to reference 3\">↩</a></p></aside>\n</section></section>\n</body>\n</html>\n"
+        },
+        {
+          "name": "OEBPS/text/chapter-3.xhtml",
+          "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xml:lang=\"en\" lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <title>Epilogue</title>\n  <link rel=\"stylesheet\" type=\"text/css\" href=\"../styles.css\" />\n</head>\n<body class=\"chapter-page\">\n<section class=\"chapter chapter-break\"><h2 class=\"chapter-title\">Epilogue</h2>\n<div class=\"scene\"><h2>After</h2><blockquote><p>A quote.</p></blockquote><p>Last line.<a epub:type=\"noteref\" href=\"#fn-4\" id=\"fnref-4\" class=\"footnote-ref\"><sup>4</sup></a></p></div>\n<section class=\"footnotes\" epub:type=\"footnotes\">\n  <aside epub:type=\"footnote\" id=\"fn-4\" class=\"footnote\"><p><span class=\"footnote-number\">4.</span> The end. <a href=\"#fnref-4\" class=\"footnote-backref\" aria-label=\"Back to reference 4\">↩</a></p></aside>\n</section></section>\n</body>\n</html>\n"
+        }
+      ]
+    }
+  }
+}

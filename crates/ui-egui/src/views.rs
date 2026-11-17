@@ -110,6 +110,8 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         editable,
         save_state,
         now,
+        now_ms,
+        book_id,
         requests,
         ..
     } = state;
@@ -122,6 +124,8 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
     if *view == WorkspaceView::Publish {
         let mut edit = crate::publish::PublishEdit {
             editable: *editable,
+            now_ms: *now_ms,
+            book_id,
             intents,
             requests,
         };

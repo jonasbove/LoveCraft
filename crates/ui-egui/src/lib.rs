@@ -191,6 +191,11 @@ pub struct AppState {
     save_state: SaveState,
     /// egui's time this frame, for the draft's pause.
     now: f64,
+    /// The store's clock this frame, in Unix milliseconds (0 without a library store), for
+    /// dates written into exports.
+    now_ms: f64,
+    /// A fresh id from the store for the next EPUB (its book identifier); an export takes it.
+    book_id: Option<String>,
 }
 
 impl AppState {
@@ -601,6 +606,14 @@ impl ProseApp {
             self.ready = true;
         }
         self.state.now = ui.ctx().input(|i| i.time);
+        self.state.now_ms = self.home.as_ref().map_or(0.0, |h| h.store.now_ms());
+        // Drawn only while publishing, so other views use no ids.
+        if self.state.book_id.is_none()
+            && self.state.view == WorkspaceView::Publish
+            && let Some(home) = self.home.as_mut()
+        {
+            self.state.book_id = Some(home.store.new_id());
+        }
         // Files dropped on the window. (The web build reads them asynchronously; that comes
         // with the web build's file handling.)
         #[cfg(not(target_arch = "wasm32"))]

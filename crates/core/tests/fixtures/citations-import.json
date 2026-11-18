@@ -673,6 +673,58 @@
       }
     },
     {
+      "text": "@constructor{c1, title = {Odd type}, year = 2020}\n@article{c2, title = constructor # { and } # __proto__, year = 2020, month = constructor}\n@article{c3, title = {T}, year = 2021, month = __proto__}",
+      "filename": "",
+      "result": {
+        "format": "bibtex",
+        "items": [
+          {
+            "id": "c1",
+            "type": "document",
+            "title": "Odd type",
+            "issued": {
+              "date-parts": [
+                [
+                  2020
+                ]
+              ]
+            },
+            "citeKey": "c1",
+            "provider": "import"
+          },
+          {
+            "id": "c2",
+            "type": "article-journal",
+            "title": "constructor and __proto__",
+            "issued": {
+              "date-parts": [
+                [
+                  2020
+                ]
+              ]
+            },
+            "citeKey": "c2",
+            "provider": "import"
+          },
+          {
+            "id": "c3",
+            "type": "article-journal",
+            "title": "T",
+            "issued": {
+              "date-parts": [
+                [
+                  2021
+                ]
+              ]
+            },
+            "citeKey": "c3",
+            "provider": "import"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
       "text": "TY  - BOOK\nID  - popper1959\nAU  - Popper, Karl R.\nTI  - The Logic of Scientific\n  Discovery\nPY  - 1959///\nPB  - Hutchinson\nCY  - London\nSN  - 978-0-415-27844-7\nER  -\n\nTY  - JOUR\nID  - shannon1948\nAU  - Shannon, Claude E.\nT1  - A Mathematical Theory of Communication\nJF  - Bell System Technical Journal\nJO  - Bell Syst. Tech. J.\nDA  - 1948/07/01\nVL  - 27\nIS  - 3\nSP  - 379\nEP  - 423\nDO  - 10.1002/j.1538-7305.1948.tb01338.x\nUR  - https://example.org/shannon1948\nER  -\n\nTY  - CHAP\nID  - keller2022\nAU  - Keller, Anna\nA2  - Weber, Max\nA2  - Braun, Clara\nTI  - Methods of Textual Scholarship\n  in Practice\nT2  - Companion to Editorial Theory\nY1  - 2022/03//\nPB  - Walter de Gruyter\nCY  - Berlin\nSP  - 88\nEP  - 114\nSN  - 978-3-11-070000-0\nER  -\n",
       "filename": "lib0.ris",
       "result": {
@@ -1066,6 +1118,58 @@
         "warnings": [
           "Invalid CSL-JSON input: Unexpected token '@', \"@article{q\"... is not valid JSON"
         ]
+      }
+    },
+    {
+      "text": "@string{ſ = {x}}\n@book{k, ſ = {y}, Key = {z}, title = ſ}",
+      "filename": "refs.bib",
+      "result": {
+        "format": "bibtex",
+        "items": [
+          {
+            "id": "k",
+            "type": "book",
+            "title": "ſ",
+            "citeKey": "k",
+            "provider": "import"
+          }
+        ],
+        "warnings": [
+          "Invalid @string macro key \"ſ\" skipped.",
+          "Invalid field name \"ſ\" in @book{k}."
+        ]
+      }
+    },
+    {
+      "text": "[\"\\İ\"]",
+      "filename": "refs.json",
+      "result": {
+        "format": "csl-json",
+        "items": [],
+        "warnings": [
+          "Invalid CSL-JSON input: Unexpected token 'İ', \"[\"\\İ\"]\" is not valid JSON"
+        ]
+      }
+    },
+    {
+      "text": "[{\"type\":\"book\",\"title\":\"cut \\ud83d\"},{\"type\":\"book\",\"title\":\"\\ude00 x\",\"container-title\":\"a\\ud83d\\ude00\"}]",
+      "filename": "refs.json",
+      "result": {
+        "format": "csl-json",
+        "items": [
+          {
+            "id": "cut-9v6k33",
+            "type": "book",
+            "title": "cut \ud83d"
+          },
+          {
+            "id": "ref-moeug1",
+            "type": "book",
+            "title": "\ude00 x",
+            "container-title": "a😀"
+          }
+        ],
+        "warnings": []
       }
     }
   ],
@@ -1612,6 +1716,56 @@
                 "given": "Émile"
               }
             ]
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "text": "@constructor{c1, title = {Odd type}, year = 2020}\n@article{c2, title = constructor # { and } # __proto__, year = 2020, month = constructor}\n@article{c3, title = {T}, year = 2021, month = __proto__}",
+      "result": {
+        "items": [
+          {
+            "id": "c1",
+            "type": "document",
+            "citeKey": "c1",
+            "provider": "import",
+            "title": "Odd type",
+            "issued": {
+              "date-parts": [
+                [
+                  2020
+                ]
+              ]
+            }
+          },
+          {
+            "id": "c2",
+            "type": "article-journal",
+            "citeKey": "c2",
+            "provider": "import",
+            "title": "constructor and __proto__",
+            "issued": {
+              "date-parts": [
+                [
+                  2020
+                ]
+              ]
+            }
+          },
+          {
+            "id": "c3",
+            "type": "article-journal",
+            "citeKey": "c3",
+            "provider": "import",
+            "title": "T",
+            "issued": {
+              "date-parts": [
+                [
+                  2021
+                ]
+              ]
+            }
           }
         ],
         "warnings": []

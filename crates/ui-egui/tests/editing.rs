@@ -2555,3 +2555,73 @@ fn a_scene_is_renamed_from_the_binder() {
         Some("Dawn")
     );
 }
+
+#[test]
+fn enter_on_an_empty_paragraph_starts_a_scene_and_backspace_joins_it_back() {
+    let (mut harness, memory) = app();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::End);
+    // An empty paragraph, then Enter on it: a new scene after this one.
+    harness.key_press(egui::Key::Enter);
+    harness.run();
+    harness.key_press(egui::Key::Enter);
+    harness.run_steps(4);
+    harness.get_by_role_and_label(Role::TreeItem, "Untitled scene");
+    harness.get_by_label("Scene Opening Scene");
+    harness.get_by_label("Scene text").type_text("Next.");
+    harness.run_steps(12);
+    let saved = memory.last();
+    let stored = project(&saved, "project-1");
+    let ids: Vec<String> = stored
+        .get("project")
+        .and_then(|p| p.get("documents"))
+        .and_then(JsValue::as_array)
+        .map(|d| {
+            d.iter()
+                .filter_map(|d| d.get("id").and_then(JsValue::as_js_string))
+                .map(|i| i.to_string_lossy())
+                .collect()
+        })
+        .unwrap_or_default();
+    assert_eq!(ids, ["doc-1", "new-0", "doc-2", "doc-3"]);
+    let content = |stored: &JsValue, id: &str| {
+        document(stored, id)
+            .and_then(|d| d.get("content"))
+            .and_then(JsValue::as_js_string)
+            .map(|c| c.to_string_lossy())
+            .unwrap_or_default()
+    };
+    assert_eq!(content(stored, "new-0"), "<p>Next.</p>");
+    // Saved through ProseCraft's sanitizer, which empties a citation marker's stale label.
+    assert!(
+        content(stored, "doc-1").ends_with(r#"contenteditable="false"></span>.</p>"#),
+        "{}",
+        content(stored, "doc-1")
+    );
+
+    // Backspace at the start of the new scene joins it back.
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::Home);
+    harness.run();
+    harness.key_press(egui::Key::Backspace);
+    harness.run_steps(12);
+    assert!(harness.query_by_label("Scene Untitled scene").is_none());
+    let saved = memory.last();
+    let stored = project(&saved, "project-1");
+    assert!(content(stored, "doc-1").ends_with("</span>.</p><p>Next.</p>"));
+    let joined = document(stored, "new-0").expect("kept in the trash");
+    assert_eq!(joined.get("trashed"), Some(&JsValue::Bool(true)));
+    // The caret is at the join: typing continues the joined text.
+    harness.get_by_label("Scene text").type_text("More ");
+    harness.run_steps(12);
+    let saved = memory.last();
+    assert!(
+        content(project(&saved, "project-1"), "doc-1").ends_with("<p>More Next.</p>"),
+        "{}",
+        content(project(&saved, "project-1"), "doc-1")
+    );
+}

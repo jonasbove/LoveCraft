@@ -608,6 +608,48 @@ impl RichDoc {
         self.text.clone()
     }
 
+    /// The lines before `line` and the lines after it, as two documents; `line` itself is left
+    /// out (ProseCraft's empty paragraph that becomes a scene divider). A side without lines is
+    /// one empty paragraph.
+    pub fn split_at_line(&self, line: usize) -> (RichDoc, RichDoc) {
+        let ranges = self.line_ranges();
+        let chars: Vec<char> = self.text.chars().collect();
+        let part = |lines: std::ops::Range<usize>| -> RichDoc {
+            let lines = lines.start.min(ranges.len())..lines.end.min(ranges.len());
+            if lines.is_empty() {
+                return RichDoc {
+                    lines: vec![LineKind::Paragraph],
+                    newline_blocks: self.newline_blocks,
+                    ..RichDoc::default()
+                };
+            }
+            let start = ranges[lines.start].0;
+            let end = ranges[lines.end - 1].1;
+            let atoms_before = chars[..start].iter().filter(|c| **c == ATOM).count();
+            let atoms_in = chars[start..end].iter().filter(|c| **c == ATOM).count();
+            RichDoc {
+                text: chars[start..end].iter().collect(),
+                lines: lines
+                    .clone()
+                    .map(|l| self.lines.get(l).copied().unwrap_or(LineKind::Paragraph))
+                    .collect(),
+                marks: (start..end)
+                    .map(|i| self.marks.get(i).cloned().unwrap_or_default())
+                    .collect(),
+                atoms: self
+                    .atoms
+                    .iter()
+                    .skip(atoms_before)
+                    .take(atoms_in)
+                    .cloned()
+                    .collect(),
+                newline_blocks: self.newline_blocks,
+                empty_source: false,
+            }
+        };
+        (part(0..line), part(line + 1..ranges.len()))
+    }
+
     /// Removes every atom whose HTML `matches`, with its character. Returns the new text and the
     /// character index of the first one removed.
     pub fn remove_atoms(&mut self, matches: impl Fn(&str) -> bool) -> (String, Option<usize>) {
@@ -795,5 +837,26 @@ mod tests {
         ] {
             assert!(RichDoc::from_html(html).is_none(), "{html}");
         }
+    }
+
+    #[test]
+    fn splits_around_a_line() {
+        let note =
+            r#"<sup class="footnote-ref" data-footnote-id="fn-1" contenteditable="false"></sup>"#;
+        let doc = RichDoc::from_html(&format!(
+            "<p>One<em>a</em></p><p><br></p><ul><li>Two{note}</li></ul><p>Three</p>"
+        ))
+        .expect("doc");
+        let (before, after) = doc.split_at_line(1);
+        assert_eq!(before.to_html(), "<p>One<em>a</em></p>");
+        assert_eq!(
+            after.to_html(),
+            format!("<ul><li>Two{note}</li></ul><p>Three</p>")
+        );
+        let (before, after) = doc.split_at_line(0);
+        assert_eq!(before.to_html(), "<p><br></p>");
+        assert!(after.to_html().starts_with("<p><br></p><ul>"));
+        let (_, after) = doc.split_at_line(3);
+        assert_eq!(after.to_html(), "<p><br></p>");
     }
 }

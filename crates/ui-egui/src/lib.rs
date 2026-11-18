@@ -653,6 +653,42 @@ impl ProseApp {
         }
     }
 
+    /// A new scene from an empty paragraph of `document`; it opens with the caret at its start.
+    fn split_scene(&mut self, document: &str, before: &str, after: &str) {
+        self.commit_draft();
+        let mut created = None;
+        self.change(|data, new_id| {
+            let id = new_id();
+            created = Some(id.clone());
+            prosecraft_core::chapter::split_scene(data, document, before, after, id)
+        });
+        if let Some(id) = created {
+            self.open_at(id, 0);
+        }
+    }
+
+    /// `document` joined to the scene before it, which opens with the caret at the join.
+    fn join_scene(&mut self, document: &str, caret: usize) {
+        self.commit_draft();
+        let mut previous = None;
+        self.change(|data, _| {
+            previous = Some(prosecraft_core::chapter::join_scene_to_previous(
+                data, document,
+            )?);
+            Ok(())
+        });
+        if let Some(id) = previous {
+            self.open_at(id, caret);
+        }
+    }
+
+    /// Opens `document` in the editor with the caret at character `at`.
+    fn open_at(&mut self, document: String, at: usize) {
+        self.state.draft = None;
+        self.state.comment_goto = Some((document.clone(), at, at));
+        self.state.select(Selection::Document(document));
+    }
+
     /// `insertFootnoteAtCaret`: a marker at character `at` of the open scene, an empty
     /// definition, and the footnote editor open on it.
     fn insert_footnote(&mut self, document: &str, at: usize) {
@@ -887,6 +923,18 @@ impl ProseApp {
                     body,
                 } => {
                     self.remove_citation(document, *atom, body);
+                    continue;
+                }
+                editing::Intent::SplitScene {
+                    document,
+                    before,
+                    after,
+                } => {
+                    self.split_scene(document, before, after);
+                    continue;
+                }
+                editing::Intent::JoinScene { document, caret } => {
+                    self.join_scene(document, *caret);
                     continue;
                 }
                 editing::Intent::RemoveFootnote { document, id } => {

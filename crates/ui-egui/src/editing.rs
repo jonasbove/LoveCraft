@@ -28,6 +28,19 @@ pub enum Intent {
         chapter: String,
         title: String,
     },
+    /// `handleChapterEnter`: Enter on an empty paragraph of a chapter's scene starts a new
+    /// scene with the text after it.
+    SplitScene {
+        document: String,
+        before: String,
+        after: String,
+    },
+    /// Backspace at the start of a chapter's scene (deleting the divider before it): the scene
+    /// joins the one before. `caret` is where the caret goes in the joined scene.
+    JoinScene {
+        document: String,
+        caret: usize,
+    },
     /// `saveSceneRename`: a scene's new title (from the binder).
     SetDocumentTitle {
         document: String,
@@ -268,6 +281,14 @@ pub fn run(
         Intent::SetChapterTitle { chapter, title } => edit::set_chapter_title(data, chapter, title),
         Intent::SetDocumentTitle { document, title } => {
             edit::set_document_title(data, document, title)
+        }
+        Intent::SplitScene {
+            document,
+            before,
+            after,
+        } => prosecraft_core::chapter::split_scene(data, document, before, after, new_id()),
+        Intent::JoinScene { document, .. } => {
+            prosecraft_core::chapter::join_scene_to_previous(data, document).map(|_| ())
         }
         Intent::SetPublishOption { key, value } => {
             edit::set_publish_option(data, key, value.clone())

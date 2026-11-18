@@ -8,7 +8,7 @@
 
 use crate::edit::EditError;
 use crate::html::{Element, Node, is_js_whitespace, parse_fragment, sanitize_html, serialize};
-use crate::js::JsValue;
+use crate::js::{JsObject, JsValue};
 use crate::markdown::{FootnoteDef, html_to_markdown};
 use crate::publish::SceneSeparator;
 
@@ -440,6 +440,110 @@ pub fn write_chapter_sections(
     Ok(())
 }
 
+fn documents_mut(project: &mut JsValue) -> Result<&mut Vec<JsValue>, EditError> {
+    match project.as_object_mut().and_then(|o| o.get_mut("documents")) {
+        Some(JsValue::Array(items)) => Ok(items),
+        _ => Err(EditError::Shape),
+    }
+}
+
+fn has_id(doc: &JsValue, id: &str) -> bool {
+    doc.get("id")
+        .and_then(JsValue::as_js_string)
+        .is_some_and(|i| i.eq_str(id))
+}
+
+/// `handleChapterEnter`: Enter on an empty paragraph starts a new scene. The scene keeps the
+/// text before the paragraph (`before`), and a new "Untitled scene" right after it in the
+/// chapter takes the text after (`after`), with the footnote definitions whose markers moved.
+/// The scene's Markdown source is dropped, as every chapter save does.
+pub fn split_scene(
+    project: &mut JsValue,
+    id: &str,
+    before: &str,
+    after: &str,
+    new_id: String,
+) -> Result<(), EditError> {
+    let list = documents_mut(project)?;
+    let at = list
+        .iter()
+        .position(|d| has_id(d, id))
+        .ok_or_else(|| EditError::NoDocument(id.to_owned()))?;
+    let chapter = text(list[at].get("chapterId")).ok_or(EditError::Shape)?;
+    let after = sanitize_html(after);
+    let moved = crate::footnotes::extract_ids(&after);
+    let (moving, staying): (Vec<JsValue>, Vec<JsValue>) = footnote_list(&list[at])
+        .into_iter()
+        .partition(|def| footnote_id(def).is_some_and(|i| moved.contains(&i)));
+    let doc = list[at].as_object_mut().ok_or(EditError::Shape)?;
+    let had_source = doc.remove("markdownSource").is_some();
+    doc.remove("footnotes");
+    doc.insert("content", JsValue::str(&sanitize_html(before)));
+    if had_source {
+        doc.insert("trashed", JsValue::Bool(false));
+    }
+    if !staying.is_empty() {
+        doc.insert("footnotes", JsValue::Array(staying));
+    }
+    let mut scene = JsObject::new();
+    scene.insert("id", JsValue::str(&new_id));
+    scene.insert("title", JsValue::str("Untitled scene"));
+    scene.insert("content", JsValue::str(&after));
+    scene.insert("chapterId", JsValue::str(&chapter));
+    if !moving.is_empty() {
+        scene.insert("footnotes", JsValue::Array(moving));
+    }
+    list.insert(at + 1, JsValue::Object(scene));
+    Ok(())
+}
+
+/// Deleting the divider before a scene: the scene's text and footnote definitions join the
+/// end of the previous live scene of its chapter, and the scene is emptied and trashed, as
+/// ProseCraft trashes a scene left without a section. Returns the previous scene's id.
+///
+/// ProseCraft maps the remaining sections to scenes by position, so there the *last* scene of
+/// the chapter is trashed and each later scene takes the next one's text (and keeps its own
+/// title). Here the joined scene is the one trashed.
+pub fn join_scene_to_previous(project: &mut JsValue, id: &str) -> Result<String, EditError> {
+    let list = documents_mut(project)?;
+    let at = list
+        .iter()
+        .position(|d| has_id(d, id))
+        .ok_or_else(|| EditError::NoDocument(id.to_owned()))?;
+    let chapter = text(list[at].get("chapterId")).ok_or(EditError::Shape)?;
+    let previous = list[..at]
+        .iter()
+        .rposition(|d| in_chapter(d, &chapter) && !trashed(d))
+        .ok_or(EditError::Shape)?;
+    let content = text(list[at].get("content")).unwrap_or_default();
+    let notes = footnote_list(&list[at]);
+    let previous_id = text(list[previous].get("id")).unwrap_or_default();
+    let doc = list[previous].as_object_mut().ok_or(EditError::Shape)?;
+    let joined = format!("{}{content}", text(doc.get("content")).unwrap_or_default());
+    let mut list_notes = footnote_list(&JsValue::Object(doc.clone()));
+    for note in notes {
+        let id = footnote_id(&note);
+        if !list_notes.iter().any(|n| footnote_id(n) == id) {
+            list_notes.push(note);
+        }
+    }
+    let had_source = doc.remove("markdownSource").is_some();
+    doc.remove("footnotes");
+    doc.insert("content", JsValue::str(&sanitize_html(&joined)));
+    if had_source {
+        doc.insert("trashed", JsValue::Bool(false));
+    }
+    if !list_notes.is_empty() {
+        doc.insert("footnotes", JsValue::Array(list_notes));
+    }
+    let doc = list[at].as_object_mut().ok_or(EditError::Shape)?;
+    doc.remove("markdownSource");
+    doc.remove("footnotes");
+    doc.insert("content", JsValue::str(EMPTY_SECTION));
+    doc.insert("trashed", JsValue::Bool(true));
+    Ok(previous_id)
+}
+
 /// The chapter's live scenes' HTML, in order (`scenesInChapter(...).map(doc => doc.content)`).
 pub fn chapter_sections(project: &JsValue, chapter_id: &str) -> Vec<String> {
     documents(project)
@@ -622,5 +726,41 @@ mod tests {
             js::stringify(&p),
             r#"{"documents":[{"id":"a","chapterId":"c","content":"<p>A2</p>","markdownSource":"A2","trashed":false},{"id":"b","chapterId":"c","content":"<p>B2</p><p>C2</p>","markdownSource":"B2\n\nC2","footnotes":[{"id":"fn-1","html":"n"}],"trashed":false}]}"#
         );
+    }
+
+    #[test]
+    fn a_scene_splits_and_its_moved_footnotes_follow() {
+        let marker = crate::footnotes::marker_html("fn-2");
+        let mut p = project(
+            r#"[{"id":"a","title":"A","chapterId":"c","content":"old","markdownSource":"old","footnotes":[{"id":"fn-1","html":"one"},{"id":"fn-2","html":"two"}]},{"id":"b","chapterId":"c","content":"<p>B</p>"}]"#,
+        );
+        split_scene(
+            &mut p,
+            "a",
+            "<p>A</p>",
+            &format!("<p>N{marker}</p>"),
+            "n".into(),
+        )
+        .expect("split");
+        let m = marker.replace('"', "\\\"");
+        assert_eq!(
+            js::stringify(&p),
+            format!(
+                r#"{{"documents":[{{"id":"a","title":"A","chapterId":"c","content":"<p>A</p>","trashed":false,"footnotes":[{{"id":"fn-1","html":"one"}}]}},{{"id":"n","title":"Untitled scene","content":"<p>N{m}</p>","chapterId":"c","footnotes":[{{"id":"fn-2","html":"two"}}]}},{{"id":"b","chapterId":"c","content":"<p>B</p>"}}]}}"#
+            )
+        );
+    }
+
+    #[test]
+    fn a_scene_joins_the_previous_live_scene() {
+        let mut p = project(
+            r#"[{"id":"a","title":"A","chapterId":"c","content":"<p>A</p>","footnotes":[{"id":"fn-1","html":"one"}]},{"id":"t","chapterId":"c","content":"<p><br></p>","trashed":true},{"id":"x","chapterId":"other","content":"<p>X</p>"},{"id":"b","title":"B","chapterId":"c","content":"<p>B</p>","markdownSource":"B","footnotes":[{"id":"fn-2","html":"two"}]},{"id":"d","title":"D","chapterId":"c","content":"<p>D</p>"}]"#,
+        );
+        assert_eq!(join_scene_to_previous(&mut p, "b").expect("join"), "a");
+        assert_eq!(
+            js::stringify(&p),
+            r#"{"documents":[{"id":"a","title":"A","chapterId":"c","content":"<p>A</p><p>B</p>","footnotes":[{"id":"fn-1","html":"one"},{"id":"fn-2","html":"two"}]},{"id":"t","chapterId":"c","content":"<p><br></p>","trashed":true},{"id":"x","chapterId":"other","content":"<p>X</p>"},{"id":"b","title":"B","chapterId":"c","content":"<p><br></p>","trashed":true},{"id":"d","title":"D","chapterId":"c","content":"<p>D</p>"}]}"#
+        );
+        assert!(join_scene_to_previous(&mut p, "a").is_err());
     }
 }

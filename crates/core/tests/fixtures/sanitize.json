@@ -1,0 +1,139 @@
+{
+  "cases": [
+    {
+      "html": "<p>Plain <em>emphasis</em> and <strong>strong</strong>.</p>",
+      "full": "<p>Plain <em>emphasis</em> and <strong>strong</strong>.</p>",
+      "inline": "Plain <em>emphasis</em> and <strong>strong</strong>."
+    },
+    {
+      "html": "<p class=\"eyebrow\" style=\"color:red\" onclick=\"x()\">Eyebrow</p>",
+      "full": "<p class=\"eyebrow\">Eyebrow</p>",
+      "inline": "Eyebrow"
+    },
+    {
+      "html": "<h1>One</h1><h2>Two</h2><h3>Three</h3><h4>Four</h4><h5>Five</h5>",
+      "full": "<h1>One</h1><h2>Two</h2><h3>Three</h3>FourFive",
+      "inline": "OneTwoThreeFourFive"
+    },
+    {
+      "html": "<p>a<span style=\"x\">b<font>c</font></span>d</p>",
+      "full": "<p>abcd</p>",
+      "inline": "abcd"
+    },
+    {
+      "html": "<script>alert(1)</script><p>after</p><style>p{}</style>",
+      "full": "<p>after</p>p{}",
+      "inline": "afterp{}"
+    },
+    {
+      "html": "<iframe src=\"x\"></iframe><p>x<object>y</object></p>",
+      "full": "<p>xy</p>",
+      "inline": "xy"
+    },
+    {
+      "html": "<p><a href=\"https://example.com/a?b=1&amp;c=2\" target=\"_blank\">web</a> <a href=\"javascript:alert(1)\">js</a> <a href=\" JavaScript:alert(1)\">js2</a> <a href=\"java\nscript:x\">js3</a> <a href=\"mailto:a@b.c\">mail</a> <a href=\"/relative\">rel</a> <a href=\"#frag\">frag</a> <a href=\"ftp://x\">ftp</a> <a>none</a> <a href=\"\">empty</a></p>",
+      "full": "<p><a href=\"https://example.com/a?b=1&amp;c=2\">web</a> <a>js</a> <a>js2</a> <a>js3</a> <a href=\"mailto:a@b.c\">mail</a> <a href=\"/relative\">rel</a> <a href=\"#frag\">frag</a> <a>ftp</a> <a>none</a> <a>empty</a></p>",
+      "inline": "<a href=\"https://example.com/a?b=1&amp;c=2\">web</a> <a>js</a> <a>js2</a> <a>js3</a> <a href=\"mailto:a@b.c\">mail</a> <a href=\"/relative\">rel</a> <a href=\"#frag\">frag</a> <a>ftp</a> <a>none</a> <a>empty</a>"
+    },
+    {
+      "html": "<p><img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\" alt=\"dot\" width=\"20\" height=\"0\" title=\"t\"></p>",
+      "full": "<p><img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\" alt=\"dot\" width=\"20\"></p>",
+      "inline": ""
+    },
+    {
+      "html": "<p><img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\" alt=\"a&quot;b\" width=\"2401\" height=\"12.5\" data-size=\"small\" data-align=\"left\" data-wrap=\"wrap-right\"></p>",
+      "full": "<p><img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\" alt=\"a&quot;b\" data-size=\"small\" data-align=\"left\" data-wrap=\"wrap-right\"></p>",
+      "inline": ""
+    },
+    {
+      "html": "<p><img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\" data-size=\"custom\" data-width=\"33.33\"><img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\" data-size=\"custom\" data-width=\"5\"><img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\" data-size=\"custom\"><img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\" data-size=\"huge\" data-align=\"middle\"></p>",
+      "full": "<p><img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\" alt=\"\" data-size=\"custom\" data-width=\"33\"><img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\" alt=\"\" data-size=\"custom\" data-width=\"10\"><img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\" alt=\"\"><img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\" alt=\"\"></p>",
+      "inline": ""
+    },
+    {
+      "html": "<p><img src=\"https://example.com/x.png\"><img src=\"data:image/gif;base64,R0lGOD==\"></p>",
+      "full": "<p></p>",
+      "inline": ""
+    },
+    {
+      "html": "<p>Note<sup class=\"footnote-ref\" data-footnote-id=\"fn-1\" style=\"x\">1</sup> bad<sup class=\"footnote-ref\" data-footnote-id=\"bad id\">2</sup> plain<sup>3</sup></p>",
+      "full": "<p>Note<sup class=\"footnote-ref\" data-footnote-id=\"fn-1\" contenteditable=\"false\"></sup> bad plain3</p>",
+      "inline": "Note bad plain3"
+    },
+    {
+      "html": "<p>See <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020&quot;,&quot;locator&quot;:&quot; 42 &quot;,&quot;label&quot;:&quot;page&quot;,&quot;prefix&quot;:&quot;  see &quot;,&quot;suffix&quot;:&quot; ff. &quot;}]\">x</span>.</p>",
+      "full": "<p>See <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020&quot;,&quot;locator&quot;:&quot;42&quot;,&quot;label&quot;:&quot;page&quot;,&quot;prefix&quot;:&quot;see &quot;,&quot;suffix&quot;:&quot;ff.&quot;}]\" contenteditable=\"false\"></span>.</p>",
+      "inline": "See <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020&quot;,&quot;locator&quot;:&quot;42&quot;,&quot;label&quot;:&quot;page&quot;,&quot;prefix&quot;:&quot;see &quot;,&quot;suffix&quot;:&quot;ff.&quot;}]\" contenteditable=\"false\"></span>."
+    },
+    {
+      "html": "<p><span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;a&quot;,&quot;extra&quot;:1}]\"></span><span class=\"cite-ref\" data-cites=\"not json\"></span><span class=\"cite-ref\" data-cites=\"[]\"></span><span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;b&quot;,&quot;label&quot;:&quot;chapter&quot;,&quot;suppressAuthor&quot;:true}]\"></span></p>",
+      "full": "<p><span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;b&quot;,&quot;suppressAuthor&quot;:true}]\" contenteditable=\"false\"></span></p>",
+      "inline": "<span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;b&quot;,&quot;suppressAuthor&quot;:true}]\" contenteditable=\"false\"></span>"
+    },
+    {
+      "html": "<p>Inline <span class=\"math-inline\" data-tex=\" x^2 \" style=\"x\"><svg><g></g></svg></span> and <span class=\"math-inline\" data-tex=\"  \">gone</span>.</p><div class=\"math-block\" data-tex=\"\\int_0^1 x\\,dx\"><span>rendered</span></div><div class=\"mermaid-diagram\" data-source=\"graph TD; A--&gt;B\"></div><div class=\"calc-worksheet\" data-source=\"x = 2\"></div>",
+      "full": "<p>Inline <span class=\"math-inline\" data-tex=\"x^2\"></span> and .</p><div class=\"math-block\" data-tex=\"\\int_0^1 x\\,dx\"></div><div class=\"mermaid-diagram\" data-source=\"graph TD; A-->B\"></div><div class=\"calc-worksheet\" data-source=\"x = 2\"></div>",
+      "inline": "Inline <span class=\"math-inline\" data-tex=\"x^2\"></span> and ."
+    },
+    {
+      "html": "<p data-sp=\"scene-heading\">INT. ROOM</p><p data-sp=\"bogus\">x</p><p data-sp=\"dialogue\" class=\"eyebrow\">y</p>",
+      "full": "<p data-sp=\"scene-heading\">INT. ROOM</p><p>x</p><p class=\"eyebrow\" data-sp=\"dialogue\">y</p>",
+      "inline": "INT. ROOMxy"
+    },
+    {
+      "html": "<div class=\"scene-break scene-break-line extra\" style=\"x\">* * *</div><div class=\"scene-break\"><b>#</b></div>",
+      "full": "<div class=\"scene-break scene-break-line\" contenteditable=\"false\">* * *</div><div class=\"scene-break\" contenteditable=\"false\"><b>#</b></div>",
+      "inline": ""
+    },
+    {
+      "html": "<p><strike>old</strike> <del>gone</del> <s>s</s> <u>u</u> <i>i</i> <b>b</b> <code>c &lt;x&gt;</code></p>",
+      "full": "<p><s>old</s> <s>gone</s> <s>s</s> <u>u</u> <i>i</i> <b>b</b> <code>c &lt;x&gt;</code></p>",
+      "inline": "<s>old</s> <s>gone</s> <s>s</s> <u>u</u> <i>i</i> <b>b</b> <code>c &lt;x&gt;</code>"
+    },
+    {
+      "html": "<blockquote><p>Quote</p><p>Two</p></blockquote><ul><li>a</li><li>b<ol><li>c</li></ol></li></ul><hr><pre><code>let x = 1;\n  y</code></pre>",
+      "full": "<blockquote><p>Quote</p><p>Two</p></blockquote><ul><li>a</li><li>b<ol><li>c</li></ol></li></ul><hr><pre><code>let x = 1;\n  y</code></pre>",
+      "inline": "QuoteTwoabc<code>let x = 1;\n  y</code>"
+    },
+    {
+      "html": "<table><thead><tr><th>H</th></tr></thead><tbody><tr><td>c</td></tr></tbody></table>",
+      "full": "<table><thead><tr><th>H</th></tr></thead><tbody><tr><td>c</td></tr></tbody></table>",
+      "inline": "Hc"
+    },
+    {
+      "html": "<p>a &amp; b &lt; c &gt; d&nbsp;e \"q\" 'a'</p>",
+      "full": "<p>a &amp; b &lt; c &gt; d&nbsp;e \"q\" 'a'</p>",
+      "inline": "a &amp; b &lt; c &gt; d&nbsp;e \"q\" 'a'"
+    },
+    {
+      "html": "<div><p>in div</p></div><section><p>in section</p></section>",
+      "full": "<div><p>in div</p></div><p>in section</p>",
+      "inline": "in divin section"
+    },
+    {
+      "html": "text at top <em>level</em><br>after break",
+      "full": "text at top <em>level</em><br>after break",
+      "inline": "text at top <em>level</em><br>after break"
+    },
+    {
+      "html": "<!-- comment --><p>x<!-- inner --></p>",
+      "full": "<p>x</p>",
+      "inline": "x"
+    },
+    {
+      "html": "<p>a<br/>b</p><p></p><p><br></p>",
+      "full": "<p>a<br>b</p><p></p><p><br></p>",
+      "inline": "a<br>b<br>"
+    },
+    {
+      "html": "<P CLASS=\"EYEBROW\">Upper</P><EM>loud</EM>",
+      "full": "<p>Upper</p><em>loud</em>",
+      "inline": "Upper<em>loud</em>"
+    },
+    {
+      "html": "<p>Unicode: café 🌊   tab\tend</p>",
+      "full": "<p>Unicode: café 🌊   tab\tend</p>",
+      "inline": "Unicode: café 🌊   tab\tend"
+    }
+  ]
+}

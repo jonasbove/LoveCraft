@@ -19,7 +19,7 @@ mod number;
 mod parse;
 mod stringify;
 
-pub use number::number_to_string;
+pub use number::{number_to_string, string_to_number};
 pub use parse::{MAX_DEPTH, ParseError, parse};
 pub use stringify::{stable_stringify, stringify, stringify_pretty};
 

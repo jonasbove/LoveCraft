@@ -53,9 +53,6 @@ pub struct PlainTextOptions {
     pub rich: RichText,
     /// Footnote id → its number in the book: references become `[n]` (`footnoteNumbers`).
     pub footnote_numbers: Option<std::collections::HashMap<String, usize>>,
-    /// Citation markers written as text (an exporter's resolved citations); `None` keeps the
-    /// marker's own text.
-    pub citations: Option<fn(&Element) -> String>,
 }
 
 impl PlainTextOptions {
@@ -66,11 +63,6 @@ impl PlainTextOptions {
             .and_then(|m| m.get(id))
             .map(|n| format!("[{n}]"))
             .unwrap_or_default()
-    }
-
-    fn citation(&self, element: &Element) -> Option<String> {
-        let resolve = self.citations?;
-        (element.name == "span" && element.has_class("cite-ref")).then(|| resolve(element))
     }
 }
 
@@ -207,9 +199,6 @@ fn inline_text(node: &Node, options: &PlainTextOptions) -> String {
     if element.name == "sup" && element.has_class(FOOTNOTE_REF_CLASS) {
         return options.footnote(element);
     }
-    if let Some(text) = options.citation(element) {
-        return text;
-    }
     if element.name == "br" {
         return "\n".to_owned();
     }
@@ -273,10 +262,6 @@ impl Blocks<'_> {
         if element.name == "sup" && element.has_class(FOOTNOTE_REF_CLASS) {
             let marker = self.options.footnote(element);
             self.buffer.push_str(&marker);
-            return;
-        }
-        if let Some(text) = self.options.citation(element) {
-            self.buffer.push_str(&text);
             return;
         }
         if element.name == "ul" || element.name == "ol" {

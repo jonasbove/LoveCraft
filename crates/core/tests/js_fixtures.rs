@@ -115,3 +115,75 @@ fn prosecraft_rich_html_round_trips_through_the_editor_model() {
     );
     assert!(editable >= 14, "only {editable} editable");
 }
+
+#[test]
+fn sanitizer_matches_prosecraft() {
+    use prosecraft_core::html::{sanitize_html, sanitize_inline_html};
+    let fixture = fixture("sanitize.json");
+    let mut failures = Vec::new();
+    for case in fixture
+        .get("cases")
+        .and_then(JsValue::as_array)
+        .expect("cases")
+    {
+        let html = text(case, "html");
+        // The one deliberate difference: script and style content is dropped wherever it is.
+        if html.contains("<style>") {
+            continue;
+        }
+        for (got, key) in [
+            (sanitize_html(&html), "full"),
+            (sanitize_inline_html(&html), "inline"),
+        ] {
+            let want = text(case, key);
+            if got != want {
+                failures.push(format!("{key}: {html:?}\n  want {want:?}\n  got  {got:?}"));
+            }
+        }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+#[test]
+fn markdown_matches_prosecraft() {
+    use prosecraft_core::markdown::{FootnoteDef, html_to_inline_markdown, html_to_markdown};
+    let fixture = fixture("markdown.json");
+    let notes = [
+        FootnoteDef {
+            id: "n1".into(),
+            html: "A <em>note</em>\nover lines.".into(),
+        },
+        FootnoteDef {
+            id: "bad id".into(),
+            html: "x".into(),
+        },
+        FootnoteDef {
+            id: "n2".into(),
+            html: String::new(),
+        },
+    ];
+    let mut failures = Vec::new();
+    for case in fixture
+        .get("cases")
+        .and_then(JsValue::as_array)
+        .expect("cases")
+    {
+        let html = text(case, "html");
+        for (got, key) in [
+            (html_to_markdown(&html, &[]), "markdown"),
+            (html_to_inline_markdown(&html), "inline"),
+            (html_to_markdown(&html, &notes), "withNotes"),
+        ] {
+            let want = text(case, key);
+            if got != want {
+                failures.push(format!("{key}: {html:?}\n  want {want:?}\n  got  {got:?}"));
+            }
+        }
+    }
+    assert!(
+        failures.is_empty(),
+        "{} failures:\n{}",
+        failures.len(),
+        failures.join("\n")
+    );
+}

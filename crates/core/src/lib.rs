@@ -11,10 +11,12 @@
 )]
 
 pub mod about;
+pub mod cite;
 pub mod edit;
 pub mod html;
 pub mod js;
 pub mod library;
+pub mod markdown;
 pub mod project;
 pub mod publish;
 pub mod richtext;

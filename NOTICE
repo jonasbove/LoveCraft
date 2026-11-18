@@ -8,5 +8,10 @@ formats and tests were ported from ProseCraft starting at commit
 7dae544bfaa1e077b03d1b8a5dfe38a190ff8fb5. ProseCraft's copyright and permission notice is
 reproduced in LICENSE-MIT.
 
+crates/core/src/markdown/turndown.rs is a port of Turndown 7.2.4, Copyright (c) 2017 Dom
+Christie, whose whitespace collapsing is adapted from collapse-whitespace, Copyright (c) 2014
+Luc Thevenard, both distributed under the MIT licence. Their notices are reproduced in
+licenses/turndown.txt.
+
 prosecraft-rs is an independent project. It is not affiliated with or endorsed by the
 ProseCraft project or its author.

@@ -437,6 +437,132 @@ pub fn restore_document(project: &mut JsValue, id: &str) -> Result<(), EditError
     }
 }
 
+fn is_trashed(item: &JsValue) -> bool {
+    flag(item.get("trashed"))
+}
+
+fn chapter_of(document: &JsValue) -> String {
+    text(document.get("chapterId"))
+}
+
+/// `moveChapter`: a chapter a place up (`-1`) or down (`1`) among the live chapters; chapters
+/// in the trash keep their places.
+pub fn move_chapter(project: &mut JsValue, id: &str, offset: isize) -> Result<(), EditError> {
+    let chapters = list_mut(project, "chapters")?;
+    let live: Vec<usize> = (0..chapters.len())
+        .filter(|i| !is_trashed(&chapters[*i]))
+        .collect();
+    let Some(index) = live.iter().position(|i| has_id(&chapters[*i], id)) else {
+        return Ok(());
+    };
+    let Some(target) = index.checked_add_signed(offset).filter(|t| *t < live.len()) else {
+        return Ok(());
+    };
+    chapters.swap(live[index], live[target]);
+    Ok(())
+}
+
+/// `moveScene`: a scene a place up or down among its chapter's live scenes.
+pub fn move_scene(project: &mut JsValue, id: &str, offset: isize) -> Result<(), EditError> {
+    let documents = list_mut(project, "documents")?;
+    let Some(chapter) = documents
+        .iter()
+        .find(|d| has_id(d, id))
+        .map(chapter_of)
+        .filter(|c| !c.is_empty())
+    else {
+        return Ok(());
+    };
+    let list: Vec<usize> = (0..documents.len())
+        .filter(|i| chapter_of(&documents[*i]) == chapter && !is_trashed(&documents[*i]))
+        .collect();
+    let Some(index) = list.iter().position(|i| has_id(&documents[*i], id)) else {
+        return Ok(());
+    };
+    let Some(target) = index.checked_add_signed(offset).filter(|t| *t < list.len()) else {
+        return Ok(());
+    };
+    documents.swap(list[index], list[target]);
+    Ok(())
+}
+
+/// `moveSceneToChapterEnd` ("Move to chapter…"): the scene after the last scene of `chapter`.
+pub fn move_scene_to_chapter_end(
+    project: &mut JsValue,
+    id: &str,
+    chapter: &str,
+) -> Result<(), EditError> {
+    let live_chapter = project
+        .get("chapters")
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+        .iter()
+        .any(|c| has_id(c, chapter) && !is_trashed(c));
+    if !live_chapter {
+        return Ok(());
+    }
+    let documents = list_mut(project, "documents")?;
+    let Some(from) = documents.iter().position(|d| has_id(d, id)) else {
+        return Ok(());
+    };
+    if chapter_of(&documents[from]) == chapter {
+        // `moveSceneToPosition` after the chapter's last live scene.
+        let last = documents
+            .iter()
+            .rposition(|d| chapter_of(d) == chapter && !is_trashed(d));
+        if let Some(last) = last.filter(|l| *l != from) {
+            let scene = documents.remove(from);
+            let at = if last > from { last } else { last + 1 };
+            documents.insert(at, scene);
+        }
+        return Ok(());
+    }
+    let mut scene = documents.remove(from);
+    if let Some(object) = scene.as_object_mut() {
+        object.insert("chapterId", JsValue::str(chapter));
+    }
+    let at = documents
+        .iter()
+        .rposition(|d| chapter_of(d) == chapter)
+        .map_or(documents.len(), |i| i + 1);
+    documents.insert(at, scene);
+    Ok(())
+}
+
+/// `permanentlyDelete`: a trashed document gone for good.
+pub fn delete_document(project: &mut JsValue, id: &str) -> Result<(), EditError> {
+    list_mut(project, "documents")?.retain(|d| !has_id(d, id));
+    Ok(())
+}
+
+/// `permanentlyDeleteChapter`: a trashed chapter with all its scenes, their storyboard cards and
+/// the chapter's goal, gone for good.
+pub fn delete_chapter(project: &mut JsValue, id: &str) -> Result<(), EditError> {
+    list_mut(project, "chapters")?.retain(|c| !has_id(c, id));
+    let documents = list_mut(project, "documents")?;
+    let scenes: Vec<String> = documents
+        .iter()
+        .filter(|d| chapter_of(d) == id)
+        .map(|d| text(d.get("id")))
+        .collect();
+    documents.retain(|d| chapter_of(d) != id);
+    if let Ok(cards) = list_mut(project, "storyboardCards") {
+        cards.retain(|card| {
+            let kind = text(card.get("kind"));
+            let source = text(card.get("sourceId"));
+            !(kind == "chapter" && source == id || kind == "scene" && scenes.contains(&source))
+        });
+    }
+    if let Some(goals) = project
+        .as_object_mut()
+        .and_then(|p| p.get_mut("chapterGoals"))
+        .and_then(JsValue::as_object_mut)
+    {
+        goals.remove(id);
+    }
+    Ok(())
+}
+
 fn escape(text: &str) -> String {
     text.replace('&', "&amp;")
         .replace('<', "&lt;")
@@ -642,6 +768,81 @@ mod markdown_tests {
         assert_eq!(
             js::stringify(&project),
             r#"{"documents":[{"id":"d","title":"T","content":"<p>Rich</p>","chapterId":"c","labelId":"l"}]}"#
+        );
+    }
+}
+
+#[cfg(test)]
+mod moves {
+    use super::*;
+    use crate::js::{parse, stringify};
+
+    fn project() -> JsValue {
+        parse(r#"{"chapters":[{"id":"a"},{"id":"t","trashed":true},{"id":"b"}],
+            "documents":[{"id":"1","chapterId":"a"},{"id":"2","chapterId":"a"},{"id":"x","chapterId":"a","trashed":true},{"id":"3","chapterId":"b"}],
+            "storyboardCards":[{"id":"c1","kind":"chapter","sourceId":"a"},{"id":"c2","kind":"scene","sourceId":"2"},{"id":"c3","kind":"scene","sourceId":"3"}],
+            "chapterGoals":{"a":100,"b":5}}"#)
+        .expect("json")
+    }
+
+    fn ids(p: &JsValue, key: &str) -> String {
+        p.get(key)
+            .and_then(JsValue::as_array)
+            .unwrap_or_default()
+            .iter()
+            .map(|d| text(d.get("id")))
+            .collect::<Vec<_>>()
+            .join(",")
+    }
+
+    #[test]
+    fn chapters_move_among_the_live_ones() {
+        let mut p = project();
+        move_chapter(&mut p, "a", 1).expect("moved");
+        assert_eq!(ids(&p, "chapters"), "b,t,a");
+        move_chapter(&mut p, "a", 1).expect("no further");
+        assert_eq!(ids(&p, "chapters"), "b,t,a");
+        move_chapter(&mut p, "a", -1).expect("back");
+        assert_eq!(ids(&p, "chapters"), "a,t,b");
+    }
+
+    #[test]
+    fn scenes_move_within_their_chapter_and_to_another() {
+        let mut p = project();
+        move_scene(&mut p, "2", -1).expect("moved");
+        assert_eq!(ids(&p, "documents"), "2,1,x,3");
+        move_scene(&mut p, "2", -1).expect("first already");
+        assert_eq!(ids(&p, "documents"), "2,1,x,3");
+        move_scene_to_chapter_end(&mut p, "2", "b").expect("to b");
+        assert_eq!(ids(&p, "documents"), "1,x,3,2");
+        assert_eq!(
+            p.get("documents")
+                .and_then(JsValue::as_array)
+                .and_then(|d| d.last())
+                .map(chapter_of)
+                .as_deref(),
+            Some("b")
+        );
+        // To the end of its own chapter.
+        move_scene_to_chapter_end(&mut p, "3", "b").expect("own");
+        assert_eq!(ids(&p, "documents"), "1,x,2,3");
+        // Not into a trashed chapter.
+        move_scene_to_chapter_end(&mut p, "1", "t").expect("ignored");
+        assert_eq!(ids(&p, "documents"), "1,x,2,3");
+    }
+
+    #[test]
+    fn deleting_for_good_takes_scenes_cards_and_goal() {
+        let mut p = project();
+        delete_document(&mut p, "x").expect("deleted");
+        assert_eq!(ids(&p, "documents"), "1,2,3");
+        delete_chapter(&mut p, "a").expect("deleted");
+        assert_eq!(ids(&p, "chapters"), "t,b");
+        assert_eq!(ids(&p, "documents"), "3");
+        assert_eq!(ids(&p, "storyboardCards"), "c3");
+        assert_eq!(
+            stringify(p.get("chapterGoals").expect("goals")),
+            r#"{"b":5}"#
         );
     }
 }

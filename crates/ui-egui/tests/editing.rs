@@ -2285,6 +2285,34 @@ fn citations_are_inserted_with_the_picker() {
     harness.run_steps(3);
     assert!(harness.query_by_label("Search citation sources").is_none());
     assert_eq!(content(&memory), html);
+
+    // A change to the scene while the picker is open (a footnote here) closes it: its place in
+    // the text is gone, so nothing is inserted there.
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    harness.key_press_modifiers(
+        egui::Modifiers::COMMAND | egui::Modifiers::ALT,
+        egui::Key::C,
+    );
+    harness.run_steps(3);
+    harness
+        .get_by_role_and_label(Role::Button, "Lighthouses")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Insert footnote")
+        .click();
+    harness.run_steps(12);
+    assert!(
+        harness.query_by_label("Search citation sources").is_none(),
+        "the picker closed"
+    );
+    let after = content(&memory);
+    assert_eq!(
+        after.matches("cite-ref").count(),
+        html.matches("cite-ref").count()
+    );
+    assert!(after.matches("footnote-ref").count() > html.matches("footnote-ref").count());
 }
 
 #[test]

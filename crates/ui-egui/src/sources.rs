@@ -5,10 +5,9 @@
 use egui::{RichText, Ui};
 use prosecraft_core::citations::import::import_citations;
 use prosecraft_core::citations::library::{
-    CitationKeySource, ManualSourceKind, count_source_citations, csl_type_to_manual_kind,
-    format_author_list, format_item_contributors, generate_citation_key, item_year_text,
-    manual_kind_to_csl_type, matches_library_query, merge_imported_citations, parse_author_list,
-    source_type_label,
+    CitationKeySource, CitedIndex, ManualSourceKind, csl_type_to_manual_kind, format_author_list,
+    format_item_contributors, generate_citation_key, item_year_text, manual_kind_to_csl_type,
+    matches_library_query, merge_imported_citations, parse_author_list, source_type_label,
 };
 use prosecraft_core::csl::normalize_csl_items_detailed;
 use prosecraft_core::js::{JsObject, JsValue};
@@ -47,6 +46,23 @@ pub(crate) struct SourcesDialog {
     form: Option<(Option<String>, Draft)>,
     form_error: String,
     pending_delete: Option<(String, usize)>,
+    /// Which documents cite which sources, and a hash of the documents it was read from (read
+    /// again only when they change, not every frame).
+    cited: Option<(u64, CitedIndex)>,
+}
+
+/// A hash of the documents' text and footnotes, to tell when [`CitedIndex`] is out of date.
+fn documents_hash(project: &Project) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    for doc in &project.documents {
+        doc.id.hash(&mut hasher);
+        doc.content.hash(&mut hasher);
+        for footnote in &doc.footnotes {
+            footnote.html.hash(&mut hasher);
+        }
+    }
+    hasher.finish()
 }
 
 const KINDS: [ManualSourceKind; 4] = [
@@ -376,19 +392,25 @@ fn form_fields(ui: &mut Ui, draft: &mut Draft) {
 pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
     let palette = state.palette;
     let editable = state.editable;
+    let Some(mut owned) = state.sources.take() else {
+        return;
+    };
     let Some(project) = state
         .library
         .as_ref()
         .and_then(|l| l.projects().get(state.active))
-        .map(|e| e.view.clone())
+        .map(|e| &e.view)
     else {
-        state.sources = None;
         return;
     };
-    let Some(dialog) = state.sources.as_mut() else {
-        return;
-    };
-    let items = project.citations.clone();
+    let hash = documents_hash(project);
+    let cited = owned
+        .cited
+        .take()
+        .filter(|(h, _)| *h == hash)
+        .unwrap_or_else(|| (hash, CitedIndex::new(&project.documents)));
+    let items = &project.citations;
+    let dialog = &mut owned;
     let mut open = true;
     let mut done = false;
     let mut change: Option<Vec<JsValue>> = None;
@@ -453,7 +475,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                             }
                             let label = if editing.is_some() { "Save changes" } else { "Add source" };
                             if ui.button(RichText::new(label).strong()).clicked() {
-                                match save(&items, editing.as_deref(), draft) {
+                                match save(items, editing.as_deref(), draft) {
                                     Ok(next) => {
                                         change = Some(next);
                                         close = true;
@@ -484,7 +506,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                         );
                     }
                     for item in shown {
-                        source_row(ui, &palette, editable, &project, &items, item, dialog, &mut change);
+                        source_row(ui, &palette, editable, &cited.1, items, item, dialog, &mut change);
                     }
                 });
             ui.separator();
@@ -505,8 +527,9 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
     if import {
         state.requests.push(crate::HostRequest::ImportCitations);
     }
-    if done || !open {
-        state.sources = None;
+    if !done && open {
+        owned.cited = Some(cited);
+        state.sources = Some(owned);
     }
 }
 
@@ -515,7 +538,7 @@ fn source_row(
     ui: &mut Ui,
     palette: &crate::theme::Palette,
     editable: bool,
-    project: &Project,
+    cited_index: &CitedIndex,
     items: &[JsValue],
     item: &JsValue,
     dialog: &mut SourcesDialog,
@@ -523,7 +546,7 @@ fn source_row(
 ) {
     let id = text(item, "id");
     let title = text(item, "title");
-    let cited = count_source_citations(item, &project.documents).document_count;
+    let cited = cited_index.count(item).document_count;
     ui.horizontal(|ui| {
         ui.vertical(|ui| {
             ui.horizontal(|ui| {

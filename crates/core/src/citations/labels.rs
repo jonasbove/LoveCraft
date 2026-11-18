@@ -98,3 +98,86 @@ fn label(cites: &[CiteRefItem], lookup: &Lookup, style: &str, context: &Citation
         format!("{text} [{}]", unresolved.join("; "))
     }
 }
+
+/// [`citation_labels`] remembered for the inputs it was last asked with: the editor asks every
+/// frame, and working the labels out (year suffixes across the library) takes milliseconds
+/// for a large library.
+#[derive(Clone, Debug, Default)]
+pub struct LabelCache {
+    key: Option<(Vec<String>, Vec<JsValue>, String, String)>,
+    labels: Vec<Option<String>>,
+}
+
+impl LabelCache {
+    /// The labels, worked out again only when the markers, library, style or locale changed.
+    pub fn labels(
+        &mut self,
+        markers: &[&str],
+        items: &[JsValue],
+        style: &str,
+        locale: &str,
+    ) -> Vec<Option<String>> {
+        let same = self.key.as_ref().is_some_and(|(m, i, s, l)| {
+            s == style
+                && l == locale
+                && m.len() == markers.len()
+                && m.iter().zip(markers).all(|(a, b)| a == b)
+                && i.as_slice() == items
+        });
+        if !same {
+            self.labels = citation_labels(markers, items, style, locale);
+            self.key = Some((
+                markers.iter().map(|m| (*m).to_owned()).collect(),
+                items.to_vec(),
+                style.to_owned(),
+                locale.to_owned(),
+            ));
+        }
+        self.labels.clone()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn source(id: &str, year: f64) -> JsValue {
+        crate::js::parse(&format!(
+            r#"{{"id":"{id}","type":"book","title":"T","author":[{{"family":"Smith"}}],"issued":{{"date-parts":[[{year}]]}}}}"#
+        ))
+        .unwrap_or(JsValue::Null)
+    }
+
+    #[test]
+    fn the_cache_follows_its_inputs() {
+        let marker = crate::cite::cite_marker_html(&[CiteRefItem {
+            id: "a".into(),
+            ..CiteRefItem::default()
+        }])
+        .unwrap_or_default();
+        let mut cache = LabelCache::default();
+        let one = [source("a", 2020.0)];
+        let two = [source("a", 2020.0), source("b", 2020.0)];
+        assert_eq!(
+            cache.labels(&[&marker], &one, "apa7", "en"),
+            [Some("(Smith, 2020)".to_owned())]
+        );
+        // Another source of the same author and year: the citation needs its suffix now.
+        assert_eq!(
+            cache.labels(&[&marker], &two, "apa7", "en"),
+            citation_labels(&[&marker], &two, "apa7", "en")
+        );
+        assert_ne!(
+            cache.labels(&[&marker], &two, "apa7", "en"),
+            [Some("(Smith, 2020)".to_owned())]
+        );
+        assert_eq!(
+            cache.labels(&[&marker], &one, "ieee", "en"),
+            citation_labels(&[&marker], &one, "ieee", "en")
+        );
+        assert_eq!(
+            cache.labels(&[], &one, "ieee", "en"),
+            Vec::<Option<String>>::new()
+        );
+    }
+}

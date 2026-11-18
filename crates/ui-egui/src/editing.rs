@@ -45,6 +45,19 @@ pub enum Intent {
         now: f64,
     },
     DeleteSnapshot(String),
+    /// A new comment on a passage of a scene.
+    AddComment {
+        document: String,
+        anchor: prosecraft_core::comments::Anchor,
+        body: String,
+        author: String,
+        now: f64,
+    },
+    ResolveComment {
+        id: String,
+        resolved: bool,
+    },
+    DeleteComment(String),
 }
 
 /// The scene or page being typed into.
@@ -129,6 +142,20 @@ pub fn run(
             prosecraft_core::snapshots::restore_snapshot(data, id, *now, new_id).map(|_| ())
         }
         Intent::DeleteSnapshot(id) => prosecraft_core::snapshots::delete_snapshot(data, id),
+        Intent::AddComment {
+            document,
+            anchor,
+            body,
+            author,
+            now,
+        } => {
+            let id = new_id();
+            prosecraft_core::comments::add_comment(data, &id, document, anchor, body, author, *now)
+        }
+        Intent::ResolveComment { id, resolved } => {
+            prosecraft_core::comments::set_resolved(data, id, *resolved)
+        }
+        Intent::DeleteComment(id) => prosecraft_core::comments::delete_comment(data, id),
     }
 }
 

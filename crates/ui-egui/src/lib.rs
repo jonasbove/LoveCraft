@@ -228,6 +228,14 @@ pub struct AppState {
     now_ms: f64,
     /// A fresh id from the store for the next EPUB (its book identifier); an export takes it.
     book_id: Option<String>,
+    /// The Comments tab: the passage about to be commented on, the comment and author being
+    /// written, the list's filters, and a passage to select in the editor ("Go to").
+    pending_comment: Option<PendingComment>,
+    comment_draft: String,
+    comment_author: String,
+    show_all_comments: bool,
+    show_resolved_comments: bool,
+    comment_goto: Option<(String, usize, usize)>,
     /// The Snapshots tab's note for the next snapshot, and the one being previewed.
     snapshot_note: String,
     snapshot_preview: Option<String>,
@@ -339,6 +347,16 @@ fn setup_with(ctx: &egui::Context, system_fonts: bool) {
     ctx.set_missing_glyph_policy(egui::MissingGlyphPolicy::Tofu);
     fonts::install(ctx, system_fonts);
     theme::Palette::default().apply(ctx);
+}
+
+/// ProseCraft's `localStorage` key for the comment author's name.
+const COMMENT_AUTHOR_KEY: &str = "prosecraft-comment-author";
+
+/// A passage chosen for a new comment.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct PendingComment {
+    pub document: String,
+    pub anchor: prosecraft_core::comments::Anchor,
 }
 
 /// The whole app.
@@ -540,6 +558,12 @@ impl ProseApp {
         for intent in std::mem::take(&mut self.state.intents) {
             self.commit_draft();
             self.change(|data, new_id| editing::run(&intent, data, new_id));
+            if let editing::Intent::AddComment { author, .. } = &intent
+                && let Some(home) = self.home.as_mut()
+            {
+                // The author is remembered for the next comment, as ProseCraft does.
+                let _ = home.store.save_setting(COMMENT_AUTHOR_KEY, Some(author));
+            }
             if matches!(intent, editing::Intent::RestoreSnapshot { .. }) {
                 // The editor reloads the restored text (its draft held the replaced one).
                 self.state.draft = None;

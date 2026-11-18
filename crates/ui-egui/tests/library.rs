@@ -753,3 +753,85 @@ fn a_scene_the_rich_editor_cannot_hold_opens_as_markdown() {
     assert!(harness.query_by_label("Markdown source").is_none());
     harness.get_by_role_and_label(Role::Button, "Edit as Markdown");
 }
+
+#[test]
+fn a_comment_in_a_markdown_scene_anchors_as_prosecraft_does() {
+    use prosecraft_core::import::markdown_folder::MarkdownFile;
+    use prosecraft_core::js::JsValue;
+    let memory = Memory::default();
+    let app = ProseApp::with_library(
+        ProjectLibrary::new("this-device".into()),
+        Box::new(memory.clone()),
+    );
+    let mut harness = harness(app);
+    harness.run();
+    harness.state_mut().import_markdown_folder(
+        "Vault",
+        vec![MarkdownFile {
+            path: "Manuscript/one.md".into(),
+            text: "# One\n\nFirst line.\n\nSecond line.".into(),
+        }],
+        0,
+    );
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Import")
+        .click();
+    harness.run();
+    settle_import(&mut harness);
+    harness
+        .get_all_by_role_and_label(Role::TreeItem, "One")
+        .last()
+        .expect("the scene")
+        .click();
+    harness.run();
+    // Select "line." at the end of the second paragraph (focus puts the caret at the end).
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    for _ in 0..5 {
+        harness.key_press_modifiers(egui::Modifiers::SHIFT, egui::Key::ArrowLeft);
+    }
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Comment")
+        .click();
+    harness.run();
+    harness.get_by_label("Comment text").focus();
+    harness.get_by_label("Comment text").type_text("Why?");
+    harness.get_by_label("Author name").focus();
+    harness.get_by_label("Author name").type_text("Editor");
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Add comment")
+        .click();
+    harness.run_steps(12);
+    let saved = memory.saved.lock().ok().and_then(|s| s.last().cloned());
+    let library = prosecraft_core::js::parse(&saved.expect("saved")).expect("json");
+    let comment = library
+        .get("projects")
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|p| p.get("project")?.get("comments")?.as_array())
+        .flatten()
+        .find(|c| {
+            c.get("body")
+                .and_then(JsValue::as_js_string)
+                .is_some_and(|b| b.eq_str("Why?"))
+        })
+        .cloned()
+        .expect("the comment");
+    let field = |k: &str| {
+        comment
+            .get(k)
+            .and_then(JsValue::as_js_string)
+            .map(|s| s.to_string_lossy())
+            .unwrap_or_default()
+    };
+    // The scene is `<p>First line.</p>\n<p>Second line.</p>\n`: ProseCraft's comment text is
+    // "First line.\nSecond line.\n", the newlines between the blocks included.
+    assert_eq!(
+        (field("quote"), field("prefix"), field("suffix")),
+        ("line.".into(), "First line.\nSecond ".into(), "\n".into())
+    );
+}

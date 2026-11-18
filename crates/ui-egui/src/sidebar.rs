@@ -50,7 +50,8 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
     let open_draft = state
         .draft
         .as_ref()
-        .map(|d| (d.document.clone(), d.body.clone()));
+        .filter(|d| d.markdown.is_none())
+        .map(|d| (d.document.clone(), d.doc.clone()));
     let (editable, now_ms) = (state.editable, state.now_ms);
     let mut open = None;
     let month = &mut state.activity_month;
@@ -421,7 +422,7 @@ struct CommentEdit<'a> {
     /// A scene to open for "Go to".
     open: Option<String>,
     /// The open editor's document and text (newer than the stored text while typing).
-    open_draft: Option<(String, String)>,
+    open_draft: Option<(String, prosecraft_core::richtext::RichDoc)>,
     intents: &'a mut Vec<crate::editing::Intent>,
     editable: bool,
     now_ms: f64,
@@ -446,7 +447,7 @@ fn comments(
     scope: Option<(Vec<String>, bool)>,
     edit: &mut CommentEdit<'_>,
 ) {
-    use prosecraft_core::comments::{Anchor, comment_text, editor_text, locate_anchor};
+    use prosecraft_core::comments::{Anchor, comment_text, locate_anchor};
     heading(ui, palette, "Feedback", "Comments");
     ui.label(
         RichText::new("New comment")
@@ -689,23 +690,23 @@ fn comments(
                         .document(&comment.document_id)
                         .map(|d| d.content.clone())
                         .unwrap_or_default();
-                    let body = match &edit.open_draft {
-                        Some((doc, body)) if *doc == comment.document_id => body.clone(),
+                    // Where the editor's characters are in the comment text.
+                    let map = match &edit.open_draft {
+                        Some((doc, body)) if *doc == comment.document_id => body.comment_map(),
                         _ => prosecraft_core::richtext::RichDoc::from_html(&content)
-                            .map(|d| d.text)
-                            .unwrap_or_default(),
+                            .unwrap_or_default()
+                            .comment_map(),
                     };
                     let anchor = Anchor {
                         quote: comment.quote.encode_utf16().collect(),
                         prefix: comment.prefix.encode_utf16().collect(),
                         suffix: comment.suffix.encode_utf16().collect(),
                     };
-                    if let Some((s, e)) = locate_anchor(&editor_text::comment_text(&body), &anchor)
-                    {
+                    if let Some((s, e)) = locate_anchor(&map.text, &anchor) {
                         *edit.goto = Some((
                             comment.document_id.clone(),
-                            editor_text::to_editor(&body, s),
-                            editor_text::to_editor(&body, e),
+                            map.to_editor(s),
+                            map.to_editor(e),
                         ));
                         edit.open = Some(comment.document_id.clone());
                     }

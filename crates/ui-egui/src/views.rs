@@ -1389,14 +1389,14 @@ fn editor(
             if comment.clicked()
                 && let Some(range) = selected
             {
-                use prosecraft_core::comments::{build_anchor, editor_text};
-                let text = editor_text::comment_text(&draft.body);
-                let (start, end) = (
-                    editor_text::to_comment(&draft.body, range.start),
-                    editor_text::to_comment(&draft.body, range.end),
-                );
+                use prosecraft_core::comments::build_anchor;
+                // ProseCraft's comment text: the scene's text nodes, the newlines a Markdown
+                // scene has between its blocks included.
+                let map = draft.doc.comment_map();
+                let text = &map.text;
+                let (start, end) = (map.to_comment(range.start), map.to_comment(range.end));
                 // Whitespace alone has nothing to anchor to.
-                if let Some(anchor) = build_anchor(&text, start, end) {
+                if let Some(anchor) = build_anchor(text, start, end) {
                     *edit.pending_comment = Some(crate::PendingComment {
                         document: document.id.clone(),
                         anchor,

@@ -28,6 +28,7 @@ mod labels;
 mod library;
 mod markdown_import;
 mod pictures;
+mod preview;
 mod project_settings;
 mod publish;
 mod screenplay_editor;

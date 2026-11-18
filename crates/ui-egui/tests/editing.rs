@@ -1317,6 +1317,41 @@ fn a_generated_cover_is_shown_and_exported() {
 }
 
 #[test]
+fn the_preview_shows_each_part_on_its_pages() {
+    let (mut harness, _memory) = app();
+    harness.set_size(egui::vec2(1700.0, 1000.0));
+    harness.get_by_role_and_label(Role::Tab, "Publish").click();
+    harness.run_steps(4);
+    // The title page first, on the PDF's first page.
+    harness.get_by_label_contains("Paginated preview of Title Page. Section 1 of 3.");
+    harness.get_by_label("Page 1");
+    assert!(harness.query_by_label("Page 2").is_none());
+    harness.get_by_label("Next section").click();
+    harness.run_steps(4);
+    harness.get_by_label_contains("Paginated preview of Chapter One. Section 2 of 3.");
+    harness.get_by_label("Page 2");
+    assert!(harness.query_by_label("Page 1").is_none());
+    // Straight to the bibliography from the navigator.
+    harness
+        .get_by_role_and_label(Role::Button, "Bibliography")
+        .click();
+    harness.run_steps(4);
+    harness.get_by_label_contains("Paginated preview of Bibliography. Section 3 of 3.");
+    assert!(
+        harness
+            .get_by_label("Next section")
+            .accesskit_node()
+            .is_disabled()
+    );
+    // Formats that aren't paged say so.
+    harness
+        .get_by_role_and_label(Role::RadioButton, "EPUB (epub)")
+        .click();
+    harness.run_steps(4);
+    harness.get_by_label_contains("Previewing Bibliography.");
+}
+
+#[test]
 fn html_exports_from_the_publish_view() {
     let (mut harness, _memory) = app();
     harness.get_by_role_and_label(Role::Tab, "Publish").click();

@@ -298,11 +298,15 @@ fn pdf_export_draws_what_prosecraft_draws() {
         let mut project = Project::from_stored(&JsValue::Object(stored)).expect("project view");
         project.citations.clear();
         let options = PublishOptions::read(case.get("options"));
-        let layout = layout_pdf(
-            &compile_book(&project, &options),
-            &options,
-            &DataUrlSizes::default(),
-        );
+        let book = compile_book(&project, &options);
+        let layout = layout_pdf(&book, &options, &DataUrlSizes::default());
+        let listed: Vec<String> = prosecraft_core::publish::sections::list(&book, &options)
+            .into_iter()
+            .map(|s| s.id)
+            .collect();
+        let marked: Vec<String> = layout.sections.iter().map(|(id, _)| id.clone()).collect();
+        assert_eq!(marked, listed, "{}: sections", name.to_string_lossy());
+        assert!(layout.sections.windows(2).all(|w| w[0].1 <= w[1].1));
         let ours = write_pdf(&layout).expect("written");
         compare(
             &name.to_string_lossy(),
@@ -415,6 +419,23 @@ fn pdf_cover_page_draws_what_prosecraft_draws() {
         let mut book = compile_book(&project, &options);
         book.cover = Some(cover_of(case.get("cover").expect("cover")));
         let layout = layout_pdf(&book, &options, &DataUrlSizes::default());
+        // Every part the preview lists starts on a page, in order, the cover on the first.
+        let listed: Vec<String> = prosecraft_core::publish::sections::list(&book, &options)
+            .into_iter()
+            .map(|s| s.id)
+            .collect();
+        let marked: Vec<String> = layout.sections.iter().map(|(id, _)| id.clone()).collect();
+        assert_eq!(marked, listed, "{}", name.to_string_lossy());
+        let pages: Vec<usize> = layout.sections.iter().map(|(_, p)| *p).collect();
+        assert!(pages.windows(2).all(|w| w[0] <= w[1]));
+        assert!(pages.last() < Some(&layout.pages.len()));
+        if listed.first().map(String::as_str) == Some("front-cover") {
+            assert_eq!(
+                &pages[..2],
+                &[0, 1],
+                "the cover, then the next part on the next page"
+            );
+        }
         let ours = write_pdf(&layout).expect("written");
         compare(
             &name.to_string_lossy(),

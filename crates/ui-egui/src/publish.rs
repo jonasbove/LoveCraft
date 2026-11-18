@@ -13,7 +13,7 @@ use prosecraft_core::publish::{
 
 use crate::editing::Intent;
 use crate::theme::Palette;
-use crate::widgets::{card, eyebrow};
+use crate::widgets::eyebrow;
 use crate::{HostRequest, fonts};
 
 /// ProseCraft's formats: id, label, extension, description (`FORMAT_INFO`).
@@ -354,8 +354,8 @@ fn matter_editor(
     }
 }
 
-/// The cover's picture, decoded once per image.
-fn cover_texture(ctx: &egui::Context, data_url: &str) -> Option<egui::TextureHandle> {
+/// An embedded image's texture (a cover, a picture on a preview page), decoded once.
+pub(crate) fn data_url_texture(ctx: &egui::Context, data_url: &str) -> Option<egui::TextureHandle> {
     use std::hash::{Hash, Hasher};
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     data_url.hash(&mut hasher);
@@ -383,7 +383,7 @@ fn cover_texture(ctx: &egui::Context, data_url: &str) -> Option<egui::TextureHan
 fn cover_thumb(ui: &mut Ui, palette: &Palette, picture: Option<&str>, empty: &str, alt: &str) {
     let size = egui::vec2(72.0, 108.0);
     let (rect, response) = ui.allocate_exact_size(size, egui::Sense::hover());
-    let texture = picture.and_then(|p| cover_texture(ui.ctx(), p));
+    let texture = picture.and_then(|p| data_url_texture(ui.ctx(), p));
     let painter = ui.painter();
     match &texture {
         Some(texture) => {
@@ -561,6 +561,26 @@ fn cover_section(
     if let Some(error) = edit.cover_error.as_deref() {
         ui.label(RichText::new(error).size(11.0).color(palette.danger));
     }
+}
+
+/// An uploaded cover's size and colour, read once per image.
+fn image_cover(
+    ctx: &egui::Context,
+    cover: &prosecraft_core::publish::cover::CoverOptions,
+) -> Option<prosecraft_core::publish::cover::CompiledCover> {
+    type Last = (
+        String,
+        Option<prosecraft_core::publish::cover::CompiledCover>,
+    );
+    let id = egui::Id::unique("publish-image-cover");
+    if let Some((image, found)) = ctx.data(|d| d.get_temp::<Last>(id))
+        && image == cover.image
+    {
+        return found;
+    }
+    let found = prosecraft_core::publish::cover::resolve_image(cover);
+    ctx.data_mut(|d| d.insert_temp::<Last>(id, (cover.image.clone(), found.clone())));
+    found
 }
 
 /// The generated cover for the book in these options (`None` unless the cover is generated).
@@ -969,9 +989,18 @@ pub(crate) fn show(
                 .find(|x| *x == m)
         })
         .unwrap_or(options.cover.mode);
-    let book = compile_book(project, &options);
-    edit.generated_cover = generated_cover(&book, &options).map(|c| c.data_url);
-    let preview = String::from_utf8_lossy(&export_text(&book, &options).bytes).into_owned();
+    let mut book = compile_book(project, &options);
+    // `resolveCoverImage`: the cover joins the book for the preview and the exports.
+    book.cover = match options.cover.mode {
+        "image" => image_cover(ui.ctx(), &options.cover),
+        "generated" => generated_cover(&book, &options),
+        _ => None,
+    };
+    edit.generated_cover = book
+        .cover
+        .as_ref()
+        .filter(|_| options.cover.mode == "generated")
+        .map(|c| c.data_url.clone());
     ui.add_space(18.0);
     ui.horizontal_top(|ui| {
         ui.vertical(|ui| {
@@ -996,7 +1025,20 @@ pub(crate) fn show(
         });
         ui.add_space(18.0);
         ui.vertical(|ui| {
-            preview_pane(ui, palette, &book.title, &preview);
+            let style =
+                prosecraft_core::publish::styles::label_of(&options.style, &options.custom_styles);
+            let format = FORMATS
+                .iter()
+                .find(|f| f.0 == options.format)
+                .map_or("", |f| f.1);
+            crate::preview::show(
+                ui,
+                palette,
+                &book.title,
+                &format!("{style} · {format}"),
+                &book,
+                &options,
+            );
         });
     });
 }
@@ -1477,21 +1519,6 @@ fn controls(
     .fill(palette.accent_strong)
     .min_size(egui::vec2(ui.available_width(), 34.0));
     if ui.add_enabled(can_export, button).clicked() {
-        // `resolveCoverImage`: the cover joins the book for the export.
-        let mut with_cover;
-        let book = match options.cover.mode {
-            "image" => {
-                with_cover = book.clone();
-                with_cover.cover = prosecraft_core::publish::cover::resolve_image(&options.cover);
-                &with_cover
-            }
-            "generated" => {
-                with_cover = book.clone();
-                with_cover.cover = generated_cover(book, options);
-                &with_cover
-            }
-            _ => book,
-        };
         let export = match format.0 {
             "epub" => {
                 // Without a library store there is no id source: a fixed id, so the export works.
@@ -1573,34 +1600,4 @@ fn controls(
         ui.label(RichText::new(note).size(11.0).color(palette.text_muted));
     }
     ui.add_space(24.0);
-}
-
-fn preview_pane(ui: &mut Ui, palette: &Palette, title: &str, text: &str) {
-    eyebrow(ui, palette, "Preview");
-    ui.label(
-        RichText::new(title)
-            .font(fonts::serif(20.0))
-            .color(palette.text_heading),
-    );
-    ui.add_space(8.0);
-    card(palette).show(ui, |ui| {
-        ui.set_width(ui.available_width());
-        egui::ScrollArea::vertical()
-            .id_salt("publish-preview")
-            .auto_shrink([false, false])
-            .show(ui, |ui| {
-                let response = ui.add(
-                    egui::Label::new(
-                        RichText::new(text)
-                            .font(fonts::serif(15.0))
-                            .color(palette.text_body),
-                    )
-                    .wrap()
-                    .selectable(true),
-                );
-                let label = "Manuscript preview".to_owned();
-                ui.ctx()
-                    .accesskit_node_builder(response.id, move |node| node.set_label(label));
-            });
-    });
 }

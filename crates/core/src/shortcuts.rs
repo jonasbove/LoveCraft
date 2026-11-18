@@ -249,6 +249,7 @@ pub fn layout_pdf(groups: &[Group], mac: bool) -> Layout {
         author: String::new(),
         subtitle: String::new(),
         unshown: 0,
+        sections: Vec::new(),
     }
 }
 

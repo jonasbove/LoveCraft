@@ -31,6 +31,13 @@ pub enum LineKind {
     Bullet,
     /// A numbered list item; neighbours share one list.
     Numbered,
+    /// A list item inside another list's item: `depth` lists deep (1 or more; [`Self::Bullet`]
+    /// and [`Self::Numbered`] are depth 0), bit `n` of `ordered` set when the list at depth `n`
+    /// is numbered.
+    ListItem {
+        depth: u8,
+        ordered: u8,
+    },
     /// ProseCraft's small caption above a heading: `<p class="eyebrow">`.
     Eyebrow,
     /// A block the editor keeps whole, as one atom alone on its line: a rule, a code block, a
@@ -105,11 +112,59 @@ impl LineKind {
             Self::Heading2 => ("h2", None),
             Self::Heading3 => ("h3", None),
             Self::Quote => ("p", Some("blockquote")),
-            Self::Bullet => ("li", Some("ul")),
-            Self::Numbered => ("li", Some("ol")),
+            Self::Bullet | Self::Numbered | Self::ListItem { .. } => ("li", None),
             Self::Eyebrow | Self::Screenplay { .. } => ("p", None),
             Self::Block => ("", None),
         }
+    }
+}
+
+/// How deep nesting can go (bits of [`LineKind::ListItem`]'s `ordered`).
+const MAX_LIST_DEPTH: usize = 8;
+
+impl LineKind {
+    /// A list item at the end of `path` (each list's numbered-ness, outermost first).
+    fn list_item(path: &[bool]) -> Option<Self> {
+        match path {
+            [] => None,
+            [false] => Some(Self::Bullet),
+            [true] => Some(Self::Numbered),
+            _ if path.len() <= MAX_LIST_DEPTH => Some(Self::ListItem {
+                depth: (path.len() - 1) as u8,
+                ordered: path
+                    .iter()
+                    .enumerate()
+                    .fold(0, |mask, (n, o)| mask | (u8::from(*o) << n)),
+            }),
+            _ => None,
+        }
+    }
+
+    /// The lists a list item sits in, outermost first (`ul` or `ol`).
+    pub fn lists(self) -> Vec<&'static str> {
+        let tag = |ordered: bool| if ordered { "ol" } else { "ul" };
+        match self {
+            Self::Bullet => vec!["ul"],
+            Self::Numbered => vec!["ol"],
+            Self::ListItem { depth, ordered } => {
+                (0..=depth).map(|n| tag(ordered >> n & 1 == 1)).collect()
+            }
+            _ => Vec::new(),
+        }
+    }
+
+    /// How deep a list item is (0 for an outermost one).
+    pub fn list_depth(self) -> Option<usize> {
+        match self {
+            Self::Bullet | Self::Numbered => Some(0),
+            Self::ListItem { depth, .. } => Some(usize::from(depth)),
+            _ => None,
+        }
+    }
+
+    /// Whether a list item's own list is numbered.
+    pub fn numbered(self) -> bool {
+        self.lists().last() == Some(&"ol")
     }
 }
 
@@ -412,6 +467,46 @@ impl Reader {
         self.block(&plain, LineKind::Screenplay { kind, bare })
     }
 
+    /// A list (`ul` or `ol`) at the end of `path`: its items, and the lists inside them.
+    fn list(&mut self, element: &Element, path: &mut Vec<bool>) -> Option<()> {
+        if !element.attrs.is_empty() {
+            return None;
+        }
+        path.push(element.name == "ol");
+        for child in element.children.iter().filter(|n| !is_whitespace(n)) {
+            match child {
+                Node::Element(li) if li.name == "li" => self.item(li, path)?,
+                _ => return None,
+            }
+        }
+        path.pop();
+        Some(())
+    }
+
+    /// A list item: its own text (a line), then the lists inside it. An item holding only a
+    /// list has no line of its own.
+    fn item(&mut self, li: &Element, path: &mut Vec<bool>) -> Option<()> {
+        let is_list = |n: &Node| matches!(n, Node::Element(e) if e.name == "ul" || e.name == "ol");
+        let split = li
+            .children
+            .iter()
+            .position(is_list)
+            .unwrap_or(li.children.len());
+        let (own, nested) = li.children.split_at(split);
+        if !own.is_empty() || nested.is_empty() {
+            let mut line = li.clone();
+            line.children = own.to_vec();
+            self.block(&line, LineKind::list_item(path)?)?;
+        }
+        for node in nested.iter().filter(|n| !is_whitespace(n)) {
+            match node {
+                Node::Element(e) if is_list(node) => self.list(e, path)?,
+                _ => return None,
+            }
+        }
+        Some(())
+    }
+
     /// A block kept whole: one atom alone on its line.
     fn block_atom(&mut self, element: &Element) {
         if !self.doc.lines.is_empty() {
@@ -489,8 +584,7 @@ impl RichDoc {
                 "h2" => reader.block(element, LineKind::Heading2)?,
                 "h3" => reader.block(element, LineKind::Heading3)?,
                 "blockquote" => container(LineKind::Quote, "p", &mut reader)?,
-                "ul" => container(LineKind::Bullet, "li", &mut reader)?,
-                "ol" => container(LineKind::Numbered, "li", &mut reader)?,
+                "ul" | "ol" => reader.list(element, &mut Vec::new())?,
                 _ => return None,
             }
         }
@@ -530,6 +624,15 @@ impl RichDoc {
         let nl = if self.newline_blocks { "\n" } else { "" };
         let mut out = String::new();
         let mut container: Option<&str> = None;
+        // The lists open, outermost first; each has an item open.
+        let mut lists: Vec<&str> = Vec::new();
+        let close_lists = |out: &mut String, lists: &mut Vec<&str>, keep: usize| {
+            while lists.len() > keep {
+                if let Some(list) = lists.pop() {
+                    out.push_str(&format!("</li>{nl}</{list}>{nl}"));
+                }
+            }
+        };
         let mut atoms = self.atoms.iter();
         for (index, (start, end)) in self.line_ranges().into_iter().enumerate() {
             let kind = self
@@ -537,6 +640,10 @@ impl RichDoc {
                 .get(index)
                 .copied()
                 .unwrap_or(LineKind::Paragraph);
+            let wanted_lists = kind.lists();
+            if wanted_lists.is_empty() {
+                close_lists(&mut out, &mut lists, 0);
+            }
             let (block, wanted) = kind.tags();
             if container != wanted {
                 if let Some(open) = container {
@@ -556,7 +663,29 @@ impl RichDoc {
                 out.push_str(nl);
                 continue;
             }
+            if !wanted_lists.is_empty() {
+                let common = lists
+                    .iter()
+                    .zip(&wanted_lists)
+                    .take_while(|(a, b)| a == b)
+                    .count();
+                close_lists(&mut out, &mut lists, common);
+                if lists.len() == wanted_lists.len() {
+                    // The next item of the same list.
+                    out.push_str(&format!("</li>{nl}<li>"));
+                } else {
+                    // Lists opened inside the item open above (or at the top).
+                    for list in &wanted_lists[lists.len()..] {
+                        out.push_str(&format!("<{list}>{nl}<li>"));
+                    }
+                    lists = wanted_lists.clone();
+                }
+                if start == end {
+                    out.push_str("<br>");
+                }
+            }
             match kind {
+                _ if !wanted_lists.is_empty() => {}
                 LineKind::Eyebrow => {
                     out.push_str(r#"<p class="eyebrow">"#);
                     if start == end {
@@ -605,8 +734,12 @@ impl RichDoc {
             while let Some(tag) = open.pop() {
                 out.push_str(&format!("</{}>", tag.name));
             }
-            out.push_str(&format!("</{block}>{nl}"));
+            // A list item stays open: a list inside it may follow.
+            if wanted_lists.is_empty() {
+                out.push_str(&format!("</{block}>{nl}"));
+            }
         }
+        close_lists(&mut out, &mut lists, 0);
         if let Some(open) = container {
             out.push_str(&format!("</{open}>{nl}"));
         }
@@ -1092,6 +1225,11 @@ mod tests {
             r#"<div class="mermaid-diagram" data-source="graph TD; A-->B"></div><div class="calc-worksheet" data-source="x = 2"></div>"#,
             r#"<p class="eyebrow">Part one</p><h1>Arrival</h1>"#,
             "<hr><hr>",
+            "<ul>\n<li>a<ul>\n<li>b</li>\n<li>c</li>\n</ul>\n</li>\n<li>d</li>\n</ul>\n",
+            "<ol>\n<li>a<ul>\n<li>b</li>\n</ul>\n</li>\n<li>c</li>\n</ol>\n",
+            "<ul>\n<li>a<ul>\n<li>b<ul>\n<li>c</li>\n</ul>\n</li>\n</ul>\n</li>\n</ul>\n",
+            "<ul><li>a<ol><li>b</li></ol><ul><li>c</li></ul></li></ul><ol><li>e</li></ol>",
+            "<ul><li><ul><li>only nested</li></ul></li></ul>",
             r#"<p>See <img src="data:image/png;base64,AA==" alt="A &quot;map&quot;" width="40" data-size="small" data-align="left"><br>the map.</p>"#,
         ] {
             let doc = RichDoc::from_html(html).unwrap_or_else(|| panic!("not read: {html}"));
@@ -1120,6 +1258,9 @@ mod tests {
             r#"<p data-sp="unknown">x</p>"#,
             "<div>x</div>",
             "<ul><li><pre>code</pre></li></ul>",
+            "<ul><li><p>a</p><ul><li>b</li></ul></li></ul>",
+            "<ul><li>a<ul><li>b</li></ul>c</li></ul>",
+            "<ul><li></li></ul>",
             "<blockquote><hr></blockquote>",
             r#"<div class="other">x</div>"#,
             r#"<p class="eyebrow big">x</p>"#,
@@ -1205,6 +1346,35 @@ mod tests {
     }
 
     #[test]
+    fn nested_lists_keep_their_depth() {
+        let mut doc =
+            RichDoc::from_html("<ul><li>a<ol><li>b</li></ol></li><li>c</li></ul>").expect("doc");
+        assert_eq!(
+            doc.lines,
+            [
+                LineKind::Bullet,
+                LineKind::ListItem {
+                    depth: 1,
+                    ordered: 0b10
+                },
+                LineKind::Bullet
+            ]
+        );
+        // Enter at the end of the nested item continues the nested list.
+        doc.apply_text_at("a\nb\nb2\nc", Some(6));
+        assert_eq!(
+            doc.to_html(),
+            "<ul><li>a<ol><li>b</li><li>b2</li></ol></li><li>c</li></ul>"
+        );
+        // Made a paragraph, the nested item leaves both lists; the list goes on after it.
+        doc.set_line_kind(4..5, LineKind::Paragraph);
+        assert_eq!(
+            doc.to_html(),
+            "<ul><li>a<ol><li>b</li></ol></li></ul><p>b2</p><ul><li>c</li></ul>"
+        );
+    }
+
+    #[test]
     fn previews_kept_blocks() {
         use super::{BlockKind, block_preview};
         let table = block_preview(
@@ -1237,6 +1407,7 @@ mod tests {
             format!("<p>One <em>two</em>{note}</p><ul><li>a<br>b</li></ul><h2>H</h2>"),
             "<blockquote><p>q<br></p></blockquote><ol><li>x</li></ol>".to_owned(),
             "<p><br></p>".to_owned(),
+            "<ul><li>a<ol><li>b<ul><li>c</li></ul></li></ol></li><li>d</li></ul><p>e</p>".to_owned(),
             "<p>a</p><hr><table><tr><td>x</td></tr></table><p class=\"eyebrow\">e</p><pre><code>c\n</code></pre>".to_owned(),
             r#"<p>See <img src="data:image/png;base64,AA==" alt="map"><br>it.</p><p><img src="data:image/png;base64,AA==" alt=""><br><br></p>"#.to_owned(),
         ];
@@ -1254,6 +1425,10 @@ mod tests {
             LineKind::Bullet,
             LineKind::Numbered,
             LineKind::Eyebrow,
+            LineKind::ListItem {
+                depth: 2,
+                ordered: 0b101,
+            },
         ];
         for start in &starts {
             let mut doc = RichDoc::from_html(start).expect("start");

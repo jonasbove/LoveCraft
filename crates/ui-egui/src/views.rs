@@ -1035,6 +1035,7 @@ pub(crate) fn layout_doc(
     job.wrap.max_width = wrap;
     let mut line = 0;
     let mut atom = 0;
+    let mut previous = None;
     for (i, c) in text.chars().enumerate() {
         let mut laid_out = c;
         if c == '\n' {
@@ -1113,11 +1114,26 @@ pub(crate) fn layout_doc(
             // ProseCraft's gap between paragraphs.
             format.line_height = Some(size * 1.85 + 10.0);
         }
+        // ProseCraft's padding: a list item is indented a step per list it sits in, a quote's
+        // text past its bar. (Rows a line wraps onto aren't.)
+        let starts_line = c != '\n' && (i == 0 || previous == Some('\n'));
+        let indent = match kind.list_depth() {
+            _ if !starts_line => 0.0,
+            Some(depth) => (depth + 1) as f32 * LIST_INDENT,
+            None if kind == LineKind::Quote => QUOTE_INDENT,
+            None => 0.0,
+        };
+        previous = Some(c);
         let mut buf = [0u8; 4];
-        job.append(laid_out.encode_utf8(&mut buf), 0.0, format);
+        job.append(laid_out.encode_utf8(&mut buf), indent, format);
     }
     job
 }
+
+/// `.editor-content ul, ol { padding-left: 24px }`.
+const LIST_INDENT: f32 = 24.0;
+/// `.editor-content blockquote { padding: 2px 0 2px 17px }`.
+const QUOTE_INDENT: f32 = 17.0;
 
 /// What a picture's character is laid out as: a character no font has (drawn as an empty box,
 /// as wide as its font size, like the atom character), which rows may end before and after.
@@ -1281,9 +1297,15 @@ fn editor(
     card(palette).show(ui, |ui| {
         ui.horizontal_wrapped(|ui| {
             let current = draft.doc.kind_at(cursor);
+            // A nested list item shows as its list's style.
+            let shown = match current.list_depth() {
+                Some(_) if current.numbered() => LineKind::Numbered,
+                Some(_) => LineKind::Bullet,
+                None => current,
+            };
             let label = BLOCK_STYLES
                 .iter()
-                .find(|(k, _)| *k == current)
+                .find(|(k, _)| *k == shown)
                 .map_or("Normal text", |(_, l)| l);
             let mut chosen = current;
             let style = craft_ui::ComboBox::from_id_salt(("block-style", &document.id))
@@ -1815,25 +1837,54 @@ fn paint_extras(
         clip.min - egui::vec2(30.0, 0.0),
         egui::pos2(column, clip.max.y),
     ));
-    let mut number = 0;
-    let mut previous = None;
-    for (line, (start, _end)) in doc.line_ranges().into_iter().enumerate() {
+    // The lists open (as the HTML nests them) and how many items each has had.
+    let mut lists: Vec<(&str, u32)> = Vec::new();
+    for (line, (start, end)) in doc.line_ranges().into_iter().enumerate() {
         let kind = doc.lines.get(line).copied().unwrap_or(LineKind::Paragraph);
         let rect = galley
             .pos_from_cursor(egui::text::CCursor::new(start))
             .translate(origin.to_vec2());
-        number = if kind == LineKind::Numbered {
-            if previous == Some(LineKind::Numbered) {
-                number + 1
+        let last_row = galley
+            .pos_from_cursor(egui::text::CCursor::new(end))
+            .translate(origin.to_vec2());
+        let wanted = kind.lists();
+        let common = lists
+            .iter()
+            .zip(&wanted)
+            .take_while(|((open, _), want)| open == *want)
+            .count();
+        lists.truncate(common);
+        if !wanted.is_empty() {
+            if lists.len() == wanted.len() {
+                if let Some(last) = lists.last_mut() {
+                    last.1 += 1;
+                }
             } else {
-                1
+                lists.extend(wanted[common..].iter().map(|l| (*l, 1)));
             }
-        } else {
-            0
-        };
-        let marker = match kind {
-            LineKind::Bullet => Some("•".to_owned()),
-            LineKind::Numbered => Some(format!("{number}.")),
+        }
+        // The browser's markers: numbers, or a disc, circle and square by depth.
+        let marker = match (kind.list_depth(), lists.last()) {
+            (Some(_), Some(("ol", n))) => Some(format!("{n}.")),
+            (Some(depth), Some(_)) => {
+                let at = egui::pos2(rect.min.x - 11.0, rect.center().y);
+                match depth {
+                    0 => {
+                        painter.circle_filled(at, 2.5, palette.text_muted);
+                    }
+                    1 => {
+                        painter.circle_stroke(at, 2.5, egui::Stroke::new(1.0, palette.text_muted));
+                    }
+                    _ => {
+                        painter.rect_filled(
+                            egui::Rect::from_center_size(at, egui::vec2(4.5, 4.5)),
+                            0.0,
+                            palette.text_muted,
+                        );
+                    }
+                }
+                None
+            }
             _ => None,
         };
         if let Some(marker) = marker {
@@ -1846,13 +1897,13 @@ fn paint_extras(
             );
         }
         if kind == LineKind::Quote {
+            // `border-left: 2px`, the padding's width before the text.
             let bar = egui::Rect::from_min_max(
-                egui::pos2(rect.min.x - 14.0, rect.min.y),
-                egui::pos2(rect.min.x - 12.0, rect.max.y),
+                egui::pos2(rect.min.x - QUOTE_INDENT, rect.min.y),
+                egui::pos2(rect.min.x - QUOTE_INDENT + 2.0, last_row.max.y),
             );
             painter.rect_filled(bar, 1.0, palette.border_control);
         }
-        previous = Some(kind);
     }
     markers.extend(paint_atoms(
         &painter, palette, doc, labels, galley, origin, column,

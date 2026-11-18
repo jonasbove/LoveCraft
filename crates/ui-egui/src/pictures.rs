@@ -48,8 +48,8 @@ impl PictureInfo {
     }
 }
 
-/// The space above and below a picture in the text.
-pub(crate) const MARGIN: f32 = 6.0;
+/// The space above and below a picture in the text (`.editor-content img { margin: 18px 0 }`).
+pub(crate) const MARGIN: f32 = 18.0;
 
 fn key(html: &str) -> u64 {
     let mut hasher = std::collections::hash_map::DefaultHasher::new();

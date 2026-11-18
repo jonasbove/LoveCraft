@@ -13,6 +13,7 @@
 pub mod about;
 pub mod cite;
 pub mod comments;
+pub mod csl;
 pub mod edit;
 pub mod footnotes;
 pub mod html;

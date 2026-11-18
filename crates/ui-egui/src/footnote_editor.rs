@@ -274,8 +274,14 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                     // Its citations' labels; a click on one changes it in the picker.
                     let labels = crate::views::atom_labels(doc, &cites);
                     let painter = ui.painter_at(output.text_clip_rect.expand(4.0));
-                    let markers =
-                        crate::views::paint_atoms(&painter, &palette, doc, &labels, &output);
+                    let markers = crate::views::paint_atoms(
+                        &painter,
+                        &palette,
+                        doc,
+                        &labels,
+                        &output.galley,
+                        output.galley_pos,
+                    );
                     if editable
                         && output.response.clicked()
                         && let Some(pos) = output.response.interact_pointer_pos()

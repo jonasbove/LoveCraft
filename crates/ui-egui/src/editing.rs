@@ -28,6 +28,11 @@ pub enum Intent {
         chapter: String,
         title: String,
     },
+    /// `saveSceneRename`: a scene's new title (from the binder).
+    SetDocumentTitle {
+        document: String,
+        title: String,
+    },
     /// One of the project's `publishOptions`.
     SetPublishOption {
         key: String,
@@ -261,6 +266,9 @@ pub fn run(
             edit::set_chapter_summary(data, chapter, summary)
         }
         Intent::SetChapterTitle { chapter, title } => edit::set_chapter_title(data, chapter, title),
+        Intent::SetDocumentTitle { document, title } => {
+            edit::set_document_title(data, document, title)
+        }
         Intent::SetPublishOption { key, value } => {
             edit::set_publish_option(data, key, value.clone())
         }

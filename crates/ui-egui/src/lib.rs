@@ -276,6 +276,8 @@ pub struct AppState {
     create_project: Option<(bool, prosecraft_core::starters::Blueprint)>,
     /// A Wiki folder being renamed: its id and the name being typed.
     renaming_folder: Option<(String, String)>,
+    /// A scene being renamed in the binder: its id and the title typed so far.
+    renaming_scene: Option<(String, String)>,
     /// The Find and replace dialog, while open.
     find: Option<find::FindState>,
     /// A footnote to open in the footnote editor (document, id), and the one open.

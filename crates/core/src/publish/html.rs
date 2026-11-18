@@ -128,7 +128,7 @@ pub fn escape_xml_attribute(value: &str) -> String {
         .replace('\'', "&apos;")
 }
 
-fn with_breaks(text: &str) -> String {
+pub(super) fn with_breaks(text: &str) -> String {
     escape_xml(text).replace('\n', "<br />")
 }
 
@@ -193,7 +193,7 @@ fn css(tokens: &StyleTokens, drop_caps: bool) -> String {
     out
 }
 
-fn separator_markup(separator: SceneSeparator) -> &'static str {
+pub(super) fn separator_markup(separator: SceneSeparator) -> &'static str {
     match separator {
         SceneSeparator::Hash => r##"<div class="scene-break" aria-hidden="true">#</div>"##,
         SceneSeparator::Asterisks => r#"<div class="scene-break" aria-hidden="true">* * *</div>"#,
@@ -240,7 +240,7 @@ fn title_page(book: &CompiledBook, include_copyright: bool) -> String {
 }
 
 /// `matterParagraphs`: paragraphs split at blank lines, trimmed, empty ones left out.
-fn matter_paragraphs(body: &str) -> Vec<String> {
+pub(super) fn matter_paragraphs(body: &str) -> Vec<String> {
     let body = body.replace("\r\n", "\n").replace('\r', "\n");
     let mut paragraphs = Vec::new();
     let mut current = String::new();
@@ -373,7 +373,7 @@ fn mark_drop_cap(nodes: &mut [Node], inside: bool) -> bool {
 }
 
 /// `markDropCapParagraph`.
-fn mark_drop_cap_paragraph(html: &str) -> String {
+pub(super) fn mark_drop_cap_paragraph(html: &str) -> String {
     let mut nodes = parse_fragment(html);
     if mark_drop_cap(&mut nodes, false) {
         serialize(&nodes)

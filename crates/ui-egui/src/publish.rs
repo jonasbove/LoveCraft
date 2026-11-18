@@ -1,14 +1,14 @@
 //! The Publish view, as ProseCraft's `PublishView.svelte` lays it out: settings on the left
 //! (summary, Format, Style, Manuscript, Front matter, the Export button) and the manuscript's
 //! preview on the right. Settings are saved in the project's `publishOptions`, as ProseCraft
-//! saves them. HTML, Markdown and plain text are the exporters ported so far; the other formats
+//! saves them. EPUB, HTML, Markdown and plain text are the exporters ported so far; the other formats
 //! can be chosen (the choice is kept) but say they aren't ported yet.
 
 use egui::{CornerRadius, Frame, Margin, RichText, Stroke, Ui};
 use prosecraft_core::js::JsValue;
 use prosecraft_core::publish::{
-    PublishOptions, SceneSeparator, compile_book, export_html, export_markdown, export_text,
-    slugify_filename,
+    PublishOptions, SceneSeparator, compile_book, export_epub, export_html, export_markdown,
+    export_text, slugify_filename,
 };
 
 use crate::editing::Intent;
@@ -52,7 +52,7 @@ const FORMATS: [(&str, &str, &str, &str); 6] = [
 ];
 
 /// Formats that can be exported here.
-const PORTED: [&str; 3] = ["markdown", "html", "text"];
+const PORTED: [&str; 4] = ["epub", "markdown", "html", "text"];
 
 /// ProseCraft's built-in styles (`PRESETS`).
 const STYLES: [(&str, &str, &str); 4] = [
@@ -91,6 +91,10 @@ const CONTROLS_WIDTH: f32 = 320.0;
 /// What the Publish view changes.
 pub(crate) struct PublishEdit<'a> {
     pub editable: bool,
+    /// Unix milliseconds, for the EPUB's modification date.
+    pub now_ms: f64,
+    /// A fresh id for the next EPUB, taken by an export.
+    pub book_id: &'a mut Option<String>,
     pub intents: &'a mut Vec<Intent>,
     pub requests: &'a mut Vec<HostRequest>,
 }
@@ -526,23 +530,51 @@ fn controls(
     .fill(palette.accent_strong)
     .min_size(egui::vec2(ui.available_width(), 34.0));
     if ui.add_enabled(can_export, button).clicked() {
-        let export = if format.0 == "markdown" {
-            export_markdown(book, options)
-        } else if format.0 == "html" {
-            export_html(book, options)
-        } else {
-            export_text(book, options)
+        let export = match format.0 {
+            "epub" => {
+                // Without a library store there is no id source: a fixed id, so the export works.
+                let uuid = edit
+                    .book_id
+                    .take()
+                    .unwrap_or_else(|| "00000000-0000-4000-8000-000000000000".to_owned());
+                export_epub(book, options, &uuid, edit.now_ms)
+            }
+            .map_err(|e| e.to_string()),
+            "markdown" => Ok(export_markdown(book, options)),
+            "html" => Ok(export_html(book, options)),
+            _ => Ok(export_text(book, options)),
         };
-        edit.requests.push(HostRequest::ExportFile {
-            file_name: export.file_name,
-            bytes: export.bytes,
-            kind: format.1.to_owned(),
-            extension: format.2.to_owned(),
+        let error_id = ui.make_persistent_id("publish-export-error");
+        match export {
+            Ok(export) => {
+                ui.data_mut(|d| d.remove_temp::<String>(error_id));
+                edit.requests.push(HostRequest::ExportFile {
+                    file_name: export.file_name,
+                    bytes: export.bytes,
+                    kind: format.1.to_owned(),
+                    extension: format.2.to_owned(),
+                });
+            }
+            Err(error) => {
+                ui.data_mut(|d| {
+                    d.insert_temp(error_id, format!("Could not export: {error}."));
+                });
+            }
+        }
+    }
+    if let Some(error) =
+        ui.data(|d| d.get_temp::<String>(ui.make_persistent_id("publish-export-error")))
+    {
+        let response = ui.label(RichText::new(&error).size(11.0).color(palette.danger));
+        let text = error.clone();
+        ui.ctx().accesskit_node_builder(response.id, move |node| {
+            node.set_role(egui::accesskit::Role::Alert);
+            node.set_label(text);
         });
     }
     let note = if !ported {
         format!(
-            "{} export isn't ported yet; HTML, Markdown and plain text are.",
+            "{} export isn't ported yet; EPUB, HTML, Markdown and plain text are.",
             format.1
         )
     } else if book.scenes() == 0 {

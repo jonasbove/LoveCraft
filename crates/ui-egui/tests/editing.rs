@@ -462,3 +462,34 @@ fn html_exports_from_the_publish_view() {
         "{html}"
     );
 }
+
+#[test]
+fn epub_exports_from_the_publish_view() {
+    let (mut harness, _memory) = app();
+    harness.get_by_role_and_label(Role::Tab, "Publish").click();
+    harness.run();
+    for (role, name) in [
+        (Role::RadioButton, "EPUB (epub)"),
+        (Role::Button, "Export EPUB"),
+    ] {
+        harness.get_by_role_and_label(role, name).scroll_to_me();
+        harness.run();
+        harness.get_by_role_and_label(role, name).click();
+        harness.run_steps(4);
+    }
+    let requests = harness.state_mut().take_requests();
+    let Some(prosecraft_ui_egui::HostRequest::ExportFile {
+        file_name,
+        bytes,
+        extension,
+        ..
+    }) = requests.first()
+    else {
+        panic!("an export was asked for: {requests:?}");
+    };
+    assert!(
+        file_name.ends_with(".epub") && extension == "epub",
+        "{file_name}"
+    );
+    assert!(bytes.starts_with(b"PK\x03\x04") && bytes[30..38] == *b"mimetype");
+}

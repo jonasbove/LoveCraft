@@ -1372,6 +1372,13 @@ impl prosecraft_ui_egui::WikiFileStore for PretendWikiFiles {
     fn file_path(&self, root: &str, folder: &str, key: &str) -> Result<String, String> {
         Ok(format!("{root}/{folder}/{key}"))
     }
+    fn read(&self, _: &str, _: &str, key: &str, _: u64) -> Result<Vec<u8>, String> {
+        if key.ends_with(".pdf") {
+            // A real PDF: ProseCraft's shortcuts sheet, as the app writes it.
+            return prosecraft_core::shortcuts::pdf(false).map_err(|e| e.to_string());
+        }
+        Ok(b"# Harbour notes\n\nThe *tide* turns at six.".to_vec())
+    }
     fn delete(&self, _: &str, _: &str, key: &str) -> Result<(), String> {
         self.0.borrow_mut().push(format!("delete {key}"));
         Ok(())
@@ -1665,6 +1672,74 @@ fn equations_and_calculations_are_inserted_from_the_toolbar() {
         js::stringify(scene.get("content").expect("content")),
         r#""<p>Energy</p><div class=\"math-block\" data-tex=\"E = mc^2\"></div><p><br></p>""#
     );
+}
+
+#[test]
+fn the_split_view_shows_scenes_and_wiki_files_beside_the_editor() {
+    let (mut harness, _memory) = app();
+    harness.set_size(egui::vec2(1700.0, 1000.0));
+    harness
+        .state_mut()
+        .set_wiki_files(Box::new(PretendWikiFiles::default()));
+    harness.state_mut().set_wiki_root("/wiki", None);
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness.get_by_label("Open split view").click();
+    harness.run();
+    harness.get_by_label_contains("Pick a scene, wiki page or file above");
+    // A scene of another chapter, read beside the editor.
+    harness.get_by_label("Show in this pane").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "  INT. LIGHTHOUSE - NIGHT")
+        .click();
+    harness.run();
+    assert!(harness.get_all_by_label("Pane text").count() == 1);
+    // Swapped: the editor has that scene, the pane the one that was open.
+    harness
+        .get_by_label("Edit this in the main editor and show the current text here")
+        .click();
+    harness.run_steps(6);
+    assert!(harness.query_by_label("Scene text").is_some());
+    // Another pane, then closed again.
+    harness.get_by_label("Add another pane").click();
+    harness.run();
+    assert_eq!(harness.get_all_by_label("Close this pane").count(), 2);
+    harness
+        .get_all_by_label("Close this pane")
+        .last()
+        .expect("pane")
+        .click_accesskit();
+    harness.run();
+    assert_eq!(harness.get_all_by_label("Close this pane").count(), 1);
+    // A wiki file beside: a PDF's pages.
+    harness.state_mut().add_wiki_files(
+        None,
+        &[
+            "/home/me/Map.pdf".into(),
+            "/home/me/Harbour notes.md".into(),
+        ],
+    );
+    harness.run_steps(6);
+    harness
+        .get_by_role_and_label(Role::Button, "Actions for Map.pdf")
+        .click();
+    harness.run();
+    harness.get_by_label("Open beside").click();
+    harness.run_steps(6);
+    harness.get_by_label("Page 1");
+    harness.get_by_label("Close split view").click();
+    harness.run();
+    assert!(harness.query_by_label("Close this pane").is_none());
+    // Alt+Click on a scene opens it beside, as ProseCraft's shortcut sheet says.
+    harness
+        .get_by_role_and_label(Role::TreeItem, "INT. LIGHTHOUSE - NIGHT")
+        .click_modifiers(egui::Modifiers::ALT);
+    harness.run_steps(4);
+    assert_eq!(harness.get_all_by_label("Close this pane").count(), 1);
+    assert_eq!(harness.get_all_by_label("Pane text").count(), 1);
 }
 
 #[test]

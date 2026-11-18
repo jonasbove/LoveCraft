@@ -36,6 +36,7 @@ pub mod screenplay;
 pub mod search;
 pub mod shortcuts;
 pub mod snapshots;
+pub mod split;
 pub mod starters;
 pub mod storage;
 pub mod storyboard;

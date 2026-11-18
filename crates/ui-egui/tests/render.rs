@@ -82,6 +82,13 @@ fn render_views() {
     save(&mut harness, "footnotes");
     harness.get_by_role_and_label(Role::Button, "Done").click();
     harness.run();
+    harness.state_mut().import_fountain(
+        "pilot.fountain",
+        "EXT. LIGHTHOUSE - NIGHT\n\nWaves crash against the rocks, and the lamp turns slowly above the black water.\n\nMARA\n(quietly)\nIs anyone there? I have walked all the way up the stairs, and nobody answered the bell.\n\nCUT TO:\n\nINT. LIGHTHOUSE - NIGHT\n\nMARA\nHello?\n",
+    );
+    harness.run();
+    harness.get_by_label("Scene text").focus();
+    save(&mut harness, "screenplay");
     harness
         .get_by_role_and_label(Role::Tab, "Storyboard")
         .click();

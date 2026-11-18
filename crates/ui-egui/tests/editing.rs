@@ -172,17 +172,28 @@ fn a_new_chapter_and_typed_scene_are_saved_as_prosecraft_writes_them() {
 }
 
 #[test]
-fn a_screenplay_scene_stays_read_only_with_the_reason() {
+fn a_screenplay_scene_opens_in_the_screenplay_editor() {
     let (mut harness, _memory) = app();
     harness
         .get_by_role_and_label(Role::TreeItem, "INT. LIGHTHOUSE - NIGHT")
         .click();
     harness.run();
-    assert!(
-        harness.query_by_label("Scene text").is_none(),
-        "no editor for content it can't write back"
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    assert_eq!(
+        harness
+            .get_by_label("Element type")
+            .accesskit_node()
+            .value()
+            .as_deref(),
+        Some("Scene heading")
     );
-    harness.get_by_label_contains("content the editor can't change yet");
+    harness.get_by_label_contains("1 page · ~1 min");
+    assert!(
+        harness
+            .query_by_label_contains("content the editor can't change yet")
+            .is_none()
+    );
 }
 
 #[test]
@@ -752,7 +763,9 @@ fn find_and_replace_across_the_project() {
     harness
         .get_by_role_and_label(Role::Button, "Replace all")
         .click();
-    harness.run();
+    // A fixed number of frames: under a loaded test run this can take more than `run`'s four
+    // to settle.
+    harness.run_steps(8);
     harness
         .get_by_role_and_label(Role::Button, "Replace")
         .click();
@@ -1754,4 +1767,89 @@ fn a_fountain_screenplay_joins_the_open_chapter() {
         .import_fountain("Second Act.txt", "EXT. SHORE - DAY\n\nWaves.\n");
     harness.run_steps(12);
     harness.get_by_label_contains("Imported “Second Act” as a screenplay scene.");
+}
+
+#[test]
+fn a_screenplay_is_written_element_by_element() {
+    let (mut harness, memory) = app();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness.state_mut().import_fountain(
+        "pilot.fountain",
+        "INT. LIGHTHOUSE - NIGHT\n\nMARA\nIs anyone there?\n",
+    );
+    harness.run_steps(4);
+    let content = |memory: &Memory| -> String {
+        let saved = memory.last();
+        let docs = project(&saved, "project-1")
+            .get("project")
+            .and_then(|p| p.get("documents"))
+            .and_then(JsValue::as_array)
+            .unwrap_or_default()
+            .to_vec();
+        docs.last()
+            .and_then(|d| d.get("content"))
+            .and_then(JsValue::as_js_string)
+            .map(|s| s.to_string_lossy())
+            .unwrap_or_default()
+    };
+    let element = |harness: &Harness<'static, ProseApp>| {
+        harness
+            .get_by_label("Element type")
+            .accesskit_node()
+            .value()
+            .map(|v| v.to_string())
+    };
+    // The caret at the end: on the dialogue.
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    harness.run();
+    assert_eq!(element(&harness).as_deref(), Some("Dialogue"));
+    // Enter after dialogue: a character cue, upper-cased as it is typed; Enter: dialogue.
+    harness.key_press(egui::Key::Enter);
+    harness.run();
+    assert_eq!(element(&harness).as_deref(), Some("Character"));
+    harness.get_by_label("Scene text").type_text("bob");
+    harness.run();
+    harness.key_press(egui::Key::Enter);
+    harness.run();
+    assert_eq!(element(&harness).as_deref(), Some("Dialogue"));
+    harness.get_by_label("Scene text").type_text("Hi.");
+    harness.run();
+    // Enter, Enter: character, then (empty) action; Tab on empty action: character again.
+    harness.key_press(egui::Key::Enter);
+    harness.run();
+    harness.key_press(egui::Key::Enter);
+    harness.run();
+    assert_eq!(element(&harness).as_deref(), Some("Action"));
+    harness.key_press(egui::Key::Tab);
+    harness.run();
+    assert_eq!(element(&harness).as_deref(), Some("Character"));
+    harness.key_press_modifiers(egui::Modifiers::SHIFT, egui::Key::Tab);
+    harness.run();
+    assert_eq!(element(&harness).as_deref(), Some("Action"));
+    // A typed scene heading is recognized and upper-cased.
+    harness
+        .get_by_label("Scene text")
+        .type_text("ext. shore - day");
+    harness.run_steps(12);
+    assert_eq!(element(&harness).as_deref(), Some("Scene heading"));
+    assert_eq!(
+        content(&memory),
+        r#"<p data-sp="scene-heading">INT. LIGHTHOUSE - NIGHT</p><p data-sp="character">MARA</p><p data-sp="dialogue">Is anyone there?</p><p data-sp="character">BOB</p><p data-sp="dialogue">Hi.</p><p data-sp="scene-heading">EXT. SHORE - DAY</p>"#
+    );
+    // The Screenplay bar changes the element under the caret.
+    harness.get_by_label("Element type").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Transition")
+        .click();
+    harness.run_steps(12);
+    assert!(
+        content(&memory).ends_with(r#"<p data-sp="transition">EXT. SHORE - DAY</p>"#),
+        "{}",
+        content(&memory)
+    );
 }

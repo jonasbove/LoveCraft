@@ -116,3 +116,185 @@ pub fn html_to_elements(html: &str) -> Vec<ScreenplayElement> {
         })
         .collect()
 }
+
+/// The printed page: 12 pt Courier, 55 lines; column widths in characters.
+pub const LINES_PER_PAGE: usize = 55;
+const ACTION_WIDTH: usize = 60;
+const DIALOGUE_WIDTH: usize = 35;
+const PARENTHETICAL_WIDTH: usize = 25;
+
+/// `wrapScreenplayText`: greedy word wrap at a width in characters (UTF-16 units).
+pub fn wrap_screenplay_text(text: &str, width: usize) -> Vec<String> {
+    let mut wrapped = Vec::new();
+    for line in text.split('\n') {
+        let words: Vec<&str> = line
+            .split(is_js_whitespace)
+            .filter(|w| !w.is_empty())
+            .collect();
+        if words.is_empty() {
+            wrapped.push(String::new());
+            continue;
+        }
+        let mut current = String::new();
+        for word in words {
+            let length = |s: &str| s.encode_utf16().count();
+            if current.is_empty() {
+                current = word.to_owned();
+            } else if length(&current) + 1 + length(word) <= width {
+                current.push(' ');
+                current.push_str(word);
+            } else {
+                wrapped.push(std::mem::replace(&mut current, word.to_owned()));
+            }
+        }
+        wrapped.push(current);
+    }
+    wrapped
+}
+
+const PRINTED: [&str; 7] = [
+    "scene-heading",
+    "action",
+    "character",
+    "dialogue",
+    "parenthetical",
+    "transition",
+    "centered",
+];
+
+fn content_lines(e: &ScreenplayElement) -> Vec<String> {
+    match e.kind.as_str() {
+        "action" | "scene-heading" => wrap_screenplay_text(&e.text, ACTION_WIDTH),
+        "dialogue" => wrap_screenplay_text(&e.text, DIALOGUE_WIDTH),
+        "parenthetical" => wrap_screenplay_text(&e.text, PARENTHETICAL_WIDTH),
+        "character" | "transition" | "centered" => vec![e.text.clone()],
+        _ => Vec::new(),
+    }
+}
+
+fn next_printed(elements: &[ScreenplayElement], index: usize) -> Option<&ScreenplayElement> {
+    for e in &elements[index + 1..] {
+        if e.kind == "page-break" {
+            return None;
+        }
+        if PRINTED.contains(&e.kind.as_str()) {
+            return Some(e);
+        }
+    }
+    None
+}
+
+/// `requiredLines`: an element's lines, with what must share its page (a heading or cue is
+/// never left alone at the bottom).
+fn required_lines(
+    e: &ScreenplayElement,
+    content: usize,
+    following: Option<&ScreenplayElement>,
+) -> usize {
+    let mut required = content;
+    if e.kind == "scene-heading" {
+        required += 1;
+        if let Some(f) = following {
+            required += if f.kind == "character" { 2 } else { 1 };
+        }
+    } else if e.kind == "character"
+        && following.is_some_and(|f| f.kind == "dialogue" || f.kind == "parenthetical")
+    {
+        required += 1;
+    }
+    required
+}
+
+/// A scene's place in the estimate.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ScenePages {
+    pub heading: String,
+    pub start_page: usize,
+    pub pages: usize,
+}
+
+/// `estimatePages`: paper pages, lines, and each scene's pages.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct PageEstimate {
+    pub pages: usize,
+    pub lines: usize,
+    pub by_scene: Vec<ScenePages>,
+}
+
+pub fn estimate_pages(elements: &[ScreenplayElement]) -> PageEstimate {
+    let mut by_scene = Vec::new();
+    let mut scene: Option<(String, usize, usize)> = None;
+    let (mut page, mut line, mut lines, mut last_page) = (1, 1, 0, 1);
+    let mut separated = false;
+    let mut previous: Option<&ScreenplayElement> = None;
+    let close = |scene: &mut Option<(String, usize, usize)>, by_scene: &mut Vec<ScenePages>| {
+        if let Some((heading, start, last)) = scene.take() {
+            by_scene.push(ScenePages {
+                heading,
+                start_page: start,
+                pages: last - start + 1,
+            });
+        }
+    };
+    for (index, current) in elements.iter().enumerate() {
+        if current.kind == "page-break" {
+            page += 1;
+            line = 1;
+            separated = false;
+            previous = None;
+            continue;
+        }
+        if !PRINTED.contains(&current.kind.as_str()) {
+            continue;
+        }
+        let continues = matches!(current.kind.as_str(), "dialogue" | "parenthetical")
+            && previous.is_some_and(|p| {
+                matches!(p.kind.as_str(), "character" | "dialogue" | "parenthetical")
+            });
+        if !continues && separated && line > 1 {
+            lines += 1;
+            line += 1;
+            if line > LINES_PER_PAGE {
+                page += 1;
+                line = 1;
+            }
+        }
+        let content = content_lines(current);
+        let required = required_lines(current, content.len(), next_printed(elements, index));
+        if matches!(current.kind.as_str(), "scene-heading" | "character")
+            && line + required - 1 > LINES_PER_PAGE
+        {
+            page += 1;
+            line = 1;
+        }
+        let start = page;
+        for _ in 0..content.len() {
+            if line > LINES_PER_PAGE {
+                page += 1;
+                line = 1;
+            }
+            lines += 1;
+            last_page = page;
+            line += 1;
+        }
+        if current.kind == "scene-heading" {
+            close(&mut scene, &mut by_scene);
+            scene = Some((current.text.clone(), start, last_page));
+        } else if let Some(s) = scene.as_mut() {
+            s.2 = last_page;
+        }
+        separated = true;
+        previous = Some(current);
+    }
+    close(&mut scene, &mut by_scene);
+    PageEstimate {
+        pages: if lines == 0 { 0 } else { last_page },
+        lines,
+        by_scene,
+    }
+}
+
+/// `estimateRuntime`: about a minute a page.
+pub fn estimate_runtime(pages: usize) -> usize {
+    pages
+}

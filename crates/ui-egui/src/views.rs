@@ -393,7 +393,14 @@ fn write(
                 });
                 ui.add_space(10.0);
                 match RichDoc::from_html(&document.content).filter(|_| edit.editable) {
-                    Some(doc) => editor(ui, palette, document, doc, edit),
+                    Some(doc) => {
+                        // `screenplayActive`: a screenplay scene, or any scene of a screenplay project.
+                        let screenplay = !document.is_wiki()
+                            && (document.screenplay
+                                || project.kind
+                                    == prosecraft_core::project::ProjectKind::Screenplay);
+                        editor(ui, palette, document, doc, screenplay, edit);
+                    }
                     None => {
                         ui.label(
                             RichText::new(document.title.as_str())
@@ -628,6 +635,7 @@ fn editor(
     palette: &Palette,
     document: &prosecraft_core::project::Document,
     doc: RichDoc,
+    screenplay: bool,
     edit: &mut Edit<'_>,
 ) {
     // A new draft when another document opens, or when the stored one changed underneath an
@@ -678,6 +686,21 @@ fn editor(
         });
     let cursor = selection.clone().map_or(0, |r| r.start);
     let mut changed_format = false;
+    // The screenplay keys (Enter, Tab, Shift+Tab) are the editor's, taken before anything is
+    // drawn so the Screenplay bar shows the element they leave the caret on.
+    let mut cursor = cursor;
+    if screenplay && crate::screenplay_editor::handle_keys(ui, draft, body_id, selection.clone()) {
+        draft.body_dirty = true;
+        draft.changed_at = now;
+        cursor = egui::TextEdit::load_state(ui.ctx(), body_id)
+            .and_then(|s| s.cursor.char_range())
+            .map_or(cursor, |r| r.primary.index.0);
+    }
+    // ProseCraft's Screenplay bar, above the formatting toolbar.
+    if screenplay {
+        changed_format |= crate::screenplay_editor::bar(ui, palette, draft, body_id, cursor);
+        ui.add_space(6.0);
+    }
     // ProseCraft's formatting toolbar.
     card(palette).show(ui, |ui| {
         ui.horizontal(|ui| {
@@ -821,6 +844,15 @@ fn editor(
     let doc_for_layout = draft.doc.clone();
     let layout_palette = *palette;
     let mut layouter = move |ui: &Ui, text: &dyn egui::TextBuffer, wrap_width: f32| {
+        if screenplay {
+            return crate::screenplay_editor::galley(
+                ui,
+                &doc_for_layout,
+                text.as_str(),
+                &layout_palette,
+                wrap_width,
+            );
+        }
         let job = layout_doc(&doc_for_layout, text.as_str(), &layout_palette, wrap_width);
         ui.fonts_mut(|f| f.layout_job(job))
     };
@@ -831,6 +863,8 @@ fn editor(
         .desired_width(f32::INFINITY)
         .desired_rows(12)
         .layouter(&mut layouter)
+        // In a screenplay, Tab walks the element cycle instead of leaving the text.
+        .lock_focus(screenplay)
         .margin(egui::Margin {
             left: 26,
             ..Default::default()
@@ -842,6 +876,9 @@ fn editor(
         let kept = draft.doc.apply_text_at(&draft.body, cursor);
         if kept != draft.body {
             draft.body = kept;
+        }
+        if screenplay && let Some(cursor) = cursor {
+            crate::screenplay_editor::sync_typing(ui, draft, body_id, cursor);
         }
         draft.body_dirty = true;
         draft.changed_at = now;

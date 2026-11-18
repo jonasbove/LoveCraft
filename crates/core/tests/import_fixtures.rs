@@ -281,7 +281,7 @@ fn fountain_reads_and_writes_as_prosecraft_does() {
         .get("cases")
         .and_then(JsValue::as_array)
         .unwrap_or_default();
-    assert_eq!(cases.len(), 24);
+    assert_eq!(cases.len(), 25);
     let mut failures = Vec::new();
     for case in cases {
         let input = s(case, "input");
@@ -323,4 +323,138 @@ fn fountain_reads_and_writes_as_prosecraft_does() {
         }
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+#[test]
+fn screenplay_estimates_and_editor_rules_match_prosecraft() {
+    use prosecraft_core::screenplay::editor_keys::{
+        EditorKey, auto_case, auto_detect_type, next_element_type,
+    };
+    use prosecraft_core::screenplay::fountain::parse_fountain;
+    use prosecraft_core::screenplay::layout::{
+        estimate_pages, estimate_runtime, wrap_screenplay_text,
+    };
+    let all = fixture("fountain.json");
+    let num = |v: &JsValue, k: &str| match v.get(k) {
+        Some(JsValue::Number(n)) => *n as usize,
+        _ => usize::MAX,
+    };
+    for case in all
+        .get("cases")
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+    {
+        let (_, elements) = parse_fountain(&s(case, "input"));
+        let have = estimate_pages(&elements);
+        let want = case.get("estimate").cloned().unwrap_or(JsValue::Null);
+        let scenes: Vec<(String, usize, usize)> = want
+            .get("byScene")
+            .and_then(JsValue::as_array)
+            .unwrap_or_default()
+            .iter()
+            .map(|sc| (s(sc, "heading"), num(sc, "startPage"), num(sc, "pages")))
+            .collect();
+        assert_eq!(
+            (have.pages, have.lines),
+            (num(&want, "pages"), num(&want, "lines")),
+            "{:?}",
+            s(case, "input")
+        );
+        assert_eq!(
+            have.by_scene
+                .iter()
+                .map(|sc| (sc.heading.clone(), sc.start_page, sc.pages))
+                .collect::<Vec<_>>(),
+            scenes
+        );
+        assert_eq!(estimate_runtime(have.pages), num(case, "runtime"));
+    }
+    for k in all
+        .get("keys")
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+    {
+        let key = match s(k, "key").as_str() {
+            "Enter" => EditorKey::Enter,
+            "Tab" => EditorKey::Tab,
+            _ => EditorKey::ShiftTab,
+        };
+        let empty = matches!(k.get("empty"), Some(JsValue::Bool(true)));
+        assert_eq!(
+            next_element_type(&s(k, "type"), key, empty),
+            s(k, "next"),
+            "{} {} {empty}",
+            s(k, "type"),
+            s(k, "key")
+        );
+    }
+    for d in all
+        .get("detect")
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+    {
+        let want = d
+            .get("type")
+            .and_then(JsValue::as_js_string)
+            .map(|t| t.to_string_lossy());
+        assert_eq!(
+            auto_detect_type(&s(d, "line")).map(str::to_owned),
+            want,
+            "{:?}",
+            s(d, "line")
+        );
+    }
+    for c in all
+        .get("cased")
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+    {
+        assert_eq!(auto_case(&s(c, "type"), "Mara's straße – ok"), s(c, "text"));
+    }
+    for w in all
+        .get("wraps")
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+    {
+        let lines: Vec<String> = w
+            .get("lines")
+            .and_then(JsValue::as_array)
+            .unwrap_or_default()
+            .iter()
+            .filter_map(|l| l.as_js_string().map(|t| t.to_string_lossy()))
+            .collect();
+        assert_eq!(wrap_screenplay_text(&s(w, "text"), num(w, "width")), lines);
+    }
+}
+
+#[test]
+fn screenplay_scenes_are_editable_and_write_back_exactly() {
+    use prosecraft_core::richtext::RichDoc;
+    let all = fixture("fountain.json");
+    let mut read_only = Vec::new();
+    for case in all
+        .get("cases")
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+    {
+        let html = s(case, "html");
+        match RichDoc::from_html(&html) {
+            Some(doc) => assert_eq!(doc.to_html(), html),
+            None => read_only.push(html),
+        }
+    }
+    assert!(read_only.is_empty(), "not editable: {read_only:?}");
+    let new_scene = r#"<p data-sp="scene-heading"></p>"#;
+    assert_eq!(
+        RichDoc::from_html(new_scene)
+            .map(|d| d.to_html())
+            .as_deref(),
+        Some(new_scene)
+    );
+    let typed = r#"<p data-sp="action"><br></p><p data-sp="character">MARA</p>"#;
+    assert_eq!(
+        RichDoc::from_html(typed).map(|d| d.to_html()).as_deref(),
+        Some(typed)
+    );
+    assert!(RichDoc::from_html(r#"<p data-sp="unknown">x</p>"#).is_none());
 }

@@ -76,6 +76,15 @@ fn render_views() {
     save(&mut harness, "snapshots");
     harness.get_by_role_and_label(Role::Tab, "Progress").click();
     harness
+        .get_by_role_and_label(Role::Button, "Search project")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TextInput, "Find")
+        .type_text("the");
+    save(&mut harness, "find");
+    harness.key_press(egui::Key::Escape);
+    harness
         .get_by_role_and_label(Role::TreeItem, "Chapter One")
         .click();
     save(&mut harness, "write-chapter");

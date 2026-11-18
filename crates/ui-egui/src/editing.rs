@@ -58,6 +58,14 @@ pub enum Intent {
         resolved: bool,
     },
     DeleteComment(String),
+    /// Find and replace, confirmed: snapshots of the changed documents, then the replacement.
+    ReplaceInProject {
+        query: String,
+        replacement: String,
+        options: prosecraft_core::search::SearchOptions,
+        only: Vec<String>,
+        now: f64,
+    },
     /// Project settings: name, author and type.
     SetProjectDetails {
         name: String,
@@ -167,6 +175,22 @@ pub fn run(
             author,
             screenplay,
         } => edit::set_project_details(data, name, author, *screenplay),
+        Intent::ReplaceInProject {
+            query,
+            replacement,
+            options,
+            only,
+            now,
+        } => prosecraft_core::search::replace_in_project(
+            data,
+            query,
+            replacement,
+            *options,
+            only,
+            *now,
+            new_id,
+        )
+        .map(|_| ()),
     }
 }
 

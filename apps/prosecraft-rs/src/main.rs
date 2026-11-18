@@ -594,6 +594,8 @@ fn main() -> ExitCode {
     }
     let (mut app, problem) = start();
     app.set_wiki_files(Box::new(WikiFiles));
+    // Zotero on this computer, through its local HTTP server.
+    app.set_zotero(Arc::new(prosecraft_core::citations::zotero::request));
     if let Some(problem) = problem {
         eprintln!("{problem}");
     }

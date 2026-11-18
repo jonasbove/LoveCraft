@@ -9,3 +9,4 @@ pub mod labels;
 pub mod library;
 pub mod ris;
 pub mod styles;
+pub mod zotero;

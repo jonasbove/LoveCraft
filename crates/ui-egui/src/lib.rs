@@ -45,6 +45,9 @@ mod storyboard;
 pub mod theme;
 mod views;
 mod widgets;
+mod zotero;
+
+pub use zotero::Transport as ZoteroTransport;
 mod wiki_files;
 pub use wiki_files::WikiFileStore;
 
@@ -376,6 +379,8 @@ pub struct AppState {
     labels_dialog: Option<labels::LabelsDraft>,
     /// The Sources dialog (the citation library), while open.
     sources: Option<sources::SourcesDialog>,
+    /// How to reach Zotero on this computer, when the host can (the desktop app).
+    zotero: Option<zotero::Transport>,
     /// The citation picker, while open.
     citation_picker: Option<citation_picker::CitationPicker>,
     /// The editor's citation labels as last worked out.
@@ -680,6 +685,12 @@ impl ProseApp {
             markdown_job: None,
             wiki_files: None,
         }
+    }
+
+    /// Lets the Sources dialog search Zotero through `transport` (a path in, the body or the
+    /// error message out): `prosecraft_core::citations::zotero::request` on the desktop.
+    pub fn set_zotero(&mut self, transport: ZoteroTransport) {
+        self.state.zotero = Some(transport);
     }
 
     /// The app with its own library, saved through `store`. Backups opened later are added to it.

@@ -1,0 +1,1208 @@
+{
+  "constants": {
+    "ping": "/connector/ping",
+    "cayw": "/better-bibtex/cayw?format=json",
+    "limit": 25
+  },
+  "paths": [
+    {
+      "query": "",
+      "limit": null,
+      "path": "/api/users/0/items?q=&format=csljson&limit=25"
+    },
+    {
+      "query": "",
+      "limit": 0,
+      "path": "/api/users/0/items?q=&format=csljson&limit=25"
+    },
+    {
+      "query": "",
+      "limit": 5,
+      "path": "/api/users/0/items?q=&format=csljson&limit=5"
+    },
+    {
+      "query": "",
+      "limit": 25,
+      "path": "/api/users/0/items?q=&format=csljson&limit=25"
+    },
+    {
+      "query": "",
+      "limit": 100,
+      "path": "/api/users/0/items?q=&format=csljson&limit=100"
+    },
+    {
+      "query": "",
+      "limit": 101,
+      "path": "/api/users/0/items?q=&format=csljson&limit=100"
+    },
+    {
+      "query": "",
+      "limit": 2.5,
+      "path": "/api/users/0/items?q=&format=csljson&limit=25"
+    },
+    {
+      "query": "",
+      "limit": -1,
+      "path": "/api/users/0/items?q=&format=csljson&limit=25"
+    },
+    {
+      "query": "",
+      "limit": "NaN",
+      "path": "/api/users/0/items?q=&format=csljson&limit=25"
+    },
+    {
+      "query": "  habermas  ",
+      "limit": null,
+      "path": "/api/users/0/items?q=habermas&format=csljson&limit=25"
+    },
+    {
+      "query": "  habermas  ",
+      "limit": 0,
+      "path": "/api/users/0/items?q=habermas&format=csljson&limit=25"
+    },
+    {
+      "query": "  habermas  ",
+      "limit": 5,
+      "path": "/api/users/0/items?q=habermas&format=csljson&limit=5"
+    },
+    {
+      "query": "  habermas  ",
+      "limit": 25,
+      "path": "/api/users/0/items?q=habermas&format=csljson&limit=25"
+    },
+    {
+      "query": "  habermas  ",
+      "limit": 100,
+      "path": "/api/users/0/items?q=habermas&format=csljson&limit=100"
+    },
+    {
+      "query": "  habermas  ",
+      "limit": 101,
+      "path": "/api/users/0/items?q=habermas&format=csljson&limit=100"
+    },
+    {
+      "query": "  habermas  ",
+      "limit": 2.5,
+      "path": "/api/users/0/items?q=habermas&format=csljson&limit=25"
+    },
+    {
+      "query": "  habermas  ",
+      "limit": -1,
+      "path": "/api/users/0/items?q=habermas&format=csljson&limit=25"
+    },
+    {
+      "query": "  habermas  ",
+      "limit": "NaN",
+      "path": "/api/users/0/items?q=habermas&format=csljson&limit=25"
+    },
+    {
+      "query": "Müller & Söhne",
+      "limit": null,
+      "path": "/api/users/0/items?q=M%C3%BCller%20%26%20S%C3%B6hne&format=csljson&limit=25"
+    },
+    {
+      "query": "Müller & Söhne",
+      "limit": 0,
+      "path": "/api/users/0/items?q=M%C3%BCller%20%26%20S%C3%B6hne&format=csljson&limit=25"
+    },
+    {
+      "query": "Müller & Söhne",
+      "limit": 5,
+      "path": "/api/users/0/items?q=M%C3%BCller%20%26%20S%C3%B6hne&format=csljson&limit=5"
+    },
+    {
+      "query": "Müller & Söhne",
+      "limit": 25,
+      "path": "/api/users/0/items?q=M%C3%BCller%20%26%20S%C3%B6hne&format=csljson&limit=25"
+    },
+    {
+      "query": "Müller & Söhne",
+      "limit": 100,
+      "path": "/api/users/0/items?q=M%C3%BCller%20%26%20S%C3%B6hne&format=csljson&limit=100"
+    },
+    {
+      "query": "Müller & Söhne",
+      "limit": 101,
+      "path": "/api/users/0/items?q=M%C3%BCller%20%26%20S%C3%B6hne&format=csljson&limit=100"
+    },
+    {
+      "query": "Müller & Söhne",
+      "limit": 2.5,
+      "path": "/api/users/0/items?q=M%C3%BCller%20%26%20S%C3%B6hne&format=csljson&limit=25"
+    },
+    {
+      "query": "Müller & Söhne",
+      "limit": -1,
+      "path": "/api/users/0/items?q=M%C3%BCller%20%26%20S%C3%B6hne&format=csljson&limit=25"
+    },
+    {
+      "query": "Müller & Söhne",
+      "limit": "NaN",
+      "path": "/api/users/0/items?q=M%C3%BCller%20%26%20S%C3%B6hne&format=csljson&limit=25"
+    },
+    {
+      "query": "a/b?c=d#e f+g",
+      "limit": null,
+      "path": "/api/users/0/items?q=a%2Fb%3Fc%3Dd%23e%20f%2Bg&format=csljson&limit=25"
+    },
+    {
+      "query": "a/b?c=d#e f+g",
+      "limit": 0,
+      "path": "/api/users/0/items?q=a%2Fb%3Fc%3Dd%23e%20f%2Bg&format=csljson&limit=25"
+    },
+    {
+      "query": "a/b?c=d#e f+g",
+      "limit": 5,
+      "path": "/api/users/0/items?q=a%2Fb%3Fc%3Dd%23e%20f%2Bg&format=csljson&limit=5"
+    },
+    {
+      "query": "a/b?c=d#e f+g",
+      "limit": 25,
+      "path": "/api/users/0/items?q=a%2Fb%3Fc%3Dd%23e%20f%2Bg&format=csljson&limit=25"
+    },
+    {
+      "query": "a/b?c=d#e f+g",
+      "limit": 100,
+      "path": "/api/users/0/items?q=a%2Fb%3Fc%3Dd%23e%20f%2Bg&format=csljson&limit=100"
+    },
+    {
+      "query": "a/b?c=d#e f+g",
+      "limit": 101,
+      "path": "/api/users/0/items?q=a%2Fb%3Fc%3Dd%23e%20f%2Bg&format=csljson&limit=100"
+    },
+    {
+      "query": "a/b?c=d#e f+g",
+      "limit": 2.5,
+      "path": "/api/users/0/items?q=a%2Fb%3Fc%3Dd%23e%20f%2Bg&format=csljson&limit=25"
+    },
+    {
+      "query": "a/b?c=d#e f+g",
+      "limit": -1,
+      "path": "/api/users/0/items?q=a%2Fb%3Fc%3Dd%23e%20f%2Bg&format=csljson&limit=25"
+    },
+    {
+      "query": "a/b?c=d#e f+g",
+      "limit": "NaN",
+      "path": "/api/users/0/items?q=a%2Fb%3Fc%3Dd%23e%20f%2Bg&format=csljson&limit=25"
+    },
+    {
+      "query": "😀  x",
+      "limit": null,
+      "path": "/api/users/0/items?q=%F0%9F%98%80%20%C2%A0x&format=csljson&limit=25"
+    },
+    {
+      "query": "😀  x",
+      "limit": 0,
+      "path": "/api/users/0/items?q=%F0%9F%98%80%20%C2%A0x&format=csljson&limit=25"
+    },
+    {
+      "query": "😀  x",
+      "limit": 5,
+      "path": "/api/users/0/items?q=%F0%9F%98%80%20%C2%A0x&format=csljson&limit=5"
+    },
+    {
+      "query": "😀  x",
+      "limit": 25,
+      "path": "/api/users/0/items?q=%F0%9F%98%80%20%C2%A0x&format=csljson&limit=25"
+    },
+    {
+      "query": "😀  x",
+      "limit": 100,
+      "path": "/api/users/0/items?q=%F0%9F%98%80%20%C2%A0x&format=csljson&limit=100"
+    },
+    {
+      "query": "😀  x",
+      "limit": 101,
+      "path": "/api/users/0/items?q=%F0%9F%98%80%20%C2%A0x&format=csljson&limit=100"
+    },
+    {
+      "query": "😀  x",
+      "limit": 2.5,
+      "path": "/api/users/0/items?q=%F0%9F%98%80%20%C2%A0x&format=csljson&limit=25"
+    },
+    {
+      "query": "😀  x",
+      "limit": -1,
+      "path": "/api/users/0/items?q=%F0%9F%98%80%20%C2%A0x&format=csljson&limit=25"
+    },
+    {
+      "query": "😀  x",
+      "limit": "NaN",
+      "path": "/api/users/0/items?q=%F0%9F%98%80%20%C2%A0x&format=csljson&limit=25"
+    },
+    {
+      "query": "100% (draft)!*'~",
+      "limit": null,
+      "path": "/api/users/0/items?q=100%25%20(draft)!*'~&format=csljson&limit=25"
+    },
+    {
+      "query": "100% (draft)!*'~",
+      "limit": 0,
+      "path": "/api/users/0/items?q=100%25%20(draft)!*'~&format=csljson&limit=25"
+    },
+    {
+      "query": "100% (draft)!*'~",
+      "limit": 5,
+      "path": "/api/users/0/items?q=100%25%20(draft)!*'~&format=csljson&limit=5"
+    },
+    {
+      "query": "100% (draft)!*'~",
+      "limit": 25,
+      "path": "/api/users/0/items?q=100%25%20(draft)!*'~&format=csljson&limit=25"
+    },
+    {
+      "query": "100% (draft)!*'~",
+      "limit": 100,
+      "path": "/api/users/0/items?q=100%25%20(draft)!*'~&format=csljson&limit=100"
+    },
+    {
+      "query": "100% (draft)!*'~",
+      "limit": 101,
+      "path": "/api/users/0/items?q=100%25%20(draft)!*'~&format=csljson&limit=100"
+    },
+    {
+      "query": "100% (draft)!*'~",
+      "limit": 2.5,
+      "path": "/api/users/0/items?q=100%25%20(draft)!*'~&format=csljson&limit=25"
+    },
+    {
+      "query": "100% (draft)!*'~",
+      "limit": -1,
+      "path": "/api/users/0/items?q=100%25%20(draft)!*'~&format=csljson&limit=25"
+    },
+    {
+      "query": "100% (draft)!*'~",
+      "limit": "NaN",
+      "path": "/api/users/0/items?q=100%25%20(draft)!*'~&format=csljson&limit=25"
+    }
+  ],
+  "http": [
+    {
+      "status": 403,
+      "body": "",
+      "state": {
+        "code": "forbidden",
+        "message": "Zotero blocked local API access (HTTP 403). Enable \"Allow other applications on this computer to communicate with Zotero\" in Zotero Settings → Advanced → Files and Folders."
+      }
+    },
+    {
+      "status": 403,
+      "body": "  Local API is not enabled \n",
+      "state": {
+        "code": "forbidden",
+        "message": "Zotero blocked local API access (HTTP 403). Enable \"Allow other applications on this computer to communicate with Zotero\" in Zotero Settings → Advanced → Files and Folders.",
+        "detail": "Local API is not enabled"
+      }
+    },
+    {
+      "status": 408,
+      "body": "",
+      "state": {
+        "code": "timeout",
+        "message": "Zotero did not respond in time (5 s timeout). Check that Zotero is responsive and try again."
+      }
+    },
+    {
+      "status": 408,
+      "body": "  Local API is not enabled \n",
+      "state": {
+        "code": "timeout",
+        "message": "Zotero did not respond in time (5 s timeout). Check that Zotero is responsive and try again.",
+        "detail": "Local API is not enabled"
+      }
+    },
+    {
+      "status": 504,
+      "body": "",
+      "state": {
+        "code": "timeout",
+        "message": "Zotero did not respond in time (5 s timeout). Check that Zotero is responsive and try again."
+      }
+    },
+    {
+      "status": 504,
+      "body": "  Local API is not enabled \n",
+      "state": {
+        "code": "timeout",
+        "message": "Zotero did not respond in time (5 s timeout). Check that Zotero is responsive and try again.",
+        "detail": "Local API is not enabled"
+      }
+    },
+    {
+      "status": 500,
+      "body": "",
+      "state": {
+        "code": "unknown",
+        "message": "Zotero returned HTTP 500."
+      }
+    },
+    {
+      "status": 500,
+      "body": "  Local API is not enabled \n",
+      "state": {
+        "code": "unknown",
+        "message": "Zotero returned HTTP 500.",
+        "detail": "Local API is not enabled"
+      }
+    },
+    {
+      "status": 404,
+      "body": "",
+      "state": {
+        "code": "unknown",
+        "message": "Zotero returned HTTP 404."
+      }
+    },
+    {
+      "status": 404,
+      "body": "  Local API is not enabled \n",
+      "state": {
+        "code": "unknown",
+        "message": "Zotero returned HTTP 404.",
+        "detail": "Local API is not enabled"
+      }
+    },
+    {
+      "status": 200,
+      "body": "",
+      "state": {
+        "code": "unknown",
+        "message": "Zotero returned HTTP 200."
+      }
+    },
+    {
+      "status": 200,
+      "body": "  Local API is not enabled \n",
+      "state": {
+        "code": "unknown",
+        "message": "Zotero returned HTTP 200.",
+        "detail": "Local API is not enabled"
+      }
+    }
+  ],
+  "errors": [
+    {
+      "raw": "Zotero is not running (connection refused on 127.0.0.1:23119).",
+      "state": {
+        "code": "not-running",
+        "message": "Zotero is not running. Start Zotero on this computer and try again.",
+        "detail": "Zotero is not running (connection refused on 127.0.0.1:23119)."
+      }
+    },
+    {
+      "raw": "Zotero request timed out after 5s.",
+      "state": {
+        "code": "timeout",
+        "message": "Zotero request timed out after 5 seconds. Make sure Zotero is responsive and try again.",
+        "detail": "Zotero request timed out after 5s."
+      }
+    },
+    {
+      "raw": "Could not reach Zotero: Network is unreachable (os error 101)",
+      "state": {
+        "code": "unknown",
+        "message": "Could not reach Zotero: Network is unreachable (os error 101)",
+        "detail": "Could not reach Zotero: Network is unreachable (os error 101)"
+      }
+    },
+    {
+      "raw": "Could not reach Zotero: Connection refused (os error 111)",
+      "state": {
+        "code": "not-running",
+        "message": "Zotero is not running. Start Zotero on this computer and try again.",
+        "detail": "Could not reach Zotero: Connection refused (os error 111)"
+      }
+    },
+    {
+      "raw": "HTTP 403: Local API is not enabled",
+      "state": {
+        "code": "forbidden",
+        "message": "Zotero blocked local API access (HTTP 403). Enable \"Allow other applications on this computer to communicate with Zotero\" in Zotero Settings → Advanced → Files and Folders.",
+        "detail": "Local API is not enabled"
+      }
+    },
+    {
+      "raw": "HTTP 403",
+      "state": {
+        "code": "forbidden",
+        "message": "Zotero blocked local API access (HTTP 403). Enable \"Allow other applications on this computer to communicate with Zotero\" in Zotero Settings → Advanced → Files and Folders."
+      }
+    },
+    {
+      "raw": "HTTP 500",
+      "state": {
+        "code": "unknown",
+        "message": "Zotero returned HTTP 500."
+      }
+    },
+    {
+      "raw": "http 404 : Not found\nline two",
+      "state": {
+        "code": "unknown",
+        "message": "Zotero returned HTTP 404.",
+        "detail": "Not found\nline two"
+      }
+    },
+    {
+      "raw": "HTTP 5000",
+      "state": {
+        "code": "unknown",
+        "message": "HTTP 5000",
+        "detail": "HTTP 5000"
+      }
+    },
+    {
+      "raw": "Zotero integration is only available in the desktop app.",
+      "state": {
+        "code": "not-desktop",
+        "message": "Zotero integration is only available in the ProseCraft desktop app.",
+        "detail": "Zotero integration is only available in the desktop app."
+      }
+    },
+    {
+      "raw": "Local API is not enabled",
+      "state": {
+        "code": "forbidden",
+        "message": "Zotero blocked local API access (HTTP 403). Enable \"Allow other applications on this computer to communicate with Zotero\" in Zotero Settings → Advanced → Files and Folders.",
+        "detail": "Local API is not enabled"
+      }
+    },
+    {
+      "raw": "allow other applications on this computer to communicate with Zotero",
+      "state": {
+        "code": "forbidden",
+        "message": "Zotero blocked local API access (HTTP 403). Enable \"Allow other applications on this computer to communicate with Zotero\" in Zotero Settings → Advanced → Files and Folders.",
+        "detail": "allow other applications on this computer to communicate with Zotero"
+      }
+    },
+    {
+      "raw": "error 403 Forbidden",
+      "state": {
+        "code": "forbidden",
+        "message": "Zotero blocked local API access (HTTP 403). Enable \"Allow other applications on this computer to communicate with Zotero\" in Zotero Settings → Advanced → Files and Folders.",
+        "detail": "error 403 Forbidden"
+      }
+    },
+    {
+      "raw": "403forbidden",
+      "state": {
+        "code": "unknown",
+        "message": "403forbidden",
+        "detail": "403forbidden"
+      }
+    },
+    {
+      "raw": "WouldBlock",
+      "state": {
+        "code": "timeout",
+        "message": "Zotero request timed out after 5 seconds. Make sure Zotero is responsive and try again.",
+        "detail": "WouldBlock"
+      }
+    },
+    {
+      "raw": "operation TIMED OUT",
+      "state": {
+        "code": "timeout",
+        "message": "Zotero request timed out after 5 seconds. Make sure Zotero is responsive and try again.",
+        "detail": "operation TIMED OUT"
+      }
+    },
+    {
+      "raw": "time out",
+      "state": {
+        "code": "timeout",
+        "message": "Zotero request timed out after 5 seconds. Make sure Zotero is responsive and try again.",
+        "detail": "time out"
+      }
+    },
+    {
+      "raw": "ETIMEDOUT",
+      "state": {
+        "code": "timeout",
+        "message": "Zotero request timed out after 5 seconds. Make sure Zotero is responsive and try again.",
+        "detail": "ETIMEDOUT"
+      }
+    },
+    {
+      "raw": "ECONNREFUSED",
+      "state": {
+        "code": "not-running",
+        "message": "Zotero is not running. Start Zotero on this computer and try again.",
+        "detail": "ECONNREFUSED"
+      }
+    },
+    {
+      "raw": "No connection could be made because the target machine actively refused it. (os error 10061)",
+      "state": {
+        "code": "not-running",
+        "message": "Zotero is not running. Start Zotero on this computer and try again.",
+        "detail": "No connection could be made because the target machine actively refused it. (os error 10061)"
+      }
+    },
+    {
+      "raw": "connect failed",
+      "state": {
+        "code": "not-running",
+        "message": "Zotero is not running. Start Zotero on this computer and try again.",
+        "detail": "connect failed"
+      }
+    },
+    {
+      "raw": "Zotero response exceeded 5 MB limit.",
+      "state": {
+        "code": "unknown",
+        "message": "Zotero response exceeded 5 MB limit.",
+        "detail": "Zotero response exceeded 5 MB limit."
+      }
+    },
+    {
+      "raw": "Zotero returned an incomplete HTTP response.",
+      "state": {
+        "code": "unknown",
+        "message": "Zotero returned an incomplete HTTP response.",
+        "detail": "Zotero returned an incomplete HTTP response."
+      }
+    },
+    {
+      "raw": "",
+      "state": {
+        "code": "unknown",
+        "message": "Could not communicate with Zotero."
+      }
+    },
+    {
+      "raw": "   ",
+      "state": {
+        "code": "unknown",
+        "message": "Could not communicate with Zotero."
+      }
+    },
+    {
+      "raw": "  something odd  ",
+      "state": {
+        "code": "unknown",
+        "message": "something odd",
+        "detail": "something odd"
+      }
+    },
+    {
+      "raw": "(ZoteroError invalid-response)",
+      "state": {
+        "code": "invalid-response",
+        "message": "Zotero returned an invalid JSON response.",
+        "detail": "bad"
+      }
+    }
+  ],
+  "keys": [
+    {
+      "id": "http://zotero.org/users/local/0/items/K8M9P2Q1",
+      "key": "(undefined)",
+      "out": "K8M9P2Q1"
+    },
+    {
+      "id": "http://zotero.org/users/0/items/AB12CD34?format=csljson",
+      "key": "(undefined)",
+      "out": "AB12CD34"
+    },
+    {
+      "id": "http://zotero.org/users/0/ITEMS/ab12cd34#x",
+      "key": "(undefined)",
+      "out": "ab12cd34"
+    },
+    {
+      "id": "http://zotero.org/users/0/items/123",
+      "key": "EXPLICIT9",
+      "out": "EXPLICIT9"
+    },
+    {
+      "id": "http://zotero.org/users/0/items/123",
+      "key": "   ",
+      "out": null
+    },
+    {
+      "id": "http://zotero.org/users/0/items/123",
+      "key": "!!!",
+      "out": null
+    },
+    {
+      "id": "smith2020",
+      "key": "(undefined)",
+      "out": "smith2020"
+    },
+    {
+      "id": "  spaced key  ",
+      "key": "(undefined)",
+      "out": "spaced-key"
+    },
+    {
+      "id": "https://example.com/no/items/here",
+      "key": "(undefined)",
+      "out": "here"
+    },
+    {
+      "id": "https://example.com/items/ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456",
+      "key": "(undefined)",
+      "out": null
+    },
+    {
+      "id": "",
+      "key": "(undefined)",
+      "out": null
+    },
+    {
+      "id": 42,
+      "key": "(undefined)",
+      "out": "42"
+    },
+    {
+      "id": -3.5,
+      "key": "(undefined)",
+      "out": "3.5"
+    },
+    {
+      "id": "(Infinity)",
+      "key": "(undefined)",
+      "out": null
+    },
+    {
+      "id": null,
+      "key": "K1",
+      "out": "K1"
+    },
+    {
+      "id": "(undefined)",
+      "key": "(undefined)",
+      "out": null
+    },
+    {
+      "id": true,
+      "key": "(undefined)",
+      "out": null
+    },
+    {
+      "id": "Ünïcödé key",
+      "key": "(undefined)",
+      "out": "n-c-d-key"
+    }
+  ],
+  "mapped": [
+    {
+      "text": "[{\"id\":\"http://zotero.org/users/local/0/items/K8M9P2Q1\",\"type\":\"book\",\"title\":\"Strukturwandel der Öffentlichkeit\",\"author\":[{\"family\":\"Habermas\",\"given\":\"Jürgen\"}],\"issued\":{\"date-parts\":[[1962]]},\"publisher\":\"Luchterhand\",\"publisher-place\":\"Neuwied\",\"ISBN\":\"978-3-518-28491-9\"},{\"id\":\"http://zotero.org/users/local/0/items/R4T7W1X9\",\"type\":\"article-journal\",\"citation-key\":\"rosa2016resonanz\",\"title\":\"Resonanz als Grundbegriff\",\"author\":[{\"family\":\"Rosa\",\"given\":\"Hartmut\"}],\"container-title\":\"Soziologische Revue\",\"volume\":\"39\",\"issue\":\"4\",\"page\":\"501-515\",\"issued\":{\"date-parts\":[[2016]]},\"DOI\":\"10.1515/srsr-2016-0068\"},{\"id\":\"http://zotero.org/users/local/0/items/ATT00001\",\"itemType\":\"attachment\",\"title\":\"Full Text PDF\"}]",
+      "items": [
+        {
+          "id": "K8M9P2Q1",
+          "type": "book",
+          "title": "Strukturwandel der Öffentlichkeit",
+          "author": [
+            {
+              "family": "Habermas",
+              "given": "Jürgen"
+            }
+          ],
+          "issued": {
+            "date-parts": [
+              [
+                1962
+              ]
+            ]
+          },
+          "publisher": "Luchterhand",
+          "publisher-place": "Neuwied",
+          "ISBN": "978-3-518-28491-9",
+          "provider": "zotero"
+        },
+        {
+          "id": "R4T7W1X9",
+          "type": "article-journal",
+          "title": "Resonanz als Grundbegriff",
+          "author": [
+            {
+              "family": "Rosa",
+              "given": "Hartmut"
+            }
+          ],
+          "issued": {
+            "date-parts": [
+              [
+                2016
+              ]
+            ]
+          },
+          "container-title": "Soziologische Revue",
+          "volume": "39",
+          "issue": "4",
+          "page": "501-515",
+          "DOI": "10.1515/srsr-2016-0068",
+          "citeKey": "rosa2016resonanz",
+          "provider": "zotero"
+        }
+      ]
+    },
+    {
+      "text": "[{\"id\":42,\"citationKey\":\"arendt1958\",\"citekey\":\"arendt1958\",\"item\":{\"id\":\"http://zotero.org/users/0/items/Z9Y8X7W6\",\"type\":\"book\",\"title\":\"The Human Condition\",\"author\":[{\"family\":\"Arendt\",\"given\":\"Hannah\"}],\"issued\":{\"date-parts\":[[1958]]},\"publisher\":\"University of Chicago Press\"}}]",
+      "items": [
+        {
+          "id": "Z9Y8X7W6",
+          "type": "book",
+          "title": "The Human Condition",
+          "author": [
+            {
+              "family": "Arendt",
+              "given": "Hannah"
+            }
+          ],
+          "issued": {
+            "date-parts": [
+              [
+                1958
+              ]
+            ]
+          },
+          "publisher": "University of Chicago Press",
+          "citeKey": "arendt1958",
+          "provider": "zotero"
+        }
+      ]
+    },
+    {
+      "text": "{\"items\":[{\"id\":\"A1B2\",\"itemType\":\"note\",\"title\":\"n\"},{\"id\":\"C3D4\",\"itemType\":\"Annotation\"},{\"key\":\"E5F6G7\",\"title\":\"Keyed only\"},{\"citeKey\":\"onlyKey\",\"title\":\"Cite key only\",\"url\":\"https://e.x/a\",\"doi\":\"10.1/x\",\"isbn\":\"123\"},{\"URL\":\"https://kept\",\"url\":\"https://dropped\",\"title\":\"Both URLs\"}]}",
+      "items": [
+        {
+          "id": "E5F6G7",
+          "type": "document",
+          "title": "Keyed only",
+          "provider": "zotero"
+        },
+        {
+          "id": "onlyKey",
+          "type": "document",
+          "title": "Cite key only",
+          "DOI": "10.1/x",
+          "URL": "https://e.x/a",
+          "ISBN": "123",
+          "citeKey": "onlyKey",
+          "provider": "zotero"
+        },
+        {
+          "id": "both-1uci8et",
+          "type": "document",
+          "title": "Both URLs",
+          "URL": "https://kept",
+          "provider": "zotero"
+        }
+      ]
+    },
+    {
+      "text": "{\"id\":\"SINGLE01\",\"type\":\"report\",\"title\":\"One object\"}",
+      "items": [
+        {
+          "id": "SINGLE01",
+          "type": "report",
+          "title": "One object",
+          "provider": "zotero"
+        }
+      ]
+    },
+    {
+      "text": "[{\"id\":\"t0\",\"itemType\":\"journalArticle\",\"title\":\"Type journalArticle\"},{\"id\":\"t1\",\"itemType\":\"BOOK\",\"title\":\"Type BOOK\"},{\"id\":\"t2\",\"itemType\":\"bookSection\",\"title\":\"Type bookSection\"},{\"id\":\"t3\",\"itemType\":\"conferencePaper\",\"title\":\"Type conferencePaper\"},{\"id\":\"t4\",\"itemType\":\"blogPost\",\"title\":\"Type blogPost\"},{\"id\":\"t5\",\"itemType\":\"computerProgram\",\"title\":\"Type computerProgram\"},{\"id\":\"t6\",\"itemType\":\"preprint\",\"title\":\"Type preprint\"},{\"id\":\"t7\",\"itemType\":\"videoRecording\",\"title\":\"Type videoRecording\"},{\"id\":\"t8\",\"itemType\":\"podcast\",\"title\":\"Type podcast\"},{\"id\":\"t9\",\"itemType\":\"constructor\",\"title\":\"Type constructor\"},{\"id\":\"t10\",\"itemType\":\"toString\",\"title\":\"Type toString\"},{\"id\":\"t11\",\"itemType\":\"__proto__\",\"title\":\"Type __proto__\"},{\"id\":\"t12\",\"itemType\":\"hasOwnProperty\",\"title\":\"Type hasOwnProperty\"},{\"id\":\"t13\",\"itemType\":\"somethingElse\",\"title\":\"Type somethingElse\"},{\"id\":\"t14\",\"itemType\":\"  thesis  \",\"title\":\"Type   thesis  \"},{\"id\":\"t15\",\"itemType\":\"\",\"title\":\"Type \"}]",
+      "items": [
+        {
+          "id": "t0",
+          "type": "article-journal",
+          "title": "Type journalArticle",
+          "provider": "zotero"
+        },
+        {
+          "id": "t1",
+          "type": "book",
+          "title": "Type BOOK",
+          "provider": "zotero"
+        },
+        {
+          "id": "t2",
+          "type": "chapter",
+          "title": "Type bookSection",
+          "provider": "zotero"
+        },
+        {
+          "id": "t3",
+          "type": "paper-conference",
+          "title": "Type conferencePaper",
+          "provider": "zotero"
+        },
+        {
+          "id": "t4",
+          "type": "post-weblog",
+          "title": "Type blogPost",
+          "provider": "zotero"
+        },
+        {
+          "id": "t5",
+          "type": "software",
+          "title": "Type computerProgram",
+          "provider": "zotero"
+        },
+        {
+          "id": "t6",
+          "type": "article",
+          "title": "Type preprint",
+          "provider": "zotero"
+        },
+        {
+          "id": "t7",
+          "type": "motion_picture",
+          "title": "Type videoRecording",
+          "provider": "zotero"
+        },
+        {
+          "id": "t8",
+          "type": "song",
+          "title": "Type podcast",
+          "provider": "zotero"
+        },
+        {
+          "id": "t9",
+          "type": "document",
+          "title": "Type constructor",
+          "provider": "zotero"
+        },
+        {
+          "id": "t10",
+          "type": "document",
+          "title": "Type toString",
+          "provider": "zotero"
+        },
+        {
+          "id": "t11",
+          "type": "document",
+          "title": "Type __proto__",
+          "provider": "zotero"
+        },
+        {
+          "id": "t12",
+          "type": "document",
+          "title": "Type hasOwnProperty",
+          "provider": "zotero"
+        },
+        {
+          "id": "t13",
+          "type": "document",
+          "title": "Type somethingElse",
+          "provider": "zotero"
+        },
+        {
+          "id": "t14",
+          "type": "thesis",
+          "title": "Type thesis",
+          "provider": "zotero"
+        },
+        {
+          "id": "t15",
+          "type": "document",
+          "title": "Type",
+          "provider": "zotero"
+        }
+      ]
+    },
+    {
+      "text": "[{\"title\":\"No id or type\",\"author\":[{\"family\":\"X\"}]},{\"id\":\"nothing\"},{\"id\":\"dup\",\"type\":\"book\",\"title\":\"First\"},{\"id\":\"dup\",\"type\":\"book\",\"title\":\"Second\"},\"a string\",7,null,[1]]",
+      "items": [
+        {
+          "id": "x-1bw7ie6",
+          "type": "document",
+          "title": "No id or type",
+          "author": [
+            {
+              "family": "X"
+            }
+          ],
+          "provider": "zotero"
+        },
+        {
+          "id": "dup",
+          "type": "book",
+          "title": "First",
+          "provider": "zotero"
+        },
+        {
+          "id": "dup-2",
+          "type": "book",
+          "title": "Second",
+          "provider": "zotero"
+        }
+      ]
+    },
+    {
+      "text": "[{\"item\":\"not an object\",\"citationKey\":\"wrapped\"},{\"item\":{\"title\":\"Inner without id\"},\"citeKey\":\"outerKey\",\"id\":\"http://zotero.org/users/0/items/OUTER123\"}]",
+      "items": [
+        {
+          "id": "OUTER123",
+          "type": "document",
+          "title": "Inner without id",
+          "citeKey": "outerKey",
+          "provider": "zotero"
+        }
+      ]
+    },
+    {
+      "text": "﻿  [{\"id\":\"BOM00001\",\"type\":\"book\",\"title\":\"After a BOM\"}]\n",
+      "items": [
+        {
+          "id": "BOM00001",
+          "type": "book",
+          "title": "After a BOM",
+          "provider": "zotero"
+        }
+      ]
+    },
+    {
+      "text": "",
+      "items": []
+    },
+    {
+      "text": "   \n",
+      "items": []
+    },
+    {
+      "text": "null",
+      "items": []
+    },
+    {
+      "text": "42",
+      "items": []
+    },
+    {
+      "text": "[]",
+      "items": []
+    },
+    {
+      "text": "{}",
+      "items": []
+    },
+    {
+      "text": "\"text\"",
+      "items": []
+    },
+    {
+      "text": "{\"items\":\"nope\"}",
+      "items": []
+    }
+  ],
+  "invalid": [
+    {
+      "text": "{not json",
+      "error": {
+        "code": "invalid-response",
+        "message": "Zotero returned an invalid JSON response."
+      }
+    },
+    {
+      "text": "[1,",
+      "error": {
+        "code": "invalid-response",
+        "message": "Zotero returned an invalid JSON response."
+      }
+    },
+    {
+      "text": "﻿{",
+      "error": {
+        "code": "invalid-response",
+        "message": "Zotero returned an invalid JSON response."
+      }
+    },
+    {
+      "text": "nul",
+      "error": {
+        "code": "invalid-response",
+        "message": "Zotero returned an invalid JSON response."
+      }
+    }
+  ],
+  "providers": [
+    {
+      "calls": [
+        "/connector/ping",
+        "/api/users/0/items?q=rosa&format=csljson&limit=25",
+        "/better-bibtex/cayw?format=json"
+      ],
+      "status": {
+        "available": true,
+        "error": null
+      },
+      "search": {
+        "items": [
+          {
+            "id": "K8M9P2Q1",
+            "type": "book",
+            "title": "Strukturwandel der Öffentlichkeit",
+            "author": [
+              {
+                "family": "Habermas",
+                "given": "Jürgen"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  1962
+                ]
+              ]
+            },
+            "publisher": "Luchterhand",
+            "publisher-place": "Neuwied",
+            "ISBN": "978-3-518-28491-9",
+            "provider": "zotero"
+          },
+          {
+            "id": "R4T7W1X9",
+            "type": "article-journal",
+            "title": "Resonanz als Grundbegriff",
+            "author": [
+              {
+                "family": "Rosa",
+                "given": "Hartmut"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2016
+                ]
+              ]
+            },
+            "container-title": "Soziologische Revue",
+            "volume": "39",
+            "issue": "4",
+            "page": "501-515",
+            "DOI": "10.1515/srsr-2016-0068",
+            "citeKey": "rosa2016resonanz",
+            "provider": "zotero"
+          }
+        ]
+      },
+      "pick": {
+        "supported": true,
+        "items": [
+          {
+            "id": "Z9Y8X7W6",
+            "type": "book",
+            "title": "The Human Condition",
+            "author": [
+              {
+                "family": "Arendt",
+                "given": "Hannah"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  1958
+                ]
+              ]
+            },
+            "publisher": "University of Chicago Press",
+            "citeKey": "arendt1958",
+            "provider": "zotero"
+          }
+        ]
+      }
+    },
+    {
+      "calls": [
+        "/connector/ping",
+        "/api/users/0/items?q=rosa&format=csljson&limit=25",
+        "/better-bibtex/cayw?format=json"
+      ],
+      "status": {
+        "available": true,
+        "error": null
+      },
+      "search": {
+        "error": {
+          "code": "invalid-response",
+          "message": "Zotero returned an invalid JSON response.",
+          "detail": "Expected property name or '}' in JSON at position 1 (line 1 column 2)"
+        }
+      },
+      "pick": {
+        "supported": true,
+        "items": []
+      }
+    },
+    {
+      "calls": [
+        "/connector/ping",
+        "/api/users/0/items?q=rosa&format=csljson&limit=25",
+        "/better-bibtex/cayw?format=json"
+      ],
+      "status": {
+        "available": false,
+        "error": {
+          "code": "not-running",
+          "message": "Zotero is not running. Start Zotero on this computer and try again.",
+          "detail": "Zotero is not running (connection refused on 127.0.0.1:23119)."
+        }
+      },
+      "search": {
+        "error": {
+          "code": "not-running",
+          "message": "Zotero is not running. Start Zotero on this computer and try again.",
+          "detail": "Zotero is not running (connection refused on 127.0.0.1:23119)."
+        }
+      },
+      "pick": {
+        "supported": false,
+        "items": []
+      }
+    },
+    {
+      "calls": [
+        "/connector/ping",
+        "/api/users/0/items?q=rosa&format=csljson&limit=25",
+        "/better-bibtex/cayw?format=json"
+      ],
+      "status": {
+        "available": false,
+        "error": {
+          "code": "forbidden",
+          "message": "Zotero blocked local API access (HTTP 403). Enable \"Allow other applications on this computer to communicate with Zotero\" in Zotero Settings → Advanced → Files and Folders.",
+          "detail": "Local API is not enabled"
+        }
+      },
+      "search": {
+        "error": {
+          "code": "forbidden",
+          "message": "Zotero blocked local API access (HTTP 403). Enable \"Allow other applications on this computer to communicate with Zotero\" in Zotero Settings → Advanced → Files and Folders.",
+          "detail": "Local API is not enabled"
+        }
+      },
+      "pick": {
+        "supported": false,
+        "items": []
+      }
+    },
+    {
+      "calls": [
+        "/connector/ping",
+        "/api/users/0/items?q=rosa&format=csljson&limit=25",
+        "/better-bibtex/cayw?format=json"
+      ],
+      "status": {
+        "available": true,
+        "error": null
+      },
+      "search": {
+        "error": {
+          "code": "timeout",
+          "message": "Zotero request timed out after 5 seconds. Make sure Zotero is responsive and try again.",
+          "detail": "Zotero request timed out after 5s."
+        }
+      },
+      "pick": {
+        "supported": false,
+        "items": []
+      }
+    }
+  ]
+}

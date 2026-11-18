@@ -3475,6 +3475,134 @@ fn the_citation_style_and_bibliography_are_chosen_in_publish() {
     );
 }
 
+/// Steps until a label containing `text` shows (an answer from another thread arriving).
+fn wait_for(harness: &mut Harness<'static, ProseApp>, text: &str) {
+    for _ in 0..300 {
+        harness.step();
+        if harness.query_by_label_contains(text).is_some() {
+            harness.run();
+            return;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    panic!("{text:?} never showed");
+}
+
+#[test]
+fn sources_come_from_zotero() {
+    let (mut harness, memory) = app();
+    let answer = r#"[{"id":"http://zotero.org/users/local/0/items/K8M9P2Q1","type":"book","title":"Strukturwandel der Öffentlichkeit","author":[{"family":"Habermas","given":"Jürgen"}],"issued":{"date-parts":[[1962]]}},{"id":"http://zotero.org/users/local/0/items/ATT00001","itemType":"attachment","title":"Full Text PDF"}]"#;
+    let asked = std::sync::Arc::new(Mutex::new(Vec::<String>::new()));
+    let log = std::sync::Arc::clone(&asked);
+    harness
+        .state_mut()
+        .set_zotero(std::sync::Arc::new(move |path: &str| {
+            log.lock().expect("log").push(path.to_owned());
+            match path {
+                "/connector/ping" => Ok("Zotero is running".to_owned()),
+                "/api/users/0/items?q=habermas&format=csljson&limit=25" => Ok(answer.to_owned()),
+                _ => Err("HTTP 404".to_owned()),
+            }
+        }));
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Sources")
+        .click();
+    wait_for(&mut harness, "Connected");
+    harness
+        .get_by_role_and_label(Role::TextInput, "Search Zotero")
+        .focus();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TextInput, "Search Zotero")
+        .type_text(" habermas ");
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Search")
+        .click();
+    wait_for(&mut harness, "Strukturwandel");
+    // The attachment isn't a source.
+    assert!(harness.query_by_label_contains("Full Text PDF").is_none());
+    harness.get_by_label_contains("1962 · @K8M9P2Q1");
+    harness
+        .get_by_role_and_label(Role::Button, "Add to this project")
+        .click();
+    harness.run();
+    harness.get_by_label("Added “Strukturwandel der Öffentlichkeit” to this project.");
+    harness.get_by_label("In project");
+    // No Better BibTeX: its picker isn't offered again.
+    harness
+        .get_by_role_and_label(Role::Button, "Pick in Zotero…")
+        .click();
+    for _ in 0..100 {
+        harness.step();
+        if harness.query_by_label("Pick in Zotero…").is_none() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    assert!(harness.query_by_label("Pick in Zotero…").is_none());
+    harness.run_steps(12);
+    let saved = memory.last();
+    let citations = project(&saved, "project-1")
+        .get("project")
+        .and_then(|p| p.get("citations"))
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+        .to_vec();
+    let added = citations
+        .iter()
+        .find(|c| {
+            c.get("id")
+                .and_then(JsValue::as_js_string)
+                .is_some_and(|i| i.eq_str("K8M9P2Q1"))
+        })
+        .expect("the Zotero source was saved");
+    assert_eq!(
+        added
+            .get("provider")
+            .and_then(JsValue::as_js_string)
+            .map(|p| p.to_string_lossy()),
+        Some("zotero".to_owned())
+    );
+    assert_eq!(
+        *asked.lock().expect("log"),
+        [
+            "/connector/ping",
+            "/api/users/0/items?q=habermas&format=csljson&limit=25",
+            "/better-bibtex/cayw?format=json"
+        ]
+    );
+}
+
+#[test]
+fn zotero_not_running_says_how_to_reach_it() {
+    let (mut harness, _) = app();
+    harness
+        .state_mut()
+        .set_zotero(std::sync::Arc::new(|_: &str| {
+            Err("Zotero is not running (connection refused on 127.0.0.1:23119).".to_owned())
+        }));
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Sources")
+        .click();
+    wait_for(&mut harness, "Not reachable");
+    harness.get_by_label_contains("Zotero is not reachable on this computer.");
+    // "Not running" isn't repeated as an error under the hint.
+    assert!(
+        harness
+            .query_by_label_contains("Start Zotero on this computer and try again")
+            .is_none()
+    );
+}
+
 #[test]
 fn sources_are_added_imported_and_deleted() {
     let (mut harness, memory) = app();

@@ -12,7 +12,33 @@ publish = false
 workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
+prosecraft-core = { workspace = true }
 prosecraft-ui-egui = { workspace = true }
 eframe = { workspace = true }
+js-sys = "0.3"
 wasm-bindgen-futures = "0.4"
-web-sys = { version = "0.3", features = ["Document", "Window", "HtmlCanvasElement"] }
+web-sys = { version = "0.3", features = [
+    "Blob",
+    "BlobPropertyBag",
+    "Crypto",
+    "Document",
+    "Element",
+    "Event",
+    "EventTarget",
+    "File",
+    "FileList",
+    "HtmlAnchorElement",
+    "HtmlCanvasElement",
+    "HtmlElement",
+    "HtmlInputElement",
+    "IdbDatabase",
+    "IdbFactory",
+    "IdbObjectStore",
+    "IdbOpenDbRequest",
+    "IdbRequest",
+    "IdbTransaction",
+    "IdbTransactionMode",
+    "Storage",
+    "Url",
+    "Window",
+] }

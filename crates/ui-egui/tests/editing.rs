@@ -175,6 +175,837 @@ fn a_new_chapter_and_typed_scene_are_saved_as_prosecraft_writes_them() {
 }
 
 #[test]
+fn shift_enter_breaks_the_line_inside_a_paragraph() {
+    let (mut harness, memory) = app();
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("an add button")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Scene 1")
+        .click();
+    harness.run();
+    let body = harness.get_by_label("Scene text");
+    body.focus();
+    body.type_text("Roses are red,");
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::SHIFT, egui::Key::Enter);
+    harness
+        .get_by_label("Scene text")
+        .type_text("violets are blue.");
+    harness.run_steps(12);
+    let saved = memory.last();
+    let scene = document(project(&saved, "project-1"), "new-1").expect("the new scene");
+    assert_eq!(
+        js::stringify(scene.get("content").expect("content")),
+        r#""<p>Roses are red,<br>violets are blue.</p>""#
+    );
+}
+
+#[test]
+fn insert_image_puts_the_picture_at_the_caret_as_prosecraft_does() {
+    let (mut harness, memory) = app();
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("an add button")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Scene 1")
+        .click();
+    harness.run();
+    let body = harness.get_by_label("Scene text");
+    body.focus();
+    body.type_text("The map:");
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Insert image")
+        .click();
+    harness.run();
+    assert!(
+        harness
+            .state_mut()
+            .take_requests()
+            .contains(&prosecraft_ui_egui::HostRequest::InsertPicture)
+    );
+    // A 4 x 2 PNG, as the host's picker hands it over.
+    let pixels = craft_image_codecs::Image::from_u8(
+        4,
+        2,
+        craft_image_codecs::ChannelLayout::Rgba,
+        vec![200; 4 * 2 * 4],
+    )
+    .expect("pixels");
+    let png = craft_image_codecs::encode(
+        &pixels,
+        craft_image_codecs::Format::Png,
+        &craft_image_codecs::EncodeOptions::default(),
+    )
+    .expect("png");
+    harness.state_mut().insert_picture("Coast map.png", &png);
+    harness.run();
+    // Typing goes on after the picture's line break.
+    harness.get_by_label("Scene text").type_text("North");
+    harness.run_steps(12);
+    let saved = memory.last();
+    let scene = document(project(&saved, "project-1"), "new-1").expect("the new scene");
+    let content = scene
+        .get("content")
+        .and_then(JsValue::as_js_string)
+        .map(|c| c.to_string_lossy())
+        .unwrap_or_default();
+    assert!(
+        content.starts_with(r#"<p>The map:<img src="data:image/webp;base64,"#),
+        "{content}"
+    );
+    assert!(
+        content.ends_with(r#"" alt="Coast map"><br>North</p>"#),
+        "{content}"
+    );
+    // Read back, it is still the rich editor's (and a picture that can't be read is refused).
+    assert!(prosecraft_core::richtext::RichDoc::from_html(&content).is_some());
+    harness
+        .state_mut()
+        .insert_picture("notes.txt", b"plain text");
+    harness.run();
+    harness.get_by_label_contains("Use a PNG, JPG, WebP, GIF, BMP, or AVIF image.");
+}
+
+/// The stored content of a document.
+fn content(memory: &Memory, id: &str) -> String {
+    let saved = memory.last();
+    document(project(&saved, "project-1"), id)
+        .and_then(|d| d.get("content"))
+        .and_then(JsValue::as_js_string)
+        .map(|c| c.to_string_lossy())
+        .unwrap_or_default()
+}
+
+#[test]
+fn undo_takes_back_typing_a_step_at_a_time_and_redo_brings_it_back() {
+    let (mut harness, memory) = app();
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("an add button")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Scene 1")
+        .click();
+    harness.run();
+    let body = harness.get_by_label("Scene text");
+    body.focus();
+    body.type_text("The lamp");
+    harness.run();
+    harness.key_press(egui::Key::Enter);
+    harness.get_by_label("Scene text").type_text("went out");
+    harness.run();
+    let undo = |harness: &mut Harness<'static, ProseApp>| {
+        harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::Z);
+        harness.run();
+    };
+    // Typing is one step, the new line another (ProseCraft's grouping).
+    undo(&mut harness);
+    harness.run_steps(12);
+    assert_eq!(content(&memory, "new-1"), "<p>The lamp</p><p><br></p>");
+    undo(&mut harness);
+    harness.run_steps(12);
+    assert_eq!(content(&memory, "new-1"), "<p>The lamp</p>");
+    harness.key_press_modifiers(
+        egui::Modifiers::COMMAND | egui::Modifiers::SHIFT,
+        egui::Key::Z,
+    );
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::Y);
+    harness.run_steps(12);
+    assert_eq!(content(&memory, "new-1"), "<p>The lamp</p><p>went out</p>");
+    // The toolbar's Undo, then typing: redo is gone.
+    harness.get_by_role_and_label(Role::Button, "Undo").click();
+    harness.run();
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    harness.get_by_label("Scene text").type_text("!");
+    harness.run();
+    harness.get_by_role_and_label(Role::Button, "Redo").click();
+    harness.run_steps(12);
+    let after = content(&memory, "new-1");
+    assert!(
+        after.contains('!') && !after.contains("went out"),
+        "{after}"
+    );
+}
+
+#[test]
+fn add_link_links_the_selection() {
+    let (mut harness, memory) = app();
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("an add button")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Scene 1")
+        .click();
+    harness.run();
+    let body = harness.get_by_label("Scene text");
+    body.focus();
+    body.type_text("See the map");
+    harness.run();
+    for _ in 0..7 {
+        harness.key_press_modifiers(egui::Modifiers::SHIFT, egui::Key::ArrowLeft);
+    }
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Add link")
+        .click();
+    harness.run();
+    harness
+        .get_by_label("Paste a link")
+        .type_text("javascript:alert(1)");
+    harness.key_press(egui::Key::Enter);
+    harness.run();
+    harness.get_by_label("Please use a web link or email address.");
+    harness.get_by_label("Paste a link").focus();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    harness
+        .get_by_label("Paste a link")
+        .type_text("example.com/map");
+    harness.key_press(egui::Key::Enter);
+    harness.run_steps(12);
+    assert_eq!(
+        content(&memory, "new-1"),
+        r#"<p>See <a href="https://example.com/map">the map</a></p>"#
+    );
+    assert!(harness.query_by_label("Paste a link").is_none());
+}
+
+#[test]
+fn app_shortcuts_and_the_shortcuts_sheet() {
+    use egui::Modifiers as M;
+    let (mut harness, memory) = app();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    // Ctrl+Shift+E: the scene as text, named after its title.
+    harness.key_press_modifiers(M::COMMAND | M::SHIFT, egui::Key::E);
+    harness.run();
+    let requests = harness.state_mut().take_requests();
+    let Some(prosecraft_ui_egui::HostRequest::ExportFile {
+        file_name, bytes, ..
+    }) = requests.first()
+    else {
+        panic!("no export: {requests:?}");
+    };
+    assert_eq!(file_name, "opening-scene.txt");
+    let text = String::from_utf8_lossy(bytes);
+    assert!(text.starts_with("It was dark."), "{text}");
+    assert!(!text.contains("Smith"), "a citation draws no text: {text}");
+    // Ctrl+/: the sheet; Save as PDF; Escape closes it.
+    harness.key_press_modifiers(M::COMMAND, egui::Key::Slash);
+    harness.run();
+    harness.get_by_label("Toggle focus mode");
+    assert!(harness.get_all_by_label("Ctrl").count() > 5);
+    harness
+        .get_by_role_and_label(Role::Button, "Save as PDF")
+        .click();
+    harness.run();
+    let requests = harness.state_mut().take_requests();
+    assert!(requests.iter().any(|r| matches!(r,
+        prosecraft_ui_egui::HostRequest::ExportFile { file_name, bytes, .. }
+            if file_name == "prosecraft-shortcuts.pdf" && bytes.starts_with(b"%PDF-"))));
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    assert!(harness.query_by_label("Toggle focus mode").is_none());
+    // Ctrl+, Settings; Ctrl+Shift+P Publish.
+    harness.key_press_modifiers(M::COMMAND, egui::Key::Comma);
+    harness.run();
+    harness.get_by_label("Writing");
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    // Ctrl+N: a new scene in the first chapter.
+    let scenes = |memory: &Memory| -> usize {
+        project(&memory.last(), "project-1")
+            .get("project")
+            .and_then(|p| p.get("documents"))
+            .and_then(JsValue::as_array)
+            .map_or(0, <[JsValue]>::len)
+    };
+    harness.run_steps(12);
+    let before = scenes(&memory);
+    harness.key_press_modifiers(M::COMMAND, egui::Key::N);
+    harness.run_steps(12);
+    assert_eq!(scenes(&memory), before + 1);
+    harness.key_press_modifiers(M::COMMAND | M::SHIFT, egui::Key::P);
+    harness.run();
+    assert_eq!(
+        harness
+            .get_by_role_and_label(Role::Tab, "Publish")
+            .accesskit_node()
+            .is_selected(),
+        Some(true)
+    );
+}
+
+#[test]
+fn chapters_and_scenes_move_rename_and_leave_the_trash_for_good() {
+    let (mut harness, memory) = app();
+    let field = |memory: &Memory, key: &str, what: &str| -> Vec<String> {
+        project(&memory.last(), "project-1")
+            .get("project")
+            .and_then(|p| p.get(key))
+            .and_then(JsValue::as_array)
+            .unwrap_or_default()
+            .iter()
+            .filter(|d| {
+                !d.get("trashed")
+                    .is_some_and(|t| matches!(t, JsValue::Bool(true)))
+            })
+            .map(|d| {
+                d.get(what)
+                    .and_then(JsValue::as_js_string)
+                    .map(|s| s.to_string_lossy())
+                    .unwrap_or_default()
+            })
+            .collect()
+    };
+    let menu = |harness: &mut Harness<'static, ProseApp>, row: &str, item: &str| {
+        harness
+            .get_by_role_and_label(Role::Button, &format!("Actions for {row}"))
+            .click();
+        harness.run();
+        harness.get_by_role_and_label(Role::Button, item).click();
+        harness.run();
+    };
+    harness.run_steps(12);
+    let scenes_before = field(&memory, "documents", "title");
+    menu(&mut harness, "INT. LIGHTHOUSE - NIGHT", "Move up");
+    harness.run_steps(12);
+    let scenes = field(&memory, "documents", "title");
+    let at = |list: &[String], t: &str| list.iter().position(|x| x == t);
+    assert!(
+        at(&scenes, "INT. LIGHTHOUSE - NIGHT") < at(&scenes, "Opening Scene"),
+        "{scenes:?} from {scenes_before:?}"
+    );
+    // A new chapter; the opening scene moves into it.
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("an add button")
+        .click();
+    harness.run();
+    menu(&mut harness, "Opening Scene", "Move to chapter…");
+    harness
+        .get_by_role_and_label(Role::RadioButton, "Chapter 1")
+        .click();
+    harness.run_steps(12);
+    let saved = memory.last();
+    let opening = document(project(&saved, "project-1"), "doc-1").expect("opening scene");
+    let chapters = field(&memory, "chapters", "id");
+    assert_eq!(
+        opening
+            .get("chapterId")
+            .and_then(JsValue::as_js_string)
+            .map(|s| s.to_string_lossy()),
+        chapters.last().cloned()
+    );
+    // Rename the new chapter, move it up, then to the Trash (it asks first).
+    menu(&mut harness, "Chapter 1", "Rename chapter");
+    harness.get_by_label("Rename Chapter 1").focus();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    harness
+        .get_by_label("Rename Chapter 1")
+        .type_text("Part Two");
+    harness.key_press(egui::Key::Enter);
+    harness.run();
+    menu(&mut harness, "Part Two", "Move up");
+    harness.run_steps(12);
+    assert_eq!(
+        field(&memory, "chapters", "title")
+            .first()
+            .map(String::as_str),
+        Some("Part Two")
+    );
+    menu(&mut harness, "Part Two", "Move to Trash");
+    // Its own first scene and the opening scene.
+    harness.get_by_label_contains("Move “Part Two” and its 2 scenes to Trash?");
+    harness
+        .get_all_by_role_and_label(Role::Button, "Move to Trash")
+        .last()
+        .expect("the confirm button")
+        .click();
+    harness.run_steps(12);
+    assert!(!field(&memory, "chapters", "title").contains(&"Part Two".to_owned()));
+    // From the Trash, for good.
+    harness.get_by_label_contains("Trash (").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Permanently delete Part Two and its scenes")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Delete")
+        .click();
+    harness.run_steps(12);
+    let saved = memory.last();
+    assert!(document(project(&saved, "project-1"), "doc-1").is_none());
+    let titles: Vec<String> = project(&saved, "project-1")
+        .get("project")
+        .and_then(|p| p.get("chapters"))
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|c| c.get("title").and_then(JsValue::as_js_string))
+        .map(|t| t.to_string_lossy())
+        .collect();
+    assert!(!titles.contains(&"Part Two".to_owned()), "{titles:?}");
+    assert_eq!(chapters.len(), 2);
+}
+
+#[test]
+fn the_label_filter_project_trash_and_converting_from_the_binder() {
+    let (mut harness, memory) = app();
+    let menu = |harness: &mut Harness<'static, ProseApp>, row: &str| {
+        harness
+            .get_by_role_and_label(Role::Button, &format!("Actions for {row}"))
+            .click();
+        harness.run();
+    };
+    // Label the opening scene "Draft", then show only Draft scenes.
+    menu(&mut harness, "Opening Scene");
+    harness.get_by_role_and_label(Role::Button, "Draft").click();
+    harness.run_steps(4);
+    harness.get_by_label("Filter scenes by label").click();
+    harness.run();
+    harness.get_by_role_and_label(Role::Button, "Draft").click();
+    harness.run();
+    harness.get_by_role_and_label(Role::TreeItem, "Opening Scene");
+    assert!(
+        harness
+            .query_by_role_and_label(Role::TreeItem, "INT. LIGHTHOUSE - NIGHT")
+            .is_none()
+    );
+    harness
+        .get_by_role_and_label(Role::Button, "Clear label filter: Draft")
+        .click();
+    harness.run();
+    harness.get_by_role_and_label(Role::TreeItem, "INT. LIGHTHOUSE - NIGHT");
+    // Convert a scene from its menu (it asks first).
+    menu(&mut harness, "Opening Scene");
+    harness
+        .get_by_role_and_label(Role::Button, "Convert this scene to screenplay")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Convert")
+        .click();
+    harness.run_steps(12);
+    let saved = memory.last();
+    let opening = document(project(&saved, "project-1"), "doc-1").expect("opening");
+    assert_eq!(
+        opening
+            .get("format")
+            .and_then(JsValue::as_js_string)
+            .map(|f| f.to_string_lossy())
+            .as_deref(),
+        Some("screenplay")
+    );
+    // The project to the Trash (it asks first): the other one opens; back, then gone for good.
+    harness
+        .get_by_role_and_label(Role::Button, "Move current project to Trash")
+        .click();
+    harness.run();
+    harness.get_by_label_contains("to Trash? You can restore it later.");
+    harness
+        .get_by_role_and_label(Role::Button, "Move to Trash")
+        .click();
+    harness.run_steps(12);
+    let trashed = |memory: &Memory, id: &str| {
+        project(&memory.last(), id)
+            .get("project")
+            .and_then(|p| p.get("trashed"))
+            .is_some_and(|t| matches!(t, JsValue::Bool(true)))
+    };
+    assert!(trashed(&memory, "project-1"));
+    harness.get_by_label_contains("Trash (").click();
+    harness.run();
+    harness.get_by_label_contains("Project: The Lighthouse");
+    harness
+        .get_by_role_and_label(Role::Button, "Restore project The Lighthouse 🌊 Keeper")
+        .click();
+    harness.run_steps(12);
+    assert!(!trashed(&memory, "project-1"));
+}
+
+#[test]
+fn front_and_back_matter_pages_are_added_written_moved_and_removed() {
+    let (mut harness, memory) = app();
+    let pages = |memory: &Memory, key: &str| -> Vec<(String, String, bool)> {
+        project(&memory.last(), "project-1")
+            .get("project")
+            .and_then(|p| p.get("publishOptions"))
+            .and_then(|o| o.get(key))
+            .and_then(JsValue::as_array)
+            .unwrap_or_default()
+            .iter()
+            .map(|p| {
+                let s = |k: &str| {
+                    p.get(k)
+                        .and_then(JsValue::as_js_string)
+                        .map(|v| v.to_string_lossy())
+                        .unwrap_or_default()
+                };
+                (
+                    s("title"),
+                    s("body"),
+                    matches!(p.get("blank"), Some(JsValue::Bool(true))),
+                )
+            })
+            .collect()
+    };
+    harness.get_by_role_and_label(Role::Tab, "Publish").click();
+    harness.run();
+    harness.get_by_label("Front matter").scroll_to_me();
+    harness.run();
+    harness.get_by_label("Front matter").click();
+    harness.run();
+    harness.get_by_label("Front matter preset").scroll_to_me();
+    harness.run();
+    harness.get_by_label("Front matter preset").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Foreword")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Add page")
+        .click();
+    harness.run_steps(12);
+    harness.get_by_label("Foreword text").focus();
+    harness
+        .get_by_label("Foreword text")
+        .type_text("Why this book.");
+    harness.get_by_label("Front matter preset").focus();
+    harness.run_steps(12);
+    assert_eq!(
+        pages(&memory, "frontMatter"),
+        [("Foreword".into(), "Why this book.".into(), false)]
+    );
+    harness.get_by_label("Front matter preset").scroll_to_me();
+    harness.run();
+    harness.get_by_label("Front matter preset").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Preface")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Add page")
+        .click();
+    harness.run_steps(12);
+    harness
+        .get_by_role_and_label(Role::Button, "Move Preface up")
+        .click();
+    harness.run_steps(12);
+    harness
+        .get_by_role_and_label(Role::Button, "Remove Foreword")
+        .click();
+    harness.run_steps(12);
+    assert_eq!(
+        pages(&memory, "frontMatter"),
+        [("Preface".into(), String::new(), false)]
+    );
+    // A blank page at the back.
+    harness.get_by_label("Back matter").scroll_to_me();
+    harness.run();
+    harness.get_by_label("Back matter").click();
+    harness.run();
+    harness.get_by_label("Back matter preset").scroll_to_me();
+    harness.run();
+    harness.get_by_label("Back matter preset").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Blank page")
+        .click_accesskit();
+    harness.run();
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add page")
+        .last()
+        .expect("the back matter's Add page")
+        .click();
+    harness.run_steps(12);
+    assert_eq!(
+        pages(&memory, "backMatter"),
+        [(String::new(), String::new(), true)]
+    );
+}
+
+#[test]
+fn a_cover_is_chosen_replaced_and_removed() {
+    let (mut harness, memory) = app();
+    let cover = |memory: &Memory| -> JsValue {
+        project(&memory.last(), "project-1")
+            .get("project")
+            .and_then(|p| p.get("publishOptions"))
+            .and_then(|o| o.get("cover"))
+            .cloned()
+            .unwrap_or(JsValue::Null)
+    };
+    let text = |v: &JsValue, k: &str| {
+        v.get(k)
+            .and_then(JsValue::as_js_string)
+            .map(|s| s.to_string_lossy())
+            .unwrap_or_default()
+    };
+    harness.get_by_role_and_label(Role::Tab, "Publish").click();
+    harness.run();
+    harness.get_by_label("Cover: Image").scroll_to_me();
+    harness.run();
+    harness.get_by_label("Cover: Image").click_accesskit();
+    harness.run_steps(12);
+    // The Image tab stays chosen before there is an image, as in ProseCraft.
+    assert_eq!(text(&cover(&memory), "mode"), "image");
+    harness.get_by_label("No image");
+    harness.get_by_label("Choose image").click_accesskit();
+    harness.run();
+    assert!(
+        harness
+            .state_mut()
+            .take_requests()
+            .contains(&prosecraft_ui_egui::HostRequest::ChooseCover)
+    );
+    // A file it can't use: ProseCraft's message, and nothing stored.
+    harness.state_mut().set_cover_image("cover.gif", b"GIF89a");
+    harness.run();
+    harness.get_by_label("Use a PNG, JPG, or WebP image.");
+    // A wide picture: cropped to a 1600 × 2400 cover.
+    let mut rgba = Vec::new();
+    for _ in 0..30 {
+        for x in 0..60u8 {
+            rgba.extend([x * 4, 90, 160, 255]);
+        }
+    }
+    let image =
+        craft_image_codecs::Image::from_u8(60, 30, craft_image_codecs::ChannelLayout::Rgba, rgba)
+            .expect("image");
+    let png =
+        craft_image_codecs::encode(&image, craft_image_codecs::Format::Png, &Default::default())
+            .expect("png");
+    harness.state_mut().set_cover_image("Sea.png", &png);
+    harness.run_steps(12);
+    let stored = cover(&memory);
+    assert_eq!(text(&stored, "mode"), "image");
+    let image = text(&stored, "image");
+    assert!(
+        image.starts_with("data:image/webp;base64,"),
+        "{}",
+        &image[..30.min(image.len())]
+    );
+    assert!(
+        harness
+            .query_by_label("Use a PNG, JPG, or WebP image.")
+            .is_none()
+    );
+    harness.get_by_label("Cover preview");
+    harness.get_by_label("Replace");
+    // Removed: no cover.
+    harness.get_by_label("Remove").click_accesskit();
+    harness.run_steps(12);
+    let stored = cover(&memory);
+    assert_eq!(
+        (text(&stored, "mode"), text(&stored, "image")),
+        ("none".to_owned(), String::new())
+    );
+    // Generated: a design and a palette.
+    harness.get_by_label("Cover: Generated").click_accesskit();
+    harness.run_steps(12);
+    harness
+        .get_by_role_and_label(Role::RadioButton, "Bold")
+        .click_accesskit();
+    harness.run_steps(12);
+    harness.get_by_label("Plum palette").click_accesskit();
+    harness.run_steps(12);
+    let stored = cover(&memory);
+    assert_eq!(
+        (
+            text(&stored, "mode"),
+            text(&stored, "design"),
+            text(&stored, "palette")
+        ),
+        ("generated".to_owned(), "bold".to_owned(), "plum".to_owned())
+    );
+}
+
+#[test]
+fn custom_styles_are_created_edited_and_deleted() {
+    let (mut harness, memory) = app();
+    let options = |memory: &Memory| -> JsValue {
+        project(&memory.last(), "project-1")
+            .get("project")
+            .and_then(|p| p.get("publishOptions"))
+            .cloned()
+            .unwrap_or(JsValue::Null)
+    };
+    let text = |v: Option<&JsValue>| {
+        v.and_then(JsValue::as_js_string)
+            .map(|s| s.to_string_lossy())
+            .unwrap_or_default()
+    };
+    harness.get_by_role_and_label(Role::Tab, "Publish").click();
+    harness.run();
+    harness.get_by_label("+ New style").scroll_to_me();
+    harness.run();
+    harness.get_by_label("+ New style").click();
+    harness.run();
+    harness.get_by_label("New style");
+    harness.get_by_label("Font").click_accesskit();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Courier")
+        .click_accesskit();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Create style")
+        .click_accesskit();
+    harness.run_steps(12);
+    let saved = options(&memory);
+    let style = saved
+        .get("customStyles")
+        .and_then(JsValue::as_array)
+        .and_then(|s| s.first())
+        .cloned()
+        .expect("a custom style");
+    assert_eq!(text(style.get("label")), "Manuscript copy");
+    assert_eq!(text(style.get("fontId")), "courier");
+    assert_eq!(text(saved.get("style")), text(style.get("id")));
+    assert!(text(style.get("id")).starts_with("custom-"));
+    // Renamed to a built-in style's name: refused; then to its own.
+    harness
+        .get_by_role_and_label(Role::Button, "Edit Manuscript copy")
+        .click_accesskit();
+    harness.run();
+    harness.get_by_label("Style name").focus();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    harness
+        .get_by_label("Style name")
+        .type_text("classic NOVEL");
+    harness.run();
+    harness.get_by_label("Another style already uses that name.");
+    harness.get_by_label("Style name").focus();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    harness.get_by_label("Style name").type_text("Draft");
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Save changes")
+        .click_accesskit();
+    harness.run_steps(12);
+    let saved = options(&memory);
+    assert_eq!(
+        saved
+            .get("customStyles")
+            .and_then(JsValue::as_array)
+            .map(|s| s.iter().map(|x| text(x.get("label"))).collect::<Vec<_>>()),
+        Some(vec!["Draft".to_owned()])
+    );
+    // Deleted (asked first): Manuscript is chosen again.
+    harness
+        .get_by_role_and_label(Role::Button, "Delete Draft")
+        .click_accesskit();
+    harness.run();
+    harness.get_by_label("Delete this style?");
+    harness
+        .get_by_role_and_label(Role::Button, "Delete")
+        .click_accesskit();
+    harness.run_steps(12);
+    let saved = options(&memory);
+    assert_eq!(text(saved.get("style")), "manuscript");
+    assert_eq!(
+        saved
+            .get("customStyles")
+            .and_then(JsValue::as_array)
+            .map(<[JsValue]>::len),
+        Some(0)
+    );
+}
+
+#[test]
+fn undo_takes_back_formatting() {
+    let (mut harness, memory) = app();
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("an add button")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Scene 1")
+        .click();
+    harness.run();
+    let body = harness.get_by_label("Scene text");
+    body.focus();
+    body.type_text("loud words");
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::NONE, egui::Key::Home);
+    for _ in 0..4 {
+        harness.key_press_modifiers(egui::Modifiers::SHIFT, egui::Key::ArrowRight);
+    }
+    harness.run();
+    harness.get_by_role_and_label(Role::Button, "Bold").click();
+    harness.run_steps(12);
+    assert_eq!(
+        content(&memory, "new-1"),
+        "<p><strong>loud</strong> words</p>"
+    );
+    harness.get_by_role_and_label(Role::Button, "Undo").click();
+    harness.run_steps(12);
+    assert_eq!(content(&memory, "new-1"), "<p>loud words</p>");
+}
+
+#[test]
+fn undo_outside_the_text_takes_back_the_last_change_on_the_page() {
+    let (mut harness, memory) = app();
+    let chapters = |memory: &Memory| -> usize {
+        project(&memory.last(), "project-1")
+            .get("project")
+            .and_then(|p| p.get("chapters"))
+            .and_then(JsValue::as_array)
+            .map_or(0, <[JsValue]>::len)
+    };
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness.run_steps(12);
+    let before = chapters(&memory);
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("an add button")
+        .click();
+    harness.run_steps(12);
+    assert_eq!(chapters(&memory), before + 1);
+    // Nothing focused: Ctrl+Z is the page's.
+    harness.ctx.memory_mut(|m| m.request_focus(egui::Id::NULL));
+    harness.ctx.memory_mut(|m| {
+        if let Some(id) = m.focused() {
+            m.surrender_focus(id);
+        }
+    });
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::Z);
+    harness.run_steps(12);
+    assert_eq!(chapters(&memory), before);
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::Y);
+    harness.run_steps(12);
+    assert_eq!(chapters(&memory), before + 1);
+}
+
+#[test]
 fn a_screenplay_scene_opens_in_the_screenplay_editor() {
     let (mut harness, _memory) = app();
     harness
@@ -448,6 +1279,467 @@ fn markdown_exports_from_the_publish_view() {
     let markdown = String::from_utf8_lossy(bytes);
     assert!(markdown.starts_with("---\ntitle: "), "{markdown}");
     assert!(markdown.contains("It was _dark_.[^1]"), "{markdown}");
+}
+
+#[test]
+fn a_generated_cover_is_shown_and_exported() {
+    let (mut harness, _memory) = app();
+    harness.get_by_role_and_label(Role::Tab, "Publish").click();
+    harness.run();
+    harness.get_by_label("Cover: Generated").scroll_to_me();
+    harness.run();
+    harness.get_by_label("Cover: Generated").click_accesskit();
+    harness.run_steps(12);
+    harness.get_by_label("Generated cover preview");
+    for (role, name) in [
+        (Role::RadioButton, "HTML (html)"),
+        (Role::Button, "Export HTML"),
+    ] {
+        harness.get_by_role_and_label(role, name).scroll_to_me();
+        harness.run();
+        harness.get_by_role_and_label(role, name).click();
+        harness.run_steps(4);
+    }
+    let requests = harness.state_mut().take_requests();
+    let Some(prosecraft_ui_egui::HostRequest::ExportFile { bytes, .. }) = requests.first() else {
+        panic!("an export was asked for: {requests:?}");
+    };
+    let html = String::from_utf8_lossy(bytes);
+    // The Ink palette's colour behind the drawn cover, first in the book.
+    let book = html.find("<div class=\"book\">").expect("book");
+    assert!(
+        html[book..].starts_with(
+            "<div class=\"book\">\n<section class=\"cover-page\" style=\"background:#141813\" aria-label=\"Cover\"><img src=\"data:image/png;base64,"
+        ),
+        "{}",
+        &html[book..book + 200]
+    );
+}
+
+#[test]
+fn the_preview_shows_each_part_on_its_pages() {
+    let (mut harness, _memory) = app();
+    harness.set_size(egui::vec2(1700.0, 1000.0));
+    harness.get_by_role_and_label(Role::Tab, "Publish").click();
+    harness.run_steps(4);
+    // The title page first, on the PDF's first page.
+    harness.get_by_label_contains("Paginated preview of Title Page. Section 1 of 3.");
+    harness.get_by_label("Page 1");
+    assert!(harness.query_by_label("Page 2").is_none());
+    harness.get_by_label("Next section").click();
+    harness.run_steps(4);
+    harness.get_by_label_contains("Paginated preview of Chapter One. Section 2 of 3.");
+    harness.get_by_label("Page 2");
+    assert!(harness.query_by_label("Page 1").is_none());
+    // Straight to the bibliography from the navigator.
+    harness
+        .get_by_role_and_label(Role::Button, "Bibliography")
+        .click();
+    harness.run_steps(4);
+    harness.get_by_label_contains("Paginated preview of Bibliography. Section 3 of 3.");
+    assert!(
+        harness
+            .get_by_label("Next section")
+            .accesskit_node()
+            .is_disabled()
+    );
+    // Formats that aren't paged say so.
+    harness
+        .get_by_role_and_label(Role::RadioButton, "EPUB (epub)")
+        .click();
+    harness.run_steps(4);
+    harness.get_by_label_contains("Previewing Bibliography.");
+}
+
+/// Wiki files on a pretend device: what was copied in, read and deleted.
+#[derive(Clone, Default)]
+struct PretendWikiFiles(std::rc::Rc<std::cell::RefCell<Vec<String>>>);
+
+impl prosecraft_ui_egui::WikiFileStore for PretendWikiFiles {
+    fn import(&self, root: &str, folder: &str, key: &str, source: &str) -> Result<u64, String> {
+        if source.ends_with("locked.pdf") {
+            return Err("The selected file could not be read.".into());
+        }
+        self.0
+            .borrow_mut()
+            .push(format!("import {root}|{folder}|{key}"));
+        Ok(2048)
+    }
+    fn read_markdown(&self, _: &str, _: &str, key: &str) -> Result<String, String> {
+        self.0.borrow_mut().push(format!("read {key}"));
+        Ok("# Harbour notes\n\nThe *tide* turns at six.".into())
+    }
+    fn file_path(&self, root: &str, folder: &str, key: &str) -> Result<String, String> {
+        Ok(format!("{root}/{folder}/{key}"))
+    }
+    fn read(&self, _: &str, _: &str, key: &str, _: u64) -> Result<Vec<u8>, String> {
+        if key.ends_with(".pdf") {
+            // A real PDF: ProseCraft's shortcuts sheet, as the app writes it.
+            return prosecraft_core::shortcuts::pdf(false).map_err(|e| e.to_string());
+        }
+        Ok(b"# Harbour notes\n\nThe *tide* turns at six.".to_vec())
+    }
+    fn delete(&self, _: &str, _: &str, key: &str) -> Result<(), String> {
+        self.0.borrow_mut().push(format!("delete {key}"));
+        Ok(())
+    }
+    fn prepare_folder(&self, root: &str, folder: &str) -> Result<String, String> {
+        Ok(format!("{root}/{folder}"))
+    }
+    fn open(&self, target: &str) -> Result<(), String> {
+        self.0.borrow_mut().push(format!("open {target}"));
+        Ok(())
+    }
+    fn reveal(&self, path: &str) -> Result<(), String> {
+        self.0.borrow_mut().push(format!("reveal {path}"));
+        Ok(())
+    }
+}
+
+#[test]
+fn wiki_links_and_files_are_added_opened_and_removed() {
+    let (mut harness, memory) = app();
+    let device = PretendWikiFiles::default();
+    harness.state_mut().set_wiki_files(Box::new(device.clone()));
+    let items = |memory: &Memory| -> Vec<JsValue> {
+        project(&memory.last(), "project-1")
+            .get("project")
+            .and_then(|p| p.get("researchItems"))
+            .and_then(JsValue::as_array)
+            .map(<[JsValue]>::to_vec)
+            .unwrap_or_default()
+    };
+    let text = |v: &JsValue, k: &str| {
+        v.get(k)
+            .and_then(JsValue::as_js_string)
+            .map(|s| s.to_string_lossy())
+            .unwrap_or_default()
+    };
+    // A web link: the address made https, titled by its site.
+    harness.get_by_label("Add to Wiki").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Add web link")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TextInput, "Web address")
+        .type_text("ftp://nope");
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Add link")
+        .click();
+    harness.run();
+    harness.get_by_label("Enter a valid http or https address.");
+    harness
+        .get_by_role_and_label(Role::TextInput, "Web address")
+        .focus();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    harness
+        .get_by_role_and_label(Role::TextInput, "Web address")
+        .type_text("www.example.org/harbour");
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::MultilineTextInput, "Description")
+        .focus();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::MultilineTextInput, "Description")
+        .type_text("Tide tables");
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Add link")
+        .click();
+    harness.run_steps(12);
+    let link = items(&memory)
+        .into_iter()
+        .find(|i| text(i, "kind") == "link")
+        .expect("a link");
+    assert_eq!(text(&link, "url"), "https://www.example.org/harbour");
+    assert_eq!(text(&link, "title"), "example.org");
+    assert_eq!(text(&link, "description"), "Tide tables");
+    harness.get_by_label("Link added.");
+    harness.get_by_label("example.org").click();
+    harness.run();
+    assert!(harness.state_mut().take_requests().contains(
+        &prosecraft_ui_egui::HostRequest::OpenUrl("https://www.example.org/harbour".into())
+    ));
+    // Files: the folder is asked for first, then the files; one can't be read.
+    harness.get_by_label("Add to Wiki").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Add file")
+        .click();
+    harness.run();
+    assert_eq!(
+        harness.state_mut().take_requests(),
+        [prosecraft_ui_egui::HostRequest::ChooseWikiRoot { add_to: Some(None) }]
+    );
+    harness.state_mut().set_wiki_root("/wiki", Some(None));
+    assert_eq!(
+        harness.state_mut().take_requests(),
+        [prosecraft_ui_egui::HostRequest::PickWikiFiles { folder: None }]
+    );
+    harness.state_mut().add_wiki_files(
+        None,
+        &[
+            "/home/me/Harbour notes.md".into(),
+            "/home/me/locked.pdf".into(),
+        ],
+    );
+    harness.run_steps(12);
+    harness.get_by_label("Added 1 file. The selected file could not be read.");
+    let file = items(&memory)
+        .into_iter()
+        .find(|i| text(i, "kind") == "file")
+        .expect("a file");
+    let key = text(&file, "storageKey");
+    assert!(
+        key.starts_with("research/") && key.ends_with("/Harbour notes.md"),
+        "{key}"
+    );
+    assert_eq!(text(&file, "mimeType"), "text/markdown");
+    assert_eq!(file.get("size").and_then(JsValue::as_number), Some(2048.0));
+    let folder = text(
+        project(&memory.last(), "project-1")
+            .get("project")
+            .expect("project"),
+        "researchFolderName",
+    );
+    assert!(folder.ends_with(")") && folder.contains(" ("), "{folder}");
+    assert!(
+        device
+            .0
+            .borrow()
+            .contains(&format!("import /wiki|{folder}|{key}"))
+    );
+    // A Markdown file opens in the preview.
+    harness.get_by_label("Harbour notes.md").click();
+    harness.run();
+    let preview = harness.get_by_label("Markdown preview");
+    assert!(
+        preview
+            .accesskit_node()
+            .value()
+            .is_some_and(|v| v.contains("The tide turns at six.")),
+        "{:?}",
+        preview.accesskit_node().value()
+    );
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    assert!(harness.query_by_label("Markdown preview").is_none());
+    // Removed, asked first: gone from the Wiki and deleted from the folder.
+    harness
+        .get_by_role_and_label(Role::Button, "Actions for Harbour notes.md")
+        .click();
+    harness.run();
+    harness.get_by_label("Remove and delete file").click();
+    harness.run();
+    harness.get_by_label_contains("The file will be deleted from the project folder.");
+    harness
+        .get_by_role_and_label(Role::Button, "Remove")
+        .click();
+    harness.run_steps(12);
+    assert!(items(&memory).iter().all(|i| text(i, "kind") != "file"));
+    assert!(device.0.borrow().contains(&format!("delete {key}")));
+}
+
+#[test]
+fn proofreading_underlines_and_fixes_a_misspelling() {
+    let (mut harness, memory) = app();
+    // Settings → Proofreading: on.
+    harness
+        .get_by_role_and_label(Role::Button, "Settings…")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Tab, "Proofreading")
+        .click();
+    harness.run();
+    harness.get_by_label("Check spelling and grammar").click();
+    harness.run();
+    assert!(harness.get_all_by_label("English dialect").count() >= 1);
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    let body = harness.get_by_label("Scene text");
+    body.focus();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    harness
+        .get_by_label("Scene text")
+        .type_text("Teh lamp went out.");
+    harness.run();
+    // The pause after typing, then the check on its thread.
+    for _ in 0..400 {
+        harness.step();
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+    harness.run();
+    // Settings says what was found.
+    harness
+        .get_by_role_and_label(Role::Button, "Settings…")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Tab, "Proofreading")
+        .click();
+    harness.run();
+    assert!(harness.get_all_by_role(Role::Status).any(
+        |n| n.accesskit_node().value().as_deref() == Some("1 suggestion in the current scene.")
+    ));
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    // A click on the misspelled word opens its suggestions.
+    let text = harness.get_by_label("Scene text").rect();
+    let at = text.left_top() + egui::vec2(8.0, 12.0);
+    harness.event(egui::Event::PointerMoved(at));
+    for pressed in [true, false] {
+        harness.event(egui::Event::PointerButton {
+            pos: at,
+            button: egui::PointerButton::Primary,
+            pressed,
+            modifiers: egui::Modifiers::NONE,
+        });
+        harness.step();
+    }
+    harness.run();
+    harness.get_by_label("Proofreading suggestion");
+    harness.get_by_label_contains("Did you mean");
+    harness.get_by_role_and_label(Role::Button, "The").click();
+    harness.run_steps(12);
+    assert!(harness.query_by_label("Proofreading suggestion").is_none());
+    let saved = memory.last();
+    let scene = document(project(&saved, "project-1"), "doc-1").expect("scene");
+    assert_eq!(
+        js::stringify(scene.get("content").expect("content")),
+        r#""<p>The lamp went out.</p>""#
+    );
+}
+
+#[test]
+fn equations_and_calculations_are_inserted_from_the_toolbar() {
+    let (mut harness, memory) = app();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    let body = harness.get_by_label("Scene text");
+    body.focus();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    harness.get_by_label("Scene text").type_text("Energy");
+    harness.run();
+    // An empty calculation is refused.
+    harness.get_by_label("Insert calculation").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Insert")
+        .click();
+    harness.run();
+    harness.get_by_label("Add a calculation first.");
+    harness
+        .get_by_role_and_label(Role::Button, "Cancel")
+        .click();
+    harness.run();
+    // A block equation after the line.
+    harness.get_by_label("Insert equation").click();
+    harness.run();
+    harness.get_by_role_and_label(Role::Button, "Block").click();
+    harness
+        .get_by_role_and_label(Role::MultilineTextInput, "LaTeX")
+        .focus();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::MultilineTextInput, "LaTeX")
+        .type_text("E = mc^2");
+    harness.run();
+    harness.get_by_label("Preview");
+    harness
+        .get_by_role_and_label(Role::Button, "Insert")
+        .click();
+    harness.run_steps(12);
+    assert!(harness.query_by_label("Insert equation").is_some());
+    assert!(
+        harness
+            .query_by_role_and_label(Role::MultilineTextInput, "LaTeX")
+            .is_none()
+    );
+    let saved = memory.last();
+    let scene = document(project(&saved, "project-1"), "doc-1").expect("scene");
+    assert_eq!(
+        js::stringify(scene.get("content").expect("content")),
+        r#""<p>Energy</p><div class=\"math-block\" data-tex=\"E = mc^2\"></div><p><br></p>""#
+    );
+}
+
+#[test]
+fn the_split_view_shows_scenes_and_wiki_files_beside_the_editor() {
+    let (mut harness, _memory) = app();
+    harness.set_size(egui::vec2(1700.0, 1000.0));
+    harness
+        .state_mut()
+        .set_wiki_files(Box::new(PretendWikiFiles::default()));
+    harness.state_mut().set_wiki_root("/wiki", None);
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness.get_by_label("Open split view").click();
+    harness.run();
+    harness.get_by_label_contains("Pick a scene, wiki page or file above");
+    // A scene of another chapter, read beside the editor.
+    harness.get_by_label("Show in this pane").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "  INT. LIGHTHOUSE - NIGHT")
+        .click();
+    harness.run();
+    assert!(harness.get_all_by_label("Pane text").count() == 1);
+    // Swapped: the editor has that scene, the pane the one that was open.
+    harness
+        .get_by_label("Edit this in the main editor and show the current text here")
+        .click();
+    harness.run_steps(6);
+    assert!(harness.query_by_label("Scene text").is_some());
+    // Another pane, then closed again.
+    harness.get_by_label("Add another pane").click();
+    harness.run();
+    assert_eq!(harness.get_all_by_label("Close this pane").count(), 2);
+    harness
+        .get_all_by_label("Close this pane")
+        .last()
+        .expect("pane")
+        .click_accesskit();
+    harness.run();
+    assert_eq!(harness.get_all_by_label("Close this pane").count(), 1);
+    // A wiki file beside: a PDF's pages.
+    harness.state_mut().add_wiki_files(
+        None,
+        &[
+            "/home/me/Map.pdf".into(),
+            "/home/me/Harbour notes.md".into(),
+        ],
+    );
+    harness.run_steps(6);
+    harness
+        .get_by_role_and_label(Role::Button, "Actions for Map.pdf")
+        .click();
+    harness.run();
+    harness.get_by_label("Open beside").click();
+    harness.run_steps(6);
+    harness.get_by_label("Page 1");
+    harness.get_by_label("Close split view").click();
+    harness.run();
+    assert!(harness.query_by_label("Close this pane").is_none());
+    // Alt+Click on a scene opens it beside, as ProseCraft's shortcut sheet says.
+    harness
+        .get_by_role_and_label(Role::TreeItem, "INT. LIGHTHOUSE - NIGHT")
+        .click_modifiers(egui::Modifiers::ALT);
+    harness.run_steps(4);
+    assert_eq!(harness.get_all_by_label("Close this pane").count(), 1);
+    assert_eq!(harness.get_all_by_label("Pane text").count(), 1);
 }
 
 #[test]
@@ -920,9 +2212,71 @@ fn goals_are_set_and_writing_is_recorded_as_activity() {
     );
 }
 
+/// Settings → Writing → "Show Timeline view" (off by default, as in ProseCraft).
+fn enable_timeline(harness: &mut Harness<'static, ProseApp>) {
+    assert!(harness.query_by_label("Timeline").is_none());
+    harness
+        .get_by_role_and_label(Role::Button, "Settings…")
+        .click();
+    harness.run();
+    harness.get_by_label("Writing").click();
+    harness.run();
+    harness.get_by_label("Show Timeline view").click();
+    harness.run();
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+}
+
+#[test]
+fn zen_mode_hides_the_interface_while_typing_and_focus_mode_hides_it_until_left() {
+    let (mut harness, _) = app();
+    harness
+        .get_by_role_and_label(Role::Button, "Settings…")
+        .click();
+    harness.run();
+    harness.get_by_label("Writing").click();
+    harness.run();
+    harness
+        .get_by_label("Hide the interface while typing (Zen mode)")
+        .click();
+    harness.run();
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    harness.get_by_label("Scene text").type_text(" More.");
+    harness.run();
+    // The binder, the side panel and the view tabs are gone; the text stays.
+    assert!(harness.query_by_label("Opening Scene").is_none());
+    assert!(harness.query_by_label("Write").is_none());
+    harness.get_by_label("Scene text");
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    harness.get_by_label("Opening Scene");
+    // Focus mode: Ctrl+Shift+Enter hides it all at once, with a hint, until left.
+    harness.key_press_modifiers(
+        egui::Modifiers::COMMAND | egui::Modifiers::SHIFT,
+        egui::Key::Enter,
+    );
+    harness.run();
+    assert!(harness.query_by_label("Opening Scene").is_none());
+    harness.get_by_label_contains("Focus mode · Ctrl+Shift+Enter or Escape to leave");
+    harness.key_press_modifiers(
+        egui::Modifiers::COMMAND | egui::Modifiers::SHIFT,
+        egui::Key::Enter,
+    );
+    harness.run();
+    harness.get_by_label("Opening Scene");
+}
+
 #[test]
 fn timeline_moments_are_added_edited_moved_and_removed() {
     let (mut harness, memory) = app();
+    enable_timeline(&mut harness);
     harness.get_by_role_and_label(Role::Tab, "Timeline").click();
     harness.run();
     harness

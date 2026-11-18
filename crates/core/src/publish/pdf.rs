@@ -10,12 +10,11 @@
 //! - Text the standard fonts can't show (outside Windows-1252) is drawn as "?" and counted in
 //!   [`Layout::unshown`]; jsPDF writes such a string's UTF-16 bytes, which read as other
 //!   characters (jennraeross/ProseCraft#53).
-//! - Covers aren't ported yet, so there is no cover page.
 
 use std::collections::HashMap;
 
 use super::footnotes::{ResolvedFootnote, resolve_book_footnotes};
-use super::html::{matter_paragraphs, style_tokens};
+use super::html::matter_paragraphs;
 use super::pdf_text::{Face, Family, win_ansi};
 use super::rich_text::{
     Block, BlockKind, InlineImage, InlineRun, blocks_from_html, inline_runs_from_html,
@@ -46,6 +45,16 @@ pub enum Op {
         x2: f64,
         y2: f64,
         color: Rgb,
+        /// Points (jsPDF's default is 0.200025).
+        width: f64,
+    },
+    /// A filled rectangle from (`x`, `y`).
+    Rect {
+        x: f64,
+        y: f64,
+        width: f64,
+        height: f64,
+        color: Rgb,
     },
     /// An embedded image (a `data:` URL) in the box from (`x`, `y`).
     Image {
@@ -73,6 +82,9 @@ pub struct Layout {
     pub subtitle: String,
     /// Characters drawn as "?" because the standard fonts can't show them.
     pub unshown: usize,
+    /// Where each part of the book starts: its section id (as [`super::sections`] names it)
+    /// and the page index, in order. Covers, title pages, matter, chapters, the bibliography.
+    pub sections: Vec<(String, usize)>,
 }
 
 /// A word, space, break, footnote number or inline image, measured.
@@ -142,6 +154,8 @@ fn split_spaces(text: &str) -> Vec<(String, bool)> {
 }
 
 struct Writer<'a> {
+    /// Section ids and the page each starts on.
+    marks: Vec<(String, usize)>,
     family: Family,
     width: f64,
     height: f64,
@@ -233,6 +247,7 @@ impl Writer<'_> {
             x2,
             y2,
             color,
+            width: 0.200025,
         });
     }
 
@@ -272,6 +287,11 @@ impl Writer<'_> {
                 Some("center"),
             );
         }
+    }
+
+    /// Notes that the section `id` starts on the current page.
+    fn mark(&mut self, id: &str) {
+        self.marks.push((id.to_owned(), self.current));
     }
 
     fn start_front_matter_page(&mut self) {
@@ -1032,13 +1052,55 @@ impl Writer<'_> {
         }
     }
 
+    /// `renderCoverPage`: the cover as large as the page allows, centred on its average colour.
+    /// It takes the first page without a page number of its own.
+    fn render_cover_page(&mut self, cover: &super::cover::CompiledCover) {
+        let ratio = f64::from(cover.width) / f64::from(cover.height.max(1));
+        let (mut width, mut height) = (self.width, self.height);
+        if ratio > self.width / self.height {
+            height = width / ratio;
+        } else {
+            width = height * ratio;
+        }
+        // `pdfColor`.
+        let hex = cover.background.trim_start_matches('#');
+        let channel = |i: usize| {
+            hex.get(i..i + 2)
+                .and_then(|h| u8::from_str_radix(h, 16).ok())
+                .unwrap_or(255)
+        };
+        let page = &mut self.pages[self.current].ops;
+        page.push(Op::Rect {
+            x: 0.0,
+            y: 0.0,
+            width: self.width,
+            height: self.height,
+            color: [channel(0), channel(2), channel(4)],
+        });
+        page.push(Op::Image {
+            src: cover.data_url.clone(),
+            x: (self.width - width) / 2.0,
+            y: (self.height - height) / 2.0,
+            width,
+            height,
+        });
+        self.page_has_content = true;
+    }
+
     /// The title page, the copyright page and the dedication (`renderTitlePage`,
     /// `renderCopyrightPage`, `renderDedication`).
     fn render_opening_pages(&mut self, book: &CompiledBook, options: &PublishOptions) {
+        if let Some(cover) = &book.cover {
+            self.render_cover_page(cover);
+            if options.cover.mode != "none" {
+                self.mark("front-cover");
+            }
+        }
         let regular = Face::new(self.family, false, false);
         let has_copyright_page = options.include_copyright_page && !book.copyright.is_empty();
         if options.include_title_page {
             self.start_front_matter_page();
+            self.mark("front-title-page");
             let title_size = (self.body_size * 2.7).min(34.0);
             let mut y = self.height * 0.3;
             for line in regular.split_text_to_size(&book.title, self.content_width, title_size) {
@@ -1054,7 +1116,7 @@ impl Writer<'_> {
                 y += title_size * 1.18;
             }
             if !book.subtitle.is_empty() {
-                let face = Face::new(Family::Times, false, true);
+                let face = Face::new(self.family, false, true);
                 self.text(
                     &book.subtitle,
                     self.width / 2.0,
@@ -1096,6 +1158,7 @@ impl Writer<'_> {
         }
         if has_copyright_page {
             self.start_front_matter_page();
+            self.mark("front-copyright");
             let size = self.body_size * 0.82;
             let line_height = size * 1.6;
             let lines =
@@ -1117,7 +1180,8 @@ impl Writer<'_> {
         }
         if !book.dedication.is_empty() {
             self.start_front_matter_page();
-            let face = Face::new(Family::Times, false, true);
+            self.mark("front-dedication");
+            let face = Face::new(self.family, false, true);
             let size = self.body_size * 1.05;
             let mut y = self.height * 0.45;
             for line in face.split_text_to_size(&book.dedication, self.content_width * 0.7, size) {
@@ -1208,7 +1272,7 @@ pub fn layout_pdf(
     images: &dyn ImageSizes,
 ) -> Layout {
     let (book, bibliography) = super::citations::resolve_book_citations(book, options);
-    let tokens = style_tokens(&options.style);
+    let tokens = &super::styles::resolve_style_tokens(&options.style, &options.custom_styles);
     let [
         width,
         height,
@@ -1217,13 +1281,18 @@ pub fn layout_pdf(
         margin_bottom,
         margin_left,
     ] = tokens.page;
-    // All the built-in styles use Times (`pdfFont`).
     let (running_header, page_numbers) = (tokens.running_header, tokens.page_numbers);
+    // `pdfFont`: the style's standard font family.
+    let family = match tokens.pdf_font {
+        "helvetica" => Family::Helvetica,
+        "courier" => Family::Courier,
+        _ => Family::Times,
+    };
     let body_size = tokens.body_size;
     let content_top = margin_top;
     let content_bottom = height - margin_bottom;
     let mut w = Writer {
-        family: Family::Times,
+        family,
         width,
         height,
         content_left: margin_left,
@@ -1252,9 +1321,10 @@ pub fn layout_pdf(
         images,
         unshown: 0,
         no_notes: HashMap::new(),
+        marks: Vec::new(),
         font: std::cell::Cell::new((Face::new(Family::Times, false, false), 16.0)),
     };
-    let regular = Face::new(Family::Times, false, false);
+    let regular = Face::new(w.family, false, false);
     let has_toc = options.include_table_of_contents && !book.chapters.is_empty();
 
     let toc_heading_size = body_size * 1.5;
@@ -1293,12 +1363,16 @@ pub fn layout_pdf(
     let mut chapter_start_pages: Vec<usize> = Vec::new();
 
     w.render_opening_pages(&book, options);
-    for _ in 0..toc_page_count {
+    for index in 0..toc_page_count {
         w.start_front_matter_page();
+        if index == 0 {
+            w.mark("front-contents");
+        }
         toc_pages.push(w.current);
     }
     for page in &book.front_matter {
         w.start_front_matter_page();
+        w.mark(&format!("front-matter-{}", page.id));
         w.front_matter_mode = true;
         w.render_matter_page(page, tokens.justify);
         w.front_matter_mode = false;
@@ -1326,7 +1400,7 @@ pub fn layout_pdf(
             // Split before `setFont("bold", headingSize)`: in whatever font was set last.
             let (state_face, state_size) = w.font.get();
             let lines = state_face.split_text_to_size(&text, w.content_width, state_size);
-            let face = Face::new(Family::Times, true, false);
+            let face = Face::new(w.family, true, false);
             w.ensure_space(lines.len() as f64 * size * 1.25 + w.body_line * 2.0);
             start_page = w.page_number;
             w.y += tokens.chapter_before * size;
@@ -1344,6 +1418,7 @@ pub fn layout_pdf(
             w.y += tokens.chapter_after * size;
         }
         chapter_start_pages.push(start_page);
+        w.mark(&format!("chapter-{}", chapter.id));
         for (s, scene) in chapter.scenes.iter().enumerate() {
             if options.include_scene_titles {
                 w.render_scene_title(&scene.title);
@@ -1382,6 +1457,7 @@ pub fn layout_pdf(
         } else {
             w.begin_body();
         }
+        w.mark(&format!("back-matter-{}", page.id));
         w.render_matter_page(page, tokens.justify);
     }
 
@@ -1391,6 +1467,7 @@ pub fn layout_pdf(
         } else {
             w.begin_body();
         }
+        w.mark("back-bibliography");
         let opts = ParagraphOptions {
             size: body_size * 1.5,
             line_height: body_size * 1.8,
@@ -1433,5 +1510,6 @@ pub fn layout_pdf(
         author: book.author.clone(),
         subtitle: book.subtitle.clone(),
         unshown: w.unshown,
+        sections: w.marks,
     }
 }

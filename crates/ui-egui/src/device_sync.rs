@@ -38,6 +38,23 @@ impl ProseApp {
                 .load_setting(prosecraft_core::starters::custom::CUSTOM_STARTERS_KEY)
                 .as_deref(),
         );
+        self.state.writing = crate::WritingPrefs::load(home.store.as_mut());
+        self.state.proofread = crate::proofreading::ProofreadPrefs {
+            enabled: home
+                .store
+                .load_setting(crate::proofreading::ENABLED_KEY)
+                .as_deref()
+                == Some("true"),
+            dialect: home
+                .store
+                .load_setting(crate::proofreading::DIALECT_KEY)
+                .filter(|d| {
+                    prosecraft_core::proofread::DIALECTS
+                        .iter()
+                        .any(|(id, _)| id == d)
+                })
+                .unwrap_or_else(|| "american".to_owned()),
+        };
         self.state.markdown_enabled = home
             .store
             .load_setting(crate::settings::MARKDOWN_EDITOR_KEY)

@@ -179,6 +179,31 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                 crate::views::name_field(ui, &plus, "Create project");
                 plus.clicked()
             };
+            // `trashActiveProject` (it asks first); the last project can't go.
+            let live = projects.iter().filter(|p| !p.view.trashed).count();
+            if actions {
+                let trash = ui.add_enabled_ui(live > 1, |ui| {
+                    ui.menu_button("Trash", |ui| {
+                        ui.label(format!(
+                            "Move “{}” to Trash? You can restore it later.",
+                            current.view.name
+                        ));
+                        if ui
+                            .button(RichText::new("Move to Trash").color(palette.danger))
+                            .clicked()
+                        {
+                            state.intents.push(Intent::TrashProject);
+                            ui.close();
+                        }
+                    })
+                });
+                let response = trash.inner.response.on_hover_text(if live > 1 {
+                    "Move project to Trash"
+                } else {
+                    "The last project cannot be moved to Trash"
+                });
+                crate::views::name_field(ui, &response, "Move current project to Trash");
+            }
             let settings = actions && {
                 let gear = ui.button("⚙").on_hover_text("Project settings");
                 crate::views::name_field(ui, &gear, "Project settings");
@@ -238,6 +263,12 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         .auto_shrink([false, false])
         .show(ui, |ui| {
             let mut manage_labels = false;
+            // The label filter belongs to the project it was chosen in.
+            let mut filter = state
+                .label_filter
+                .as_ref()
+                .filter(|(p, l)| *p == project.id && project.label(l).is_some())
+                .map(|(_, l)| l.clone());
             chosen = chapters(
                 ui,
                 &palette,
@@ -247,7 +278,10 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                 &mut state.intents,
                 &mut manage_labels,
                 &mut state.renaming_scene,
+                &mut filter,
+                state.now_ms,
             );
+            state.label_filter = filter.map(|l| (project.id.clone(), l));
             if manage_labels {
                 state.labels_dialog = Some(crate::labels::LabelsDraft::for_project(project));
             }
@@ -264,10 +298,26 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                 &mut state.renaming_folder,
             )
             .or(chosen.take());
+            if let Some(status) = &state.wiki_status {
+                ui.label(RichText::new(status).size(11.0).color(palette.text_muted));
+            }
             ui.add_space(14.0);
             ui.separator();
             ui.add_space(8.0);
-            trash(ui, &palette, project, state.editable, &mut state.intents);
+            let trashed: Vec<(String, String)> = library
+                .projects()
+                .iter()
+                .filter(|p| p.view.trashed)
+                .map(|p| (p.view.id.clone(), p.view.name.clone()))
+                .collect();
+            trash(
+                ui,
+                &palette,
+                project,
+                &trashed,
+                state.editable,
+                &mut state.intents,
+            );
         });
     if let Some(selection) = chosen {
         state.select(selection);
@@ -284,6 +334,8 @@ fn chapters(
     intents: &mut Vec<Intent>,
     manage_labels: &mut bool,
     renaming: &mut Option<(String, String)>,
+    filter: &mut Option<String>,
+    now_ms: f64,
 ) -> Option<Selection> {
     let mut chosen = None;
     ui.horizontal(|ui| {
@@ -301,11 +353,66 @@ fn chapters(
         }
     });
     ui.add_space(4.0);
+    // "Filter scenes by label": only the scenes with that label, and their chapters.
+    if !project.labels.is_empty() {
+        let current = filter.as_deref().and_then(|id| project.label(id));
+        let combo = craft_ui::ComboBox::from_id_salt(("label-filter", &project.id))
+            .selected_text(current.map_or("All labels", |l| l.name.as_str()))
+            .show_ui(ui, |ui| {
+                ui.selectable_value(filter, None, "All labels");
+                for label in &project.labels {
+                    ui.selectable_value(filter, Some(label.id.clone()), label.name.as_str());
+                }
+            });
+        ui.ctx().accesskit_node_builder(combo.response.id, |node| {
+            node.set_label("Filter scenes by label");
+        });
+        if let Some(label) = current {
+            let chip = ui.small_button(format!("Filter: {} · clear", label.name));
+            crate::views::name_field(ui, &chip, &format!("Clear label filter: {}", label.name));
+            if chip.clicked() {
+                *filter = None;
+            }
+        }
+    }
+    let shown = |scene: &&prosecraft_core::project::Document| {
+        filter
+            .as_deref()
+            .is_none_or(|l| scene.label_id.as_deref() == Some(l))
+    };
     let mut any = false;
     for chapter in project.live_chapters() {
+        if filter.is_some() && !project.scenes_in_chapter(&chapter.id).any(|s| shown(&s)) {
+            continue;
+        }
         any = true;
         let selected = selection == Some(&Selection::Chapter(chapter.id.clone()));
         let title = crate::views::label_of(project, &chapter.id);
+        if let Some((id, draft)) = renaming.as_mut().filter(|(id, _)| *id == chapter.id) {
+            // `saveChapterRename`: Enter or leaving saves a title that isn't blank.
+            let field = ui.add(
+                egui::TextEdit::singleline(draft)
+                    .char_limit(120)
+                    .desired_width(180.0),
+            );
+            crate::views::name_field(ui, &field, &format!("Rename {title}"));
+            if !field.has_focus() && !field.lost_focus() {
+                field.request_focus();
+            }
+            if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+                *renaming = None;
+            } else if field.lost_focus() {
+                let next = draft.trim();
+                if !next.is_empty() {
+                    intents.push(Intent::SetChapterTitle {
+                        chapter: id.clone(),
+                        title: next.to_owned(),
+                    });
+                }
+                *renaming = None;
+            }
+            continue;
+        }
         let row = ui
             .horizontal(|ui| {
                 let row = tree_row(ui, palette, &title, 1, selected);
@@ -313,7 +420,14 @@ fn chapters(
                 row
             })
             .inner;
-        if row.clicked() {
+        // `openBesideTarget` with Alt+Click: the chapter's first scene.
+        if row.clicked() && ui.input(|i| i.modifiers.alt) {
+            if let Some(first) = project.scenes_in_chapter(&chapter.id).next() {
+                intents.push(Intent::OpenBeside(prosecraft_core::split::doc_target(
+                    &first.id,
+                )));
+            }
+        } else if row.clicked() {
             chosen = Some(Selection::Chapter(chapter.id.clone()));
         }
         if editable {
@@ -328,19 +442,40 @@ fn chapters(
                     chapter.label_id.as_deref(),
                 );
                 ui.separator();
+                if ui.button("Rename chapter").clicked() {
+                    *renaming = Some((chapter.id.clone(), title.clone()));
+                    ui.close();
+                }
+                for (label, offset) in [("Move up", -1), ("Move down", 1)] {
+                    if ui.button(label).clicked() {
+                        intents.push(Intent::MoveChapter {
+                            id: chapter.id.clone(),
+                            offset,
+                        });
+                        ui.close();
+                    }
+                }
                 if ui.button("Add scene").clicked() {
                     intents.push(Intent::AddScene {
                         chapter: chapter.id.clone(),
                     });
                     ui.close();
                 }
-                if ui
-                    .button(RichText::new("Move to Trash").color(palette.danger))
-                    .clicked()
-                {
-                    intents.push(Intent::TrashChapter(chapter.id.clone()));
-                    ui.close();
-                }
+                // `trashChapter` asks first.
+                ui.menu_button(RichText::new("Move to Trash").color(palette.danger), |ui| {
+                    let count = project.scenes_in_chapter(&chapter.id).count();
+                    let scenes = if count == 1 { "scene" } else { "scenes" };
+                    ui.label(format!(
+                        "Move “{title}” and its {count} {scenes} to Trash? You can restore them later."
+                    ));
+                    if ui
+                        .button(RichText::new("Move to Trash").color(palette.danger))
+                        .clicked()
+                    {
+                        intents.push(Intent::TrashChapter(chapter.id.clone()));
+                        ui.close();
+                    }
+                });
                 ui.separator();
                 if ui.button("Manage labels…").clicked() {
                     *manage_labels = true;
@@ -348,7 +483,7 @@ fn chapters(
                 }
             });
         }
-        for scene in project.scenes_in_chapter(&chapter.id) {
+        for scene in project.scenes_in_chapter(&chapter.id).filter(shown) {
             let selected = selection == Some(&Selection::Document(scene.id.clone()));
             let title = if scene.title.is_empty() {
                 "Untitled scene"
@@ -384,15 +519,62 @@ fn chapters(
                 }
                 let row = tree_row(ui, palette, title, 2, selected);
                 label_dot(ui, palette, project, scene.label_id.as_deref());
-                if row.clicked() {
+                if row.clicked() && ui.input(|i| i.modifiers.alt) {
+                    intents.push(Intent::OpenBeside(prosecraft_core::split::doc_target(
+                        &scene.id,
+                    )));
+                } else if row.clicked() {
                     chosen = Some(Selection::Document(scene.id.clone()));
                 }
                 if editable {
                     row_menu(ui, &row, &format!("Actions for {title}"), |ui| {
+                        if ui.button("Open beside").clicked() {
+                            intents.push(Intent::OpenBeside(prosecraft_core::split::doc_target(
+                                &scene.id,
+                            )));
+                            ui.close();
+                        }
                         if ui.button("Rename scene").clicked() {
                             *renaming = Some((scene.id.clone(), title.to_owned()));
                             ui.close();
                         }
+                        for (label, offset) in [("Move up", -1), ("Move down", 1)] {
+                            if ui.button(label).clicked() {
+                                intents.push(Intent::MoveScene {
+                                    id: scene.id.clone(),
+                                    offset,
+                                });
+                                ui.close();
+                            }
+                        }
+                        // `convertToScreenplay` (it asks first; a snapshot of the prose is kept).
+                        if !scene.screenplay {
+                            ui.menu_button("Convert this scene to screenplay", |ui| {
+                                ui.label(format!(
+                                    "Convert “{title}” to screenplay format? A snapshot of the prose version will be saved first."
+                                ));
+                                if ui.button(RichText::new("Convert").strong()).clicked() {
+                                    intents.push(Intent::ConvertToScreenplay {
+                                        document: scene.id.clone(),
+                                        now: now_ms,
+                                    });
+                                    ui.close();
+                                }
+                            });
+                        }
+                        ui.menu_button("Move to chapter…", |ui| {
+                            for target in project.live_chapters() {
+                                let here = scene.chapter_id.as_deref() == Some(&target.id);
+                                let name = crate::views::label_of(project, &target.id);
+                                if ui.radio(here, name).clicked() {
+                                    intents.push(Intent::MoveSceneToChapter {
+                                        scene: scene.id.clone(),
+                                        chapter: target.id.clone(),
+                                    });
+                                    ui.close();
+                                }
+                            }
+                        });
                         ui.separator();
                         label_choices(
                             ui,
@@ -422,7 +604,12 @@ fn chapters(
         }
     }
     if !any {
-        ui.label(RichText::new("No chapters yet.").color(palette.text_muted));
+        let empty = if filter.is_some() {
+            "No scenes with this label"
+        } else {
+            "No chapters yet."
+        };
+        ui.label(RichText::new(empty).color(palette.text_muted));
     }
     chosen
 }
@@ -442,7 +629,7 @@ fn wiki(
         eyebrow(ui, palette, "Wiki");
         if editable {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                // ProseCraft's "+": Add page, Add folder (files and web links come later).
+                // ProseCraft's "+": Add page, Add folder, Add file, Add web link.
                 let add = ui
                     .menu_button("+", |ui| {
                         if ui.button("Add page").clicked() {
@@ -451,6 +638,14 @@ fn wiki(
                         }
                         if ui.button("Add folder").clicked() {
                             intents.push(Intent::AddWikiFolder { parent: None });
+                            ui.close();
+                        }
+                        if ui.button("Add file").clicked() {
+                            intents.push(Intent::AddWikiFiles(None));
+                            ui.close();
+                        }
+                        if ui.button("Add web link").clicked() {
+                            intents.push(Intent::AddWikiLink(None));
                             ui.close();
                         }
                     })
@@ -462,7 +657,7 @@ fn wiki(
     ui.add_space(4.0);
     let items = project.wiki_tree();
     if items.is_empty() {
-        ui.label(RichText::new("Nothing here yet").color(palette.text_muted));
+        ui.label(RichText::new("Add a page, file, or link").color(palette.text_muted));
     }
     let folders: Vec<(String, String, usize)> = items
         .iter()
@@ -479,13 +674,23 @@ fn wiki(
                     item.title.as_str()
                 };
                 let row = tree_row(ui, palette, title, item.depth + 1, selected);
-                if row.clicked() {
+                if row.clicked() && ui.input(|i| i.modifiers.alt) {
+                    intents.push(Intent::OpenBeside(prosecraft_core::split::doc_target(
+                        &item.id,
+                    )));
+                } else if row.clicked() {
                     chosen = Some(Selection::Document(item.id.clone()));
                 }
                 if editable {
                     row_menu(ui, &row, &format!("Actions for {title}"), |ui| {
                         if ui.button("Open page").clicked() {
                             chosen = Some(Selection::Document(item.id.clone()));
+                            ui.close();
+                        }
+                        if ui.button("Open beside").clicked() {
+                            intents.push(Intent::OpenBeside(prosecraft_core::split::doc_target(
+                                &item.id,
+                            )));
                             ui.close();
                         }
                         ui.menu_button("Move to folder…", |ui| {
@@ -580,6 +785,14 @@ fn wiki(
                                 });
                                 ui.close();
                             }
+                            if ui.button("Add file").clicked() {
+                                intents.push(Intent::AddWikiFiles(Some(item.id.clone())));
+                                ui.close();
+                            }
+                            if ui.button("Add web link").clicked() {
+                                intents.push(Intent::AddWikiLink(Some(item.id.clone())));
+                                ui.close();
+                            }
                             if ui.button("Rename folder").clicked() {
                                 *renaming = Some((item.id.clone(), item.title.clone()));
                                 ui.close();
@@ -595,23 +808,130 @@ fn wiki(
                     );
                 }
             }
-            WikiItemKind::File => {
-                ui.label(
-                    RichText::new(format!("File: {}", item.title))
-                        .size(13.0)
-                        .color(palette.text_secondary),
-                );
-            }
-            WikiItemKind::Link => {
-                ui.label(
-                    RichText::new(format!("Link: {}", item.title))
-                        .size(13.0)
-                        .color(palette.text_secondary),
+            WikiItemKind::File | WikiItemKind::Link => {
+                let Some(found) = project.research_items.iter().find(|r| r.id == item.id) else {
+                    return;
+                };
+                research_row(
+                    ui,
+                    palette,
+                    &found.item,
+                    item.depth,
+                    editable,
+                    &folders,
+                    intents,
                 );
             }
         });
     }
     chosen
+}
+
+/// A Wiki file or link: its mark and title (the size and type, or the address, on hover);
+/// a click opens it, and its menu opens, reveals, moves or removes it.
+fn research_row(
+    ui: &mut Ui,
+    palette: &Palette,
+    item: &prosecraft_core::research::Item,
+    depth: usize,
+    editable: bool,
+    folders: &[(String, String, usize)],
+    intents: &mut Vec<Intent>,
+) {
+    use prosecraft_core::research::Item;
+    let (id, mark, file) = match item {
+        Item::File { id, mime_type, .. } if mime_type == "application/pdf" => (id, "PDF", true),
+        Item::File { id, mime_type, .. } if mime_type.starts_with("image/") => (id, "IMG", true),
+        Item::File { id, .. } => (id, "FILE", true),
+        Item::Link { id, .. } => (id, "LINK", false),
+    };
+    let title = item.title();
+    let row = ui
+        .horizontal(|ui| {
+            ui.label(
+                RichText::new(mark)
+                    .size(9.0)
+                    .monospace()
+                    .color(palette.text_muted),
+            );
+            tree_row(ui, palette, title, depth + 1, false)
+        })
+        .inner;
+    let hover = if file {
+        format!("{title} — {}", item.meta())
+    } else {
+        item.meta()
+    };
+    let row = row.on_hover_text(hover);
+    if row.clicked() && file && ui.input(|i| i.modifiers.alt) {
+        intents.push(Intent::OpenBeside(prosecraft_core::split::file_target(id)));
+    } else if row.clicked() {
+        intents.push(Intent::OpenWikiItem(id.clone()));
+    }
+    if !editable {
+        return;
+    }
+    row_menu(ui, &row, &format!("Actions for {title}"), |ui| {
+        if ui
+            .button(if file { "Open file" } else { "Open link" })
+            .clicked()
+        {
+            intents.push(Intent::OpenWikiItem(id.clone()));
+            ui.close();
+        }
+        if file && ui.button("Open beside").clicked() {
+            intents.push(Intent::OpenBeside(prosecraft_core::split::file_target(id)));
+            ui.close();
+        }
+        if file && ui.button("Reveal in folder").clicked() {
+            intents.push(Intent::RevealWikiFile(id.clone()));
+            ui.close();
+        }
+        if !folders.is_empty() {
+            ui.menu_button("Move to folder…", |ui| {
+                if ui.button("Unfiled").clicked() {
+                    intents.push(Intent::MoveWikiItem {
+                        id: id.clone(),
+                        folder: None,
+                    });
+                    ui.close();
+                }
+                for (folder, name, depth) in folders {
+                    if ui
+                        .button(format!("{}{name}", "  ".repeat(*depth)))
+                        .clicked()
+                    {
+                        intents.push(Intent::MoveWikiItem {
+                            id: id.clone(),
+                            folder: Some(folder.clone()),
+                        });
+                        ui.close();
+                    }
+                }
+            });
+        }
+        // `confirmDestructiveAction`.
+        let remove = if file {
+            "Remove and delete file"
+        } else {
+            "Remove link"
+        };
+        ui.menu_button(RichText::new(remove).color(palette.danger), |ui| {
+            let deleted = if file {
+                " The file will be deleted from the project folder."
+            } else {
+                ""
+            };
+            ui.label(format!("Remove “{title}” from the Wiki?{deleted}"));
+            if ui
+                .button(RichText::new("Remove").color(palette.danger))
+                .clicked()
+            {
+                intents.push(Intent::RemoveWikiItem(id.clone()));
+                ui.close();
+            }
+        });
+    });
 }
 
 /// "Restore", named for its item so each button in the Trash can be told apart.
@@ -627,11 +947,12 @@ fn trash(
     ui: &mut Ui,
     palette: &Palette,
     project: &Project,
+    projects: &[(String, String)],
     editable: bool,
     intents: &mut Vec<Intent>,
 ) {
     let (chapters, documents) = project.trash();
-    let count = chapters.len() + documents.len();
+    let count = chapters.len() + documents.len() + projects.len();
     egui::CollapsingHeader::new(
         RichText::new(format!("Trash ({count})"))
             .size(13.5)
@@ -643,6 +964,29 @@ fn trash(
         if count == 0 {
             ui.label(RichText::new("Trash is empty").color(palette.text_muted));
         }
+        for (id, name) in projects {
+            ui.horizontal(|ui| {
+                ui.label(RichText::new(format!("Project: {name}")).color(palette.text_secondary));
+                if editable && restore_button(ui, &format!("project {name}")).clicked() {
+                    intents.push(Intent::RestoreProject(id.clone()));
+                }
+                if editable {
+                    // `permanentlyDeleteProject` asks first.
+                    let delete = ui.menu_button(RichText::new("Delete").color(palette.danger), |ui| {
+                        ui.label(format!(
+                            "Permanently delete “{name}” and all its contents? This cannot be undone."
+                        ));
+                        if ui.button(RichText::new("Delete").color(palette.danger)).clicked() {
+                            intents.push(Intent::DeleteProject(id.clone()));
+                            ui.close();
+                        }
+                    });
+                    let label = format!("Permanently delete project {name}");
+                    ui.ctx()
+                        .accesskit_node_builder(delete.response.id, |node| node.set_label(label));
+                }
+            });
+        }
         for chapter in chapters {
             ui.horizontal(|ui| {
                 ui.label(
@@ -652,6 +996,27 @@ fn trash(
                 if editable && restore_button(ui, &chapter.title).clicked() {
                     intents.push(Intent::RestoreChapter(chapter.id.clone()));
                 }
+                if editable {
+                    // `permanentlyDeleteChapter` asks first.
+                    let count = project
+                        .documents
+                        .iter()
+                        .filter(|d| d.chapter_id.as_deref() == Some(&chapter.id))
+                        .count();
+                    let delete = ui.menu_button(RichText::new("Delete").color(palette.danger), |ui| {
+                        ui.label(format!(
+                            "Permanently delete “{}” and its {count} scene(s)? This cannot be undone.",
+                            chapter.title
+                        ));
+                        if ui.button(RichText::new("Delete").color(palette.danger)).clicked() {
+                            intents.push(Intent::DeleteChapter(chapter.id.clone()));
+                            ui.close();
+                        }
+                    });
+                    let name = format!("Permanently delete {} and its scenes", chapter.title);
+                    ui.ctx()
+                        .accesskit_node_builder(delete.response.id, |node| node.set_label(name));
+                }
             });
         }
         for document in documents {
@@ -659,6 +1024,16 @@ fn trash(
                 ui.label(RichText::new(document.title.as_str()).color(palette.text_secondary));
                 if editable && restore_button(ui, &document.title).clicked() {
                     intents.push(Intent::RestoreDocument(document.id.clone()));
+                }
+                // `permanentlyDelete`: at once, as ProseCraft does.
+                if editable {
+                    let delete = ui.small_button(RichText::new("Delete").color(palette.danger));
+                    let name = format!("Permanently delete {}", document.title);
+                    ui.ctx()
+                        .accesskit_node_builder(delete.id, |node| node.set_label(name));
+                    if delete.clicked() {
+                        intents.push(Intent::DeleteDocument(document.id.clone()));
+                    }
                 }
             });
         }

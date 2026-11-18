@@ -646,6 +646,65 @@ fn a_markdown_folder_is_sorted_into_manuscript_and_wiki_then_imported() {
 }
 
 #[test]
+fn a_table_and_code_stay_as_they_are_while_the_text_around_them_is_edited() {
+    use prosecraft_core::import::markdown_folder::MarkdownFile;
+    let memory = Memory::default();
+    let app = ProseApp::with_library(
+        ProjectLibrary::new("this-device".into()),
+        Box::new(memory.clone()),
+    );
+    let mut harness = harness(app);
+    harness.run();
+    harness.state_mut().import_markdown_folder(
+        "Vault",
+        vec![MarkdownFile {
+            path: "Manuscript/one.md".into(),
+            text: "# One\n\nBefore.\n\n---\n\n```\nlet x = 1 < 2;\n```\n\n| a | b |\n| - | - |\n| 1 | 2 |\n\nAfter.".into(),
+        }],
+        0,
+    );
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Import")
+        .click();
+    harness.run();
+    settle_import(&mut harness);
+    let imported = memory
+        .saved
+        .lock()
+        .map(|s| s.last().cloned())
+        .ok()
+        .flatten();
+    let imported = imported.expect("saved after the import");
+    let kept = |text: &str| -> String {
+        let start = text.find("<hr>").expect("the rule");
+        let end = text.find("</table>").expect("the table") + "</table>".len();
+        text[start..end].to_owned()
+    };
+    harness
+        .get_all_by_role_and_label(Role::TreeItem, "One")
+        .last()
+        .expect("the scene")
+        .click();
+    harness.run();
+    let body = harness.get_by_label("Scene text");
+    body.focus();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::End);
+    harness.get_by_label("Scene text").type_text(" More.");
+    harness.run_steps(12);
+    let saved = memory
+        .saved
+        .lock()
+        .map(|s| s.last().cloned())
+        .ok()
+        .flatten();
+    let saved = saved.expect("saved after typing");
+    assert!(saved.contains("<p>After. More.</p>"), "{saved}");
+    assert_eq!(kept(&saved), kept(&imported));
+    assert!(kept(&saved).contains("<pre><code>let x = 1 &lt; 2;"));
+}
+
+#[test]
 fn a_scene_the_rich_editor_cannot_hold_opens_as_markdown() {
     use prosecraft_core::import::markdown_folder::MarkdownFile;
     let memory = Memory::default();
@@ -655,12 +714,12 @@ fn a_scene_the_rich_editor_cannot_hold_opens_as_markdown() {
     );
     let mut harness = harness(app);
     harness.run();
-    // A hard line break: `<br>` in a paragraph, which the rich editor can't hold yet.
+    // A loose list (paragraphs in its items), which the rich editor can't hold yet.
     harness.state_mut().import_markdown_folder(
         "Vault",
         vec![MarkdownFile {
             path: "Manuscript/one.md".into(),
-            text: "# One\n\nFirst line  \nsecond line.".into(),
+            text: "# One\n\n- a\n\n- b".into(),
         }],
         0,
     );
@@ -684,7 +743,7 @@ fn a_scene_the_rich_editor_cannot_hold_opens_as_markdown() {
     let source = harness.get_by_label("Markdown source");
     assert_eq!(
         source.accesskit_node().value().as_deref(),
-        Some("First line  \nsecond line.")
+        Some("-   a\n    \n-   b")
     );
     // The preference stays off; Rich text editor goes back.
     harness
@@ -693,4 +752,86 @@ fn a_scene_the_rich_editor_cannot_hold_opens_as_markdown() {
     harness.run_steps(2);
     assert!(harness.query_by_label("Markdown source").is_none());
     harness.get_by_role_and_label(Role::Button, "Edit as Markdown");
+}
+
+#[test]
+fn a_comment_in_a_markdown_scene_anchors_as_prosecraft_does() {
+    use prosecraft_core::import::markdown_folder::MarkdownFile;
+    use prosecraft_core::js::JsValue;
+    let memory = Memory::default();
+    let app = ProseApp::with_library(
+        ProjectLibrary::new("this-device".into()),
+        Box::new(memory.clone()),
+    );
+    let mut harness = harness(app);
+    harness.run();
+    harness.state_mut().import_markdown_folder(
+        "Vault",
+        vec![MarkdownFile {
+            path: "Manuscript/one.md".into(),
+            text: "# One\n\nFirst line.\n\nSecond line.".into(),
+        }],
+        0,
+    );
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Import")
+        .click();
+    harness.run();
+    settle_import(&mut harness);
+    harness
+        .get_all_by_role_and_label(Role::TreeItem, "One")
+        .last()
+        .expect("the scene")
+        .click();
+    harness.run();
+    // Select "line." at the end of the second paragraph (focus puts the caret at the end).
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    for _ in 0..5 {
+        harness.key_press_modifiers(egui::Modifiers::SHIFT, egui::Key::ArrowLeft);
+    }
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Comment")
+        .click();
+    harness.run();
+    harness.get_by_label("Comment text").focus();
+    harness.get_by_label("Comment text").type_text("Why?");
+    harness.get_by_label("Author name").focus();
+    harness.get_by_label("Author name").type_text("Editor");
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Add comment")
+        .click();
+    harness.run_steps(12);
+    let saved = memory.saved.lock().ok().and_then(|s| s.last().cloned());
+    let library = prosecraft_core::js::parse(&saved.expect("saved")).expect("json");
+    let comment = library
+        .get("projects")
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|p| p.get("project")?.get("comments")?.as_array())
+        .flatten()
+        .find(|c| {
+            c.get("body")
+                .and_then(JsValue::as_js_string)
+                .is_some_and(|b| b.eq_str("Why?"))
+        })
+        .cloned()
+        .expect("the comment");
+    let field = |k: &str| {
+        comment
+            .get(k)
+            .and_then(JsValue::as_js_string)
+            .map(|s| s.to_string_lossy())
+            .unwrap_or_default()
+    };
+    // The scene is `<p>First line.</p>\n<p>Second line.</p>\n`: ProseCraft's comment text is
+    // "First line.\nSecond line.\n", the newlines between the blocks included.
+    assert_eq!(
+        (field("quote"), field("prefix"), field("suffix")),
+        ("line.".into(), "First line.\nSecond ".into(), "\n".into())
+    );
 }

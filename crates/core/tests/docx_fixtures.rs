@@ -319,10 +319,18 @@ fn cases() -> Vec<Case> {
                     }
                 }
             }
+            // The DOCX cover reads only the picture (`CompiledCover.dataUrl`).
             book.cover = case
                 .get("cover")
                 .and_then(JsValue::as_js_string)
-                .and_then(JsString::as_string);
+                .and_then(JsString::as_string)
+                .map(|data_url| prosecraft_core::publish::cover::CompiledCover {
+                    media_type: prosecraft_core::publish::cover::media_type(&data_url),
+                    data_url,
+                    width: 0,
+                    height: 0,
+                    background: String::new(),
+                });
             let theirs = base64::engine::general_purpose::STANDARD
                 .decode(string(case.get("docx")))
                 .expect("base64");

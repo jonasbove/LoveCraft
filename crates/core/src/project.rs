@@ -133,6 +133,8 @@ pub struct ResearchItem {
     pub title: String,
     pub folder_id: Option<String>,
     pub link: bool,
+    /// The file or link as ProseCraft keeps it on load (`normalizeResearchItems`).
+    pub item: crate::research::Item,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -318,18 +320,28 @@ impl Project {
                     parent_id: optional_text(f, "parentId"),
                 })
                 .collect(),
-            research_items: list(project, "researchItems")
-                .iter()
-                .map(|item| ResearchItem {
-                    id: text(item, "id"),
-                    title: optional_text(item, "title")
-                        .or_else(|| optional_text(item, "fileName"))
-                        .or_else(|| optional_text(item, "url"))
-                        .unwrap_or_default(),
-                    folder_id: optional_text(item, "folderId"),
-                    link: text(item, "kind") == "link",
-                })
-                .collect(),
+            research_items: {
+                let folders: Vec<String> = list(project, "researchFolders")
+                    .iter()
+                    .map(|f| text(f, "id"))
+                    .collect();
+                crate::research::normalize_items(project.get("researchItems"), &folders)
+                    .into_iter()
+                    .map(|(item, folder_id, _)| {
+                        let (id, link) = match &item {
+                            crate::research::Item::File { id, .. } => (id.clone(), false),
+                            crate::research::Item::Link { id, .. } => (id.clone(), true),
+                        };
+                        ResearchItem {
+                            id,
+                            title: item.title().to_owned(),
+                            folder_id,
+                            link,
+                            item,
+                        }
+                    })
+                    .collect()
+            },
             labels: crate::labels::project_labels(project),
             comments: list(project, "comments")
                 .iter()

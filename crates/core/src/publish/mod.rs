@@ -9,6 +9,8 @@
 
 mod citations;
 mod compile;
+pub mod cover;
+pub mod cover_art;
 mod docx;
 mod embedded_image;
 mod epub;
@@ -23,6 +25,8 @@ mod pdf_metrics;
 pub mod pdf_text;
 pub mod pdf_writer;
 pub mod rich_text;
+pub mod sections;
+pub mod styles;
 mod text;
 
 pub use compile::{

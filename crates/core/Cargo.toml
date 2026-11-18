@@ -34,6 +34,15 @@ unicode-normalization = { workspace = true }
 zeroize = { workspace = true }
 # Formatting dates (no clock: callers pass the time).
 chrono = { workspace = true }
+# Spelling and grammar (ProseCraft's proofreading).
+harper-core = { workspace = true }
+# Equations and calculations drawn (ProseCraft's MathJax).
+ratex-parser = { workspace = true }
+ratex-layout = { workspace = true }
+ratex-types = { workspace = true }
+ratex-svg = { workspace = true }
+resvg = { workspace = true }
+mermaid-rs-renderer = { workspace = true }
 
 # The operating system's random numbers on the desktop. The web build supplies the browser's
 # `crypto.getRandomValues` through `RandomSource` instead.

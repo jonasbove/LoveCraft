@@ -41,7 +41,7 @@ const FOOTNOTE_REF_CLASS: &str = "footnote-ref";
 /// How equations, diagrams and calculations appear in the text.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum RichText {
-    /// Their source: TeX, diagram source, calculation source (text exports).
+    /// Their source: TeX, diagram source, the evaluated calculation (text exports).
     #[default]
     Source,
     /// Left out (word counts).
@@ -176,9 +176,7 @@ fn rich_representation(element: &Element, mode: RichText) -> Option<String> {
     } else if element.has_class("math-block") {
         format!("$$\n{}\n$$", tex())
     } else if element.has_class("calc-worksheet") {
-        // ProseCraft prints the evaluated worksheet here; until the calculation engine is
-        // ported, its source stands in. Word counts (`Omit`) are unaffected.
-        source().to_owned()
+        crate::calc::worksheet_to_plain_text(source())
     } else {
         format!("[Diagram]\n{}", source())
     })
@@ -340,9 +338,119 @@ mod tests {
     use super::{count_words, is_js_whitespace};
 
     #[test]
+    fn a_calculation_reads_as_its_evaluated_worksheet() {
+        use super::{PlainTextOptions, RichText, html_to_plain_text};
+        let html = r#"<p>Load:</p><div class="calc-worksheet" data-source="m := 5 kg&#10;F := m g ="></div>"#;
+        let source = PlainTextOptions {
+            rich: RichText::Source,
+            ..PlainTextOptions::default()
+        };
+        assert_eq!(
+            html_to_plain_text(html, &source),
+            "Load:\n\nm := 5 kg\nF := m g = 49.033 N"
+        );
+        let omit = PlainTextOptions {
+            rich: RichText::Omit,
+            ..PlainTextOptions::default()
+        };
+        assert_eq!(html_to_plain_text(html, &omit), "Load:");
+    }
+
+    #[test]
     fn javascript_whitespace_not_rusts() {
         assert!(is_js_whitespace('\u{feff}'));
         assert!(!is_js_whitespace('\u{85}'));
         assert_eq!(count_words(" a\u{a0}b\u{85}c \u{3000}d "), 3);
+    }
+}
+
+/// `innerText` of the editor (`exportDocument`): the text as the browser lays it out, two
+/// newlines around a paragraph and one around other blocks (collapsed between them), a tab
+/// between table cells, a newline for `<br>`; footnote markers, citations and equations, which
+/// the editor draws without text, add nothing.
+pub fn inner_text(html: &str) -> String {
+    struct Out {
+        text: String,
+        /// Newlines owed before the next text (the larger of what the blocks around ask).
+        owed: usize,
+    }
+    impl Out {
+        fn push(&mut self, s: &str) {
+            if s.is_empty() {
+                return;
+            }
+            if !self.text.is_empty() {
+                self.text.push_str(&"\n".repeat(self.owed));
+            }
+            self.owed = 0;
+            self.text.push_str(s);
+        }
+        fn owe(&mut self, n: usize) {
+            self.owed = self.owed.max(n);
+        }
+    }
+    fn walk(nodes: &[Node], out: &mut Out) {
+        for node in nodes {
+            match node {
+                Node::Text(t) => out.push(t),
+                Node::Element(e) => {
+                    let widget = (e.name == "sup" && e.has_class("footnote-ref"))
+                        || e.has_class("cite-ref")
+                        || [
+                            "math-inline",
+                            "math-block",
+                            "mermaid-diagram",
+                            "calc-worksheet",
+                        ]
+                        .iter()
+                        .any(|c| e.has_class(c));
+                    if widget {
+                        continue;
+                    }
+                    let breaks = match e.name.as_str() {
+                        "p" => 2,
+                        "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "li" | "ul" | "ol"
+                        | "blockquote" | "pre" | "div" | "table" | "tr" | "hr" => 1,
+                        _ => 0,
+                    };
+                    if e.name == "br" {
+                        out.text.push('\n');
+                        continue;
+                    }
+                    out.owe(breaks);
+                    for (i, child) in e.children.iter().enumerate() {
+                        if e.name == "tr"
+                            && i > 0
+                            && matches!(child, Node::Element(c) if c.name == "td" || c.name == "th")
+                        {
+                            out.text.push('\t');
+                        }
+                        walk(std::slice::from_ref(child), out);
+                    }
+                    out.owe(breaks);
+                }
+            }
+        }
+    }
+    let mut out = Out {
+        text: String::new(),
+        owed: 0,
+    };
+    walk(&parse_fragment(html), &mut out);
+    out.text
+}
+
+#[cfg(test)]
+mod inner_text_tests {
+    use super::inner_text;
+
+    #[test]
+    fn reads_as_the_browser_lays_it_out() {
+        assert_eq!(
+            inner_text(
+                r#"<h2>Title</h2><p>It was <em>dark</em><sup class="footnote-ref" data-footnote-id="n"></sup>.</p><p>a<br>b</p><ul><li>one</li><li>two</li></ul>"#
+            ),
+            "Title\n\nIt was dark.\n\na\nb\n\none\ntwo"
+        );
     }
 }

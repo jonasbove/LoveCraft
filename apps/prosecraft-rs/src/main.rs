@@ -38,6 +38,14 @@ enum Then {
     Fountain,
     /// Import this citation file into the Sources dialog.
     Citations,
+    /// Put this picture into the open scene.
+    Picture,
+    /// Make this image the book's cover.
+    Cover,
+    /// The wiki files folder; then add files (to this Wiki folder) when some were being added.
+    WikiRoot(Option<Option<String>>),
+    /// Add these files to the Wiki (in this folder).
+    WikiFiles(Option<String>),
     /// Write these bytes where the person chose (a backup or an exported manuscript).
     Export(Vec<u8>),
     /// The folder to sync through.
@@ -148,6 +156,39 @@ fn start() -> (ProseApp, Option<String>) {
     )
 }
 
+/// Wiki files in a folder on this computer (`prosecraft_native::wiki_files`).
+struct WikiFiles;
+
+impl prosecraft_ui_egui::WikiFileStore for WikiFiles {
+    fn import(&self, root: &str, folder: &str, key: &str, source: &str) -> Result<u64, String> {
+        prosecraft_native::wiki_files::import(root, folder, key, Path::new(source))
+    }
+    fn read_markdown(&self, root: &str, folder: &str, key: &str) -> Result<String, String> {
+        prosecraft_native::wiki_files::read_markdown(root, folder, key)
+    }
+    fn read(&self, root: &str, folder: &str, key: &str, max: u64) -> Result<Vec<u8>, String> {
+        let path = prosecraft_native::wiki_files::file_path(root, folder, key)?;
+        read_capped(&path, max).map_err(|e| e.to_string())
+    }
+    fn file_path(&self, root: &str, folder: &str, key: &str) -> Result<String, String> {
+        prosecraft_native::wiki_files::file_path(root, folder, key)
+            .map(|p| p.to_string_lossy().into_owned())
+    }
+    fn delete(&self, root: &str, folder: &str, key: &str) -> Result<(), String> {
+        prosecraft_native::wiki_files::delete(root, folder, key)
+    }
+    fn prepare_folder(&self, root: &str, folder: &str) -> Result<String, String> {
+        prosecraft_native::wiki_files::prepare_project_folder(root, folder)
+            .map(|p| p.to_string_lossy().into_owned())
+    }
+    fn open(&self, target: &str) -> Result<(), String> {
+        prosecraft_native::wiki_files::open(target.as_ref())
+    }
+    fn reveal(&self, path: &str) -> Result<(), String> {
+        prosecraft_native::wiki_files::reveal(Path::new(path))
+    }
+}
+
 struct DesktopApp {
     app: ProseApp,
     dialogs: Dialogs<Then>,
@@ -203,6 +244,33 @@ impl eframe::App for DesktopApp {
                         });
                         match read {
                             Ok(_) => self.app.import_epub(&name, &bytes),
+                            Err(e) => eprintln!("{}: {e}", path.display()),
+                        }
+                    }
+                }
+                (Then::Cover, Answer::Paths(paths)) => {
+                    if let Some(path) = paths.first() {
+                        let name = path
+                            .file_name()
+                            .map(|n| n.to_string_lossy().into_owned())
+                            .unwrap_or_default();
+                        let limit = prosecraft_core::publish::cover::MAX_FILE_BYTES as u64;
+                        match read_capped(path, limit) {
+                            Ok(bytes) => self.app.set_cover_image(&name, &bytes),
+                            Err(e) => eprintln!("{}: {e}", path.display()),
+                        }
+                    }
+                }
+                (Then::Picture, Answer::Paths(paths)) => {
+                    if let Some(path) = paths.first() {
+                        let name = path
+                            .file_name()
+                            .map(|n| n.to_string_lossy().into_owned())
+                            .unwrap_or_default();
+                        // One byte more than a picture may have, so a larger file is refused.
+                        let limit = prosecraft_core::picture::MAX_FILE_BYTES as u64;
+                        match read_capped(path, limit) {
+                            Ok(bytes) => self.app.insert_picture(&name, &bytes),
                             Err(e) => eprintln!("{}: {e}", path.display()),
                         }
                     }
@@ -279,6 +347,18 @@ impl eframe::App for DesktopApp {
                         eprintln!("{}: {e}", path.display());
                     }
                 }
+                (Then::WikiRoot(add_to), Answer::Paths(paths)) => {
+                    if let Some(path) = paths.first() {
+                        self.app.set_wiki_root(&path.to_string_lossy(), add_to);
+                    }
+                }
+                (Then::WikiFiles(folder), Answer::Paths(paths)) => {
+                    let paths: Vec<String> = paths
+                        .iter()
+                        .map(|p| p.to_string_lossy().into_owned())
+                        .collect();
+                    self.app.add_wiki_files(folder, &paths);
+                }
                 (Then::SyncFolder, Answer::Paths(paths)) => {
                     if let Some(path) = paths.first() {
                         self.app
@@ -292,6 +372,19 @@ impl eframe::App for DesktopApp {
         self.app.show(ui);
         for request in self.app.take_requests() {
             match request {
+                HostRequest::ChooseWikiRoot { add_to } => {
+                    let dialog = FileDialog::folder().title("Choose a folder for wiki files");
+                    self.dialogs.ask(dialog, Then::WikiRoot(add_to));
+                }
+                HostRequest::PickWikiFiles { folder } => {
+                    let dialog = FileDialog::open_many().title("Add wiki files");
+                    self.dialogs.ask(dialog, Then::WikiFiles(folder));
+                }
+                HostRequest::OpenUrl(url) => {
+                    if let Err(e) = prosecraft_native::wiki_files::open(url.as_ref()) {
+                        eprintln!("{url}: {e}");
+                    }
+                }
                 HostRequest::ChooseSyncFolder => {
                     let dialog = FileDialog::folder().title("Choose a sync folder");
                     self.dialogs.ask(dialog, Then::SyncFolder);
@@ -308,6 +401,18 @@ impl eframe::App for DesktopApp {
                         &["bib", "bibtex", "ris", "json", "csljson"],
                     );
                     self.dialogs.ask(dialog, Then::Citations);
+                }
+                HostRequest::ChooseCover => {
+                    let dialog = FileDialog::open()
+                        .title("Choose a cover image")
+                        .filter("Images", &prosecraft_core::publish::cover::EXTENSIONS);
+                    self.dialogs.ask(dialog, Then::Cover);
+                }
+                HostRequest::InsertPicture => {
+                    let dialog = FileDialog::open()
+                        .title("Insert image")
+                        .filter("Images", &prosecraft_core::picture::EXTENSIONS);
+                    self.dialogs.ask(dialog, Then::Picture);
                 }
                 HostRequest::ImportFountain => {
                     let dialog = FileDialog::open()
@@ -488,6 +593,7 @@ fn main() -> ExitCode {
         return ExitCode::SUCCESS;
     }
     let (mut app, problem) = start();
+    app.set_wiki_files(Box::new(WikiFiles));
     // Zotero on this computer, through its local HTTP server.
     app.set_zotero(Arc::new(prosecraft_core::citations::zotero::request));
     if let Some(problem) = problem {

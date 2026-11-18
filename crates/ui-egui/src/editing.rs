@@ -18,6 +18,57 @@ pub enum Intent {
     },
     TrashDocument(String),
     TrashChapter(String),
+    /// Binder order: a chapter or scene a place up (`-1`) or down (`1`), a scene to the end of
+    /// another chapter ("Move to chapter…").
+    MoveChapter {
+        id: String,
+        offset: isize,
+    },
+    MoveScene {
+        id: String,
+        offset: isize,
+    },
+    MoveSceneToChapter {
+        scene: String,
+        chapter: String,
+    },
+    /// The open project to the Trash, a project back from it, or gone for good
+    /// (`trashActiveProject`, `restoreProject`, `permanentlyDeleteProject`).
+    TrashProject,
+    /// Ask the host for a cover image (`coverImageInput.click()`).
+    ChooseCover,
+    /// Wiki files and links (`addResearchFiles`, `openResearchLinkDialog`, `openResearchFile`,
+    /// `openResearchLink`, `revealResearchFile`, `moveResearchItem`, `removeResearchItem`).
+    AddWikiFiles(Option<String>),
+    /// `openBesideTarget`: shown in a split view pane (`doc:<id>`, `file:<id>`).
+    OpenBeside(String),
+    /// "Open externally" from a pane.
+    OpenWikiFileExternally(String),
+    AddWikiLink(Option<String>),
+    OpenWikiItem(String),
+    RevealWikiFile(String),
+    MoveWikiItem {
+        id: String,
+        folder: Option<String>,
+    },
+    RemoveWikiItem(String),
+    /// Settings: `chooseResearchRoot`, `revealResearchProjectFolder`.
+    ChooseWikiRoot,
+    RevealWikiProjectFolder,
+    /// A custom export style saved (a new one gets its id) and chosen, or deleted.
+    SaveCustomStyle(Box<prosecraft_core::publish::styles::CustomStyle>),
+    DeleteCustomStyle(String),
+    /// A matter page from a preset (`addMatterPage`): front or back, its title, blank or not.
+    AddMatterPage {
+        front: bool,
+        title: String,
+        blank: bool,
+    },
+    RestoreProject(String),
+    DeleteProject(String),
+    /// From the Trash, gone for good (`permanentlyDelete`, `permanentlyDeleteChapter`).
+    DeleteDocument(String),
+    DeleteChapter(String),
     RestoreDocument(String),
     RestoreChapter(String),
     SetChapterSummary {
@@ -164,6 +215,24 @@ pub enum Intent {
         document: String,
         at: usize,
     },
+    /// Undo or redo in the editor (Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y there, or the toolbar's
+    /// Undo and Redo): the scene's own history (`runFieldHistory`).
+    BodyHistory {
+        document: String,
+        undo: bool,
+    },
+    /// Typing in the editor: Zen mode hides the interface.
+    HideInterface,
+    /// Undo or redo with no text field focused: the page's history (`runPageHistory`).
+    PageHistory {
+        undo: bool,
+    },
+    /// ProseCraft's Insert image: ask the host for a picture, for a character of the open
+    /// scene (placed with the editor's draft when it arrives).
+    InsertPicture {
+        document: String,
+        at: usize,
+    },
     SetFootnote {
         document: String,
         id: String,
@@ -226,6 +295,15 @@ pub struct Draft {
     /// In the chapter view's Markdown editor: the chapter whose scenes `markdown` holds, with
     /// `<!-- scene-break -->` lines between them.
     pub chapter: Option<String>,
+    /// Where the caret last was in the text (a character), for what arrives later: a dropped
+    /// picture.
+    pub caret: Option<usize>,
+    /// The selection after the last edit recorded in the undo history; the caret having moved
+    /// since starts a new step.
+    pub undo_caret: Option<(usize, usize)>,
+    /// Add link's prompt, while open: the characters it links, what was typed, and why it
+    /// isn't a link yet.
+    pub link_prompt: Option<(std::ops::Range<usize>, String, Option<&'static str>)>,
 }
 
 /// Seconds after the last keystroke before the draft reaches the project (ProseCraft: 250 ms).
@@ -276,6 +354,29 @@ pub fn run(
         }
         Intent::TrashDocument(id) => edit::trash_document(data, id),
         Intent::TrashChapter(id) => edit::trash_chapter(data, id),
+        Intent::MoveChapter { id, offset } => edit::move_chapter(data, id, *offset),
+        Intent::MoveWikiItem { id, folder } => {
+            prosecraft_core::research::move_item(data, id, folder.as_deref())
+        }
+        Intent::SaveCustomStyle(style) => edit::save_custom_style(data, style, &new_id()),
+        Intent::DeleteCustomStyle(id) => edit::delete_custom_style(data, id),
+        Intent::AddMatterPage {
+            front,
+            title,
+            blank,
+        } => edit::add_matter_page(
+            data,
+            if *front { "frontMatter" } else { "backMatter" },
+            &new_id(),
+            title,
+            *blank,
+        ),
+        Intent::MoveScene { id, offset } => edit::move_scene(data, id, *offset),
+        Intent::MoveSceneToChapter { scene, chapter } => {
+            edit::move_scene_to_chapter_end(data, scene, chapter)
+        }
+        Intent::DeleteDocument(id) => edit::delete_document(data, id),
+        Intent::DeleteChapter(id) => edit::delete_chapter(data, id),
         Intent::RestoreDocument(id) => edit::restore_document(data, id),
         Intent::RestoreChapter(id) => edit::restore_chapter(data, id, None),
         Intent::SetChapterSummary { chapter, summary } => {
@@ -405,6 +506,23 @@ pub fn run(
         }
         // Placed by the app, which holds the draft.
         Intent::InsertFootnote { .. }
+        | Intent::BodyHistory { .. }
+        | Intent::PageHistory { .. }
+        | Intent::HideInterface
+        | Intent::TrashProject
+        | Intent::RestoreProject(_)
+        | Intent::DeleteProject(_)
+        | Intent::InsertPicture { .. }
+        | Intent::ChooseCover
+        | Intent::AddWikiFiles(_)
+        | Intent::OpenBeside(_)
+        | Intent::OpenWikiFileExternally(_)
+        | Intent::AddWikiLink(_)
+        | Intent::OpenWikiItem(_)
+        | Intent::RevealWikiFile(_)
+        | Intent::RemoveWikiItem(_)
+        | Intent::ChooseWikiRoot
+        | Intent::RevealWikiProjectFolder
         | Intent::PlaceCitation { .. }
         | Intent::RemoveCitation { .. } => Ok(()),
         Intent::SetFootnote { document, id, html } => {

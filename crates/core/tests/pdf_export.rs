@@ -38,6 +38,10 @@ enum Draw {
     Image {
         at: [f64; 4],
     },
+    Rect {
+        at: [f64; 4],
+        color: [f64; 3],
+    },
 }
 
 /// WinAnsi bytes as text; or, as jsPDF writes a string the font can't encode, UTF-16 with what
@@ -179,6 +183,10 @@ fn draws(bytes: &[u8]) -> Vec<Vec<Draw>> {
                     color: stroke,
                 }),
                 b"cm" => matrix = [n(0), n(1), n(2), n(3), n(4), n(5)],
+                b"re" => draws.push(Draw::Rect {
+                    at: [n(0), n(1), n(2), n(3)],
+                    color: fill,
+                }),
                 b"Do" => draws.push(Draw::Image {
                     at: [matrix[4], matrix[5], matrix[0], matrix[3]],
                 }),
@@ -256,6 +264,11 @@ fn differ(want: &Draw, have: &Draw) -> Option<String> {
             let same = w.iter().zip(h).all(|(a, b)| close(*a, *b, 0.01));
             (!same).then(|| format!("want image {w:?}\n    have image {h:?}"))
         }
+        (Draw::Rect { at: w, color: wc }, Draw::Rect { at: h, color: hc }) => {
+            let same = w.iter().zip(h).all(|(a, b)| close(*a, *b, 0.01))
+                && wc.iter().zip(hc).all(|(a, b)| close(*a, *b, 0.003));
+            (!same).then(|| format!("want rect {w:?} {wc:?}\n    have rect {h:?} {hc:?}"))
+        }
         _ => Some(format!("want {want:?}\n    have {have:?}")),
     }
 }
@@ -285,22 +298,83 @@ fn pdf_export_draws_what_prosecraft_draws() {
         let mut project = Project::from_stored(&JsValue::Object(stored)).expect("project view");
         project.citations.clear();
         let options = PublishOptions::read(case.get("options"));
+        let book = compile_book(&project, &options);
+        let layout = layout_pdf(&book, &options, &DataUrlSizes::default());
+        let listed: Vec<String> = prosecraft_core::publish::sections::list(&book, &options)
+            .into_iter()
+            .map(|s| s.id)
+            .collect();
+        let marked: Vec<String> = layout.sections.iter().map(|(id, _)| id.clone()).collect();
+        assert_eq!(marked, listed, "{}: sections", name.to_string_lossy());
+        assert!(layout.sections.windows(2).all(|w| w[0].1 <= w[1].1));
+        let ours = write_pdf(&layout).expect("written");
+        compare(
+            &name.to_string_lossy(),
+            &ours,
+            case.get("pdf"),
+            &mut report,
+            &mut compared,
+        );
+    }
+    eprintln!("compared {compared} draws");
+    assert!(report.is_empty(), "{}", report.join("\n"));
+}
+
+/// The same book in two of ProseCraft's custom styles (`custom-styles.json`): Courier on
+/// Letter and IBM Plex Sans (Helvetica in PDF) on A5, measured with those fonts' widths.
+#[test]
+fn pdf_export_in_a_custom_style_draws_what_prosecraft_draws() {
+    let fixture = fixture("custom-styles.json");
+    let mut stored = js::JsObject::new();
+    stored.insert("project", fixture.get("project").cloned().expect("project"));
+    let mut project = Project::from_stored(&JsValue::Object(stored)).expect("project view");
+    project.citations.clear();
+    let raw = js::stringify(fixture.get("raw").expect("raw"))
+        .replace(r#""lineHeight":"NaN""#, r#""lineHeight":null"#);
+    let mut report = Vec::new();
+    let mut compared = 0;
+    for (style, pdf) in fixture
+        .get("pdf")
+        .and_then(JsValue::as_object)
+        .expect("pdf")
+        .iter()
+    {
+        let style = style.to_string_lossy();
+        let mut options = js::JsObject::new();
+        options.insert("style", JsValue::str(&style));
+        options.insert("customStyles", js::parse(&raw).expect("raw"));
+        options.insert("dropCaps", JsValue::Bool(true));
+        options.insert("includeTableOfContents", JsValue::Bool(true));
+        let options = PublishOptions::read(Some(&JsValue::Object(options)));
         let layout = layout_pdf(
             &compile_book(&project, &options),
             &options,
             &DataUrlSizes::default(),
         );
         let ours = write_pdf(&layout).expect("written");
+        compare(&style, &ours, Some(pdf), &mut report, &mut compared);
+    }
+    eprintln!("compared {compared} draws");
+    assert!(compared > 0);
+    assert!(report.is_empty(), "{}", report.join("\n"));
+}
+
+fn compare(
+    name: &str,
+    ours: &[u8],
+    pdf: Option<&JsValue>,
+    report: &mut Vec<String>,
+    compared: &mut usize,
+) {
+    {
         let theirs = base64::engine::general_purpose::STANDARD
             .decode(
-                case.get("pdf")
-                    .and_then(JsValue::as_js_string)
+                pdf.and_then(JsValue::as_js_string)
                     .expect("pdf")
                     .to_string_lossy(),
             )
             .expect("base64");
-        let (want, have) = (draws(&theirs), draws(&ours));
-        let name = name.to_string_lossy();
+        let (want, have) = (draws(&theirs), draws(ours));
         if want.len() != have.len() {
             report.push(format!("{name}: {} pages, want {}", have.len(), want.len()));
         }
@@ -314,7 +388,7 @@ fn pdf_export_draws_what_prosecraft_draws() {
                 ));
             }
             for (a, b) in w.iter().zip(h) {
-                compared += 1;
+                *compared += 1;
                 if let Some(d) = differ(a, b) {
                     report.push(format!("{name} page {}: {d}", page + 1));
                     break;
@@ -322,17 +396,81 @@ fn pdf_export_draws_what_prosecraft_draws() {
             }
         }
     }
+}
+
+/// A cover page (`cover.json`): the page filled with the cover's colour and the image fitted
+/// inside, before the title page.
+#[test]
+fn pdf_cover_page_draws_what_prosecraft_draws() {
+    let fixture = fixture("cover.json");
+    let mut stored = js::JsObject::new();
+    stored.insert("project", fixture.get("project").cloned().expect("project"));
+    let mut project = Project::from_stored(&JsValue::Object(stored)).expect("project view");
+    project.citations.clear();
+    let mut report = Vec::new();
+    let mut compared = 0;
+    for (name, case) in fixture
+        .get("exports")
+        .and_then(JsValue::as_object)
+        .expect("exports")
+        .iter()
+    {
+        let options = PublishOptions::read(case.get("options"));
+        let mut book = compile_book(&project, &options);
+        book.cover = Some(cover_of(case.get("cover").expect("cover")));
+        let layout = layout_pdf(&book, &options, &DataUrlSizes::default());
+        // Every part the preview lists starts on a page, in order, the cover on the first.
+        let listed: Vec<String> = prosecraft_core::publish::sections::list(&book, &options)
+            .into_iter()
+            .map(|s| s.id)
+            .collect();
+        let marked: Vec<String> = layout.sections.iter().map(|(id, _)| id.clone()).collect();
+        assert_eq!(marked, listed, "{}", name.to_string_lossy());
+        let pages: Vec<usize> = layout.sections.iter().map(|(_, p)| *p).collect();
+        assert!(pages.windows(2).all(|w| w[0] <= w[1]));
+        assert!(pages.last() < Some(&layout.pages.len()));
+        if listed.first().map(String::as_str) == Some("front-cover") {
+            assert_eq!(
+                &pages[..2],
+                &[0, 1],
+                "the cover, then the next part on the next page"
+            );
+        }
+        let ours = write_pdf(&layout).expect("written");
+        compare(
+            &name.to_string_lossy(),
+            &ours,
+            case.get("pdf"),
+            &mut report,
+            &mut compared,
+        );
+    }
     eprintln!("compared {compared} draws");
-    assert!(
-        report.is_empty(),
-        "{}",
-        report
-            .iter()
-            .take(40)
-            .cloned()
-            .collect::<Vec<_>>()
-            .join("\n")
-    );
+    assert!(report.is_empty(), "{}", report.join("\n"));
+}
+
+fn cover_of(value: &JsValue) -> prosecraft_core::publish::cover::CompiledCover {
+    let text = |k: &str| {
+        value
+            .get(k)
+            .and_then(JsValue::as_js_string)
+            .map(|s| s.to_string_lossy())
+            .unwrap_or_default()
+    };
+    let number = |k: &str| {
+        value
+            .get(k)
+            .and_then(JsValue::as_number)
+            .unwrap_or_default() as u32
+    };
+    let data_url = text("dataUrl");
+    prosecraft_core::publish::cover::CompiledCover {
+        media_type: prosecraft_core::publish::cover::media_type(&data_url),
+        data_url,
+        width: number("width"),
+        height: number("height"),
+        background: text("background"),
+    }
 }
 
 #[test]

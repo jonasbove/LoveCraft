@@ -11,6 +11,7 @@
 )]
 
 pub mod about;
+pub mod calc;
 pub mod chapter;
 pub mod citations;
 pub mod cite;
@@ -24,15 +25,22 @@ pub mod js;
 pub mod labels;
 pub mod library;
 pub mod markdown;
+pub mod picture;
 pub mod project;
+pub mod proofread;
 pub mod publish;
+pub mod research;
+pub mod rich;
 pub mod richtext;
 pub mod screenplay;
 pub mod search;
+pub mod shortcuts;
 pub mod snapshots;
+pub mod split;
 pub mod starters;
 pub mod storage;
 pub mod storyboard;
 pub mod sync;
 pub mod timeline;
+pub mod undo;
 pub mod wiki;

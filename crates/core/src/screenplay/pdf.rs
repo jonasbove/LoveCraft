@@ -308,6 +308,7 @@ pub fn layout_screenplay_pdf(title: &str, author: &str, elements: &[ScreenplayEl
         author: author.to_owned(),
         subtitle: String::new(),
         unshown: out.unshown,
+        sections: Vec::new(),
     }
 }
 

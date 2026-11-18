@@ -11,9 +11,6 @@ use super::pdf::{ImageSizes, Layout, Op, Rgb, layout_pdf};
 use super::pdf_text::{Face, Family, win_ansi};
 use super::{CompiledBook, Export, PublishOptions, slugify_filename};
 
-/// jsPDF's default line width.
-const LINE_WIDTH: f64 = 0.200025;
-
 #[derive(Debug, thiserror::Error)]
 pub enum PdfError {
     #[error("an image couldn't be read: {0}")]
@@ -192,16 +189,37 @@ pub fn write_pdf(layout: &Layout) -> Result<Vec<u8>, PdfError> {
                     x2,
                     y2,
                     color: c,
+                    width,
                 } => {
                     body.extend_from_slice(
                         format!(
                             "{} RG\n{} w\n{} {} m\n{} {} l\nS\n",
                             color(*c, 2),
-                            num(LINE_WIDTH),
+                            num(*width),
                             num(*x1),
                             num(layout.height - y1),
                             num(*x2),
                             num(layout.height - y2)
+                        )
+                        .as_bytes(),
+                    );
+                }
+                Op::Rect {
+                    x,
+                    y,
+                    width,
+                    height,
+                    color: c,
+                } => {
+                    body.extend_from_slice(
+                        format!(
+                            "{} rg\n{} {} {} {} re\nf\n",
+                            // `setFillColor` writes two decimals.
+                            color(*c, 2),
+                            num(*x),
+                            num(layout.height - y),
+                            num(*width),
+                            num(-height)
                         )
                         .as_bytes(),
                     );

@@ -2,11 +2,9 @@
 
 use egui::{RichText, Ui};
 use prosecraft_core::edit::chapter_label;
-use prosecraft_core::html::{
-    PlainTextOptions, RichText as RichMode, count_words, html_to_plain_text,
-};
+use prosecraft_core::html::{PlainTextOptions, RichText as RichMode, html_to_plain_text};
 use prosecraft_core::project::Project;
-use prosecraft_core::richtext::{ATOM, LineKind, Mark, RichDoc};
+use prosecraft_core::richtext::{ATOM, HARD_BREAK, LineKind, Mark, RichDoc};
 
 use crate::editing::{Draft, Intent};
 use crate::theme::Palette;
@@ -80,6 +78,13 @@ struct Edit<'a> {
     now: f64,
     /// The editor's Comment button: the passage chosen, and the sidebar tab to show.
     pending_comment: &'a mut Option<crate::PendingComment>,
+    /// Undo and redo, and the project and page they are kept for.
+    undo: &'a mut prosecraft_core::undo::UndoManager<(usize, usize)>,
+    project_id: String,
+    undo_page: String,
+    /// The Writing settings (text size, typewriter, fade, Zen), and where the text was drawn.
+    writing: crate::WritingPrefs,
+    editor_rect: &'a mut Option<egui::Rect>,
     side_tab: &'a mut crate::SideTab,
     /// A passage to select ("Go to" in the Comments tab): document, editor start and end.
     comment_goto: &'a mut Option<(String, usize, usize)>,
@@ -104,34 +109,61 @@ struct Edit<'a> {
     separator: prosecraft_core::publish::SceneSeparator,
     /// Another scene of the chapter clicked into: open it in the editor.
     open: Option<Selection>,
+    /// The open scene's proofreading.
+    proofing: &'a mut crate::proofreading::Proofing,
+    /// The equation, diagram or calculation editor.
+    rich_dialog: &'a mut Option<crate::rich_dialog::RichDialog>,
 }
 
 pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
     let palette = state.palette;
     ui.add_space(14.0);
-    let labels: Vec<&str> = WorkspaceView::ALL.iter().map(|v| v.label()).collect();
-    let current = WorkspaceView::ALL
-        .iter()
-        .position(|v| *v == state.view)
-        .unwrap_or(0);
-    ui.horizontal(|ui| {
-        ui.add_space(16.0);
-        if let Some(index) = segmented(ui, &palette, "workspace-tab", &labels, current, 13.0) {
-            state.view = WorkspaceView::ALL.get(index).copied().unwrap_or_default();
-        }
-        if state.library.is_some() {
-            let search = ui.button("Search").on_hover_text("Search project (Ctrl+F)");
-            name_field(ui, &search, "Search project");
-            if search.clicked() {
-                state.find = Some(crate::find::FindState::new());
-            }
-        }
-    });
-    if let Some(status) = &state.status {
+    // The Timeline view only when it is turned on (Settings → Writing).
+    let views: Vec<WorkspaceView> = WorkspaceView::ALL
+        .into_iter()
+        .filter(|v| *v != WorkspaceView::Timeline || state.writing.timeline)
+        .collect();
+    let labels: Vec<&str> = views.iter().map(|v| v.label()).collect();
+    let current = views.iter().position(|v| *v == state.view).unwrap_or(0);
+    // Zen and focus mode hide the workspace controls too.
+    if !state.zen_hidden {
         ui.horizontal(|ui| {
-            ui.add_space(18.0);
-            ui.label(RichText::new(status).size(12.0).color(palette.text_muted));
+            ui.add_space(16.0);
+            if let Some(index) = segmented(ui, &palette, "workspace-tab", &labels, current, 13.0) {
+                state.view = views.get(index).copied().unwrap_or_default();
+            }
+            if state.library.is_some() {
+                let search = ui.button("Search").on_hover_text("Search project (Ctrl+F)");
+                name_field(ui, &search, "Search project");
+                if search.clicked() {
+                    state.find = Some(crate::find::FindState::new());
+                }
+            }
+            // `toggleSplitView`, in the Write view.
+            if state.library.is_some() && state.view == WorkspaceView::Write {
+                let open = !state.split.is_empty();
+                let name = if open {
+                    "Close split view"
+                } else {
+                    "Open split view"
+                };
+                let toggle = ui.selectable_label(open, "Split").on_hover_text(name);
+                name_field(ui, &toggle, name);
+                if toggle.clicked() {
+                    state.split = if open {
+                        Vec::new()
+                    } else {
+                        prosecraft_core::split::add(&[], &crate::split_view::pane_id())
+                    };
+                }
+            }
         });
+        if let Some(status) = &state.status {
+            ui.horizontal(|ui| {
+                ui.add_space(18.0);
+                ui.label(RichText::new(status).size(12.0).color(palette.text_muted));
+            });
+        }
     }
     let AppState {
         library,
@@ -145,6 +177,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         now,
         now_ms,
         book_id,
+        cover_error,
         requests,
         pending_comment,
         side_tab,
@@ -157,6 +190,15 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         sources,
         citation_picker,
         cite_labels,
+        undo,
+        undo_page,
+        writing,
+        editor_rect,
+        proofing,
+        rich_dialog,
+        split,
+        wiki_store,
+        wiki_root,
         ..
     } = state;
     let entry = library.as_ref().and_then(|l| l.projects().get(*active));
@@ -180,10 +222,15 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
             book_id,
             intents,
             requests,
+            cover_error,
+            cover_mode: "none",
+            generated_cover: None,
         };
         crate::publish::show(ui, &palette, &entry.stored, project, &mut edit);
         return;
     }
+    let mut from_split = None;
+    let split_open = *view == WorkspaceView::Write && !split.is_empty();
     let options = prosecraft_core::publish::PublishOptions::read(
         entry
             .stored
@@ -197,6 +244,11 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         save_state,
         now: *now,
         pending_comment,
+        undo,
+        project_id: project.id.clone(),
+        undo_page: undo_page.clone(),
+        writing: *writing,
+        editor_rect,
         side_tab,
         comment_goto,
         footnote_open,
@@ -214,23 +266,89 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
             cache: cite_labels,
         },
         separator: options.scene_separator,
+        proofing,
+        rich_dialog,
         open: None,
     };
     let mut chosen = None;
-    egui::ScrollArea::vertical()
-        .auto_shrink([false, false])
-        .show(ui, |ui| {
-            column(ui, |ui| match view {
-                WorkspaceView::Outline => chosen = outline(ui, &palette, project, &mut edit),
-                WorkspaceView::Write => write(ui, &palette, project, selection.as_ref(), &mut edit),
-                // Shown above, as a full-width canvas.
-                WorkspaceView::Storyboard => {}
-                WorkspaceView::Timeline => timeline(ui, &palette, project, &mut edit),
-                // Shown above, in its own two-column layout.
-                WorkspaceView::Publish => {}
-            });
-        });
-    if let Some(selection) = chosen.or(edit.open.take()) {
+    let total = ui.available_size();
+    let split_width = if split_open {
+        (total.x * 0.45).max(320.0)
+    } else {
+        0.0
+    };
+    ui.horizontal_top(|ui| {
+        let gap = ui.spacing().item_spacing.x;
+        let editor_width = (total.x - split_width - if split_open { gap } else { 0.0 }).max(200.0);
+        ui.allocate_ui_with_layout(
+            egui::vec2(editor_width, total.y),
+            egui::Layout::top_down(egui::Align::Min),
+            |ui| {
+                ui.set_width(editor_width);
+                egui::ScrollArea::vertical()
+                    .auto_shrink([false, false])
+                    .show(ui, |ui| {
+                        column(ui, |ui| match view {
+                            WorkspaceView::Outline => {
+                                chosen = outline(ui, &palette, project, &mut edit)
+                            }
+                            WorkspaceView::Write => {
+                                write(ui, &palette, project, selection.as_ref(), &mut edit)
+                            }
+                            // Shown above, as a full-width canvas.
+                            WorkspaceView::Storyboard => {}
+                            WorkspaceView::Timeline => timeline(ui, &palette, project, &mut edit),
+                            // Shown above, in its own two-column layout.
+                            WorkspaceView::Publish => {}
+                        });
+                    });
+            },
+        );
+        if split_open {
+            ui.allocate_ui_with_layout(
+                egui::vec2(split_width, total.y),
+                egui::Layout::top_down(egui::Align::Min),
+                |ui| {
+                    ui.set_width(split_width);
+                    ui.set_max_width(split_width);
+                    let options = prosecraft_core::publish::PublishOptions::read(
+                        entry
+                            .stored
+                            .get("project")
+                            .and_then(|p| p.get("publishOptions")),
+                    );
+                    let files = crate::split_view::Files {
+                        store: wiki_store.as_deref(),
+                        root: wiki_root.clone().filter(|r| !r.is_empty()),
+                        folder: prosecraft_core::research::normalize_folder_name(
+                            entry
+                                .stored
+                                .get("project")
+                                .and_then(|p| p.get("researchFolderName")),
+                        ),
+                        citation_style: options.citation_style.clone(),
+                        citation_locale: options.citation_locale.clone(),
+                    };
+                    let active = edit.draft.as_ref().map(|d| d.document.clone());
+                    let asked = crate::split_view::show(
+                        ui,
+                        &palette,
+                        project,
+                        split,
+                        active.as_deref(),
+                        options.scene_separator,
+                        &files,
+                        &mut crate::split_view::pane_id,
+                    );
+                    from_split = asked.open;
+                    if let Some(file) = asked.open_file {
+                        edit.intents.push(Intent::OpenWikiFileExternally(file));
+                    }
+                },
+            );
+        }
+    });
+    if let Some(selection) = chosen.or(edit.open.take()).or(from_split) {
         state.select(selection);
     }
 }
@@ -672,6 +790,144 @@ fn scene_divider(
     ui.add_space(14.0);
 }
 
+/// Proofreading over the editor: the underlines, a click on one opening its suggestions
+/// (`openHarperPopover`), and a suggestion replacing the passage (`applyHarperSuggestion`).
+fn proofreading_marks(
+    ui: &mut Ui,
+    palette: &Palette,
+    (proofing, editable, now): (&mut crate::proofreading::Proofing, bool, f64),
+    draft: &mut Draft,
+    output: &egui::text_edit::TextEditOutput,
+) {
+    let lints = proofing.current(draft).to_vec();
+    if lints.is_empty() {
+        proofing.popover = None;
+        return;
+    }
+    crate::proofreading::paint(
+        ui,
+        &lints,
+        &output.galley,
+        output.galley_pos,
+        output.text_clip_rect,
+    );
+    if output.response.clicked()
+        && let Some(caret) = output.cursor_range.map(|r| r.primary.index.0)
+    {
+        proofing.popover = lints
+            .iter()
+            .position(|l| l.range.start <= caret && caret <= l.range.end);
+    }
+    let Some(index) = proofing.popover else {
+        return;
+    };
+    let Some(shown) = lints.get(index) else {
+        proofing.popover = None;
+        return;
+    };
+    let at = output
+        .galley
+        .pos_from_cursor(egui::text::CCursor::new(shown.range.start))
+        .translate(output.galley_pos.to_vec2())
+        .left_bottom()
+        + egui::vec2(0.0, 8.0);
+    match crate::proofreading::popover(ui.ctx(), palette, index, shown, at) {
+        crate::proofreading::PopoverAction::None => {}
+        crate::proofreading::PopoverAction::Close => proofing.popover = None,
+        crate::proofreading::PopoverAction::Ignore(i) => proofing.ignore(i),
+        crate::proofreading::PopoverAction::Apply(suggestion) => {
+            proofing.popover = None;
+            if !editable {
+                return;
+            }
+            let chars: Vec<char> = draft.body.chars().collect();
+            let range = shown.range.start.min(chars.len())..shown.range.end.min(chars.len());
+            let mut text: String = chars[..range.start].iter().collect();
+            text.push_str(&suggestion);
+            text.extend(&chars[range.end..]);
+            let after = range.start + suggestion.chars().count();
+            draft.body = draft.doc.apply_text_at(&text, Some(after));
+            draft.body_dirty = true;
+            draft.changed_at = now;
+            draft.caret = Some(after);
+            draft.words = prosecraft_core::html::html_word_count(&draft.doc.to_html());
+        }
+    }
+}
+
+/// The equation, diagram or calculation editor over the scene, and what it changed.
+fn rich_dialog(
+    ui: &mut Ui,
+    palette: &Palette,
+    (slot, editable, now): (&mut Option<crate::rich_dialog::RichDialog>, bool, f64),
+    draft: &mut Draft,
+    document: &str,
+) {
+    let Some(dialog) = slot.as_mut().filter(|d| d.document == document) else {
+        return;
+    };
+    let (open, caret) = crate::rich_dialog::show(ui.ctx(), palette, dialog, draft, editable);
+    if let Some(caret) = caret {
+        draft.body_dirty = true;
+        draft.changed_at = now;
+        draft.caret = Some(caret);
+        draft.words = prosecraft_core::html::html_word_count(&draft.doc.to_html());
+    }
+    if !open {
+        *slot = None;
+    }
+}
+
+/// HTML shown read-only as the editor draws text (a Wiki Markdown file's preview), or as its
+/// plain text when the editor can't hold it.
+pub(crate) fn read_only_html(ui: &mut Ui, palette: &Palette, html: &str, name: &str) {
+    read_only_html_cited(ui, palette, html, name, &[], ("", "en"));
+}
+
+/// [`read_only_html`] with the project's citations labelled in its style and locale.
+pub(crate) fn read_only_html_cited(
+    ui: &mut Ui,
+    palette: &Palette,
+    html: &str,
+    name: &str,
+    items: &[prosecraft_core::js::JsValue],
+    (style, locale): (&str, &str),
+) {
+    let cleaned = prosecraft_core::html::sanitize::sanitize_html(html);
+    let Some(doc) = RichDoc::from_html(&cleaned) else {
+        let response = ui
+            .scope(|ui| manuscript(ui, palette, &plain(&cleaned)))
+            .response;
+        name_field(ui, &response, name);
+        return;
+    };
+    let cache = std::cell::RefCell::new(Default::default());
+    let cites = CiteStyle {
+        items,
+        style: style.to_owned(),
+        locale: locale.to_owned(),
+        cache: &cache,
+    };
+    let labels = atom_labels(&doc, &cites);
+    let wrap = ui.available_width().max(1.0);
+    let look = Look::default();
+    let galley = ui.fonts_mut(|f| {
+        let spacing = atom_sizes(f, &labels, wrap);
+        f.layout_job(layout_doc(&doc, &doc.text, palette, wrap, &spacing, &look))
+    });
+    let (rect, response) = ui.allocate_exact_size(
+        galley.size().max(egui::vec2(wrap, 24.0)),
+        egui::Sense::hover(),
+    );
+    ui.painter().galley(rect.min, galley, palette.text_body);
+    let text = plain(&cleaned);
+    ui.ctx().accesskit_node_builder(response.id, |n| {
+        n.set_role(egui::accesskit::Role::Document);
+        n.set_label(name.to_owned());
+        n.set_value(text);
+    });
+}
+
 /// Another scene of the open chapter, drawn as the editor draws it. A click opens it in the
 /// editor with the caret where the click was.
 fn chapter_scene(
@@ -681,6 +937,7 @@ fn chapter_scene(
     screenplay: bool,
     cites: &CiteStyle<'_>,
     open: &mut Option<Selection>,
+    look: &Look,
 ) {
     let title = if scene.title.is_empty() {
         "Untitled scene"
@@ -708,8 +965,8 @@ fn chapter_scene(
         crate::screenplay_editor::galley(ui, &doc, &doc.text, palette, wrap)
     } else {
         ui.fonts_mut(|f| {
-            let spacing = atom_sizes(f, &labels);
-            f.layout_job(layout_doc(&doc, &doc.text, palette, wrap, &spacing))
+            let spacing = atom_sizes(f, &labels, wrap);
+            f.layout_job(layout_doc(&doc, &doc.text, palette, wrap, &spacing, look))
         })
     };
     let (rect, response) = ui.allocate_exact_size(
@@ -792,6 +1049,188 @@ fn chapter_keys(
     }
 }
 
+/// `recordFieldEdit` for the editor: the scene's HTML and footnotes in its history, as one step
+/// per change, typing grouped as ProseCraft groups it. A history that doesn't end at this text
+/// (another scene opened, a change from elsewhere) starts over.
+/// Undo and redo in the text are the scene's history, taken before the text field's own.
+fn history_keys(ui: &Ui, body_id: egui::Id, document: &str, intents: &mut Vec<Intent>) {
+    if !ui.memory(|m| m.has_focus(body_id)) {
+        return;
+    }
+    let (undo, redo) = ui.input_mut(|i| {
+        // Ctrl+Shift+Z first: a Ctrl+Z pattern also matches it.
+        let redo = i.consume_key(
+            egui::Modifiers::COMMAND | egui::Modifiers::SHIFT,
+            egui::Key::Z,
+        ) || i.consume_key(egui::Modifiers::COMMAND, egui::Key::Y);
+        let undo = i.consume_key(egui::Modifiers::COMMAND, egui::Key::Z);
+        (undo, redo)
+    });
+    if undo || redo {
+        intents.push(Intent::BodyHistory {
+            document: document.to_owned(),
+            undo,
+        });
+    }
+}
+
+/// What typing sets off: Zen mode hides the interface, typewriter mode keeps the caret at the
+/// middle of the view (`scheduleRichTextTypewriter`); and where the text is, for Zen mode.
+fn after_typing(
+    ui: &Ui,
+    writing: crate::WritingPrefs,
+    editor_rect: &mut Option<egui::Rect>,
+    intents: &mut Vec<Intent>,
+    output: &egui::text_edit::TextEditOutput,
+) {
+    *editor_rect = Some(output.response.rect);
+    if !output.response.changed() {
+        return;
+    }
+    if writing.zen {
+        intents.push(Intent::HideInterface);
+    }
+    if writing.typewriter
+        && let Some(range) = output.cursor_range
+    {
+        let caret = output
+            .galley
+            .pos_from_cursor(range.primary)
+            .translate(output.galley_pos.to_vec2());
+        ui.scroll_to_rect(caret, Some(egui::Align::Center));
+    }
+}
+
+/// `addLink`'s prompt ("Paste a link"), with ProseCraft's messages for what can't be a link.
+fn link_prompt(ui: &mut Ui, draft: &mut Draft, now: f64) {
+    let Some((range, entered, error)) = draft.link_prompt.as_mut() else {
+        return;
+    };
+    let mut open = true;
+    let mut add = false;
+    let mut cancel = false;
+    egui::Window::new("Add link")
+        .open(&mut open)
+        .collapsible(false)
+        .resizable(false)
+        .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+        .show(ui.ctx(), |ui| {
+            let field = ui.add(
+                egui::TextEdit::singleline(entered)
+                    .hint_text("Paste a link")
+                    .desired_width(320.0),
+            );
+            name_field(ui, &field, "Paste a link");
+            field.request_focus();
+            if let Some(error) = error {
+                ui.label(RichText::new(*error).color(ui.visuals().error_fg_color));
+            }
+            ui.horizontal(|ui| {
+                cancel = ui.button("Cancel").clicked();
+                add = ui.button(RichText::new("Add link").strong()).clicked()
+                    || ui.input(|i| i.key_pressed(egui::Key::Enter));
+            });
+        });
+    if add && !entered.trim().is_empty() {
+        match prosecraft_core::richtext::link_href(entered) {
+            Ok(href) => {
+                let range = range.clone();
+                draft.body = draft.doc.set_link(range, &href);
+                draft.body_dirty = true;
+                draft.changed_at = now;
+                draft.link_prompt = None;
+            }
+            Err(message) => *error = Some(message),
+        }
+    } else if !open || cancel || (add && entered.trim().is_empty()) {
+        draft.link_prompt = None;
+    }
+}
+
+/// The history and where an edit is recorded in it.
+struct UndoAt<'a> {
+    undo: &'a mut prosecraft_core::undo::UndoManager<(usize, usize)>,
+    project: &'a str,
+    page: &'a str,
+    now_ms: f64,
+}
+
+fn record_body_history(
+    edit: UndoAt<'_>,
+    document: &prosecraft_core::project::Document,
+    draft: &mut Draft,
+    cursor: Option<egui::text::CCursorRange>,
+) {
+    use prosecraft_core::undo::{Edit as UndoEdit, EditKind, decode_body, encode_body};
+    let key = format!("{}/body:{}", edit.project, document.id);
+    let notes: Vec<(String, String)> = document
+        .footnotes
+        .iter()
+        .map(|f| (f.id.clone(), f.html.clone()))
+        .collect();
+    let value = encode_body(&draft.doc.to_html(), &document.id, &notes);
+    let selection = cursor.map(|r| {
+        let (a, b) = (r.primary.index.0, r.secondary.index.0);
+        (a.min(b), a.max(b))
+    });
+    let Some(current) = edit.undo.current(&key).map(str::to_owned) else {
+        edit.undo.sync(&key, &value);
+        draft.undo_caret = selection;
+        return;
+    };
+    if current == value {
+        if let Some(selection) = selection.filter(|_| draft.undo_caret.is_none()) {
+            draft.undo_caret = Some(selection);
+        }
+        return;
+    }
+    let html_unchanged = decode_body(&current).0 == draft.doc.to_html();
+    if !draft.is_dirty() && !html_unchanged {
+        // Not typed here: the stored text changed underneath (a sync, an import).
+        edit.undo.sync(&key, &value);
+        draft.undo_caret = selection;
+        return;
+    }
+    // Only a footnote's text changed (`finishProgrammaticBodyEdit` when its popover closes):
+    // one step of its own.
+    let before_text = prosecraft_core::richtext::RichDoc::from_html(&decode_body(&current).0)
+        .map(|d| d.text)
+        .unwrap_or_default();
+    let diff = prosecraft_core::undo::diff_text(&before_text, &draft.doc.text);
+    let kind = if diff.inserted.contains('\n') {
+        EditKind::Newline
+    } else if diff.inserted.is_empty() && !diff.removed.is_empty() {
+        EditKind::Delete
+    } else if diff.removed.is_empty() && !diff.inserted.is_empty() {
+        EditKind::Type
+    } else {
+        EditKind::Other
+    };
+    let after = selection.or(draft.undo_caret).unwrap_or_default();
+    let start = before_text[..diff.from].chars().count();
+    // Where this edit began: right after the last one, unless the caret went elsewhere.
+    let at = match kind {
+        EditKind::Type | EditKind::Newline => start,
+        EditKind::Delete => start + diff.removed.chars().count(),
+        _ => start,
+    };
+    let previous = draft.undo_caret.unwrap_or((at, at));
+    let caret_moved = previous.1 != at && previous.0 != at;
+    edit.undo.record(
+        &key,
+        Some(edit.page),
+        &value,
+        UndoEdit {
+            kind,
+            time: edit.now_ms,
+            caret_moved,
+            before: previous,
+            after,
+        },
+    );
+    draft.undo_caret = Some(after);
+}
+
 /// `chapterMarkdownSource` over the chapter's scenes: their own sources when every scene has
 /// one, else Markdown from their HTML.
 fn chapter_markdown(scenes: &[&prosecraft_core::project::Document]) -> String {
@@ -848,9 +1287,36 @@ pub(crate) enum AtomLabel {
     Math(String),
     /// A citation: its sources formatted in the publish style (`renderCitationLabels`).
     Cite(String),
+    /// A block kept whole (a rule, code, a table, a block equation, a diagram, a calculation):
+    /// drawn as a panel across the column.
+    Block(prosecraft_core::richtext::BlockPreview),
+    /// A picture: drawn at its layout's size, on a row of its own.
+    Picture(crate::pictures::PictureInfo),
     /// Anything else (none yet): nothing drawn, nothing to click.
     Other,
 }
+
+/// The height of a kept block's row.
+fn block_height(preview: &prosecraft_core::richtext::BlockPreview, wrap: f32) -> f32 {
+    if preview.kind == prosecraft_core::richtext::BlockKind::Rule {
+        return 28.0;
+    }
+    // A drawn equation or calculation: its height (shrunk to the column), with its margins.
+    if let Some(kind) = crate::rich_view::block_kind(preview)
+        && let Some(size) = crate::rich_view::size(kind, &preview.source)
+    {
+        let fit = if wrap.is_finite() && size.x > wrap {
+            wrap / size.x
+        } else {
+            1.0
+        };
+        return size.y * fit + 2.0 * crate::rich_view::BLOCK_MARGIN;
+    }
+    let lines = preview.lines.len().max(1) + usize::from(preview.more);
+    8.0 + 18.0 + lines as f32 * BLOCK_LINE + 12.0
+}
+
+const BLOCK_LINE: f32 = 18.0;
 
 fn is_footnote(html: &str) -> bool {
     html.contains("footnote-ref")
@@ -882,7 +1348,14 @@ pub(crate) fn atom_labels(doc: &RichDoc, cites: &CiteStyle) -> Vec<AtomLabel> {
     doc.atoms
         .iter()
         .map(|html| {
-            if is_footnote(html) {
+            if let Some(preview) = prosecraft_core::richtext::is_block_atom(html)
+                .then(|| prosecraft_core::richtext::block_preview(html))
+                .flatten()
+            {
+                AtomLabel::Block(preview)
+            } else if html.starts_with("<img") {
+                crate::pictures::info(html).map_or(AtomLabel::Other, AtomLabel::Picture)
+            } else if is_footnote(html) {
                 let id = prosecraft_core::footnotes::extract_ids(html)
                     .into_iter()
                     .next()
@@ -925,16 +1398,37 @@ fn cite_font() -> egui::FontId {
     fonts::serif(17.0 * 0.92)
 }
 
-/// The font size each atom's (invisible) character is laid out in: a citation's is scaled so
-/// the character is as wide as its label and padding, and wraps as one piece with it (0: the
-/// usual size).
+/// How an atom's (invisible) character is laid out.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub(crate) struct AtomBox {
+    /// Its font size (0: the usual size): a citation's is scaled so the character is as wide
+    /// as its label and padding, and wraps as one piece with it.
+    pub font: f32,
+    /// Room added after it: a picture's character is as wide as the column.
+    pub spacing: f32,
+    /// The height of its row: a kept block's, a picture's.
+    pub row: Option<f32>,
+    /// A picture, laid out as [`PICTURE_CHAR`].
+    pub picture: bool,
+}
+
+/// How each atom's character is laid out (see [`AtomBox`]).
 pub(crate) fn atom_sizes(
     fonts: &mut egui::epaint::FontsView<'_>,
     labels: &[AtomLabel],
-) -> Vec<f32> {
+    wrap: f32,
+) -> Vec<AtomBox> {
     let glyph = fonts
         .layout_no_wrap(
             ATOM.to_string(),
+            egui::FontId::proportional(ATOM_FONT + 2.0),
+            egui::Color32::TRANSPARENT,
+        )
+        .size()
+        .x;
+    let picture_glyph = fonts
+        .layout_no_wrap(
+            PICTURE_CHAR.to_string(),
             egui::FontId::proportional(ATOM_FONT + 2.0),
             egui::Color32::TRANSPARENT,
         )
@@ -949,13 +1443,46 @@ pub(crate) fn atom_sizes(
                     .size()
                     .x;
                 // ProseCraft's 5px padding each side and 1px margin.
-                if glyph > 0.0 {
+                let font = if glyph > 0.0 {
                     (ATOM_FONT + 2.0) * (width + 12.0) / glyph
                 } else {
                     0.0
+                };
+                AtomBox {
+                    font,
+                    ..AtomBox::default()
                 }
             }
-            AtomLabel::Footnote(_) | AtomLabel::Math(_) | AtomLabel::Other => 0.0,
+            AtomLabel::Block(preview) => AtomBox {
+                row: Some(block_height(preview, wrap)),
+                ..AtomBox::default()
+            },
+            // An equation in the line: as wide as its drawing.
+            AtomLabel::Math(tex) => {
+                let width =
+                    crate::rich_view::size(prosecraft_core::rich::RichKind::MathInline, tex)
+                        .map_or(14.0, |s| s.x + 4.0);
+                AtomBox {
+                    font: if glyph > 0.0 {
+                        (ATOM_FONT + 2.0) * width / glyph
+                    } else {
+                        0.0
+                    },
+                    ..AtomBox::default()
+                }
+            }
+            // As wide as the column, so the picture has its row to itself.
+            AtomLabel::Picture(picture) => AtomBox {
+                spacing: if wrap.is_finite() {
+                    (wrap - 4.0 - picture_glyph).max(0.0)
+                } else {
+                    0.0
+                },
+                row: Some(picture.drawn(wrap).y + 2.0 * crate::pictures::MARGIN),
+                picture: true,
+                ..AtomBox::default()
+            },
+            AtomLabel::Footnote(_) | AtomLabel::Other => AtomBox::default(),
         })
         .collect()
 }
@@ -963,18 +1490,84 @@ pub(crate) fn atom_sizes(
 const ATOM_FONT: f32 = 12.0;
 
 /// The text formats the editor lays the scene out with.
+/// How the editor's text looks beyond its formatting: the text size (`--editor-scale`), and
+/// which lines Fade other paragraphs dims.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct Look {
+    pub scale: f32,
+    pub faded: Vec<bool>,
+}
+
+impl Default for Look {
+    fn default() -> Self {
+        Self {
+            scale: 1.0,
+            faded: Vec::new(),
+        }
+    }
+}
+
+impl Look {
+    fn scaled(writing: &crate::WritingPrefs) -> Self {
+        Self {
+            scale: writing.scale as f32 / 100.0,
+            faded: Vec::new(),
+        }
+    }
+}
+
+/// `applyRichTextFade`: every line but those the selection is in, and the list items they sit
+/// inside, faded.
+fn faded_lines(doc: &RichDoc, selection: std::ops::Range<usize>) -> Vec<bool> {
+    let ranges = doc.line_ranges();
+    let line_of = |i: usize| {
+        ranges
+            .iter()
+            .position(|(s, e)| (*s..=*e).contains(&i))
+            .unwrap_or(0)
+    };
+    let (first, last) = (line_of(selection.start), line_of(selection.end));
+    let mut faded = vec![true; ranges.len()];
+    for line in first..=last.min(ranges.len().saturating_sub(1)) {
+        faded[line] = false;
+        // The items a nested item sits inside are its ancestors: kept.
+        let mut depth = doc.lines.get(line).and_then(|k| k.list_depth());
+        let mut at = line;
+        while let Some(d) = depth.filter(|d| *d > 0) {
+            let Some(parent) = (0..at).rev().find(|l| {
+                doc.lines
+                    .get(*l)
+                    .and_then(|k| k.list_depth())
+                    .is_none_or(|ld| ld < d)
+            }) else {
+                break;
+            };
+            if doc.lines.get(parent).and_then(|k| k.list_depth()).is_none() {
+                break;
+            }
+            faded[parent] = false;
+            depth = doc.lines.get(parent).and_then(|k| k.list_depth());
+            at = parent;
+        }
+    }
+    faded
+}
+
 pub(crate) fn layout_doc(
     doc: &RichDoc,
     text: &str,
     palette: &Palette,
     wrap: f32,
-    atom_sizes: &[f32],
+    atom_sizes: &[AtomBox],
+    look: &Look,
 ) -> egui::text::LayoutJob {
     let mut job = egui::text::LayoutJob::default();
     job.wrap.max_width = wrap;
     let mut line = 0;
     let mut atom = 0;
+    let mut previous = None;
     for (i, c) in text.chars().enumerate() {
+        let mut laid_out = c;
         if c == '\n' {
             line += 1;
         }
@@ -984,8 +1577,11 @@ pub(crate) fn layout_doc(
             LineKind::Heading1 => (32.0, true),
             LineKind::Heading2 => (25.0, true),
             LineKind::Heading3 => (20.0, true),
+            // ProseCraft's `.eyebrow`: small, spaced capitals.
+            LineKind::Eyebrow => (12.0, false),
             _ => (17.0, false),
         };
+        let size = size * look.scale;
         let bold = heading || Mark::Bold.applies(marks);
         let italic = kind == LineKind::Quote || Mark::Italic.applies(marks);
         let font = match (bold, italic) {
@@ -1000,11 +1596,19 @@ pub(crate) fn layout_doc(
             line_height: Some(size * if heading { 1.3 } else { 1.85 }),
             ..Default::default()
         };
+        if kind == LineKind::Eyebrow {
+            format.extra_letter_spacing = 1.2;
+        }
         format.color = match kind {
             LineKind::Quote => palette.quote,
+            LineKind::Eyebrow => palette.eyebrow,
             _ if heading => palette.text_heading,
             _ => palette.text_body,
         };
+        if look.faded.get(line).copied().unwrap_or(false) {
+            // `.faded-writing-block { opacity: .38 }`.
+            format.color = format.color.gamma_multiply(0.38);
+        }
         if Mark::Underline.applies(marks) || marks.iter().any(|t| t.name == "a") {
             format.underline = egui::Stroke::new(1.0, format.color);
         }
@@ -1014,24 +1618,61 @@ pub(crate) fn layout_doc(
         if c == ATOM {
             // The character itself is invisible; its label is painted in the room reserved here.
             // The character's own box holds a short painted label.
-            let size = atom_sizes
-                .get(atom)
-                .copied()
-                .filter(|s| *s > 0.0)
-                .unwrap_or(ATOM_FONT + 2.0);
+            let laid = atom_sizes.get(atom).copied().unwrap_or_default();
+            // A picture: laid out as a character a row may end before and after (see
+            // `RowBreaks`), as a browser breaks around an image.
+            if laid.picture {
+                laid_out = PICTURE_CHAR;
+                format.extra_letter_spacing = laid.spacing;
+            }
+            let size = if laid.font > 0.0 {
+                laid.font
+            } else {
+                ATOM_FONT + 2.0
+            };
             format.font_id = egui::FontId::proportional(size);
+            if laid.row.is_some() {
+                format.line_height = laid.row;
+            }
             format.color = egui::Color32::TRANSPARENT;
             atom += 1;
+        }
+        if matches!(
+            c,
+            prosecraft_core::richtext::SOFT_BREAK | prosecraft_core::richtext::HARD_BREAK
+        ) {
+            // A line break: it ends the row (see `RowBreaks`) and shows nothing.
+            format.color = egui::Color32::TRANSPARENT;
+            format.font_id.size = 1.0;
         }
         if c == '\n' {
             // ProseCraft's gap between paragraphs.
             format.line_height = Some(size * 1.85 + 10.0);
         }
+        // ProseCraft's padding: a list item is indented a step per list it sits in, a quote's
+        // text past its bar. (Rows a line wraps onto aren't.)
+        let starts_line = c != '\n' && (i == 0 || previous == Some('\n'));
+        let indent = match kind.list_depth() {
+            _ if !starts_line => 0.0,
+            Some(depth) => (depth + 1) as f32 * LIST_INDENT,
+            None if kind == LineKind::Quote => QUOTE_INDENT,
+            None => 0.0,
+        };
+        previous = Some(c);
         let mut buf = [0u8; 4];
-        job.append(c.encode_utf8(&mut buf), 0.0, format);
+        job.append(laid_out.encode_utf8(&mut buf), indent, format);
     }
     job
 }
+
+/// `.editor-content ul, ol { padding-left: 24px }`.
+const LIST_INDENT: f32 = 24.0;
+/// `.editor-content blockquote { padding: 2px 0 2px 17px }`.
+const QUOTE_INDENT: f32 = 17.0;
+
+/// What a picture's character is laid out as: a character no font has (drawn as an empty box,
+/// as wide as its font size, like the atom character), which rows may end before and after.
+pub(crate) const PICTURE_CHAR: char = '\u{E000}';
 
 /// The editor: the scene's title, ProseCraft's toolbar, and its formatted text.
 fn editor(
@@ -1054,7 +1695,7 @@ fn editor(
         *edit.draft = Some(Draft {
             document: document.id.clone(),
             title: document.title.clone(),
-            words: count_words(&doc.text.replace(ATOM, " ")),
+            words: prosecraft_core::html::html_word_count(&doc.to_html()),
             body: doc.text.clone(),
             doc,
             title_dirty: false,
@@ -1065,6 +1706,9 @@ fn editor(
             markdown: None,
             markdown_base: String::new(),
             chapter: None,
+            caret: None,
+            undo_caret: None,
+            link_prompt: None,
         });
     }
     let now = edit.now;
@@ -1128,6 +1772,32 @@ fn editor(
             .and_then(|s| s.cursor.char_range())
             .map_or(cursor, |r| r.primary.index.0);
     }
+    // Shift+Enter: a line break inside the block, the `<br>` ProseCraft's editor writes.
+    if ui.memory(|m| m.has_focus(body_id))
+        && let Some(range) =
+            egui::TextEdit::load_state(ui.ctx(), body_id).and_then(|s| s.cursor.char_range())
+        && ui.input_mut(|i| i.consume_key(egui::Modifiers::SHIFT, egui::Key::Enter))
+    {
+        let (a, b) = (range.primary.index.0, range.secondary.index.0);
+        let chars: Vec<char> = draft.body.chars().collect();
+        let (start, end) = (a.min(b).min(chars.len()), a.max(b).min(chars.len()));
+        let text: String = chars[..start]
+            .iter()
+            .chain(&[HARD_BREAK])
+            .chain(&chars[end..])
+            .collect();
+        draft.body = draft.doc.apply_text_at(&text, Some(start + 1));
+        let mut state = egui::TextEdit::load_state(ui.ctx(), body_id).unwrap_or_default();
+        state
+            .cursor
+            .set_char_range(Some(egui::text::CCursorRange::one(
+                egui::text::CCursor::new(start + 1),
+            )));
+        state.store(ui.ctx(), body_id);
+        draft.body_dirty = true;
+        draft.changed_at = now;
+        cursor = start + 1;
+    }
     // ProseCraft's Screenplay bar, above the formatting toolbar; for a prose scene of a
     // screenplay project, with "Convert this scene to screenplay" (asked first).
     if screenplay {
@@ -1159,13 +1829,20 @@ fn editor(
         }
         ui.add_space(6.0);
     }
-    // ProseCraft's formatting toolbar.
+    // ProseCraft's formatting toolbar; it wraps onto more rows in a narrow column rather than
+    // widening the column past the window.
     card(palette).show(ui, |ui| {
-        ui.horizontal(|ui| {
+        ui.horizontal_wrapped(|ui| {
             let current = draft.doc.kind_at(cursor);
+            // A nested list item shows as its list's style.
+            let shown = match current.list_depth() {
+                Some(_) if current.numbered() => LineKind::Numbered,
+                Some(_) => LineKind::Bullet,
+                None => current,
+            };
             let label = BLOCK_STYLES
                 .iter()
-                .find(|(k, _)| *k == current)
+                .find(|(k, _)| *k == shown)
                 .map_or("Normal text", |(_, l)| l);
             let mut chosen = current;
             let style = craft_ui::ComboBox::from_id_salt(("block-style", &document.id))
@@ -1228,6 +1905,38 @@ fn editor(
                 }
             }
             ui.separator();
+            // ProseCraft's Add link: an address for the selection (or put in as its own text).
+            let link = ui.button("Link").on_hover_text("Add link");
+            name_field(ui, &link, "Add link");
+            if link.clicked() {
+                let range = selection.clone().unwrap_or(cursor..cursor);
+                draft.link_prompt = Some((range, String::new(), None));
+            }
+            ui.separator();
+            // ProseCraft's Undo and Redo: the scene's own history.
+            for (label, undo) in [("Undo", true), ("Redo", false)] {
+                let button = ui.button(label).on_hover_text(label);
+                name_field(ui, &button, label);
+                if button.clicked() {
+                    edit.intents.push(Intent::BodyHistory {
+                        document: document.id.clone(),
+                        undo,
+                    });
+                }
+            }
+            ui.separator();
+            // ProseCraft's Insert image: a picture at the caret (or the end of the text).
+            let picture = ui.button("Image").on_hover_text("Insert image");
+            name_field(ui, &picture, "Insert image");
+            if picture.clicked() {
+                let at = selection
+                    .clone()
+                    .map_or(draft.doc.text.chars().count(), |r| r.start);
+                edit.intents.push(Intent::InsertPicture {
+                    document: document.id.clone(),
+                    at,
+                });
+            }
             // ProseCraft's comment button: a comment on the selected passage.
             let selected = selection.clone().filter(|r| !r.is_empty());
             let comment = ui
@@ -1237,14 +1946,14 @@ fn editor(
             if comment.clicked()
                 && let Some(range) = selected
             {
-                use prosecraft_core::comments::{build_anchor, editor_text};
-                let text = editor_text::comment_text(&draft.body);
-                let (start, end) = (
-                    editor_text::to_comment(&draft.body, range.start),
-                    editor_text::to_comment(&draft.body, range.end),
-                );
+                use prosecraft_core::comments::build_anchor;
+                // ProseCraft's comment text: the scene's text nodes, the newlines a Markdown
+                // scene has between its blocks included.
+                let map = draft.doc.comment_map();
+                let text = &map.text;
+                let (start, end) = (map.to_comment(range.start), map.to_comment(range.end));
                 // Whitespace alone has nothing to anchor to.
-                if let Some(anchor) = build_anchor(&text, start, end) {
+                if let Some(anchor) = build_anchor(text, start, end) {
                     *edit.pending_comment = Some(crate::PendingComment {
                         document: document.id.clone(),
                         anchor,
@@ -1302,6 +2011,31 @@ fn editor(
             if sources.clicked() {
                 *edit.sources = Some(crate::sources::SourcesDialog::default());
             }
+            // Insert equation, diagram, calculation (`openRichDialog`).
+            for (label, name, kind) in [
+                ("Σ", "Insert equation", crate::rich_dialog::DialogKind::Math),
+                (
+                    "Diagram",
+                    "Insert diagram",
+                    crate::rich_dialog::DialogKind::Diagram,
+                ),
+                (
+                    "Calc",
+                    "Insert calculation",
+                    crate::rich_dialog::DialogKind::Calc,
+                ),
+            ] {
+                let button = ui.button(label).on_hover_text(name);
+                name_field(ui, &button, name);
+                if button.clicked() {
+                    let caret = draft.caret.unwrap_or_else(|| draft.body.chars().count());
+                    *edit.rich_dialog = Some(crate::rich_dialog::RichDialog::insert(
+                        &document.id,
+                        kind,
+                        caret,
+                    ));
+                }
+            }
             // ProseCraft's "MD" button, when the Markdown editor is enabled.
             if edit.markdown_enabled {
                 ui.separator();
@@ -1340,13 +2074,32 @@ fn editor(
     if let Some(chapter) = &chapter {
         for scene in &chapter.before {
             let screenplay = scene.screenplay || chapter.screenplay_project;
-            chapter_scene(ui, palette, scene, screenplay, &edit.cites, &mut edit.open);
+            chapter_scene(
+                ui,
+                palette,
+                scene,
+                screenplay,
+                &edit.cites,
+                &mut edit.open,
+                &Look::scaled(&edit.writing),
+            );
             scene_divider(ui, palette, edit.separator);
         }
     }
     let doc_for_layout = draft.doc.clone();
     let layout_labels = atom_labels(&draft.doc, &edit.cites);
     let layout_palette = *palette;
+    let mut look = Look::scaled(&edit.writing);
+    // Fade other paragraphs while the editor has the focus.
+    if edit.writing.fade
+        && !screenplay
+        && ui.memory(|m| m.has_focus(body_id))
+        && let Some(range) =
+            egui::TextEdit::load_state(ui.ctx(), body_id).and_then(|s| s.cursor.char_range())
+    {
+        let (a, b) = (range.primary.index.0, range.secondary.index.0);
+        look.faded = faded_lines(&draft.doc, a.min(b)..a.max(b));
+    }
     let mut layouter = move |ui: &Ui, text: &dyn egui::TextBuffer, wrap_width: f32| {
         if screenplay {
             return crate::screenplay_editor::galley(
@@ -1358,17 +2111,20 @@ fn editor(
             );
         }
         ui.fonts_mut(|f| {
-            let spacing = atom_sizes(f, &layout_labels);
+            let spacing = atom_sizes(f, &layout_labels, wrap_width);
             let job = layout_doc(
                 &doc_for_layout,
                 text.as_str(),
                 &layout_palette,
                 wrap_width,
                 &spacing,
+                &look,
             );
             f.layout_job(job)
         })
     };
+    link_prompt(ui, draft, now);
+    history_keys(ui, body_id, &document.id, edit.intents);
     let output = egui::TextEdit::multiline(&mut draft.body)
         .id(body_id)
         .frame(egui::Frame::NONE)
@@ -1384,6 +2140,9 @@ fn editor(
         })
         .show(ui);
     name_field(ui, &output.response, "Scene text");
+    if let Some(range) = output.cursor_range {
+        draft.caret = Some(range.primary.index.0);
+    }
     if output.response.changed() {
         let cursor = output.cursor_range.map(|r| r.primary.index.0);
         let kept = draft.doc.apply_text_at(&draft.body, cursor);
@@ -1397,11 +2156,24 @@ fn editor(
         draft.changed_at = now;
         // Writing activity, as ProseCraft's `trackActivity` on each input: one more edit, and
         // the words gained.
-        let words = count_words(&draft.body.replace(ATOM, " "));
+        // `refreshCounts`: the words of the scene's HTML, equations and diagrams left out.
+        let words = prosecraft_core::html::html_word_count(&draft.doc.to_html());
         draft.edits += 1;
         draft.words_added += (words as f64 - draft.words as f64).max(0.0);
         draft.words = words;
     }
+    after_typing(ui, edit.writing, edit.editor_rect, edit.intents, &output);
+    record_body_history(
+        UndoAt {
+            undo: edit.undo,
+            project: &edit.project_id,
+            page: &edit.undo_page,
+            now_ms: edit.now_ms,
+        },
+        document,
+        draft,
+        output.cursor_range,
+    );
     let labels = atom_labels(&draft.doc, &edit.cites);
     let markers = paint_extras(
         ui,
@@ -1424,6 +2196,12 @@ fn editor(
             Clicked::Footnote(id) => {
                 *edit.footnote_open = Some((document.id.clone(), id.clone()));
             }
+            Clicked::Rich(atom) => {
+                if let Some(html) = draft.doc.atoms.get(*atom) {
+                    *edit.rich_dialog =
+                        crate::rich_dialog::RichDialog::edit(&document.id, *atom, html);
+                }
+            }
             Clicked::Cite(atom) => {
                 let cites = draft
                     .doc
@@ -1442,6 +2220,20 @@ fn editor(
             }
         }
     }
+    proofreading_marks(
+        ui,
+        palette,
+        (edit.proofing, edit.editable, edit.now),
+        draft,
+        &output,
+    );
+    rich_dialog(
+        ui,
+        palette,
+        (edit.rich_dialog, edit.editable, edit.now),
+        draft,
+        &document.id,
+    );
     // A new citation's picker opens beside the caret.
     if let Some(picker) = edit
         .citation_picker
@@ -1463,7 +2255,15 @@ fn editor(
         for scene in &chapter.after {
             scene_divider(ui, palette, edit.separator);
             let screenplay = scene.screenplay || chapter.screenplay_project;
-            chapter_scene(ui, palette, scene, screenplay, &edit.cites, &mut edit.open);
+            chapter_scene(
+                ui,
+                palette,
+                scene,
+                screenplay,
+                &edit.cites,
+                &mut edit.open,
+                &Look::scaled(&edit.writing),
+            );
         }
         count += chapter.words;
     }
@@ -1553,6 +2353,9 @@ fn markdown_editor(
             markdown: Some(source),
             markdown_base: markdown_base(document),
             chapter: chapter.as_ref().map(|c| c.id.clone()),
+            caret: None,
+            undo_caret: None,
+            link_prompt: None,
         });
     }
     let now = edit.now;
@@ -1659,6 +2462,8 @@ pub(crate) enum Clicked {
     Footnote(String),
     /// A citation: its atom's index.
     Cite(usize),
+    /// A drawn equation, diagram or calculation: its atom's index.
+    Rich(usize),
 }
 
 /// What the text itself can't show: list bullets and numbers, the quote bar, footnote
@@ -1674,26 +2479,60 @@ fn paint_extras(
     clip: egui::Rect,
 ) -> Vec<(egui::Rect, Clicked)> {
     let mut markers = Vec::new();
-    let painter = ui.painter_at(clip.expand2(egui::vec2(30.0, 0.0)));
-    let mut number = 0;
-    let mut previous = None;
-    for (line, (start, _end)) in doc.line_ranges().into_iter().enumerate() {
+    // The text area is as wide as its text; kept blocks span the column.
+    let column = ui.max_rect().max.x.max(clip.max.x);
+    let painter = ui.painter_at(egui::Rect::from_min_max(
+        clip.min - egui::vec2(30.0, 0.0),
+        egui::pos2(column, clip.max.y),
+    ));
+    // The lists open (as the HTML nests them) and how many items each has had.
+    let mut lists: Vec<(&str, u32)> = Vec::new();
+    for (line, (start, end)) in doc.line_ranges().into_iter().enumerate() {
         let kind = doc.lines.get(line).copied().unwrap_or(LineKind::Paragraph);
         let rect = galley
             .pos_from_cursor(egui::text::CCursor::new(start))
             .translate(origin.to_vec2());
-        number = if kind == LineKind::Numbered {
-            if previous == Some(LineKind::Numbered) {
-                number + 1
+        let last_row = galley
+            .pos_from_cursor(egui::text::CCursor::new(end))
+            .translate(origin.to_vec2());
+        let wanted = kind.lists();
+        let common = lists
+            .iter()
+            .zip(&wanted)
+            .take_while(|((open, _), want)| open == *want)
+            .count();
+        lists.truncate(common);
+        if !wanted.is_empty() {
+            if lists.len() == wanted.len() {
+                if let Some(last) = lists.last_mut() {
+                    last.1 += 1;
+                }
             } else {
-                1
+                lists.extend(wanted[common..].iter().map(|l| (*l, 1)));
             }
-        } else {
-            0
-        };
-        let marker = match kind {
-            LineKind::Bullet => Some("•".to_owned()),
-            LineKind::Numbered => Some(format!("{number}.")),
+        }
+        // The browser's markers: numbers, or a disc, circle and square by depth.
+        let marker = match (kind.list_depth(), lists.last()) {
+            (Some(_), Some(("ol", n))) => Some(format!("{n}.")),
+            (Some(depth), Some(_)) => {
+                let at = egui::pos2(rect.min.x - 11.0, rect.center().y);
+                match depth {
+                    0 => {
+                        painter.circle_filled(at, 2.5, palette.text_muted);
+                    }
+                    1 => {
+                        painter.circle_stroke(at, 2.5, egui::Stroke::new(1.0, palette.text_muted));
+                    }
+                    _ => {
+                        painter.rect_filled(
+                            egui::Rect::from_center_size(at, egui::vec2(4.5, 4.5)),
+                            0.0,
+                            palette.text_muted,
+                        );
+                    }
+                }
+                None
+            }
             _ => None,
         };
         if let Some(marker) = marker {
@@ -1706,16 +2545,144 @@ fn paint_extras(
             );
         }
         if kind == LineKind::Quote {
+            // `border-left: 2px`, the padding's width before the text.
             let bar = egui::Rect::from_min_max(
-                egui::pos2(rect.min.x - 14.0, rect.min.y),
-                egui::pos2(rect.min.x - 12.0, rect.max.y),
+                egui::pos2(rect.min.x - QUOTE_INDENT, rect.min.y),
+                egui::pos2(rect.min.x - QUOTE_INDENT + 2.0, last_row.max.y),
             );
             painter.rect_filled(bar, 1.0, palette.border_control);
         }
-        previous = Some(kind);
     }
-    markers.extend(paint_atoms(&painter, palette, doc, labels, galley, origin));
+    markers.extend(paint_atoms(
+        &painter, palette, doc, labels, galley, origin, column,
+    ));
     markers
+}
+
+/// A kept block across the column, in its row: a rule as a line; anything else as a panel
+/// with its kind and its text (code, a table's rows, an equation's or diagram's source).
+fn paint_block(
+    painter: &egui::Painter,
+    palette: &Palette,
+    preview: &prosecraft_core::richtext::BlockPreview,
+    row: egui::Rect,
+    right_edge: f32,
+) {
+    let left = row.min.x;
+    let right = right_edge.max(left + 40.0);
+    // An equation or calculation drawn, centred (`.scene .math-block { text-align: center }`).
+    if let Some(kind) = crate::rich_view::block_kind(preview)
+        && let Ok((size, pixels)) =
+            crate::rich_view::drawn(kind, &preview.source, palette.text_body)
+    {
+        let width = right - left;
+        let fit = if size.x > width { width / size.x } else { 1.0 };
+        let shown = size * fit;
+        let rect = egui::Rect::from_center_size(
+            egui::pos2(
+                (left + right) / 2.0,
+                row.min.y + crate::rich_view::BLOCK_MARGIN + shown.y / 2.0,
+            ),
+            shown,
+        );
+        let texture = crate::rich_view::texture(painter.ctx(), &pixels);
+        painter.image(
+            texture.id(),
+            rect,
+            egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+            egui::Color32::WHITE,
+        );
+        return;
+    }
+    if preview.kind == prosecraft_core::richtext::BlockKind::Rule {
+        let y = row.center().y;
+        painter.line_segment(
+            [egui::pos2(left, y), egui::pos2(right, y)],
+            egui::Stroke::new(1.0, palette.border_control),
+        );
+        return;
+    }
+    let panel = egui::Rect::from_min_max(
+        egui::pos2(left, row.min.y + 4.0),
+        egui::pos2(right, row.max.y - 4.0),
+    );
+    painter.rect_filled(panel, 6.0, palette.control_bg);
+    painter.rect_stroke(
+        panel,
+        6.0,
+        egui::Stroke::new(1.0, palette.border),
+        egui::StrokeKind::Inside,
+    );
+    let inner = painter.with_clip_rect(panel.shrink(1.0).intersect(painter.clip_rect()));
+    inner.text(
+        egui::pos2(panel.min.x + 10.0, panel.min.y + 6.0),
+        egui::Align2::LEFT_TOP,
+        preview.kind.name().to_uppercase(),
+        egui::FontId::proportional(10.0),
+        palette.text_muted,
+    );
+    let mut y = panel.min.y + 6.0 + 18.0;
+    let lines = preview
+        .lines
+        .iter()
+        .map(String::as_str)
+        .chain(preview.more.then_some("…"));
+    for line in lines {
+        inner.text(
+            egui::pos2(panel.min.x + 10.0, y),
+            egui::Align2::LEFT_TOP,
+            line,
+            egui::FontId::monospace(13.0),
+            palette.text_body,
+        );
+        y += BLOCK_LINE;
+    }
+}
+
+/// A picture in its row, at its layout's size and alignment; its alternative text in a frame
+/// when the image can't be drawn.
+fn paint_picture(
+    painter: &egui::Painter,
+    palette: &Palette,
+    html: &str,
+    picture: &crate::pictures::PictureInfo,
+    row: egui::Rect,
+    right_edge: f32,
+) {
+    let left = row.min.x;
+    let width = (right_edge - left).max(40.0);
+    let size = picture.drawn(width);
+    let x = match (picture.layout.wrap, picture.layout.align) {
+        ("wrap-right", _) | ("block", "right") => right_edge - size.x,
+        ("block", "center") => left + (width - size.x) / 2.0,
+        _ => left,
+    };
+    let rect = egui::Rect::from_min_size(egui::pos2(x, row.min.y + crate::pictures::MARGIN), size);
+    match crate::pictures::texture(painter.ctx(), html, picture) {
+        Some(texture) => {
+            painter.image(
+                texture.id(),
+                rect,
+                egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+                egui::Color32::WHITE,
+            );
+        }
+        None => {
+            painter.rect_stroke(
+                rect,
+                4.0,
+                egui::Stroke::new(1.0, palette.border_control),
+                egui::StrokeKind::Inside,
+            );
+            painter.text(
+                rect.center(),
+                egui::Align2::CENTER_CENTER,
+                &picture.alt,
+                egui::FontId::proportional(13.0),
+                palette.text_muted,
+            );
+        }
+    }
 }
 
 /// Each atom's label, painted in its character's box (footnote numbers, citation labels,
@@ -1727,6 +2694,7 @@ pub(crate) fn paint_atoms(
     labels: &[AtomLabel],
     galley: &egui::Galley,
     origin: egui::Pos2,
+    right_edge: f32,
 ) -> Vec<(egui::Rect, Clicked)> {
     let mut markers = Vec::new();
     let atoms = doc
@@ -1772,11 +2740,30 @@ pub(crate) fn paint_atoms(
                     palette.link,
                 );
             }
+            AtomLabel::Math(tex)
+                if let Ok((size, pixels)) = crate::rich_view::drawn(
+                    prosecraft_core::rich::RichKind::MathInline,
+                    tex,
+                    palette.text_body,
+                ) =>
+            {
+                let rect =
+                    egui::Rect::from_center_size(egui::pos2(center.x, before.center().y), size);
+                markers.push((rect, Clicked::Rich(atom)));
+                let texture = crate::rich_view::texture(painter.ctx(), &pixels);
+                painter.image(
+                    texture.id(),
+                    rect,
+                    egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+                    egui::Color32::WHITE,
+                );
+            }
             AtomLabel::Math(_) => {
                 let chip = egui::Rect::from_center_size(
                     center,
                     egui::vec2((right - before.min.x).max(16.0), ATOM_FONT + 4.0),
                 );
+                markers.push((chip, Clicked::Rich(atom)));
                 painter.rect_filled(chip, 4.0, palette.selected_bg);
                 painter.text(
                     chip.center(),
@@ -1787,6 +2774,34 @@ pub(crate) fn paint_atoms(
                 );
             }
             AtomLabel::Other => {}
+            AtomLabel::Block(preview) => {
+                paint_block(painter, palette, preview, before, right_edge);
+                // A click on an equation, diagram or calculation edits it (`openRichDialog`).
+                if crate::rich_view::block_kind(preview).is_some()
+                    && let Some(cell) = glyph_rect(galley, index)
+                {
+                    let row = cell.translate(origin.to_vec2());
+                    markers.push((
+                        egui::Rect::from_min_max(row.min, egui::pos2(right_edge, row.max.y)),
+                        Clicked::Rich(atom),
+                    ));
+                }
+            }
+            AtomLabel::Picture(picture) => {
+                // Its own glyph's cell: at a row break the caret before it is at the end of the
+                // row above.
+                if let Some(cell) = glyph_rect(galley, index) {
+                    let cell = cell.translate(origin.to_vec2());
+                    // The column it was laid out in (see `atom_sizes`).
+                    let wrap = galley.job.wrap.max_width;
+                    let right = if wrap.is_finite() {
+                        (origin.x + wrap).min(right_edge)
+                    } else {
+                        right_edge
+                    };
+                    paint_picture(painter, palette, html, picture, cell, right);
+                }
+            }
             AtomLabel::Cite(text) => {
                 // ProseCraft's `span.cite-ref`: the label on a faint accent tint, over the atom's
                 // own character, which the layout made as wide as the label.

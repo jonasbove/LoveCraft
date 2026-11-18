@@ -345,16 +345,18 @@ pub(crate) enum Category {
     #[default]
     General,
     Writing,
+    Proofreading,
     Data,
 }
 
 impl Category {
-    const ALL: [Self; 3] = [Self::General, Self::Writing, Self::Data];
+    const ALL: [Self; 4] = [Self::General, Self::Writing, Self::Proofreading, Self::Data];
 
     fn label(self) -> &'static str {
         match self {
             Self::General => "General",
             Self::Writing => "Writing",
+            Self::Proofreading => "Proofreading",
             Self::Data => "Data and sync",
         }
     }
@@ -363,9 +365,74 @@ impl Category {
 /// ProseCraft's Markdown editor preference (`prosecraft-markdown-editor-enabled`).
 pub const MARKDOWN_EDITOR_KEY: &str = "prosecraft-markdown-editor-enabled";
 
-/// The Writing category: ProseCraft's Markdown editor preference.
+/// The Writing category: text size, the writing experience (typewriter, fade, Zen), focus mode,
+/// the Markdown editor, and the Timeline view.
 fn writing(ui: &mut Ui, state: &mut AppState) {
     let palette = state.palette;
+    let heading = |ui: &mut Ui, title: &str, text: &str| {
+        ui.label(RichText::new(title).strong().color(palette.text_heading));
+        help(ui, &palette, text);
+        ui.add_space(6.0);
+    };
+    let mut prefs = state.writing;
+    heading(ui, "Text size", "Adjust the editor scale");
+    let scale = craft_ui::ComboBox::from_id_salt("editor-scale")
+        .selected_text(format!("{}%", prefs.scale))
+        .show_ui(ui, |ui| {
+            for scale in crate::WritingPrefs::SCALES {
+                ui.selectable_value(&mut prefs.scale, scale, format!("{scale}%"));
+            }
+        });
+    ui.ctx().accesskit_node_builder(scale.response.id, |node| {
+        node.set_label("Scale");
+    });
+    ui.add_space(14.0);
+    heading(
+        ui,
+        "Writing experience",
+        "Control how the editor follows your focus",
+    );
+    ui.checkbox(&mut prefs.typewriter, "Typewriter mode");
+    help(
+        ui,
+        &palette,
+        "Keeps the caret near the vertical center of the page in both the rich-text and Markdown editors.",
+    );
+    ui.checkbox(&mut prefs.fade, "Fade other paragraphs");
+    help(
+        ui,
+        &palette,
+        "Keeps the paragraph you’re editing at full contrast and fades the rest while an editor is focused.",
+    );
+    ui.checkbox(&mut prefs.zen, "Hide the interface while typing (Zen mode)");
+    help(
+        ui,
+        &palette,
+        "Only hides the interface once you start typing in the editor. Move the mouse outside the editor or press Escape to bring it back.",
+    );
+    ui.add_space(8.0);
+    let modifier = if cfg!(target_os = "macos") {
+        "Cmd"
+    } else {
+        "Ctrl"
+    };
+    heading(
+        ui,
+        "Focus mode",
+        &format!(
+            "Hides everything except your text right now. Press {modifier}+Shift+Enter (or Escape) to bring it back."
+        ),
+    );
+    if ui.button("Enter focus mode").clicked() {
+        state.settings_open = false;
+        state.view = crate::WorkspaceView::Write;
+        state.focus_wanted = true;
+    }
+    ui.add_space(14.0);
+    let mut timeline = prefs.timeline;
+    if prefs != state.writing {
+        state.writing_choice = Some(prefs);
+    }
     ui.label(
         RichText::new("Markdown editor")
             .strong()
@@ -388,6 +455,22 @@ fn writing(ui: &mut Ui, state: &mut AppState) {
         ui,
         &palette,
         "When enabled, use the Markdown editor button above a document to switch between Markdown source and rich text.",
+    );
+    ui.add_space(14.0);
+    heading(
+        ui,
+        "Timeline view",
+        "An experimental chronological view of your story",
+    );
+    if ui.checkbox(&mut timeline, "Show Timeline view").changed() {
+        let mut prefs = state.writing_choice.unwrap_or(state.writing);
+        prefs.timeline = timeline;
+        state.writing_choice = Some(prefs);
+    }
+    help(
+        ui,
+        &palette,
+        "The Timeline is still taking shape. Turn it on to try it; your timeline data is kept either way.",
     );
 }
 
@@ -425,6 +508,111 @@ fn general(ui: &mut Ui, state: &mut AppState) {
 
 /// The Settings dialog, while open: ProseCraft's categories on the left, the chosen one's
 /// settings beside them.
+/// "Proofreading": Harper's spelling and grammar checks, and the English they expect.
+fn proofreading(ui: &mut Ui, state: &mut AppState) {
+    let palette = state.palette;
+    ui.label(
+        RichText::new("Proofreading")
+            .strong()
+            .color(palette.text_heading),
+    );
+    help(ui, &palette, "Offline spelling and grammar checking");
+    ui.add_space(6.0);
+    let mut prefs = state.proofread.clone();
+    ui.checkbox(&mut prefs.enabled, "Check spelling and grammar");
+    help(
+        ui,
+        &palette,
+        "Runs entirely on this device — your writing never leaves the app. Click an underlined passage to see suggestions.",
+    );
+    if prefs.enabled {
+        ui.add_space(6.0);
+        ui.label("English dialect");
+        let label = prosecraft_core::proofread::DIALECTS
+            .iter()
+            .find(|(id, _)| *id == prefs.dialect)
+            .map_or("American", |(_, l)| l);
+        let combo = craft_ui::ComboBox::from_id_salt("harper-dialect")
+            .selected_text(label)
+            .show_ui(ui, |ui| {
+                for (id, name) in prosecraft_core::proofread::DIALECTS {
+                    ui.selectable_value(&mut prefs.dialect, id.to_owned(), name);
+                }
+            });
+        ui.ctx().accesskit_node_builder(combo.response.id, |n| {
+            n.set_label("English dialect");
+            n.set_value(label);
+        });
+        let open = state.draft.as_ref().map(|d| d.document.as_str());
+        let status = if state.proofing.checking {
+            Some("Checking the current scene…".to_owned())
+        } else if open.is_some_and(|d| d == state.proofing.document) {
+            let n = state.proofing.lints.len();
+            Some(if n == 0 {
+                "No issues found in the current scene.".to_owned()
+            } else {
+                format!(
+                    "{n} suggestion{} in the current scene.",
+                    if n == 1 { "" } else { "s" }
+                )
+            })
+        } else {
+            None
+        };
+        if let Some(status) = status {
+            let response = ui.label(RichText::new(status).size(11.0).color(palette.text_muted));
+            ui.ctx()
+                .accesskit_node_builder(response.id, |n| n.set_role(egui::accesskit::Role::Status));
+        }
+    }
+    if prefs != state.proofread {
+        state.proofread_choice = Some(prefs);
+    }
+}
+
+/// "Wiki files": where imported files live on this device.
+fn wiki_files(ui: &mut Ui, state: &mut AppState) {
+    let palette = state.palette;
+    eyebrow(ui, &palette, "Wiki files");
+    if !state.wiki_available {
+        help(
+            ui,
+            &palette,
+            "Wiki files are stored in a folder on this computer, so they are available in the desktop app.",
+        );
+        return;
+    }
+    help(
+        ui,
+        &palette,
+        "Imported wiki files live in a project folder on this device. They are stored as plain files, not encrypted, and are not included in project backups or device sync. Their metadata travels with the project. Files can be up to 200 MB each.",
+    );
+    ui.add_space(6.0);
+    let root = state.wiki_root.clone().unwrap_or_default();
+    ui.horizontal(|ui| {
+        let path = if root.is_empty() {
+            "No folder chosen"
+        } else {
+            root.as_str()
+        };
+        ui.add(egui::Label::new(RichText::new(path).monospace().size(12.0)).truncate())
+            .on_hover_text(path);
+        let choose = ui.button("Choose folder…");
+        crate::views::name_field(ui, &choose, "Choose wiki files folder");
+        if choose.clicked() {
+            state.intents.push(crate::editing::Intent::ChooseWikiRoot);
+        }
+    });
+    if ui.button("Reveal project folder").clicked() {
+        state
+            .intents
+            .push(crate::editing::Intent::RevealWikiProjectFolder);
+    }
+    if let Some(status) = &state.wiki_settings_status {
+        ui.label(RichText::new(status).size(11.0).color(palette.text_muted));
+    }
+}
+
 pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
     if !state.settings_open {
         return;
@@ -487,10 +675,17 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                     match state.settings_tab {
                         Category::General => general(ui, state),
                         Category::Writing => writing(ui, state),
+                        Category::Proofreading => proofreading(ui, state),
                         Category::Data => {
-                            import_manuscript(ui, state);
-                            ui.add_space(14.0);
-                            device_sync(ui, state);
+                            egui::ScrollArea::vertical()
+                                .id_salt("settings-data")
+                                .show(ui, |ui| {
+                                    import_manuscript(ui, state);
+                                    ui.add_space(14.0);
+                                    device_sync(ui, state);
+                                    ui.add_space(14.0);
+                                    wiki_files(ui, state);
+                                });
                         }
                     }
                 });

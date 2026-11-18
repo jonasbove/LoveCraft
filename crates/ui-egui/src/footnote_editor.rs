@@ -232,13 +232,14 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                     let layout_doc = doc.clone();
                     let mut layouter = move |ui: &Ui, text: &dyn egui::TextBuffer, wrap: f32| {
                         ui.fonts_mut(|f| {
-                            let sizes = crate::views::atom_sizes(f, &layout_labels);
+                            let sizes = crate::views::atom_sizes(f, &layout_labels, wrap);
                             let job = crate::views::layout_doc(
                                 &layout_doc,
                                 text.as_str(),
                                 &palette,
                                 wrap,
                                 &sizes,
+                                &crate::views::Look::default(),
                             );
                             f.layout_job(job)
                         })
@@ -281,6 +282,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                         &labels,
                         &output.galley,
                         output.galley_pos,
+                        output.text_clip_rect.max.x,
                     );
                     if editable
                         && output.response.clicked()

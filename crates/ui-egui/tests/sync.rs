@@ -140,11 +140,11 @@ fn status(harness: &Harness<'_, ProseApp>) -> String {
 fn sync(harness: &mut Harness<'_, ProseApp>, passphrase: &str) -> String {
     harness
         .get_by_role_and_label(Role::Button, "Settings…")
-        .click();
+        .click_accesskit();
     harness.run();
     harness
         .get_by_role_and_label(Role::Tab, "Data and sync")
-        .click();
+        .click_accesskit();
     harness.run();
     if harness.query_by_label("Sync passphrase").is_none() {
         harness.state_mut().set_sync_folder("/shared/sync".into());
@@ -157,7 +157,7 @@ fn sync(harness: &mut Harness<'_, ProseApp>, passphrase: &str) -> String {
     harness.run();
     harness
         .get_by_role_and_label(Role::Button, "Sync now")
-        .click();
+        .click_accesskit();
     // A step, not `run`: the UI repaints until the background sync is done.
     harness.step();
     // The sync runs on a background thread; wait for its result.
@@ -244,15 +244,15 @@ fn the_craftcloud_folder_is_one_click_away() {
     let mut harness = app(&store, true);
     harness
         .get_by_role_and_label(Role::Button, "Settings…")
-        .click();
+        .click_accesskit();
     harness.run();
     harness
         .get_by_role_and_label(Role::Tab, "Data and sync")
-        .click();
+        .click_accesskit();
     harness.run();
     harness
         .get_by_role_and_label(Role::Button, "Use the CraftCloud folder")
-        .click();
+        .click_accesskit();
     harness.run();
     assert_eq!(
         status(&harness),
@@ -321,11 +321,11 @@ fn the_theme_is_chosen_in_settings_and_remembered() {
     let dark_bg = harness.ctx.global_style().visuals.panel_fill;
     harness
         .get_by_role_and_label(Role::Button, "Settings…")
-        .click();
+        .click_accesskit();
     harness.run();
     harness
         .get_by_role_and_label(Role::ComboBox, "Theme")
-        .click();
+        .click_accesskit();
     harness.run();
     harness.get_by_role_and_label(Role::Button, "Light").click();
     harness.run();
@@ -358,11 +358,11 @@ fn the_theme_is_chosen_in_settings_and_remembered() {
 fn sync_open(harness: &mut Harness<'_, ProseApp>) -> String {
     harness
         .get_by_role_and_label(Role::Button, "Settings…")
-        .click();
+        .click_accesskit();
     harness.run();
     harness
         .get_by_role_and_label(Role::Tab, "Data and sync")
-        .click();
+        .click_accesskit();
     harness.run();
     if harness
         .query_by_role_and_label(Role::Button, "Sync now")
@@ -373,12 +373,12 @@ fn sync_open(harness: &mut Harness<'_, ProseApp>) -> String {
     }
     harness
         .get_by_role_and_label(Role::RadioButton, "Open folder")
-        .click();
+        .click_accesskit();
     harness.run();
     assert!(harness.query_by_label("Sync passphrase").is_none());
     harness
         .get_by_role_and_label(Role::Button, "Sync now")
-        .click();
+        .click_accesskit();
     // A step, not `run`: the UI repaints until the background sync is done.
     harness.step();
     for _ in 0..600 {

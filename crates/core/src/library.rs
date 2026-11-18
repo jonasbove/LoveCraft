@@ -105,6 +105,18 @@ impl Library {
         }
     }
 
+    /// `permanentlyDeleteProject`: the project gone from the library (ProseCraft drops it from
+    /// storage, with no tombstone).
+    pub fn remove(&mut self, id: &str) -> bool {
+        let before = self.projects.len();
+        self.projects.retain(|p| {
+            !p.get("id")
+                .and_then(JsValue::as_js_string)
+                .is_some_and(|i| i.eq_str(id))
+        });
+        self.projects.len() != before
+    }
+
     /// After a sync: the library holds the merged working set. Records this build can't read
     /// (not valid stored projects) aren't part of a sync and are kept as they are.
     pub fn replace_synced(&mut self, synced: Vec<JsValue>) {

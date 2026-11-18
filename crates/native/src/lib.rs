@@ -16,6 +16,7 @@
 
 pub mod craftcloud;
 pub mod sync_fs;
+pub mod wiki_files;
 
 use std::io;
 use std::path::{Path, PathBuf};

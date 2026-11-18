@@ -27,7 +27,7 @@ use craft_wordmodel::{
 use super::citations::resolve_book_citations;
 use super::embedded_image::{EmbeddedImage, decode_embedded_image, natural_size};
 use super::footnotes::{BookFootnotes, ResolvedFootnote, resolve_book_footnotes};
-use super::html::{StyleTokens, matter_paragraphs, style_tokens};
+use super::html::{StyleTokens, matter_paragraphs};
 use super::rich_text::{
     Block as TextBlock, BlockKind, InlineRun, blocks_from_html, inline_runs_from_html, trim_runs,
 };
@@ -525,7 +525,8 @@ fn matter_page(page: &MatterPage, out: &mut Vec<Paragraph>) {
 
 /// ProseCraft's own fallback for an equation, diagram or calculation it can't draw
 /// (`prepareRichHtml` and `showRichFallback` in `src/lib/rich/`): the placeholder shows its
-/// source text. Drawing them isn't ported, so every placeholder takes the fallback.
+/// source text. Placeholders [`crate::rich::prepare_rich_html`] has drawn (or already marked)
+/// are kept as they are.
 fn show_rich_sources(html: &str) -> String {
     if !RICH.iter().any(|(class, ..)| html.contains(class)) {
         return html.to_owned();
@@ -537,6 +538,9 @@ fn show_rich_sources(html: &str) -> String {
         }
         for node in nodes {
             if let Node::Element(e) = node {
+                if e.has_class("rich-rendered") || e.has_class("rich-render-error") {
+                    continue;
+                }
                 // `richKindOf`: the first kind whose class it has, and that kind's source.
                 let source = RICH
                     .iter()
@@ -1225,7 +1229,7 @@ fn assemble(doc: &mut Document, sections: Vec<(Vec<Paragraph>, SectionProps)>) {
 /// The document `exportDocx` builds, on the word-processing model.
 fn docx_document(book: &CompiledBook, options: &PublishOptions) -> Result<Document, DocxError> {
     let (book, bibliography) = resolve_book_citations(book, options);
-    let tokens = style_tokens(&options.style);
+    let tokens = &super::styles::resolve_style_tokens(&options.style, &options.custom_styles);
     let mut doc = Document::new();
     doc.body.clear();
     doc.styles = Arc::new(style_sheet(tokens));
@@ -1288,7 +1292,7 @@ fn docx_document(book: &CompiledBook, options: &PublishOptions) -> Result<Docume
     let page = page_section(tokens);
     let mut sections: Vec<(Vec<Paragraph>, SectionProps)> = Vec::new();
     if let Some(cover) = &book.cover {
-        sections.push(cover_section(&mut doc, cover, tokens)?);
+        sections.push(cover_section(&mut doc, &cover.data_url, tokens)?);
     }
     if !title_matter.is_empty() {
         let section = SectionProps {

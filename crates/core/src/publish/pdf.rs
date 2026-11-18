@@ -1217,13 +1217,8 @@ pub fn layout_pdf(
         margin_bottom,
         margin_left,
     ] = tokens.page;
-    // `runningHeader` and `pageNumbers` of the built-in styles; all of them use Times.
-    let (running_header, page_numbers) = match options.style.as_str() {
-        "classic" => (true, true),
-        "modern" => (false, true),
-        "ebook" => (false, false),
-        _ => (true, true),
-    };
+    // All the built-in styles use Times (`pdfFont`).
+    let (running_header, page_numbers) = (tokens.running_header, tokens.page_numbers);
     let body_size = tokens.body_size;
     let content_top = margin_top;
     let content_bottom = height - margin_bottom;

@@ -65,7 +65,9 @@ const FORMATS: [(&str, &str, &str, &str); 8] = [
 ];
 
 /// Formats that can be exported here.
-const PORTED: [&str; 7] = ["pdf", "epub", "docx", "markdown", "html", "text", "fountain"];
+const PORTED: [&str; 7] = [
+    "pdf", "epub", "docx", "markdown", "html", "text", "fountain",
+];
 
 /// ProseCraft's built-in styles (`PRESETS`).
 const STYLES: [(&str, &str, &str); 4] = [

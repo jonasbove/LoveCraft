@@ -16,6 +16,7 @@ mod html;
 mod html_css;
 mod markdown;
 mod options;
+pub mod rich_text;
 mod text;
 
 pub use compile::{

@@ -3645,6 +3645,7 @@ dependencies = [
  "base64",
  "chrono",
  "craft-fonts-build",
+ "craft-image-codecs",
  "craft-ui",
  "egui",
  "egui_kittest",

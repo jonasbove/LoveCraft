@@ -348,7 +348,8 @@ pub fn block_preview(html: &str) -> Option<BlockPreview> {
 }
 
 fn is_atom(element: &Element) -> bool {
-    (element.name == "sup" && element.has_class("footnote-ref"))
+    element.name == "img"
+        || (element.name == "sup" && element.has_class("footnote-ref"))
         || (element.name == "span"
             && (element.has_class("cite-ref") || element.has_class("math-inline")))
 }
@@ -854,6 +855,28 @@ impl RichDoc {
         self.text.clone()
     }
 
+    /// Puts a picture (its `<img>`) at character `index` as ProseCraft's `insertRichTextImage`
+    /// does: the image, then a `<br>`; on an empty line the browser keeps the line's own `<br>`
+    /// after them. Returns the new text and the character after the break.
+    pub fn insert_picture(&mut self, index: usize, html: &str) -> (String, usize) {
+        let empty_line = self
+            .line_ranges()
+            .into_iter()
+            .any(|(start, end)| start == end && start == index);
+        self.insert_atom(index, html);
+        let chars: Vec<char> = self.text.chars().collect();
+        let index = (index + 1).min(chars.len());
+        let breaks = if empty_line { 2 } else { 1 };
+        let text: String = chars[..index]
+            .iter()
+            .copied()
+            .chain(std::iter::repeat_n(HARD_BREAK, breaks))
+            .chain(chars[index..].iter().copied())
+            .collect();
+        self.apply_text_at(&text, Some(index + breaks));
+        (self.text.clone(), index + 1)
+    }
+
     /// The lines before `line` and the lines after it, as two documents; `line` itself is left
     /// out (ProseCraft's empty paragraph that becomes a scene divider). A side without lines is
     /// one empty paragraph.
@@ -1069,6 +1092,7 @@ mod tests {
             r#"<div class="mermaid-diagram" data-source="graph TD; A-->B"></div><div class="calc-worksheet" data-source="x = 2"></div>"#,
             r#"<p class="eyebrow">Part one</p><h1>Arrival</h1>"#,
             "<hr><hr>",
+            r#"<p>See <img src="data:image/png;base64,AA==" alt="A &quot;map&quot;" width="40" data-size="small" data-align="left"><br>the map.</p>"#,
         ] {
             let doc = RichDoc::from_html(html).unwrap_or_else(|| panic!("not read: {html}"));
             assert_eq!(doc.to_html(), html);
@@ -1094,7 +1118,6 @@ mod tests {
         for html in [
             r#"<p data-sp="action" class="x">x</p>"#,
             r#"<p data-sp="unknown">x</p>"#,
-            "<p><img src=\"data:image/png;base64,AA==\"></p>",
             "<div>x</div>",
             "<ul><li><pre>code</pre></li></ul>",
             "<blockquote><hr></blockquote>",
@@ -1165,6 +1188,23 @@ mod tests {
     }
 
     #[test]
+    fn a_picture_goes_in_as_prosecraft_puts_it() {
+        let img = r#"<img src="data:image/png;base64,AA==" alt="map">"#;
+        let mut doc = RichDoc::from_html("<p>One two</p><p><br></p>").expect("doc");
+        let (_, after) = doc.insert_picture(4, img);
+        assert_eq!(doc.to_html(), format!("<p>One {img}<br>two</p><p><br></p>"));
+        assert_eq!(after, 6);
+        // On an empty line the line's own break stays.
+        let end = doc.text.chars().count();
+        doc.insert_picture(end, img);
+        assert_eq!(
+            doc.to_html(),
+            format!("<p>One {img}<br>two</p><p>{img}<br><br></p>")
+        );
+        assert!(RichDoc::from_html(&doc.to_html()).is_some());
+    }
+
+    #[test]
     fn previews_kept_blocks() {
         use super::{BlockKind, block_preview};
         let table = block_preview(
@@ -1198,6 +1238,7 @@ mod tests {
             "<blockquote><p>q<br></p></blockquote><ol><li>x</li></ol>".to_owned(),
             "<p><br></p>".to_owned(),
             "<p>a</p><hr><table><tr><td>x</td></tr></table><p class=\"eyebrow\">e</p><pre><code>c\n</code></pre>".to_owned(),
+            r#"<p>See <img src="data:image/png;base64,AA==" alt="map"><br>it.</p><p><img src="data:image/png;base64,AA==" alt=""><br><br></p>"#.to_owned(),
         ];
         let mut seed: u64 = 0x2545_f491_4f6c_dd1d;
         let mut next = |n: usize| {

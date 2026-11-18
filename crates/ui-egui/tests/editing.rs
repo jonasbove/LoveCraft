@@ -205,6 +205,76 @@ fn shift_enter_breaks_the_line_inside_a_paragraph() {
 }
 
 #[test]
+fn insert_image_puts_the_picture_at_the_caret_as_prosecraft_does() {
+    let (mut harness, memory) = app();
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("an add button")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Scene 1")
+        .click();
+    harness.run();
+    let body = harness.get_by_label("Scene text");
+    body.focus();
+    body.type_text("The map:");
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Insert image")
+        .click();
+    harness.run();
+    assert!(
+        harness
+            .state_mut()
+            .take_requests()
+            .contains(&prosecraft_ui_egui::HostRequest::InsertPicture)
+    );
+    // A 4 x 2 PNG, as the host's picker hands it over.
+    let pixels = craft_image_codecs::Image::from_u8(
+        4,
+        2,
+        craft_image_codecs::ChannelLayout::Rgba,
+        vec![200; 4 * 2 * 4],
+    )
+    .expect("pixels");
+    let png = craft_image_codecs::encode(
+        &pixels,
+        craft_image_codecs::Format::Png,
+        &craft_image_codecs::EncodeOptions::default(),
+    )
+    .expect("png");
+    harness.state_mut().insert_picture("Coast map.png", &png);
+    harness.run();
+    // Typing goes on after the picture's line break.
+    harness.get_by_label("Scene text").type_text("North");
+    harness.run_steps(12);
+    let saved = memory.last();
+    let scene = document(project(&saved, "project-1"), "new-1").expect("the new scene");
+    let content = scene
+        .get("content")
+        .and_then(JsValue::as_js_string)
+        .map(|c| c.to_string_lossy())
+        .unwrap_or_default();
+    assert!(
+        content.starts_with(r#"<p>The map:<img src="data:image/webp;base64,"#),
+        "{content}"
+    );
+    assert!(
+        content.ends_with(r#"" alt="Coast map"><br>North</p>"#),
+        "{content}"
+    );
+    // Read back, it is still the rich editor's (and a picture that can't be read is refused).
+    assert!(prosecraft_core::richtext::RichDoc::from_html(&content).is_some());
+    harness
+        .state_mut()
+        .insert_picture("notes.txt", b"plain text");
+    harness.run();
+    harness.get_by_label_contains("Use a PNG, JPG, WebP, GIF, BMP, or AVIF image.");
+}
+
+#[test]
 fn a_screenplay_scene_opens_in_the_screenplay_editor() {
     let (mut harness, _memory) = app();
     harness

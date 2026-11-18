@@ -30,7 +30,10 @@ mod web {
         ScrivenerZip,
         Fountain,
         Citations,
-        /// A file dropped on the page: an EPUB is imported, anything else opened as a backup.
+        /// A picture for the open scene.
+        Picture,
+        /// A file dropped on the page: a picture goes into the open scene, an EPUB is imported,
+        /// anything else opened as a backup.
         Dropped,
     }
 
@@ -71,6 +74,13 @@ mod web {
                     Then::ScrivenerZip => self.app.import_scrivener_zip(&file.bytes),
                     Then::Fountain => self.app.import_fountain(&file.name, &text()),
                     Then::Citations => self.app.import_citation_file(&file.name, &text()),
+                    Then::Picture => self.app.insert_picture(&file.name, &file.bytes),
+                    Then::Dropped
+                        if prosecraft_core::picture::is_supported(&file.name)
+                            && self.app.picture_wanted() =>
+                    {
+                        self.app.insert_picture(&file.name, &file.bytes);
+                    }
                     Then::Dropped if file.name.to_lowercase().ends_with(".epub") => {
                         self.app.import_epub(&file.name, &file.bytes);
                     }
@@ -91,6 +101,9 @@ mod web {
                     HostRequest::ImportEpub => choose(".epub", Then::Epub),
                     HostRequest::ImportScrivenerZip => choose(".zip", Then::ScrivenerZip),
                     HostRequest::ImportFountain => choose(".fountain,.txt", Then::Fountain),
+                    HostRequest::InsertPicture => {
+                        choose(".png,.jpg,.jpeg,.webp,.gif,.bmp,.avif", Then::Picture)
+                    }
                     HostRequest::ImportCitations => {
                         choose(".bib,.bibtex,.ris,.json,.csljson", Then::Citations)
                     }

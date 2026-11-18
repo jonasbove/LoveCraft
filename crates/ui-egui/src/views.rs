@@ -706,7 +706,7 @@ fn chapter_scene(
         crate::screenplay_editor::galley(ui, &doc, &doc.text, palette, wrap)
     } else {
         ui.fonts_mut(|f| {
-            let spacing = atom_sizes(f, &labels);
+            let spacing = atom_sizes(f, &labels, wrap);
             f.layout_job(layout_doc(&doc, &doc.text, palette, wrap, &spacing))
         })
     };
@@ -849,6 +849,8 @@ pub(crate) enum AtomLabel {
     /// A block kept whole (a rule, code, a table, a block equation, a diagram, a calculation):
     /// drawn as a panel across the column.
     Block(prosecraft_core::richtext::BlockPreview),
+    /// A picture: drawn at its layout's size, on a row of its own.
+    Picture(crate::pictures::PictureInfo),
     /// Anything else (none yet): nothing drawn, nothing to click.
     Other,
 }
@@ -899,6 +901,8 @@ pub(crate) fn atom_labels(doc: &RichDoc, cites: &CiteStyle) -> Vec<AtomLabel> {
                 .flatten()
             {
                 AtomLabel::Block(preview)
+            } else if html.starts_with("<img") {
+                crate::pictures::info(html).map_or(AtomLabel::Other, AtomLabel::Picture)
             } else if is_footnote(html) {
                 let id = prosecraft_core::footnotes::extract_ids(html)
                     .into_iter()
@@ -942,16 +946,37 @@ fn cite_font() -> egui::FontId {
     fonts::serif(17.0 * 0.92)
 }
 
-/// The font size each atom's (invisible) character is laid out in: a citation's is scaled so
-/// the character is as wide as its label and padding, and wraps as one piece with it (0: the
-/// usual size); and for a kept block, the height of its row.
+/// How an atom's (invisible) character is laid out.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub(crate) struct AtomBox {
+    /// Its font size (0: the usual size): a citation's is scaled so the character is as wide
+    /// as its label and padding, and wraps as one piece with it.
+    pub font: f32,
+    /// Room added after it: a picture's character is as wide as the column.
+    pub spacing: f32,
+    /// The height of its row: a kept block's, a picture's.
+    pub row: Option<f32>,
+    /// A picture, laid out as [`PICTURE_CHAR`].
+    pub picture: bool,
+}
+
+/// How each atom's character is laid out (see [`AtomBox`]).
 pub(crate) fn atom_sizes(
     fonts: &mut egui::epaint::FontsView<'_>,
     labels: &[AtomLabel],
-) -> Vec<(f32, Option<f32>)> {
+    wrap: f32,
+) -> Vec<AtomBox> {
     let glyph = fonts
         .layout_no_wrap(
             ATOM.to_string(),
+            egui::FontId::proportional(ATOM_FONT + 2.0),
+            egui::Color32::TRANSPARENT,
+        )
+        .size()
+        .x;
+    let picture_glyph = fonts
+        .layout_no_wrap(
+            PICTURE_CHAR.to_string(),
             egui::FontId::proportional(ATOM_FONT + 2.0),
             egui::Color32::TRANSPARENT,
         )
@@ -966,15 +991,32 @@ pub(crate) fn atom_sizes(
                     .size()
                     .x;
                 // ProseCraft's 5px padding each side and 1px margin.
-                let size = if glyph > 0.0 {
+                let font = if glyph > 0.0 {
                     (ATOM_FONT + 2.0) * (width + 12.0) / glyph
                 } else {
                     0.0
                 };
-                (size, None)
+                AtomBox {
+                    font,
+                    ..AtomBox::default()
+                }
             }
-            AtomLabel::Block(preview) => (0.0, Some(block_height(preview))),
-            AtomLabel::Footnote(_) | AtomLabel::Math(_) | AtomLabel::Other => (0.0, None),
+            AtomLabel::Block(preview) => AtomBox {
+                row: Some(block_height(preview)),
+                ..AtomBox::default()
+            },
+            // As wide as the column, so the picture has its row to itself.
+            AtomLabel::Picture(picture) => AtomBox {
+                spacing: if wrap.is_finite() {
+                    (wrap - 4.0 - picture_glyph).max(0.0)
+                } else {
+                    0.0
+                },
+                row: Some(picture.drawn(wrap).y + 2.0 * crate::pictures::MARGIN),
+                picture: true,
+                ..AtomBox::default()
+            },
+            AtomLabel::Footnote(_) | AtomLabel::Math(_) | AtomLabel::Other => AtomBox::default(),
         })
         .collect()
 }
@@ -987,13 +1029,14 @@ pub(crate) fn layout_doc(
     text: &str,
     palette: &Palette,
     wrap: f32,
-    atom_sizes: &[(f32, Option<f32>)],
+    atom_sizes: &[AtomBox],
 ) -> egui::text::LayoutJob {
     let mut job = egui::text::LayoutJob::default();
     job.wrap.max_width = wrap;
     let mut line = 0;
     let mut atom = 0;
     for (i, c) in text.chars().enumerate() {
+        let mut laid_out = c;
         if c == '\n' {
             line += 1;
         }
@@ -1039,11 +1082,21 @@ pub(crate) fn layout_doc(
         if c == ATOM {
             // The character itself is invisible; its label is painted in the room reserved here.
             // The character's own box holds a short painted label.
-            let (size, row) = atom_sizes.get(atom).copied().unwrap_or((0.0, None));
-            let size = if size > 0.0 { size } else { ATOM_FONT + 2.0 };
+            let laid = atom_sizes.get(atom).copied().unwrap_or_default();
+            // A picture: laid out as a character a row may end before and after (see
+            // `RowBreaks`), as a browser breaks around an image.
+            if laid.picture {
+                laid_out = PICTURE_CHAR;
+                format.extra_letter_spacing = laid.spacing;
+            }
+            let size = if laid.font > 0.0 {
+                laid.font
+            } else {
+                ATOM_FONT + 2.0
+            };
             format.font_id = egui::FontId::proportional(size);
-            if row.is_some() {
-                format.line_height = row;
+            if laid.row.is_some() {
+                format.line_height = laid.row;
             }
             format.color = egui::Color32::TRANSPARENT;
             atom += 1;
@@ -1061,10 +1114,14 @@ pub(crate) fn layout_doc(
             format.line_height = Some(size * 1.85 + 10.0);
         }
         let mut buf = [0u8; 4];
-        job.append(c.encode_utf8(&mut buf), 0.0, format);
+        job.append(laid_out.encode_utf8(&mut buf), 0.0, format);
     }
     job
 }
+
+/// What a picture's character is laid out as: a character no font has (drawn as an empty box,
+/// as wide as its font size, like the atom character), which rows may end before and after.
+pub(crate) const PICTURE_CHAR: char = '\u{E000}';
 
 /// The editor: the scene's title, ProseCraft's toolbar, and its formatted text.
 fn editor(
@@ -1098,6 +1155,7 @@ fn editor(
             markdown: None,
             markdown_base: String::new(),
             chapter: None,
+            caret: None,
         });
     }
     let now = edit.now;
@@ -1218,9 +1276,10 @@ fn editor(
         }
         ui.add_space(6.0);
     }
-    // ProseCraft's formatting toolbar.
+    // ProseCraft's formatting toolbar; it wraps onto more rows in a narrow column rather than
+    // widening the column past the window.
     card(palette).show(ui, |ui| {
-        ui.horizontal(|ui| {
+        ui.horizontal_wrapped(|ui| {
             let current = draft.doc.kind_at(cursor);
             let label = BLOCK_STYLES
                 .iter()
@@ -1287,6 +1346,18 @@ fn editor(
                 }
             }
             ui.separator();
+            // ProseCraft's Insert image: a picture at the caret (or the end of the text).
+            let picture = ui.button("Image").on_hover_text("Insert image");
+            name_field(ui, &picture, "Insert image");
+            if picture.clicked() {
+                let at = selection
+                    .clone()
+                    .map_or(draft.doc.text.chars().count(), |r| r.start);
+                edit.intents.push(Intent::InsertPicture {
+                    document: document.id.clone(),
+                    at,
+                });
+            }
             // ProseCraft's comment button: a comment on the selected passage.
             let selected = selection.clone().filter(|r| !r.is_empty());
             let comment = ui
@@ -1417,7 +1488,7 @@ fn editor(
             );
         }
         ui.fonts_mut(|f| {
-            let spacing = atom_sizes(f, &layout_labels);
+            let spacing = atom_sizes(f, &layout_labels, wrap_width);
             let job = layout_doc(
                 &doc_for_layout,
                 text.as_str(),
@@ -1443,6 +1514,9 @@ fn editor(
         })
         .show(ui);
     name_field(ui, &output.response, "Scene text");
+    if let Some(range) = output.cursor_range {
+        draft.caret = Some(range.primary.index.0);
+    }
     if output.response.changed() {
         let cursor = output.cursor_range.map(|r| r.primary.index.0);
         let kept = draft.doc.apply_text_at(&draft.body, cursor);
@@ -1613,6 +1687,7 @@ fn markdown_editor(
             markdown: Some(source),
             markdown_base: markdown_base(document),
             chapter: chapter.as_ref().map(|c| c.id.clone()),
+            caret: None,
         });
     }
     let now = edit.now;
@@ -1841,6 +1916,52 @@ fn paint_block(
     }
 }
 
+/// A picture in its row, at its layout's size and alignment; its alternative text in a frame
+/// when the image can't be drawn.
+fn paint_picture(
+    painter: &egui::Painter,
+    palette: &Palette,
+    html: &str,
+    picture: &crate::pictures::PictureInfo,
+    row: egui::Rect,
+    right_edge: f32,
+) {
+    let left = row.min.x;
+    let width = (right_edge - left).max(40.0);
+    let size = picture.drawn(width);
+    let x = match (picture.layout.wrap, picture.layout.align) {
+        ("wrap-right", _) | ("block", "right") => right_edge - size.x,
+        ("block", "center") => left + (width - size.x) / 2.0,
+        _ => left,
+    };
+    let rect = egui::Rect::from_min_size(egui::pos2(x, row.min.y + crate::pictures::MARGIN), size);
+    match crate::pictures::texture(painter.ctx(), html, picture) {
+        Some(texture) => {
+            painter.image(
+                texture.id(),
+                rect,
+                egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+                egui::Color32::WHITE,
+            );
+        }
+        None => {
+            painter.rect_stroke(
+                rect,
+                4.0,
+                egui::Stroke::new(1.0, palette.border_control),
+                egui::StrokeKind::Inside,
+            );
+            painter.text(
+                rect.center(),
+                egui::Align2::CENTER_CENTER,
+                &picture.alt,
+                egui::FontId::proportional(13.0),
+                palette.text_muted,
+            );
+        }
+    }
+}
+
 /// Each atom's label, painted in its character's box (footnote numbers, citation labels,
 /// equations), and the markers that can be clicked.
 pub(crate) fn paint_atoms(
@@ -1912,6 +2033,21 @@ pub(crate) fn paint_atoms(
             }
             AtomLabel::Other => {}
             AtomLabel::Block(preview) => paint_block(painter, palette, preview, before, right_edge),
+            AtomLabel::Picture(picture) => {
+                // Its own glyph's cell: at a row break the caret before it is at the end of the
+                // row above.
+                if let Some(cell) = glyph_rect(galley, index) {
+                    let cell = cell.translate(origin.to_vec2());
+                    // The column it was laid out in (see `atom_sizes`).
+                    let wrap = galley.job.wrap.max_width;
+                    let right = if wrap.is_finite() {
+                        (origin.x + wrap).min(right_edge)
+                    } else {
+                        right_edge
+                    };
+                    paint_picture(painter, palette, html, picture, cell, right);
+                }
+            }
             AtomLabel::Cite(text) => {
                 // ProseCraft's `span.cite-ref`: the label on a faint accent tint, over the atom's
                 // own character, which the layout made as wide as the label.

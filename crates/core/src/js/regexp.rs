@@ -4,7 +4,23 @@
 
 /// A compiled rule. A source `regress` refuses never matches; a test compiles every rule, so
 /// that only guards against a panic.
-pub(crate) struct Re(Option<regress::Regex>);
+pub(crate) struct Re(Option<regress::Regex>, bool);
+
+/// With `i` and without `u`, JavaScript compares characters by their upper case but never lets
+/// a character past U+007F match one below it. "ſ" and "ı" are the only characters whose upper
+/// case is ASCII ("S", "I"); `regress` lets them match `s` and `i`, JavaScript doesn't. Such a
+/// rule searches a copy of the text with them swapped for letters of the same UTF-8 length
+/// whose upper case isn't ASCII ("ŀ", "ľ"), so positions and groups still point into the text.
+fn without_ascii_folds(text: &str) -> std::borrow::Cow<'_, str> {
+    if text.contains(['\u{17f}', '\u{131}']) {
+        std::borrow::Cow::Owned(
+            text.replace('\u{17f}', "\u{140}")
+                .replace('\u{131}', "\u{13e}"),
+        )
+    } else {
+        std::borrow::Cow::Borrowed(text)
+    }
+}
 
 /// A match and its groups, positions in the text it was found in.
 pub(crate) struct Caps<'t> {
@@ -69,7 +85,11 @@ fn lazy_any_as_alternation(source: &str) -> String {
 
 impl Re {
     pub fn new(source: &str, flags: &str) -> Self {
-        Self(regress::Regex::with_flags(&lazy_any_as_alternation(source), flags).ok())
+        let folds = flags.contains('i') && !flags.contains('u');
+        Self(
+            regress::Regex::with_flags(&lazy_any_as_alternation(source), flags).ok(),
+            folds,
+        )
     }
 
     #[cfg(test)]
@@ -84,7 +104,12 @@ impl Re {
 
     /// `exec` with `lastIndex` at `start` (a byte position on a character boundary).
     pub fn exec_from<'t>(&self, text: &'t str, start: usize) -> Option<Caps<'t>> {
-        let found = self.0.as_ref()?.find_from(text, start).next()?;
+        let re = self.0.as_ref()?;
+        let found = if self.1 {
+            re.find_from(&without_ascii_folds(text), start).next()?
+        } else {
+            re.find_from(text, start).next()?
+        };
         Some(Caps { text, found })
     }
 
@@ -99,14 +124,26 @@ impl Re {
 
     /// Every match, as `matchAll` or a global `exec` loop finds them, one at a time: after an
     /// empty match the search moves on one character, in `regress` as in JavaScript.
-    pub fn each<'r, 't>(&'r self, text: &'t str) -> impl Iterator<Item = Caps<'t>> + 'r
+    pub fn each<'r, 't>(&'r self, text: &'t str) -> Box<dyn Iterator<Item = Caps<'t>> + 'r>
     where
         't: 'r,
     {
-        self.0
-            .iter()
-            .flat_map(move |re| re.find_iter(text))
-            .map(move |found| Caps { text, found })
+        if self.1
+            && let std::borrow::Cow::Owned(masked) = without_ascii_folds(text)
+        {
+            let found: Vec<regress::Match> = self
+                .0
+                .iter()
+                .flat_map(|re| re.find_iter(&masked).collect::<Vec<_>>())
+                .collect();
+            return Box::new(found.into_iter().map(move |found| Caps { text, found }));
+        }
+        Box::new(
+            self.0
+                .iter()
+                .flat_map(move |re| re.find_iter(text))
+                .map(move |found| Caps { text, found }),
+        )
     }
 
     /// Every match, collected.
@@ -172,7 +209,27 @@ fn expand(replacement: &str, caps: &Caps) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::lazy_any_as_alternation;
+    use super::{Caps, Re, lazy_any_as_alternation};
+
+    /// As in JavaScript, `i` doesn't let "ſ" or "ı" match "s" or "i"; other letters still fold,
+    /// and positions and groups are the text's own.
+    #[test]
+    fn case_insensitive_rules_fold_as_javascript() {
+        assert!(!Re::new("^s$", "i").test("\u{17f}"));
+        assert!(!Re::new("^I$", "i").test("\u{131}"));
+        assert!(Re::new("^S$", "i").test("s"));
+        assert!(Re::new("^\u{e4}$", "i").test("\u{c4}"));
+        assert!(Re::new(".", "i").test("\u{17f}"));
+        let re = Re::new("(b+)", "i");
+        let caps = re.exec("\u{17f}\u{131}aBb").expect("found");
+        assert_eq!((caps.start(), caps.at(1)), (5, "Bb"));
+        let all: Vec<&str> = re.all("b\u{17f}B").iter().map(Caps::whole).collect();
+        assert_eq!(all, ["b", "B"]);
+        assert_eq!(
+            Re::new("x", "gi").replace("\u{17f}X\u{131}", true, "y"),
+            "\u{17f}y\u{131}"
+        );
+    }
 
     #[test]
     fn lazy_any_is_rewritten_only_where_it_is_a_lazy_class() {

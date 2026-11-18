@@ -61,6 +61,7 @@ pub fn block_kind(preview: &prosecraft_core::richtext::BlockPreview) -> Option<R
     match preview.kind {
         prosecraft_core::richtext::BlockKind::Equation => Some(RichKind::MathBlock),
         prosecraft_core::richtext::BlockKind::Calculation => Some(RichKind::Calc),
+        prosecraft_core::richtext::BlockKind::Diagram => Some(RichKind::Diagram),
         _ => None,
     }
 }

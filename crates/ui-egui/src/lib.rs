@@ -510,6 +510,13 @@ fn setup_with(ctx: &egui::Context, system_fonts: bool) {
     ctx.set_line_breaker(std::sync::Arc::new(RowBreaks));
     ctx.set_missing_glyph_policy(egui::MissingGlyphPolicy::Tofu);
     fonts::install(ctx, system_fonts);
+    // Diagram labels are set in the interface's face (Inter, else egui's own).
+    let faces: Vec<&[u8]> = ["Inter-Regular", "Inter-SemiBold"]
+        .into_iter()
+        .filter_map(fonts::app_face)
+        .chain(cover_art::egui_face("Ubuntu-Light"))
+        .collect();
+    prosecraft_core::rich::set_fonts(&faces);
     theme::Palette::default().apply(ctx);
 }
 

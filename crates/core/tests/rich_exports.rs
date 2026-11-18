@@ -1,5 +1,5 @@
 //! Equations and calculations in exports (`renderExport`): prepared, the book's PDF and DOCX
-//! carry pictures of them and its HTML carries SVG; a diagram keeps its source.
+//! carry pictures of them and its HTML carries SVG.
 
 use prosecraft_core::js::{self, JsValue};
 use prosecraft_core::project::Project;
@@ -49,8 +49,8 @@ fn prepared_exports_carry_the_drawings() {
     assert_eq!(images(&book), 0);
     assert_eq!(
         images(&prepared),
-        3,
-        "the inline equation, the equation and the calculation"
+        4,
+        "the inline equation, the equation, the calculation and the diagram"
     );
     let docx = export_docx(&prepared, &options).expect("docx");
     // Each picture's name is in the archive twice (its entry and the central directory).
@@ -59,12 +59,13 @@ fn prepared_exports_carry_the_drawings() {
         .windows(11)
         .filter(|w| *w == b"word/media/")
         .count();
-    assert_eq!(names / 2, 3, "three pictures in the DOCX");
+    assert_eq!(names / 2, 4, "four pictures in the DOCX");
     let html = prepare_book(&book, &RenderOptions::default());
     let page = String::from_utf8(export_html(&html, &options).bytes).expect("utf-8");
-    assert_eq!(page.matches("<svg").count(), 3);
+    assert_eq!(page.matches("<svg").count(), 4);
     assert!(
-        page.contains(r#"class="mermaid-diagram rich-render-error""#),
-        "the diagram keeps its source"
+        page.contains(r#"class="mermaid-diagram rich-rendered""#),
+        "the diagram is drawn"
     );
+    assert!(page.contains("viewBox=") && !page.contains("viewbox="));
 }

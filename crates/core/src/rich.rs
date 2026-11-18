@@ -3,8 +3,9 @@
 //!
 //! ProseCraft typesets TeX with MathJax. Here it is laid out by RaTeX (KaTeX's rules and its
 //! fonts) into SVG, which resvg rasterizes when an export needs a picture. A calculation is
-//! its worksheet's LaTeX (`worksheetToLatex`). Diagrams aren't drawn yet: they keep their
-//! source, as ProseCraft does when one can't be drawn.
+//! its worksheet's LaTeX (`worksheetToLatex`). Mermaid diagrams are laid out by
+//! mermaid-rs-renderer with Mermaid's neutral theme, as ProseCraft configures mermaid.js; their
+//! labels are drawn in the fonts the app gives ([`set_fonts`]).
 
 use std::sync::{Mutex, OnceLock};
 
@@ -196,6 +197,151 @@ fn fmt(value: f64) -> String {
     out
 }
 
+/// The fonts drawings' text is set in (the app's own faces; a diagram's labels name common
+/// sans-serif families, which all resolve to the first face given).
+pub fn set_fonts(faces: &[&[u8]]) {
+    let mut db = resvg::usvg::fontdb::Database::new();
+    for face in faces {
+        db.load_font_data(face.to_vec());
+    }
+    let family = db
+        .faces()
+        .next()
+        .and_then(|f| f.families.first().map(|(name, _)| name.clone()));
+    if let Some(family) = family {
+        db.set_sans_serif_family(family.clone());
+        db.set_serif_family(family);
+    }
+    if let Ok(mut fonts) = fonts().lock() {
+        *fonts = std::sync::Arc::new(db);
+    }
+}
+
+fn fonts() -> &'static Mutex<std::sync::Arc<resvg::usvg::fontdb::Database>> {
+    static FONTS: OnceLock<Mutex<std::sync::Arc<resvg::usvg::fontdb::Database>>> = OnceLock::new();
+    FONTS.get_or_init(Default::default)
+}
+
+/// usvg's options with the drawings' fonts; every family a diagram names falls back to them.
+fn svg_options() -> resvg::usvg::Options<'static> {
+    let mut options = resvg::usvg::Options::default();
+    if let Ok(db) = fonts().lock() {
+        options.fontdb = db.clone();
+        if let Some(family) = db
+            .faces()
+            .next()
+            .and_then(|f| f.families.first().map(|(n, _)| n.clone()))
+        {
+            options.font_family = family;
+        }
+    }
+    let fallback = options.font_family.clone();
+    options.font_resolver.select_font = Box::new(move |font, db| {
+        let mut families: Vec<resvg::usvg::fontdb::Family<'_>> = font
+            .families()
+            .iter()
+            .map(|f| match f {
+                resvg::usvg::FontFamily::Serif => resvg::usvg::fontdb::Family::Serif,
+                resvg::usvg::FontFamily::SansSerif => resvg::usvg::fontdb::Family::SansSerif,
+                resvg::usvg::FontFamily::Cursive => resvg::usvg::fontdb::Family::Cursive,
+                resvg::usvg::FontFamily::Fantasy => resvg::usvg::fontdb::Family::Fantasy,
+                resvg::usvg::FontFamily::Monospace => resvg::usvg::fontdb::Family::Monospace,
+                resvg::usvg::FontFamily::Named(name) => resvg::usvg::fontdb::Family::Name(name),
+            })
+            .collect();
+        families.push(resvg::usvg::fontdb::Family::Name(&fallback));
+        let query = resvg::usvg::fontdb::Query {
+            families: &families,
+            weight: resvg::usvg::fontdb::Weight(font.weight()),
+            ..Default::default()
+        };
+        db.query(&query).or_else(|| db.faces().next().map(|f| f.id))
+    });
+    options
+}
+
+/// `renderDiagramSvg`: the diagram as SVG sized for the page (at most 680 × 900).
+fn diagram_svg(source: &str) -> Result<(String, f64, f64), String> {
+    const MAX_WIDTH: f64 = 680.0;
+    const MAX_HEIGHT: f64 = 900.0;
+    let definition = source.trim_matches(crate::html::is_js_whitespace);
+    if definition.is_empty() {
+        return Err("Add a Mermaid definition to render a diagram.".into());
+    }
+    if definition.encode_utf16().count() > MAX_DIAGRAM_SOURCE_LENGTH {
+        return Err("That diagram is too large to render.".into());
+    }
+    let options = mermaid_rs_renderer::RenderOptions {
+        theme: mermaid_rs_renderer::Theme::neutral(),
+        ..Default::default()
+    };
+    let svg = mermaid_rs_renderer::render_with_options(definition, options).map_err(|e| {
+        let message = e.to_string();
+        match message.lines().next().filter(|l| !l.is_empty()) {
+            Some(first) => format!("Could not render that diagram: {first}"),
+            None => "Could not render that diagram. Check the Mermaid syntax.".into(),
+        }
+    })?;
+    let syntax = || "Could not render that diagram. Check the Mermaid syntax.".to_owned();
+    let start = svg.find("<svg").ok_or_else(syntax)?;
+    let end = start + svg[start..].find('>').ok_or_else(syntax)?;
+    let tag = &svg[start..end];
+    let attr = |name: &str| -> Option<String> {
+        let at = tag.find(&format!(" {name}=\""))? + name.len() + 3;
+        let close = tag[at..].find('"')?;
+        Some(tag[at..at + close].to_owned())
+    };
+    let number = |value: Option<String>| -> Option<f64> {
+        let value = value?;
+        let n: f64 = value.trim_end_matches("px").parse().ok()?;
+        (n.is_finite() && n > 0.0).then_some(n)
+    };
+    let view: Option<(f64, f64)> = attr("viewBox").and_then(|v| {
+        let parts: Vec<f64> = v
+            .split([' ', ','])
+            .filter(|p| !p.is_empty())
+            .filter_map(|p| p.parse().ok())
+            .collect();
+        (parts.len() == 4 && parts[2] > 0.0 && parts[3] > 0.0).then(|| (parts[2], parts[3]))
+    });
+    let natural_width = number(attr("width"))
+        .or(view.map(|v| v.0))
+        .unwrap_or(MAX_WIDTH);
+    let natural_height = number(attr("height"))
+        .or(view.map(|v| v.1))
+        .unwrap_or(MAX_HEIGHT);
+    let scale = 1f64
+        .min(MAX_WIDTH / natural_width)
+        .min(MAX_HEIGHT / natural_height);
+    let width = (natural_width * scale).round().max(1.0);
+    let height = (natural_height * scale).round().max(1.0);
+    // The opening tag rewritten: the page size, as an image, no inline style.
+    let mut kept: Vec<String> = Vec::new();
+    let mut rest = &tag[4..];
+    while let Some(eq) = rest.find("=\"") {
+        let name = rest[..eq].trim().to_owned();
+        let close = rest[eq + 2..].find('"').map_or(rest.len(), |c| eq + 2 + c);
+        let value = &rest[eq + 2..close.min(rest.len())];
+        if !matches!(
+            name.as_str(),
+            "width" | "height" | "role" | "focusable" | "style" | "xmlns"
+        ) && !name.is_empty()
+        {
+            kept.push(format!("{name}=\"{value}\""));
+        }
+        rest = rest.get(close + 1..).unwrap_or_default();
+    }
+    if attr("viewBox").is_none() {
+        kept.push(format!("viewBox=\"0 0 {natural_width} {natural_height}\""));
+    }
+    let opening = format!(
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" {} width=\"{width}\" height=\"{height}\" role=\"img\" focusable=\"false\"",
+        kept.join(" ")
+    );
+    let svg = format!("{opening}{}", &svg[end..]);
+    Ok((svg, width, height))
+}
+
 /// A drawing's pixels: `scale` × its size, RGBA (not premultiplied), with that size.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Pixels {
@@ -252,8 +398,7 @@ pub fn screen_pixels(
         .unwrap_or_default()
         .replace("currentColor", color);
     let failed = || "Could not render this content.".to_owned();
-    let tree = resvg::usvg::Tree::from_str(&svg, &resvg::usvg::Options::default())
-        .map_err(|_| failed())?;
+    let tree = resvg::usvg::Tree::from_str(&svg, &svg_options()).map_err(|_| failed())?;
     let pixels = raster(
         &tree,
         rendered.width.round().max(1.0),
@@ -275,8 +420,7 @@ pub fn rasterize(
 ) -> Result<String, String> {
     let failed = || "Could not prepare an equation or diagram for export.".to_owned();
     let source = svg.replace("currentColor", color);
-    let tree = resvg::usvg::Tree::from_str(&source, &resvg::usvg::Options::default())
-        .map_err(|_| failed())?;
+    let tree = resvg::usvg::Tree::from_str(&source, &svg_options()).map_err(|_| failed())?;
     let (w, h) = (width.round().max(1.0), height.round().max(1.0));
     let scales =
         std::iter::once(scale).chain([3.0, 2.0, 1.5, 1.0].into_iter().filter(|s| *s < scale));
@@ -352,7 +496,22 @@ fn render_uncached(
     options: &RenderOptions,
 ) -> Result<Rendered, String> {
     if kind == RichKind::Diagram {
-        return Err("Diagrams can't be drawn here yet.".into());
+        let (svg, width, height) = diagram_svg(source)?;
+        let mut rendered = Rendered {
+            kind,
+            source: source.to_owned(),
+            alt: diagram_alt(source),
+            width,
+            height,
+            svg: None,
+            data_url: None,
+        };
+        if options.png {
+            rendered.data_url = Some(rasterize(&svg, width, height, 2.5, &options.color)?);
+        } else {
+            rendered.svg = Some(svg);
+        }
+        return Ok(rendered);
     }
     let em = (options.body_size_pt * 4.0 / 3.0).clamp(10.0, 48.0);
     let (svg, width, height) = if kind == RichKind::Calc {
@@ -389,15 +548,17 @@ fn render_uncached(
     Ok(rendered)
 }
 
-/// `applyRichRender`.
-fn apply(element: &mut Element, rendered: &Rendered) {
+/// `applyRichRender`. An SVG drawing goes in as a marker in `svgs`, put back after the HTML is
+/// written: the HTML parser would lowercase its attribute names (`viewBox`, `refX`).
+fn apply(element: &mut Element, rendered: &Rendered, svgs: &mut Vec<String>) {
     element.children.clear();
     add_class(element, "rich-rendered");
     set_attr(element, "role", "img");
     set_attr(element, "aria-label", &rendered.alt);
     set_attr(element, "data-rendered-source", &rendered.source);
     if let Some(svg) = &rendered.svg {
-        element.children = parse_fragment(svg);
+        element.children = vec![Node::Text(svg_marker(svgs.len()))];
+        svgs.push(svg.clone());
         return;
     }
     let Some(url) = &rendered.data_url else {
@@ -453,7 +614,12 @@ fn add_class(element: &mut Element, class: &str) {
     set_attr(element, "class", &joined);
 }
 
-fn walk(nodes: &mut [Node], options: &RenderOptions, depth: usize) {
+/// A marker no scene text holds (private-use characters around the drawing's number).
+fn svg_marker(index: usize) -> String {
+    format!("\u{F8F0}{index}\u{F8F1}")
+}
+
+fn walk(nodes: &mut [Node], options: &RenderOptions, depth: usize, svgs: &mut Vec<String>) {
     if depth > 256 {
         return;
     }
@@ -462,13 +628,13 @@ fn walk(nodes: &mut [Node], options: &RenderOptions, depth: usize) {
             if RichKind::of(element).is_some() {
                 if let Some((kind, source)) = read_placeholder(element) {
                     match render(kind, &source, options) {
-                        Ok(rendered) => apply(element, &rendered),
+                        Ok(rendered) => apply(element, &rendered, svgs),
                         Err(message) => fallback(element, &source, &message),
                     }
                 }
                 continue;
             }
-            walk(&mut element.children, options, depth + 1);
+            walk(&mut element.children, options, depth + 1, svgs);
         }
     }
 }
@@ -487,8 +653,13 @@ pub fn prepare_rich_html(html: &str, options: &RenderOptions) -> String {
         return html.to_owned();
     }
     let mut nodes = parse_fragment(html);
-    walk(&mut nodes, options, 0);
-    serialize(&nodes)
+    let mut svgs = Vec::new();
+    walk(&mut nodes, options, 0, &mut svgs);
+    let mut out = serialize(&nodes);
+    for (index, svg) in svgs.iter().enumerate() {
+        out = out.replacen(&svg_marker(index), svg, 1);
+    }
+    out
 }
 
 /// `prepareBookRichContent`: every scene of the book prepared for an export.
@@ -579,14 +750,68 @@ mod tests {
             html.contains(r#"<div class="math-block rich-render-error" data-tex="\frac{1" title="Could not render that equation. Check the LaTeX syntax.">\frac{1</div>"#),
             "{html}"
         );
+        // A diagram that isn't Mermaid keeps its source and says why.
+        let bad = prepare_rich_html(
+            r#"<div class="mermaid-diagram" data-source="not a diagram at all"></div>"#,
+            &options,
+        );
         assert!(
-            html.contains("rich-render-error") && html.contains("graph TD; A--&gt;B</div>"),
+            bad.contains(r#"class="mermaid-diagram rich-render-error""#)
+                && bad.contains("Could not render that diagram")
+                && bad.ends_with(">not a diagram at all</div>"),
+            "{bad}"
+        );
+        // A drawing keeps its SVG's attribute names as written.
+        assert!(
+            html.contains("viewBox=") && !html.contains("viewbox="),
             "{html}"
         );
         // An empty placeholder is left as it is (`readRichPlaceholder` gives nothing).
         assert!(
             html.ends_with(r#"<div class="math-block" data-tex="  "></div>"#),
             "{html}"
+        );
+    }
+
+    #[test]
+    fn a_diagram_is_drawn_sized_for_the_page() {
+        let source = "graph TD\n  A[Start] --> B{Is it raining?}\n  B -- Yes --> C[Umbrella]\n  B -- No --> D[Outside]";
+        let svg = render(RichKind::Diagram, source, &RenderOptions::default()).expect("diagram");
+        assert_eq!(svg.alt, "Diagram: graph TD");
+        assert!(svg.width <= 680.0 && svg.height <= 900.0);
+        let markup = svg.svg.expect("svg");
+        assert!(
+            markup.starts_with("<svg xmlns=\"http://www.w3.org/2000/svg\""),
+            "{}",
+            &markup[..100]
+        );
+        assert!(
+            markup.contains(&format!("width=\"{}\"", svg.width)) && markup.contains("role=\"img\"")
+        );
+        // A wide diagram is scaled down to 680 wide.
+        let wide: String = (0..30)
+            .map(|i| format!("  N{i} --> N{}\n", i + 1))
+            .collect();
+        let wide = render(
+            RichKind::Diagram,
+            &format!("graph LR\n{wide}"),
+            &RenderOptions::default(),
+        )
+        .expect("wide");
+        assert_eq!(wide.width, 680.0);
+        let png = render(
+            RichKind::Diagram,
+            source,
+            &RenderOptions {
+                png: true,
+                ..RenderOptions::default()
+            },
+        )
+        .expect("png");
+        assert!(
+            png.data_url
+                .expect("png")
+                .starts_with("data:image/png;base64,")
         );
     }
 

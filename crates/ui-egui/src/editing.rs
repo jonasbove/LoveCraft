@@ -170,6 +170,8 @@ pub enum Intent {
         document: String,
         undo: bool,
     },
+    /// Typing in the editor: Zen mode hides the interface.
+    HideInterface,
     /// Undo or redo with no text field focused: the page's history (`runPageHistory`).
     PageHistory {
         undo: bool,
@@ -432,6 +434,7 @@ pub fn run(
         Intent::InsertFootnote { .. }
         | Intent::BodyHistory { .. }
         | Intent::PageHistory { .. }
+        | Intent::HideInterface
         | Intent::InsertPicture { .. }
         | Intent::PlaceCitation { .. }
         | Intent::RemoveCitation { .. } => Ok(()),

@@ -257,6 +257,19 @@ pub struct AppState {
     undo_page: String,
     /// An undo or redo being applied: the project change it makes isn't a new step.
     applying_undo: bool,
+    /// The Writing settings: text size, typewriter, fade and Zen modes, the Timeline view.
+    writing: WritingPrefs,
+    writing_choice: Option<WritingPrefs>,
+    /// Zen mode has hidden the interface (typing), or focus mode has.
+    zen_hidden: bool,
+    focus_mode: bool,
+    /// Until when (egui seconds) the focus-mode hint shows.
+    focus_hint_until: f64,
+    /// Focus mode asked for from the Settings dialog.
+    focus_wanted: bool,
+    /// Where the editor's text was drawn last frame (the pointer leaving it brings Zen mode's
+    /// interface back).
+    editor_rect: Option<egui::Rect>,
     /// The binder's Export button was pressed; the app builds the backup after the frame.
     export_wanted: bool,
     /// Whether projects can be changed (a library that isn't read-only).
@@ -461,6 +474,68 @@ fn setup_with(ctx: &egui::Context, system_fonts: bool) {
     ctx.set_missing_glyph_policy(egui::MissingGlyphPolicy::Tofu);
     fonts::install(ctx, system_fonts);
     theme::Palette::default().apply(ctx);
+}
+
+/// ProseCraft's writing preferences (`localStorage`, read and written by the store).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct WritingPrefs {
+    /// `editorScale`, in percent: 80 to 140 in steps of 10.
+    pub scale: u32,
+    pub typewriter: bool,
+    pub fade: bool,
+    pub zen: bool,
+    /// "Show Timeline view" (off by default; the timeline's data is kept either way).
+    pub timeline: bool,
+}
+
+impl Default for WritingPrefs {
+    fn default() -> Self {
+        Self {
+            scale: 100,
+            typewriter: false,
+            fade: false,
+            zen: false,
+            timeline: false,
+        }
+    }
+}
+
+impl WritingPrefs {
+    pub const SCALES: [u32; 7] = [80, 90, 100, 110, 120, 130, 140];
+    const SCALE_KEY: &str = "prosecraft-editor-scale";
+    const TYPEWRITER_KEY: &str = "prosecraft-typewriter-mode";
+    const FADE_KEY: &str = "prosecraft-fade-other-paragraphs";
+    const ZEN_KEY: &str = "prosecraft-zen-mode";
+    const TIMELINE_KEY: &str = "prosecraft-timeline-enabled";
+
+    pub(crate) fn load(store: &mut dyn LibraryStore) -> Self {
+        let mut flag = |key: &str| store.load_setting(key).as_deref() == Some("true");
+        let typewriter = flag(Self::TYPEWRITER_KEY);
+        let fade = flag(Self::FADE_KEY);
+        let zen = flag(Self::ZEN_KEY);
+        let timeline = flag(Self::TIMELINE_KEY);
+        let scale = store
+            .load_setting(Self::SCALE_KEY)
+            .and_then(|s| s.parse::<u32>().ok())
+            .filter(|s| Self::SCALES.contains(s))
+            .unwrap_or(100);
+        Self {
+            scale,
+            typewriter,
+            fade,
+            zen,
+            timeline,
+        }
+    }
+
+    fn save(&self, store: &mut dyn LibraryStore) -> Result<(), String> {
+        let flag = |on: bool| if on { "true" } else { "false" };
+        store.save_setting(Self::SCALE_KEY, Some(&self.scale.to_string()))?;
+        store.save_setting(Self::TYPEWRITER_KEY, Some(flag(self.typewriter)))?;
+        store.save_setting(Self::FADE_KEY, Some(flag(self.fade)))?;
+        store.save_setting(Self::ZEN_KEY, Some(flag(self.zen)))?;
+        store.save_setting(Self::TIMELINE_KEY, Some(flag(self.timeline)))
+    }
 }
 
 /// `capturePageState`: the parts of a project a page's undo history covers.
@@ -687,6 +762,83 @@ impl ProseApp {
             Err(error) => self.state.status = Some(format!("That change wasn't made: {error}")),
         }
         self.refresh_views();
+    }
+
+    /// Focus mode (Ctrl+Shift+Enter, Escape), Zen mode's interface coming back, the focus
+    /// hint, and the Timeline view hidden when it is off.
+    fn writing_modes(&mut self, ctx: &egui::Context) {
+        let state = &mut self.state;
+        if !state.writing.timeline && state.view == WorkspaceView::Timeline {
+            state.view = WorkspaceView::Outline;
+        }
+        let toggle = std::mem::take(&mut state.focus_wanted)
+            || ctx.input_mut(|i| {
+                i.consume_key(
+                    egui::Modifiers::COMMAND | egui::Modifiers::SHIFT,
+                    egui::Key::Enter,
+                )
+            });
+        if toggle {
+            // `toggleFocusMode`.
+            if state.focus_mode {
+                state.focus_mode = false;
+                state.zen_hidden = false;
+                state.focus_hint_until = 0.0;
+            } else if state.view == WorkspaceView::Write {
+                state.focus_mode = true;
+                state.zen_hidden = true;
+                state.focus_hint_until = state.now + 3.0;
+            }
+        }
+        if (state.focus_mode || state.zen_hidden)
+            && ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Escape))
+        {
+            state.focus_mode = false;
+            state.zen_hidden = false;
+            state.focus_hint_until = 0.0;
+        }
+        // `handleZenPointerMove`: the pointer moving outside the text.
+        if state.zen_hidden && !state.focus_mode {
+            let moved = ctx.input(|i| i.pointer.delta() != egui::Vec2::ZERO);
+            let outside = ctx
+                .input(|i| i.pointer.hover_pos())
+                .is_some_and(|p| state.editor_rect.is_none_or(|r| !r.contains(p)));
+            if moved && outside {
+                state.zen_hidden = false;
+            }
+        }
+        if !state.writing.zen && !state.focus_mode {
+            state.zen_hidden = false;
+        }
+        if state.now < state.focus_hint_until {
+            let palette = state.palette;
+            let text = format!(
+                "Focus mode · {}+Shift+Enter or Escape to leave",
+                if cfg!(target_os = "macos") {
+                    "Cmd"
+                } else {
+                    "Ctrl"
+                }
+            );
+            egui::Area::new(Id::unique("focus-hint"))
+                .anchor(egui::Align2::CENTER_BOTTOM, [0.0, -22.0])
+                .interactable(false)
+                .show(ctx, |ui| {
+                    egui::Frame::new()
+                        .fill(palette.surface)
+                        .stroke(egui::Stroke::new(1.0, palette.border_control))
+                        .corner_radius(999.0)
+                        .inner_margin(egui::Margin::symmetric(14, 7))
+                        .show(ui, |ui| {
+                            ui.label(
+                                egui::RichText::new(text)
+                                    .size(10.0)
+                                    .color(palette.text_muted),
+                            );
+                        });
+                });
+            ctx.request_repaint_after(std::time::Duration::from_millis(250));
+        }
     }
 
     /// `currentUndoPage`: the project and what is open in it (a scene, a chapter, or a view).
@@ -1206,6 +1358,13 @@ impl ProseApp {
                     self.run_history(Some(document), *undo);
                     continue;
                 }
+                editing::Intent::HideInterface => {
+                    // `hideZenInterface`: once typing starts in the editor.
+                    if self.state.writing.zen && self.state.view == WorkspaceView::Write {
+                        self.state.zen_hidden = true;
+                    }
+                    continue;
+                }
                 editing::Intent::PageHistory { undo } => {
                     self.run_history(None, *undo);
                     continue;
@@ -1450,15 +1609,18 @@ impl ProseApp {
         let frame = egui::Frame::new()
             .fill(palette.sidebar_bg)
             .stroke(egui::Stroke::new(1.0, palette.border));
+        self.writing_modes(ui.ctx());
+        // Zen and focus mode hide the panes around the text.
+        let hidden: Vec<Pane> = Vec::new();
+        let open = if self.state.zen_hidden {
+            &hidden
+        } else {
+            &self.open
+        };
         let output = PaneHost::new(Id::unique("prosecraft-panes"))
             .frame(frame)
             .body_margin(egui::Margin::symmetric(18, 16))
-            .show(
-                ui,
-                &self.open,
-                |pane| states.get(pane).copied(),
-                &mut self.state,
-            );
+            .show(ui, open, |pane| states.get(pane).copied(), &mut self.state);
         for request in output.requests {
             let pane = *request.pane();
             let state = self
@@ -1504,6 +1666,14 @@ impl ProseApp {
         self.passphrase_dialog(ui);
         self.handle_sync_actions();
         self.save_custom_starters();
+        if let Some(writing) = self.state.writing_choice.take() {
+            self.state.writing = writing;
+            if let Some(home) = self.home.as_mut()
+                && let Err(error) = writing.save(home.store.as_mut())
+            {
+                self.state.status = Some(format!("Could not save the setting: {error}"));
+            }
+        }
         if let Some(enabled) = self.state.markdown_enabled_choice.take() {
             self.state.markdown_enabled = enabled;
             if !enabled && self.state.markdown_mode {

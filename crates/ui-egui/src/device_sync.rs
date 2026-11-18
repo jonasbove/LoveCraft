@@ -38,6 +38,7 @@ impl ProseApp {
                 .load_setting(prosecraft_core::starters::custom::CUSTOM_STARTERS_KEY)
                 .as_deref(),
         );
+        self.state.writing = crate::WritingPrefs::load(home.store.as_mut());
         self.state.markdown_enabled = home
             .store
             .load_setting(crate::settings::MARKDOWN_EDITOR_KEY)

@@ -155,7 +155,8 @@ fn sync(harness: &mut Harness<'_, ProseApp>, passphrase: &str) -> String {
     harness
         .get_by_role_and_label(Role::Button, "Sync now")
         .click();
-    harness.run();
+    // A step, not `run`: the UI repaints until the background sync is done.
+    harness.step();
     // The sync runs on a background thread; wait for its result.
     for _ in 0..600 {
         harness.step();
@@ -369,7 +370,8 @@ fn sync_open(harness: &mut Harness<'_, ProseApp>) -> String {
     harness
         .get_by_role_and_label(Role::Button, "Sync now")
         .click();
-    harness.run();
+    // A step, not `run`: the UI repaints until the background sync is done.
+    harness.step();
     for _ in 0..600 {
         harness.step();
         if status(harness) != "Syncing…" {

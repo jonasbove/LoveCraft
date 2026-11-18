@@ -26,7 +26,7 @@ commands:
 const WASM_PACKAGES: &[&str] = &["prosecraft-core", "prosecraft-ui-egui", "prosecraft-rs-web"];
 
 /// Crates below the UI, and the UI and windowing crates they must never depend on.
-const BELOW_UI: &[&str] = &["crates/core"];
+const BELOW_UI: &[&str] = &["crates/core", "crates/native"];
 const UI_CRATES: &[&str] = &[
     "egui",
     "eframe",

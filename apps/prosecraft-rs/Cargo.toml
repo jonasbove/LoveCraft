@@ -15,3 +15,8 @@ workspace = true
 prosecraft-core = { workspace = true }
 prosecraft-ui-egui = { workspace = true }
 eframe = { workspace = true, features = ["wayland", "x11"] }
+prosecraft-native = { workspace = true }
+craft-dialogs = { workspace = true }
+craft-atomic = { workspace = true }
+# The clock for the library's save times (desktop only).
+chrono = { workspace = true, features = ["clock"] }

@@ -1,0 +1,5198 @@
+{
+  "created": {
+    "schemaVersion": 2,
+    "id": "project-1",
+    "createdAt": 1000,
+    "updatedAt": 1000,
+    "revision": 1,
+    "updatedBy": "device-a",
+    "deletedAt": null,
+    "project": {
+      "id": "project-1",
+      "name": "The Lighthouse 🌊 Keeper",
+      "author": "A. Writer",
+      "kind": "novel",
+      "activeDocumentId": "doc-1",
+      "projectGoal": 80000,
+      "chapterGoals": {
+        "2": 1.5,
+        "10": 3,
+        "chapter-1": 2500,
+        "-1": 4,
+        "01": 5
+      },
+      "activity": {
+        "2026-11-01": {
+          "edits": 12,
+          "wordsAdded": 345
+        },
+        "2026-11-02": {
+          "edits": 0.5,
+          "wordsAdded": -3
+        }
+      },
+      "chapters": [
+        {
+          "id": "chapter-1",
+          "title": "Chapter One",
+          "expanded": true,
+          "summary": "It begins.",
+          "labelId": "label-1"
+        },
+        {
+          "id": "chapter-2",
+          "title": "Chapitre deux — « voilà »",
+          "expanded": false,
+          "trashed": true
+        }
+      ],
+      "documents": [
+        {
+          "id": "doc-1",
+          "title": "Opening Scene",
+          "chapterId": "chapter-1",
+          "content": "<p>It was <em>dark</em>.<sup class=\"footnote-ref\" data-footnote-id=\"fn-1\" contenteditable=\"false\"></sup></p><p>Then <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020&quot;}]\">(Smith 2020)</span>.</p>",
+          "footnotes": [
+            {
+              "id": "fn-1",
+              "html": "A note with <em>emphasis</em>."
+            }
+          ]
+        },
+        {
+          "id": "doc-2",
+          "title": "Mara",
+          "space": "Wiki",
+          "folderId": "folder-1",
+          "content": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+          "character": {
+            "role": "Protagonist",
+            "age": "32",
+            "pronouns": "she/her"
+          }
+        },
+        {
+          "id": "doc-3",
+          "title": "INT. LIGHTHOUSE - NIGHT",
+          "chapterId": "chapter-1",
+          "format": "screenplay",
+          "content": "<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>",
+          "markdownSource": "INT. LIGHTHOUSE - NIGHT"
+        }
+      ],
+      "storyboardRows": [
+        {
+          "id": "row-1",
+          "title": "Act I"
+        }
+      ],
+      "storyboardCards": [
+        {
+          "id": "card-1",
+          "sourceId": "doc-1",
+          "rowId": "row-1",
+          "x": 12.5,
+          "y": 0.30000000000000004,
+          "kind": "scene",
+          "title": "Opening",
+          "note": ""
+        }
+      ],
+      "storyboardDrawings": [
+        {
+          "id": "draw-1",
+          "type": "arrow",
+          "x1": 0,
+          "y1": 1e+21,
+          "x2": 1e-7,
+          "y2": 123456789.125
+        }
+      ],
+      "timelineNodes": [
+        {
+          "id": "t-1",
+          "title": "Day One",
+          "date": "2026-01-01",
+          "time": "",
+          "description": "Start"
+        }
+      ],
+      "labels": [
+        {
+          "id": "label-1",
+          "name": "Draft",
+          "color": "#d69e2e"
+        }
+      ],
+      "comments": [
+        {
+          "id": "comment-1",
+          "documentId": "doc-1",
+          "quote": "dark",
+          "prefix": "It was \ud83c",
+          "suffix": ".",
+          "body": "Darker?",
+          "author": "Editor",
+          "createdAt": 1763370000000,
+          "resolved": false
+        }
+      ],
+      "snapshots": [
+        {
+          "id": "snap-1",
+          "documentId": "doc-1",
+          "createdAt": 1763360000000,
+          "title": "Opening Scene",
+          "content": "<p>It was dark.</p>",
+          "reason": "manual",
+          "note": "first"
+        }
+      ],
+      "citations": [
+        {
+          "id": "smith2020",
+          "type": "book",
+          "title": "Lighthouses",
+          "author": [
+            {
+              "family": "Smith",
+              "given": "Jo"
+            }
+          ],
+          "issued": {
+            "date-parts": [
+              [
+                2020
+              ]
+            ]
+          }
+        }
+      ],
+      "publishOptions": {
+        "futureOption": {
+          "nested": [
+            1,
+            2.25,
+            null,
+            true
+          ]
+        }
+      },
+      "futureField": {
+        "kept": "as is",
+        "n": 7
+      }
+    },
+    "entities": {
+      "documents": {
+        "doc-1": {
+          "updatedAt": 1000,
+          "revision": 1,
+          "updatedBy": "device-a",
+          "deletedAt": null
+        },
+        "doc-2": {
+          "updatedAt": 1000,
+          "revision": 1,
+          "updatedBy": "device-a",
+          "deletedAt": null
+        },
+        "doc-3": {
+          "updatedAt": 1000,
+          "revision": 1,
+          "updatedBy": "device-a",
+          "deletedAt": null
+        }
+      },
+      "chapters": {
+        "chapter-1": {
+          "updatedAt": 1000,
+          "revision": 1,
+          "updatedBy": "device-a",
+          "deletedAt": null
+        },
+        "chapter-2": {
+          "updatedAt": 1000,
+          "revision": 1,
+          "updatedBy": "device-a",
+          "deletedAt": null
+        }
+      },
+      "storyboardRows": {
+        "row-1": {
+          "updatedAt": 1000,
+          "revision": 1,
+          "updatedBy": "device-a",
+          "deletedAt": null
+        }
+      },
+      "storyboardCards": {
+        "card-1": {
+          "updatedAt": 1000,
+          "revision": 1,
+          "updatedBy": "device-a",
+          "deletedAt": null
+        }
+      }
+    }
+  },
+  "steps": [
+    {
+      "name": "unchanged",
+      "previous": {
+        "schemaVersion": 2,
+        "id": "project-1",
+        "createdAt": 1000,
+        "updatedAt": 1000,
+        "revision": 1,
+        "updatedBy": "device-a",
+        "deletedAt": null,
+        "project": {
+          "id": "project-1",
+          "name": "The Lighthouse 🌊 Keeper",
+          "author": "A. Writer",
+          "kind": "novel",
+          "activeDocumentId": "doc-1",
+          "projectGoal": 80000,
+          "chapterGoals": {
+            "2": 1.5,
+            "10": 3,
+            "chapter-1": 2500,
+            "-1": 4,
+            "01": 5
+          },
+          "activity": {
+            "2026-11-01": {
+              "edits": 12,
+              "wordsAdded": 345
+            },
+            "2026-11-02": {
+              "edits": 0.5,
+              "wordsAdded": -3
+            }
+          },
+          "chapters": [
+            {
+              "id": "chapter-1",
+              "title": "Chapter One",
+              "expanded": true,
+              "summary": "It begins.",
+              "labelId": "label-1"
+            },
+            {
+              "id": "chapter-2",
+              "title": "Chapitre deux — « voilà »",
+              "expanded": false,
+              "trashed": true
+            }
+          ],
+          "documents": [
+            {
+              "id": "doc-1",
+              "title": "Opening Scene",
+              "chapterId": "chapter-1",
+              "content": "<p>It was <em>dark</em>.<sup class=\"footnote-ref\" data-footnote-id=\"fn-1\" contenteditable=\"false\"></sup></p><p>Then <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020&quot;}]\">(Smith 2020)</span>.</p>",
+              "footnotes": [
+                {
+                  "id": "fn-1",
+                  "html": "A note with <em>emphasis</em>."
+                }
+              ]
+            },
+            {
+              "id": "doc-2",
+              "title": "Mara",
+              "space": "Wiki",
+              "folderId": "folder-1",
+              "content": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+              "character": {
+                "role": "Protagonist",
+                "age": "32",
+                "pronouns": "she/her"
+              }
+            },
+            {
+              "id": "doc-3",
+              "title": "INT. LIGHTHOUSE - NIGHT",
+              "chapterId": "chapter-1",
+              "format": "screenplay",
+              "content": "<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>",
+              "markdownSource": "INT. LIGHTHOUSE - NIGHT"
+            }
+          ],
+          "storyboardRows": [
+            {
+              "id": "row-1",
+              "title": "Act I"
+            }
+          ],
+          "storyboardCards": [
+            {
+              "id": "card-1",
+              "sourceId": "doc-1",
+              "rowId": "row-1",
+              "x": 12.5,
+              "y": 0.30000000000000004,
+              "kind": "scene",
+              "title": "Opening",
+              "note": ""
+            }
+          ],
+          "storyboardDrawings": [
+            {
+              "id": "draw-1",
+              "type": "arrow",
+              "x1": 0,
+              "y1": 1e+21,
+              "x2": 1e-7,
+              "y2": 123456789.125
+            }
+          ],
+          "timelineNodes": [
+            {
+              "id": "t-1",
+              "title": "Day One",
+              "date": "2026-01-01",
+              "time": "",
+              "description": "Start"
+            }
+          ],
+          "labels": [
+            {
+              "id": "label-1",
+              "name": "Draft",
+              "color": "#d69e2e"
+            }
+          ],
+          "comments": [
+            {
+              "id": "comment-1",
+              "documentId": "doc-1",
+              "quote": "dark",
+              "prefix": "It was \ud83c",
+              "suffix": ".",
+              "body": "Darker?",
+              "author": "Editor",
+              "createdAt": 1763370000000,
+              "resolved": false
+            }
+          ],
+          "snapshots": [
+            {
+              "id": "snap-1",
+              "documentId": "doc-1",
+              "createdAt": 1763360000000,
+              "title": "Opening Scene",
+              "content": "<p>It was dark.</p>",
+              "reason": "manual",
+              "note": "first"
+            }
+          ],
+          "citations": [
+            {
+              "id": "smith2020",
+              "type": "book",
+              "title": "Lighthouses",
+              "author": [
+                {
+                  "family": "Smith",
+                  "given": "Jo"
+                }
+              ],
+              "issued": {
+                "date-parts": [
+                  [
+                    2020
+                  ]
+                ]
+              }
+            }
+          ],
+          "publishOptions": {
+            "futureOption": {
+              "nested": [
+                1,
+                2.25,
+                null,
+                true
+              ]
+            }
+          },
+          "futureField": {
+            "kept": "as is",
+            "n": 7
+          }
+        },
+        "entities": {
+          "documents": {
+            "doc-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "doc-2": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "doc-3": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "chapters": {
+            "chapter-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "chapter-2": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "storyboardRows": {
+            "row-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "storyboardCards": {
+            "card-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          }
+        }
+      },
+      "project": {
+        "id": "project-1",
+        "name": "The Lighthouse 🌊 Keeper",
+        "author": "A. Writer",
+        "kind": "novel",
+        "activeDocumentId": "doc-1",
+        "projectGoal": 80000,
+        "chapterGoals": {
+          "2": 1.5,
+          "10": 3,
+          "chapter-1": 2500,
+          "-1": 4,
+          "01": 5
+        },
+        "activity": {
+          "2026-11-01": {
+            "edits": 12,
+            "wordsAdded": 345
+          },
+          "2026-11-02": {
+            "edits": 0.5,
+            "wordsAdded": -3
+          }
+        },
+        "chapters": [
+          {
+            "id": "chapter-1",
+            "title": "Chapter One",
+            "expanded": true,
+            "summary": "It begins.",
+            "labelId": "label-1"
+          },
+          {
+            "id": "chapter-2",
+            "title": "Chapitre deux — « voilà »",
+            "expanded": false,
+            "trashed": true
+          }
+        ],
+        "documents": [
+          {
+            "id": "doc-1",
+            "title": "Opening Scene",
+            "chapterId": "chapter-1",
+            "content": "<p>It was <em>dark</em>.<sup class=\"footnote-ref\" data-footnote-id=\"fn-1\" contenteditable=\"false\"></sup></p><p>Then <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020&quot;}]\">(Smith 2020)</span>.</p>",
+            "footnotes": [
+              {
+                "id": "fn-1",
+                "html": "A note with <em>emphasis</em>."
+              }
+            ]
+          },
+          {
+            "id": "doc-2",
+            "title": "Mara",
+            "space": "Wiki",
+            "folderId": "folder-1",
+            "content": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+            "character": {
+              "role": "Protagonist",
+              "age": "32",
+              "pronouns": "she/her"
+            }
+          },
+          {
+            "id": "doc-3",
+            "title": "INT. LIGHTHOUSE - NIGHT",
+            "chapterId": "chapter-1",
+            "format": "screenplay",
+            "content": "<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>",
+            "markdownSource": "INT. LIGHTHOUSE - NIGHT"
+          }
+        ],
+        "storyboardRows": [
+          {
+            "id": "row-1",
+            "title": "Act I"
+          }
+        ],
+        "storyboardCards": [
+          {
+            "id": "card-1",
+            "sourceId": "doc-1",
+            "rowId": "row-1",
+            "x": 12.5,
+            "y": 0.30000000000000004,
+            "kind": "scene",
+            "title": "Opening",
+            "note": ""
+          }
+        ],
+        "storyboardDrawings": [
+          {
+            "id": "draw-1",
+            "type": "arrow",
+            "x1": 0,
+            "y1": 1e+21,
+            "x2": 1e-7,
+            "y2": 123456789.125
+          }
+        ],
+        "timelineNodes": [
+          {
+            "id": "t-1",
+            "title": "Day One",
+            "date": "2026-01-01",
+            "time": "",
+            "description": "Start"
+          }
+        ],
+        "labels": [
+          {
+            "id": "label-1",
+            "name": "Draft",
+            "color": "#d69e2e"
+          }
+        ],
+        "comments": [
+          {
+            "id": "comment-1",
+            "documentId": "doc-1",
+            "quote": "dark",
+            "prefix": "It was \ud83c",
+            "suffix": ".",
+            "body": "Darker?",
+            "author": "Editor",
+            "createdAt": 1763370000000,
+            "resolved": false
+          }
+        ],
+        "snapshots": [
+          {
+            "id": "snap-1",
+            "documentId": "doc-1",
+            "createdAt": 1763360000000,
+            "title": "Opening Scene",
+            "content": "<p>It was dark.</p>",
+            "reason": "manual",
+            "note": "first"
+          }
+        ],
+        "citations": [
+          {
+            "id": "smith2020",
+            "type": "book",
+            "title": "Lighthouses",
+            "author": [
+              {
+                "family": "Smith",
+                "given": "Jo"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2020
+                ]
+              ]
+            }
+          }
+        ],
+        "publishOptions": {
+          "futureOption": {
+            "nested": [
+              1,
+              2.25,
+              null,
+              true
+            ]
+          }
+        },
+        "futureField": {
+          "kept": "as is",
+          "n": 7
+        }
+      },
+      "device": "device-b",
+      "now": 2000,
+      "result": {
+        "schemaVersion": 2,
+        "id": "project-1",
+        "createdAt": 1000,
+        "updatedAt": 1000,
+        "revision": 1,
+        "updatedBy": "device-a",
+        "deletedAt": null,
+        "project": {
+          "id": "project-1",
+          "name": "The Lighthouse 🌊 Keeper",
+          "author": "A. Writer",
+          "kind": "novel",
+          "activeDocumentId": "doc-1",
+          "projectGoal": 80000,
+          "chapterGoals": {
+            "2": 1.5,
+            "10": 3,
+            "chapter-1": 2500,
+            "-1": 4,
+            "01": 5
+          },
+          "activity": {
+            "2026-11-01": {
+              "edits": 12,
+              "wordsAdded": 345
+            },
+            "2026-11-02": {
+              "edits": 0.5,
+              "wordsAdded": -3
+            }
+          },
+          "chapters": [
+            {
+              "id": "chapter-1",
+              "title": "Chapter One",
+              "expanded": true,
+              "summary": "It begins.",
+              "labelId": "label-1"
+            },
+            {
+              "id": "chapter-2",
+              "title": "Chapitre deux — « voilà »",
+              "expanded": false,
+              "trashed": true
+            }
+          ],
+          "documents": [
+            {
+              "id": "doc-1",
+              "title": "Opening Scene",
+              "chapterId": "chapter-1",
+              "content": "<p>It was <em>dark</em>.<sup class=\"footnote-ref\" data-footnote-id=\"fn-1\" contenteditable=\"false\"></sup></p><p>Then <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020&quot;}]\">(Smith 2020)</span>.</p>",
+              "footnotes": [
+                {
+                  "id": "fn-1",
+                  "html": "A note with <em>emphasis</em>."
+                }
+              ]
+            },
+            {
+              "id": "doc-2",
+              "title": "Mara",
+              "space": "Wiki",
+              "folderId": "folder-1",
+              "content": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+              "character": {
+                "role": "Protagonist",
+                "age": "32",
+                "pronouns": "she/her"
+              }
+            },
+            {
+              "id": "doc-3",
+              "title": "INT. LIGHTHOUSE - NIGHT",
+              "chapterId": "chapter-1",
+              "format": "screenplay",
+              "content": "<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>",
+              "markdownSource": "INT. LIGHTHOUSE - NIGHT"
+            }
+          ],
+          "storyboardRows": [
+            {
+              "id": "row-1",
+              "title": "Act I"
+            }
+          ],
+          "storyboardCards": [
+            {
+              "id": "card-1",
+              "sourceId": "doc-1",
+              "rowId": "row-1",
+              "x": 12.5,
+              "y": 0.30000000000000004,
+              "kind": "scene",
+              "title": "Opening",
+              "note": ""
+            }
+          ],
+          "storyboardDrawings": [
+            {
+              "id": "draw-1",
+              "type": "arrow",
+              "x1": 0,
+              "y1": 1e+21,
+              "x2": 1e-7,
+              "y2": 123456789.125
+            }
+          ],
+          "timelineNodes": [
+            {
+              "id": "t-1",
+              "title": "Day One",
+              "date": "2026-01-01",
+              "time": "",
+              "description": "Start"
+            }
+          ],
+          "labels": [
+            {
+              "id": "label-1",
+              "name": "Draft",
+              "color": "#d69e2e"
+            }
+          ],
+          "comments": [
+            {
+              "id": "comment-1",
+              "documentId": "doc-1",
+              "quote": "dark",
+              "prefix": "It was \ud83c",
+              "suffix": ".",
+              "body": "Darker?",
+              "author": "Editor",
+              "createdAt": 1763370000000,
+              "resolved": false
+            }
+          ],
+          "snapshots": [
+            {
+              "id": "snap-1",
+              "documentId": "doc-1",
+              "createdAt": 1763360000000,
+              "title": "Opening Scene",
+              "content": "<p>It was dark.</p>",
+              "reason": "manual",
+              "note": "first"
+            }
+          ],
+          "citations": [
+            {
+              "id": "smith2020",
+              "type": "book",
+              "title": "Lighthouses",
+              "author": [
+                {
+                  "family": "Smith",
+                  "given": "Jo"
+                }
+              ],
+              "issued": {
+                "date-parts": [
+                  [
+                    2020
+                  ]
+                ]
+              }
+            }
+          ],
+          "publishOptions": {
+            "futureOption": {
+              "nested": [
+                1,
+                2.25,
+                null,
+                true
+              ]
+            }
+          },
+          "futureField": {
+            "kept": "as is",
+            "n": 7
+          }
+        },
+        "entities": {
+          "documents": {
+            "doc-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "doc-2": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "doc-3": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "chapters": {
+            "chapter-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "chapter-2": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "storyboardRows": {
+            "row-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "storyboardCards": {
+            "card-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "edit one scene",
+      "previous": {
+        "schemaVersion": 2,
+        "id": "project-1",
+        "createdAt": 1000,
+        "updatedAt": 1000,
+        "revision": 1,
+        "updatedBy": "device-a",
+        "deletedAt": null,
+        "project": {
+          "id": "project-1",
+          "name": "The Lighthouse 🌊 Keeper",
+          "author": "A. Writer",
+          "kind": "novel",
+          "activeDocumentId": "doc-1",
+          "projectGoal": 80000,
+          "chapterGoals": {
+            "2": 1.5,
+            "10": 3,
+            "chapter-1": 2500,
+            "-1": 4,
+            "01": 5
+          },
+          "activity": {
+            "2026-11-01": {
+              "edits": 12,
+              "wordsAdded": 345
+            },
+            "2026-11-02": {
+              "edits": 0.5,
+              "wordsAdded": -3
+            }
+          },
+          "chapters": [
+            {
+              "id": "chapter-1",
+              "title": "Chapter One",
+              "expanded": true,
+              "summary": "It begins.",
+              "labelId": "label-1"
+            },
+            {
+              "id": "chapter-2",
+              "title": "Chapitre deux — « voilà »",
+              "expanded": false,
+              "trashed": true
+            }
+          ],
+          "documents": [
+            {
+              "id": "doc-1",
+              "title": "Opening Scene",
+              "chapterId": "chapter-1",
+              "content": "<p>It was <em>dark</em>.<sup class=\"footnote-ref\" data-footnote-id=\"fn-1\" contenteditable=\"false\"></sup></p><p>Then <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020&quot;}]\">(Smith 2020)</span>.</p>",
+              "footnotes": [
+                {
+                  "id": "fn-1",
+                  "html": "A note with <em>emphasis</em>."
+                }
+              ]
+            },
+            {
+              "id": "doc-2",
+              "title": "Mara",
+              "space": "Wiki",
+              "folderId": "folder-1",
+              "content": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+              "character": {
+                "role": "Protagonist",
+                "age": "32",
+                "pronouns": "she/her"
+              }
+            },
+            {
+              "id": "doc-3",
+              "title": "INT. LIGHTHOUSE - NIGHT",
+              "chapterId": "chapter-1",
+              "format": "screenplay",
+              "content": "<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>",
+              "markdownSource": "INT. LIGHTHOUSE - NIGHT"
+            }
+          ],
+          "storyboardRows": [
+            {
+              "id": "row-1",
+              "title": "Act I"
+            }
+          ],
+          "storyboardCards": [
+            {
+              "id": "card-1",
+              "sourceId": "doc-1",
+              "rowId": "row-1",
+              "x": 12.5,
+              "y": 0.30000000000000004,
+              "kind": "scene",
+              "title": "Opening",
+              "note": ""
+            }
+          ],
+          "storyboardDrawings": [
+            {
+              "id": "draw-1",
+              "type": "arrow",
+              "x1": 0,
+              "y1": 1e+21,
+              "x2": 1e-7,
+              "y2": 123456789.125
+            }
+          ],
+          "timelineNodes": [
+            {
+              "id": "t-1",
+              "title": "Day One",
+              "date": "2026-01-01",
+              "time": "",
+              "description": "Start"
+            }
+          ],
+          "labels": [
+            {
+              "id": "label-1",
+              "name": "Draft",
+              "color": "#d69e2e"
+            }
+          ],
+          "comments": [
+            {
+              "id": "comment-1",
+              "documentId": "doc-1",
+              "quote": "dark",
+              "prefix": "It was \ud83c",
+              "suffix": ".",
+              "body": "Darker?",
+              "author": "Editor",
+              "createdAt": 1763370000000,
+              "resolved": false
+            }
+          ],
+          "snapshots": [
+            {
+              "id": "snap-1",
+              "documentId": "doc-1",
+              "createdAt": 1763360000000,
+              "title": "Opening Scene",
+              "content": "<p>It was dark.</p>",
+              "reason": "manual",
+              "note": "first"
+            }
+          ],
+          "citations": [
+            {
+              "id": "smith2020",
+              "type": "book",
+              "title": "Lighthouses",
+              "author": [
+                {
+                  "family": "Smith",
+                  "given": "Jo"
+                }
+              ],
+              "issued": {
+                "date-parts": [
+                  [
+                    2020
+                  ]
+                ]
+              }
+            }
+          ],
+          "publishOptions": {
+            "futureOption": {
+              "nested": [
+                1,
+                2.25,
+                null,
+                true
+              ]
+            }
+          },
+          "futureField": {
+            "kept": "as is",
+            "n": 7
+          }
+        },
+        "entities": {
+          "documents": {
+            "doc-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "doc-2": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "doc-3": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "chapters": {
+            "chapter-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "chapter-2": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "storyboardRows": {
+            "row-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "storyboardCards": {
+            "card-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          }
+        }
+      },
+      "project": {
+        "id": "project-1",
+        "name": "The Lighthouse 🌊 Keeper",
+        "author": "A. Writer",
+        "kind": "novel",
+        "activeDocumentId": "doc-1",
+        "projectGoal": 80000,
+        "chapterGoals": {
+          "2": 1.5,
+          "10": 3,
+          "chapter-1": 2500,
+          "-1": 4,
+          "01": 5
+        },
+        "activity": {
+          "2026-11-01": {
+            "edits": 12,
+            "wordsAdded": 345
+          },
+          "2026-11-02": {
+            "edits": 0.5,
+            "wordsAdded": -3
+          }
+        },
+        "chapters": [
+          {
+            "id": "chapter-1",
+            "title": "Chapter One",
+            "expanded": true,
+            "summary": "It begins.",
+            "labelId": "label-1"
+          },
+          {
+            "id": "chapter-2",
+            "title": "Chapitre deux — « voilà »",
+            "expanded": false,
+            "trashed": true
+          }
+        ],
+        "documents": [
+          {
+            "id": "doc-1",
+            "title": "Opening Scene",
+            "chapterId": "chapter-1",
+            "content": "<p>It was very dark.</p>",
+            "footnotes": [
+              {
+                "id": "fn-1",
+                "html": "A note with <em>emphasis</em>."
+              }
+            ]
+          },
+          {
+            "id": "doc-2",
+            "title": "Mara",
+            "space": "Wiki",
+            "folderId": "folder-1",
+            "content": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+            "character": {
+              "role": "Protagonist",
+              "age": "32",
+              "pronouns": "she/her"
+            }
+          },
+          {
+            "id": "doc-3",
+            "title": "INT. LIGHTHOUSE - NIGHT",
+            "chapterId": "chapter-1",
+            "format": "screenplay",
+            "content": "<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>",
+            "markdownSource": "INT. LIGHTHOUSE - NIGHT"
+          }
+        ],
+        "storyboardRows": [
+          {
+            "id": "row-1",
+            "title": "Act I"
+          }
+        ],
+        "storyboardCards": [
+          {
+            "id": "card-1",
+            "sourceId": "doc-1",
+            "rowId": "row-1",
+            "x": 12.5,
+            "y": 0.30000000000000004,
+            "kind": "scene",
+            "title": "Opening",
+            "note": ""
+          }
+        ],
+        "storyboardDrawings": [
+          {
+            "id": "draw-1",
+            "type": "arrow",
+            "x1": 0,
+            "y1": 1e+21,
+            "x2": 1e-7,
+            "y2": 123456789.125
+          }
+        ],
+        "timelineNodes": [
+          {
+            "id": "t-1",
+            "title": "Day One",
+            "date": "2026-01-01",
+            "time": "",
+            "description": "Start"
+          }
+        ],
+        "labels": [
+          {
+            "id": "label-1",
+            "name": "Draft",
+            "color": "#d69e2e"
+          }
+        ],
+        "comments": [
+          {
+            "id": "comment-1",
+            "documentId": "doc-1",
+            "quote": "dark",
+            "prefix": "It was \ud83c",
+            "suffix": ".",
+            "body": "Darker?",
+            "author": "Editor",
+            "createdAt": 1763370000000,
+            "resolved": false
+          }
+        ],
+        "snapshots": [
+          {
+            "id": "snap-1",
+            "documentId": "doc-1",
+            "createdAt": 1763360000000,
+            "title": "Opening Scene",
+            "content": "<p>It was dark.</p>",
+            "reason": "manual",
+            "note": "first"
+          }
+        ],
+        "citations": [
+          {
+            "id": "smith2020",
+            "type": "book",
+            "title": "Lighthouses",
+            "author": [
+              {
+                "family": "Smith",
+                "given": "Jo"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2020
+                ]
+              ]
+            }
+          }
+        ],
+        "publishOptions": {
+          "futureOption": {
+            "nested": [
+              1,
+              2.25,
+              null,
+              true
+            ]
+          }
+        },
+        "futureField": {
+          "kept": "as is",
+          "n": 7
+        }
+      },
+      "device": "device-b",
+      "now": 3000,
+      "result": {
+        "schemaVersion": 2,
+        "id": "project-1",
+        "createdAt": 1000,
+        "updatedAt": 3000,
+        "revision": 2,
+        "updatedBy": "device-b",
+        "deletedAt": null,
+        "project": {
+          "id": "project-1",
+          "name": "The Lighthouse 🌊 Keeper",
+          "author": "A. Writer",
+          "kind": "novel",
+          "activeDocumentId": "doc-1",
+          "projectGoal": 80000,
+          "chapterGoals": {
+            "2": 1.5,
+            "10": 3,
+            "chapter-1": 2500,
+            "-1": 4,
+            "01": 5
+          },
+          "activity": {
+            "2026-11-01": {
+              "edits": 12,
+              "wordsAdded": 345
+            },
+            "2026-11-02": {
+              "edits": 0.5,
+              "wordsAdded": -3
+            }
+          },
+          "chapters": [
+            {
+              "id": "chapter-1",
+              "title": "Chapter One",
+              "expanded": true,
+              "summary": "It begins.",
+              "labelId": "label-1"
+            },
+            {
+              "id": "chapter-2",
+              "title": "Chapitre deux — « voilà »",
+              "expanded": false,
+              "trashed": true
+            }
+          ],
+          "documents": [
+            {
+              "id": "doc-1",
+              "title": "Opening Scene",
+              "chapterId": "chapter-1",
+              "content": "<p>It was very dark.</p>",
+              "footnotes": [
+                {
+                  "id": "fn-1",
+                  "html": "A note with <em>emphasis</em>."
+                }
+              ]
+            },
+            {
+              "id": "doc-2",
+              "title": "Mara",
+              "space": "Wiki",
+              "folderId": "folder-1",
+              "content": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+              "character": {
+                "role": "Protagonist",
+                "age": "32",
+                "pronouns": "she/her"
+              }
+            },
+            {
+              "id": "doc-3",
+              "title": "INT. LIGHTHOUSE - NIGHT",
+              "chapterId": "chapter-1",
+              "format": "screenplay",
+              "content": "<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>",
+              "markdownSource": "INT. LIGHTHOUSE - NIGHT"
+            }
+          ],
+          "storyboardRows": [
+            {
+              "id": "row-1",
+              "title": "Act I"
+            }
+          ],
+          "storyboardCards": [
+            {
+              "id": "card-1",
+              "sourceId": "doc-1",
+              "rowId": "row-1",
+              "x": 12.5,
+              "y": 0.30000000000000004,
+              "kind": "scene",
+              "title": "Opening",
+              "note": ""
+            }
+          ],
+          "storyboardDrawings": [
+            {
+              "id": "draw-1",
+              "type": "arrow",
+              "x1": 0,
+              "y1": 1e+21,
+              "x2": 1e-7,
+              "y2": 123456789.125
+            }
+          ],
+          "timelineNodes": [
+            {
+              "id": "t-1",
+              "title": "Day One",
+              "date": "2026-01-01",
+              "time": "",
+              "description": "Start"
+            }
+          ],
+          "labels": [
+            {
+              "id": "label-1",
+              "name": "Draft",
+              "color": "#d69e2e"
+            }
+          ],
+          "comments": [
+            {
+              "id": "comment-1",
+              "documentId": "doc-1",
+              "quote": "dark",
+              "prefix": "It was \ud83c",
+              "suffix": ".",
+              "body": "Darker?",
+              "author": "Editor",
+              "createdAt": 1763370000000,
+              "resolved": false
+            }
+          ],
+          "snapshots": [
+            {
+              "id": "snap-1",
+              "documentId": "doc-1",
+              "createdAt": 1763360000000,
+              "title": "Opening Scene",
+              "content": "<p>It was dark.</p>",
+              "reason": "manual",
+              "note": "first"
+            }
+          ],
+          "citations": [
+            {
+              "id": "smith2020",
+              "type": "book",
+              "title": "Lighthouses",
+              "author": [
+                {
+                  "family": "Smith",
+                  "given": "Jo"
+                }
+              ],
+              "issued": {
+                "date-parts": [
+                  [
+                    2020
+                  ]
+                ]
+              }
+            }
+          ],
+          "publishOptions": {
+            "futureOption": {
+              "nested": [
+                1,
+                2.25,
+                null,
+                true
+              ]
+            }
+          },
+          "futureField": {
+            "kept": "as is",
+            "n": 7
+          }
+        },
+        "entities": {
+          "documents": {
+            "doc-1": {
+              "updatedAt": 3000,
+              "revision": 2,
+              "updatedBy": "device-b",
+              "deletedAt": null
+            },
+            "doc-2": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "doc-3": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "chapters": {
+            "chapter-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "chapter-2": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "storyboardRows": {
+            "row-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "storyboardCards": {
+            "card-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "remove a scene",
+      "previous": {
+        "schemaVersion": 2,
+        "id": "project-1",
+        "createdAt": 1000,
+        "updatedAt": 3000,
+        "revision": 2,
+        "updatedBy": "device-b",
+        "deletedAt": null,
+        "project": {
+          "id": "project-1",
+          "name": "The Lighthouse 🌊 Keeper",
+          "author": "A. Writer",
+          "kind": "novel",
+          "activeDocumentId": "doc-1",
+          "projectGoal": 80000,
+          "chapterGoals": {
+            "2": 1.5,
+            "10": 3,
+            "chapter-1": 2500,
+            "-1": 4,
+            "01": 5
+          },
+          "activity": {
+            "2026-11-01": {
+              "edits": 12,
+              "wordsAdded": 345
+            },
+            "2026-11-02": {
+              "edits": 0.5,
+              "wordsAdded": -3
+            }
+          },
+          "chapters": [
+            {
+              "id": "chapter-1",
+              "title": "Chapter One",
+              "expanded": true,
+              "summary": "It begins.",
+              "labelId": "label-1"
+            },
+            {
+              "id": "chapter-2",
+              "title": "Chapitre deux — « voilà »",
+              "expanded": false,
+              "trashed": true
+            }
+          ],
+          "documents": [
+            {
+              "id": "doc-1",
+              "title": "Opening Scene",
+              "chapterId": "chapter-1",
+              "content": "<p>It was very dark.</p>",
+              "footnotes": [
+                {
+                  "id": "fn-1",
+                  "html": "A note with <em>emphasis</em>."
+                }
+              ]
+            },
+            {
+              "id": "doc-2",
+              "title": "Mara",
+              "space": "Wiki",
+              "folderId": "folder-1",
+              "content": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+              "character": {
+                "role": "Protagonist",
+                "age": "32",
+                "pronouns": "she/her"
+              }
+            },
+            {
+              "id": "doc-3",
+              "title": "INT. LIGHTHOUSE - NIGHT",
+              "chapterId": "chapter-1",
+              "format": "screenplay",
+              "content": "<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>",
+              "markdownSource": "INT. LIGHTHOUSE - NIGHT"
+            }
+          ],
+          "storyboardRows": [
+            {
+              "id": "row-1",
+              "title": "Act I"
+            }
+          ],
+          "storyboardCards": [
+            {
+              "id": "card-1",
+              "sourceId": "doc-1",
+              "rowId": "row-1",
+              "x": 12.5,
+              "y": 0.30000000000000004,
+              "kind": "scene",
+              "title": "Opening",
+              "note": ""
+            }
+          ],
+          "storyboardDrawings": [
+            {
+              "id": "draw-1",
+              "type": "arrow",
+              "x1": 0,
+              "y1": 1e+21,
+              "x2": 1e-7,
+              "y2": 123456789.125
+            }
+          ],
+          "timelineNodes": [
+            {
+              "id": "t-1",
+              "title": "Day One",
+              "date": "2026-01-01",
+              "time": "",
+              "description": "Start"
+            }
+          ],
+          "labels": [
+            {
+              "id": "label-1",
+              "name": "Draft",
+              "color": "#d69e2e"
+            }
+          ],
+          "comments": [
+            {
+              "id": "comment-1",
+              "documentId": "doc-1",
+              "quote": "dark",
+              "prefix": "It was \ud83c",
+              "suffix": ".",
+              "body": "Darker?",
+              "author": "Editor",
+              "createdAt": 1763370000000,
+              "resolved": false
+            }
+          ],
+          "snapshots": [
+            {
+              "id": "snap-1",
+              "documentId": "doc-1",
+              "createdAt": 1763360000000,
+              "title": "Opening Scene",
+              "content": "<p>It was dark.</p>",
+              "reason": "manual",
+              "note": "first"
+            }
+          ],
+          "citations": [
+            {
+              "id": "smith2020",
+              "type": "book",
+              "title": "Lighthouses",
+              "author": [
+                {
+                  "family": "Smith",
+                  "given": "Jo"
+                }
+              ],
+              "issued": {
+                "date-parts": [
+                  [
+                    2020
+                  ]
+                ]
+              }
+            }
+          ],
+          "publishOptions": {
+            "futureOption": {
+              "nested": [
+                1,
+                2.25,
+                null,
+                true
+              ]
+            }
+          },
+          "futureField": {
+            "kept": "as is",
+            "n": 7
+          }
+        },
+        "entities": {
+          "documents": {
+            "doc-1": {
+              "updatedAt": 3000,
+              "revision": 2,
+              "updatedBy": "device-b",
+              "deletedAt": null
+            },
+            "doc-2": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "doc-3": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "chapters": {
+            "chapter-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "chapter-2": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "storyboardRows": {
+            "row-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "storyboardCards": {
+            "card-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          }
+        }
+      },
+      "project": {
+        "id": "project-1",
+        "name": "The Lighthouse 🌊 Keeper",
+        "author": "A. Writer",
+        "kind": "novel",
+        "activeDocumentId": "doc-1",
+        "projectGoal": 80000,
+        "chapterGoals": {
+          "2": 1.5,
+          "10": 3,
+          "chapter-1": 2500,
+          "-1": 4,
+          "01": 5
+        },
+        "activity": {
+          "2026-11-01": {
+            "edits": 12,
+            "wordsAdded": 345
+          },
+          "2026-11-02": {
+            "edits": 0.5,
+            "wordsAdded": -3
+          }
+        },
+        "chapters": [
+          {
+            "id": "chapter-1",
+            "title": "Chapter One",
+            "expanded": true,
+            "summary": "It begins.",
+            "labelId": "label-1"
+          },
+          {
+            "id": "chapter-2",
+            "title": "Chapitre deux — « voilà »",
+            "expanded": false,
+            "trashed": true
+          }
+        ],
+        "documents": [
+          {
+            "id": "doc-1",
+            "title": "Opening Scene",
+            "chapterId": "chapter-1",
+            "content": "<p>It was very dark.</p>",
+            "footnotes": [
+              {
+                "id": "fn-1",
+                "html": "A note with <em>emphasis</em>."
+              }
+            ]
+          },
+          {
+            "id": "doc-2",
+            "title": "Mara",
+            "space": "Wiki",
+            "folderId": "folder-1",
+            "content": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+            "character": {
+              "role": "Protagonist",
+              "age": "32",
+              "pronouns": "she/her"
+            }
+          }
+        ],
+        "storyboardRows": [
+          {
+            "id": "row-1",
+            "title": "Act I"
+          }
+        ],
+        "storyboardCards": [
+          {
+            "id": "card-1",
+            "sourceId": "doc-1",
+            "rowId": "row-1",
+            "x": 12.5,
+            "y": 0.30000000000000004,
+            "kind": "scene",
+            "title": "Opening",
+            "note": ""
+          }
+        ],
+        "storyboardDrawings": [
+          {
+            "id": "draw-1",
+            "type": "arrow",
+            "x1": 0,
+            "y1": 1e+21,
+            "x2": 1e-7,
+            "y2": 123456789.125
+          }
+        ],
+        "timelineNodes": [
+          {
+            "id": "t-1",
+            "title": "Day One",
+            "date": "2026-01-01",
+            "time": "",
+            "description": "Start"
+          }
+        ],
+        "labels": [
+          {
+            "id": "label-1",
+            "name": "Draft",
+            "color": "#d69e2e"
+          }
+        ],
+        "comments": [
+          {
+            "id": "comment-1",
+            "documentId": "doc-1",
+            "quote": "dark",
+            "prefix": "It was \ud83c",
+            "suffix": ".",
+            "body": "Darker?",
+            "author": "Editor",
+            "createdAt": 1763370000000,
+            "resolved": false
+          }
+        ],
+        "snapshots": [
+          {
+            "id": "snap-1",
+            "documentId": "doc-1",
+            "createdAt": 1763360000000,
+            "title": "Opening Scene",
+            "content": "<p>It was dark.</p>",
+            "reason": "manual",
+            "note": "first"
+          }
+        ],
+        "citations": [
+          {
+            "id": "smith2020",
+            "type": "book",
+            "title": "Lighthouses",
+            "author": [
+              {
+                "family": "Smith",
+                "given": "Jo"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2020
+                ]
+              ]
+            }
+          }
+        ],
+        "publishOptions": {
+          "futureOption": {
+            "nested": [
+              1,
+              2.25,
+              null,
+              true
+            ]
+          }
+        },
+        "futureField": {
+          "kept": "as is",
+          "n": 7
+        }
+      },
+      "device": "device-a",
+      "now": 4000,
+      "result": {
+        "schemaVersion": 2,
+        "id": "project-1",
+        "createdAt": 1000,
+        "updatedAt": 4000,
+        "revision": 3,
+        "updatedBy": "device-a",
+        "deletedAt": null,
+        "project": {
+          "id": "project-1",
+          "name": "The Lighthouse 🌊 Keeper",
+          "author": "A. Writer",
+          "kind": "novel",
+          "activeDocumentId": "doc-1",
+          "projectGoal": 80000,
+          "chapterGoals": {
+            "2": 1.5,
+            "10": 3,
+            "chapter-1": 2500,
+            "-1": 4,
+            "01": 5
+          },
+          "activity": {
+            "2026-11-01": {
+              "edits": 12,
+              "wordsAdded": 345
+            },
+            "2026-11-02": {
+              "edits": 0.5,
+              "wordsAdded": -3
+            }
+          },
+          "chapters": [
+            {
+              "id": "chapter-1",
+              "title": "Chapter One",
+              "expanded": true,
+              "summary": "It begins.",
+              "labelId": "label-1"
+            },
+            {
+              "id": "chapter-2",
+              "title": "Chapitre deux — « voilà »",
+              "expanded": false,
+              "trashed": true
+            }
+          ],
+          "documents": [
+            {
+              "id": "doc-1",
+              "title": "Opening Scene",
+              "chapterId": "chapter-1",
+              "content": "<p>It was very dark.</p>",
+              "footnotes": [
+                {
+                  "id": "fn-1",
+                  "html": "A note with <em>emphasis</em>."
+                }
+              ]
+            },
+            {
+              "id": "doc-2",
+              "title": "Mara",
+              "space": "Wiki",
+              "folderId": "folder-1",
+              "content": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+              "character": {
+                "role": "Protagonist",
+                "age": "32",
+                "pronouns": "she/her"
+              }
+            }
+          ],
+          "storyboardRows": [
+            {
+              "id": "row-1",
+              "title": "Act I"
+            }
+          ],
+          "storyboardCards": [
+            {
+              "id": "card-1",
+              "sourceId": "doc-1",
+              "rowId": "row-1",
+              "x": 12.5,
+              "y": 0.30000000000000004,
+              "kind": "scene",
+              "title": "Opening",
+              "note": ""
+            }
+          ],
+          "storyboardDrawings": [
+            {
+              "id": "draw-1",
+              "type": "arrow",
+              "x1": 0,
+              "y1": 1e+21,
+              "x2": 1e-7,
+              "y2": 123456789.125
+            }
+          ],
+          "timelineNodes": [
+            {
+              "id": "t-1",
+              "title": "Day One",
+              "date": "2026-01-01",
+              "time": "",
+              "description": "Start"
+            }
+          ],
+          "labels": [
+            {
+              "id": "label-1",
+              "name": "Draft",
+              "color": "#d69e2e"
+            }
+          ],
+          "comments": [
+            {
+              "id": "comment-1",
+              "documentId": "doc-1",
+              "quote": "dark",
+              "prefix": "It was \ud83c",
+              "suffix": ".",
+              "body": "Darker?",
+              "author": "Editor",
+              "createdAt": 1763370000000,
+              "resolved": false
+            }
+          ],
+          "snapshots": [
+            {
+              "id": "snap-1",
+              "documentId": "doc-1",
+              "createdAt": 1763360000000,
+              "title": "Opening Scene",
+              "content": "<p>It was dark.</p>",
+              "reason": "manual",
+              "note": "first"
+            }
+          ],
+          "citations": [
+            {
+              "id": "smith2020",
+              "type": "book",
+              "title": "Lighthouses",
+              "author": [
+                {
+                  "family": "Smith",
+                  "given": "Jo"
+                }
+              ],
+              "issued": {
+                "date-parts": [
+                  [
+                    2020
+                  ]
+                ]
+              }
+            }
+          ],
+          "publishOptions": {
+            "futureOption": {
+              "nested": [
+                1,
+                2.25,
+                null,
+                true
+              ]
+            }
+          },
+          "futureField": {
+            "kept": "as is",
+            "n": 7
+          }
+        },
+        "entities": {
+          "documents": {
+            "doc-1": {
+              "updatedAt": 3000,
+              "revision": 2,
+              "updatedBy": "device-b",
+              "deletedAt": null
+            },
+            "doc-2": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "doc-3": {
+              "updatedAt": 4000,
+              "revision": 2,
+              "updatedBy": "device-a",
+              "deletedAt": 4000
+            }
+          },
+          "chapters": {
+            "chapter-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "chapter-2": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "storyboardRows": {
+            "row-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "storyboardCards": {
+            "card-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "tombstone kept",
+      "previous": {
+        "schemaVersion": 2,
+        "id": "project-1",
+        "createdAt": 1000,
+        "updatedAt": 4000,
+        "revision": 3,
+        "updatedBy": "device-a",
+        "deletedAt": null,
+        "project": {
+          "id": "project-1",
+          "name": "The Lighthouse 🌊 Keeper",
+          "author": "A. Writer",
+          "kind": "novel",
+          "activeDocumentId": "doc-1",
+          "projectGoal": 80000,
+          "chapterGoals": {
+            "2": 1.5,
+            "10": 3,
+            "chapter-1": 2500,
+            "-1": 4,
+            "01": 5
+          },
+          "activity": {
+            "2026-11-01": {
+              "edits": 12,
+              "wordsAdded": 345
+            },
+            "2026-11-02": {
+              "edits": 0.5,
+              "wordsAdded": -3
+            }
+          },
+          "chapters": [
+            {
+              "id": "chapter-1",
+              "title": "Chapter One",
+              "expanded": true,
+              "summary": "It begins.",
+              "labelId": "label-1"
+            },
+            {
+              "id": "chapter-2",
+              "title": "Chapitre deux — « voilà »",
+              "expanded": false,
+              "trashed": true
+            }
+          ],
+          "documents": [
+            {
+              "id": "doc-1",
+              "title": "Opening Scene",
+              "chapterId": "chapter-1",
+              "content": "<p>It was very dark.</p>",
+              "footnotes": [
+                {
+                  "id": "fn-1",
+                  "html": "A note with <em>emphasis</em>."
+                }
+              ]
+            },
+            {
+              "id": "doc-2",
+              "title": "Mara",
+              "space": "Wiki",
+              "folderId": "folder-1",
+              "content": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+              "character": {
+                "role": "Protagonist",
+                "age": "32",
+                "pronouns": "she/her"
+              }
+            }
+          ],
+          "storyboardRows": [
+            {
+              "id": "row-1",
+              "title": "Act I"
+            }
+          ],
+          "storyboardCards": [
+            {
+              "id": "card-1",
+              "sourceId": "doc-1",
+              "rowId": "row-1",
+              "x": 12.5,
+              "y": 0.30000000000000004,
+              "kind": "scene",
+              "title": "Opening",
+              "note": ""
+            }
+          ],
+          "storyboardDrawings": [
+            {
+              "id": "draw-1",
+              "type": "arrow",
+              "x1": 0,
+              "y1": 1e+21,
+              "x2": 1e-7,
+              "y2": 123456789.125
+            }
+          ],
+          "timelineNodes": [
+            {
+              "id": "t-1",
+              "title": "Day One",
+              "date": "2026-01-01",
+              "time": "",
+              "description": "Start"
+            }
+          ],
+          "labels": [
+            {
+              "id": "label-1",
+              "name": "Draft",
+              "color": "#d69e2e"
+            }
+          ],
+          "comments": [
+            {
+              "id": "comment-1",
+              "documentId": "doc-1",
+              "quote": "dark",
+              "prefix": "It was \ud83c",
+              "suffix": ".",
+              "body": "Darker?",
+              "author": "Editor",
+              "createdAt": 1763370000000,
+              "resolved": false
+            }
+          ],
+          "snapshots": [
+            {
+              "id": "snap-1",
+              "documentId": "doc-1",
+              "createdAt": 1763360000000,
+              "title": "Opening Scene",
+              "content": "<p>It was dark.</p>",
+              "reason": "manual",
+              "note": "first"
+            }
+          ],
+          "citations": [
+            {
+              "id": "smith2020",
+              "type": "book",
+              "title": "Lighthouses",
+              "author": [
+                {
+                  "family": "Smith",
+                  "given": "Jo"
+                }
+              ],
+              "issued": {
+                "date-parts": [
+                  [
+                    2020
+                  ]
+                ]
+              }
+            }
+          ],
+          "publishOptions": {
+            "futureOption": {
+              "nested": [
+                1,
+                2.25,
+                null,
+                true
+              ]
+            }
+          },
+          "futureField": {
+            "kept": "as is",
+            "n": 7
+          }
+        },
+        "entities": {
+          "documents": {
+            "doc-1": {
+              "updatedAt": 3000,
+              "revision": 2,
+              "updatedBy": "device-b",
+              "deletedAt": null
+            },
+            "doc-2": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "doc-3": {
+              "updatedAt": 4000,
+              "revision": 2,
+              "updatedBy": "device-a",
+              "deletedAt": 4000
+            }
+          },
+          "chapters": {
+            "chapter-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "chapter-2": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "storyboardRows": {
+            "row-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "storyboardCards": {
+            "card-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          }
+        }
+      },
+      "project": {
+        "id": "project-1",
+        "name": "The Lighthouse 🌊 Keeper",
+        "author": "A. Writer",
+        "kind": "novel",
+        "activeDocumentId": "doc-1",
+        "projectGoal": 80000,
+        "chapterGoals": {
+          "2": 1.5,
+          "10": 3,
+          "chapter-1": 2500,
+          "-1": 4,
+          "01": 5
+        },
+        "activity": {
+          "2026-11-01": {
+            "edits": 12,
+            "wordsAdded": 345
+          },
+          "2026-11-02": {
+            "edits": 0.5,
+            "wordsAdded": -3
+          }
+        },
+        "chapters": [
+          {
+            "id": "chapter-1",
+            "title": "Chapter One",
+            "expanded": true,
+            "summary": "It begins.",
+            "labelId": "label-1"
+          },
+          {
+            "id": "chapter-2",
+            "title": "Chapitre deux — « voilà »",
+            "expanded": false,
+            "trashed": true
+          }
+        ],
+        "documents": [
+          {
+            "id": "doc-1",
+            "title": "Opening Scene",
+            "chapterId": "chapter-1",
+            "content": "<p>It was very dark.</p>",
+            "footnotes": [
+              {
+                "id": "fn-1",
+                "html": "A note with <em>emphasis</em>."
+              }
+            ]
+          },
+          {
+            "id": "doc-2",
+            "title": "Mara",
+            "space": "Wiki",
+            "folderId": "folder-1",
+            "content": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+            "character": {
+              "role": "Protagonist",
+              "age": "32",
+              "pronouns": "she/her"
+            }
+          }
+        ],
+        "storyboardRows": [
+          {
+            "id": "row-1",
+            "title": "Act I"
+          }
+        ],
+        "storyboardCards": [
+          {
+            "id": "card-1",
+            "sourceId": "doc-1",
+            "rowId": "row-1",
+            "x": 12.5,
+            "y": 0.30000000000000004,
+            "kind": "scene",
+            "title": "Opening",
+            "note": ""
+          }
+        ],
+        "storyboardDrawings": [
+          {
+            "id": "draw-1",
+            "type": "arrow",
+            "x1": 0,
+            "y1": 1e+21,
+            "x2": 1e-7,
+            "y2": 123456789.125
+          }
+        ],
+        "timelineNodes": [
+          {
+            "id": "t-1",
+            "title": "Day One",
+            "date": "2026-01-01",
+            "time": "",
+            "description": "Start"
+          }
+        ],
+        "labels": [
+          {
+            "id": "label-1",
+            "name": "Draft",
+            "color": "#d69e2e"
+          }
+        ],
+        "comments": [
+          {
+            "id": "comment-1",
+            "documentId": "doc-1",
+            "quote": "dark",
+            "prefix": "It was \ud83c",
+            "suffix": ".",
+            "body": "Darker?",
+            "author": "Editor",
+            "createdAt": 1763370000000,
+            "resolved": false
+          }
+        ],
+        "snapshots": [
+          {
+            "id": "snap-1",
+            "documentId": "doc-1",
+            "createdAt": 1763360000000,
+            "title": "Opening Scene",
+            "content": "<p>It was dark.</p>",
+            "reason": "manual",
+            "note": "first"
+          }
+        ],
+        "citations": [
+          {
+            "id": "smith2020",
+            "type": "book",
+            "title": "Lighthouses",
+            "author": [
+              {
+                "family": "Smith",
+                "given": "Jo"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2020
+                ]
+              ]
+            }
+          }
+        ],
+        "publishOptions": {
+          "futureOption": {
+            "nested": [
+              1,
+              2.25,
+              null,
+              true
+            ]
+          }
+        },
+        "futureField": {
+          "kept": "as is",
+          "n": 7
+        }
+      },
+      "device": "device-a",
+      "now": 5000,
+      "result": {
+        "schemaVersion": 2,
+        "id": "project-1",
+        "createdAt": 1000,
+        "updatedAt": 4000,
+        "revision": 3,
+        "updatedBy": "device-a",
+        "deletedAt": null,
+        "project": {
+          "id": "project-1",
+          "name": "The Lighthouse 🌊 Keeper",
+          "author": "A. Writer",
+          "kind": "novel",
+          "activeDocumentId": "doc-1",
+          "projectGoal": 80000,
+          "chapterGoals": {
+            "2": 1.5,
+            "10": 3,
+            "chapter-1": 2500,
+            "-1": 4,
+            "01": 5
+          },
+          "activity": {
+            "2026-11-01": {
+              "edits": 12,
+              "wordsAdded": 345
+            },
+            "2026-11-02": {
+              "edits": 0.5,
+              "wordsAdded": -3
+            }
+          },
+          "chapters": [
+            {
+              "id": "chapter-1",
+              "title": "Chapter One",
+              "expanded": true,
+              "summary": "It begins.",
+              "labelId": "label-1"
+            },
+            {
+              "id": "chapter-2",
+              "title": "Chapitre deux — « voilà »",
+              "expanded": false,
+              "trashed": true
+            }
+          ],
+          "documents": [
+            {
+              "id": "doc-1",
+              "title": "Opening Scene",
+              "chapterId": "chapter-1",
+              "content": "<p>It was very dark.</p>",
+              "footnotes": [
+                {
+                  "id": "fn-1",
+                  "html": "A note with <em>emphasis</em>."
+                }
+              ]
+            },
+            {
+              "id": "doc-2",
+              "title": "Mara",
+              "space": "Wiki",
+              "folderId": "folder-1",
+              "content": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+              "character": {
+                "role": "Protagonist",
+                "age": "32",
+                "pronouns": "she/her"
+              }
+            }
+          ],
+          "storyboardRows": [
+            {
+              "id": "row-1",
+              "title": "Act I"
+            }
+          ],
+          "storyboardCards": [
+            {
+              "id": "card-1",
+              "sourceId": "doc-1",
+              "rowId": "row-1",
+              "x": 12.5,
+              "y": 0.30000000000000004,
+              "kind": "scene",
+              "title": "Opening",
+              "note": ""
+            }
+          ],
+          "storyboardDrawings": [
+            {
+              "id": "draw-1",
+              "type": "arrow",
+              "x1": 0,
+              "y1": 1e+21,
+              "x2": 1e-7,
+              "y2": 123456789.125
+            }
+          ],
+          "timelineNodes": [
+            {
+              "id": "t-1",
+              "title": "Day One",
+              "date": "2026-01-01",
+              "time": "",
+              "description": "Start"
+            }
+          ],
+          "labels": [
+            {
+              "id": "label-1",
+              "name": "Draft",
+              "color": "#d69e2e"
+            }
+          ],
+          "comments": [
+            {
+              "id": "comment-1",
+              "documentId": "doc-1",
+              "quote": "dark",
+              "prefix": "It was \ud83c",
+              "suffix": ".",
+              "body": "Darker?",
+              "author": "Editor",
+              "createdAt": 1763370000000,
+              "resolved": false
+            }
+          ],
+          "snapshots": [
+            {
+              "id": "snap-1",
+              "documentId": "doc-1",
+              "createdAt": 1763360000000,
+              "title": "Opening Scene",
+              "content": "<p>It was dark.</p>",
+              "reason": "manual",
+              "note": "first"
+            }
+          ],
+          "citations": [
+            {
+              "id": "smith2020",
+              "type": "book",
+              "title": "Lighthouses",
+              "author": [
+                {
+                  "family": "Smith",
+                  "given": "Jo"
+                }
+              ],
+              "issued": {
+                "date-parts": [
+                  [
+                    2020
+                  ]
+                ]
+              }
+            }
+          ],
+          "publishOptions": {
+            "futureOption": {
+              "nested": [
+                1,
+                2.25,
+                null,
+                true
+              ]
+            }
+          },
+          "futureField": {
+            "kept": "as is",
+            "n": 7
+          }
+        },
+        "entities": {
+          "documents": {
+            "doc-1": {
+              "updatedAt": 3000,
+              "revision": 2,
+              "updatedBy": "device-b",
+              "deletedAt": null
+            },
+            "doc-2": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "doc-3": {
+              "updatedAt": 4000,
+              "revision": 2,
+              "updatedBy": "device-a",
+              "deletedAt": 4000
+            }
+          },
+          "chapters": {
+            "chapter-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "chapter-2": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "storyboardRows": {
+            "row-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "storyboardCards": {
+            "card-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "re-add the scene",
+      "previous": {
+        "schemaVersion": 2,
+        "id": "project-1",
+        "createdAt": 1000,
+        "updatedAt": 4000,
+        "revision": 3,
+        "updatedBy": "device-a",
+        "deletedAt": null,
+        "project": {
+          "id": "project-1",
+          "name": "The Lighthouse 🌊 Keeper",
+          "author": "A. Writer",
+          "kind": "novel",
+          "activeDocumentId": "doc-1",
+          "projectGoal": 80000,
+          "chapterGoals": {
+            "2": 1.5,
+            "10": 3,
+            "chapter-1": 2500,
+            "-1": 4,
+            "01": 5
+          },
+          "activity": {
+            "2026-11-01": {
+              "edits": 12,
+              "wordsAdded": 345
+            },
+            "2026-11-02": {
+              "edits": 0.5,
+              "wordsAdded": -3
+            }
+          },
+          "chapters": [
+            {
+              "id": "chapter-1",
+              "title": "Chapter One",
+              "expanded": true,
+              "summary": "It begins.",
+              "labelId": "label-1"
+            },
+            {
+              "id": "chapter-2",
+              "title": "Chapitre deux — « voilà »",
+              "expanded": false,
+              "trashed": true
+            }
+          ],
+          "documents": [
+            {
+              "id": "doc-1",
+              "title": "Opening Scene",
+              "chapterId": "chapter-1",
+              "content": "<p>It was very dark.</p>",
+              "footnotes": [
+                {
+                  "id": "fn-1",
+                  "html": "A note with <em>emphasis</em>."
+                }
+              ]
+            },
+            {
+              "id": "doc-2",
+              "title": "Mara",
+              "space": "Wiki",
+              "folderId": "folder-1",
+              "content": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+              "character": {
+                "role": "Protagonist",
+                "age": "32",
+                "pronouns": "she/her"
+              }
+            }
+          ],
+          "storyboardRows": [
+            {
+              "id": "row-1",
+              "title": "Act I"
+            }
+          ],
+          "storyboardCards": [
+            {
+              "id": "card-1",
+              "sourceId": "doc-1",
+              "rowId": "row-1",
+              "x": 12.5,
+              "y": 0.30000000000000004,
+              "kind": "scene",
+              "title": "Opening",
+              "note": ""
+            }
+          ],
+          "storyboardDrawings": [
+            {
+              "id": "draw-1",
+              "type": "arrow",
+              "x1": 0,
+              "y1": 1e+21,
+              "x2": 1e-7,
+              "y2": 123456789.125
+            }
+          ],
+          "timelineNodes": [
+            {
+              "id": "t-1",
+              "title": "Day One",
+              "date": "2026-01-01",
+              "time": "",
+              "description": "Start"
+            }
+          ],
+          "labels": [
+            {
+              "id": "label-1",
+              "name": "Draft",
+              "color": "#d69e2e"
+            }
+          ],
+          "comments": [
+            {
+              "id": "comment-1",
+              "documentId": "doc-1",
+              "quote": "dark",
+              "prefix": "It was \ud83c",
+              "suffix": ".",
+              "body": "Darker?",
+              "author": "Editor",
+              "createdAt": 1763370000000,
+              "resolved": false
+            }
+          ],
+          "snapshots": [
+            {
+              "id": "snap-1",
+              "documentId": "doc-1",
+              "createdAt": 1763360000000,
+              "title": "Opening Scene",
+              "content": "<p>It was dark.</p>",
+              "reason": "manual",
+              "note": "first"
+            }
+          ],
+          "citations": [
+            {
+              "id": "smith2020",
+              "type": "book",
+              "title": "Lighthouses",
+              "author": [
+                {
+                  "family": "Smith",
+                  "given": "Jo"
+                }
+              ],
+              "issued": {
+                "date-parts": [
+                  [
+                    2020
+                  ]
+                ]
+              }
+            }
+          ],
+          "publishOptions": {
+            "futureOption": {
+              "nested": [
+                1,
+                2.25,
+                null,
+                true
+              ]
+            }
+          },
+          "futureField": {
+            "kept": "as is",
+            "n": 7
+          }
+        },
+        "entities": {
+          "documents": {
+            "doc-1": {
+              "updatedAt": 3000,
+              "revision": 2,
+              "updatedBy": "device-b",
+              "deletedAt": null
+            },
+            "doc-2": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "doc-3": {
+              "updatedAt": 4000,
+              "revision": 2,
+              "updatedBy": "device-a",
+              "deletedAt": 4000
+            }
+          },
+          "chapters": {
+            "chapter-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "chapter-2": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "storyboardRows": {
+            "row-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "storyboardCards": {
+            "card-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          }
+        }
+      },
+      "project": {
+        "id": "project-1",
+        "name": "The Lighthouse 🌊 Keeper",
+        "author": "A. Writer",
+        "kind": "novel",
+        "activeDocumentId": "doc-1",
+        "projectGoal": 80000,
+        "chapterGoals": {
+          "2": 1.5,
+          "10": 3,
+          "chapter-1": 2500,
+          "-1": 4,
+          "01": 5
+        },
+        "activity": {
+          "2026-11-01": {
+            "edits": 12,
+            "wordsAdded": 345
+          },
+          "2026-11-02": {
+            "edits": 0.5,
+            "wordsAdded": -3
+          }
+        },
+        "chapters": [
+          {
+            "id": "chapter-1",
+            "title": "Chapter One",
+            "expanded": true,
+            "summary": "It begins.",
+            "labelId": "label-1"
+          },
+          {
+            "id": "chapter-2",
+            "title": "Chapitre deux — « voilà »",
+            "expanded": false,
+            "trashed": true
+          }
+        ],
+        "documents": [
+          {
+            "id": "doc-1",
+            "title": "Opening Scene",
+            "chapterId": "chapter-1",
+            "content": "<p>It was very dark.</p>",
+            "footnotes": [
+              {
+                "id": "fn-1",
+                "html": "A note with <em>emphasis</em>."
+              }
+            ]
+          },
+          {
+            "id": "doc-2",
+            "title": "Mara",
+            "space": "Wiki",
+            "folderId": "folder-1",
+            "content": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+            "character": {
+              "role": "Protagonist",
+              "age": "32",
+              "pronouns": "she/her"
+            }
+          },
+          {
+            "id": "doc-3",
+            "title": "INT. LIGHTHOUSE - NIGHT",
+            "chapterId": "chapter-1",
+            "format": "screenplay",
+            "content": "<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>",
+            "markdownSource": "INT. LIGHTHOUSE - NIGHT"
+          }
+        ],
+        "storyboardRows": [
+          {
+            "id": "row-1",
+            "title": "Act I"
+          }
+        ],
+        "storyboardCards": [
+          {
+            "id": "card-1",
+            "sourceId": "doc-1",
+            "rowId": "row-1",
+            "x": 12.5,
+            "y": 0.30000000000000004,
+            "kind": "scene",
+            "title": "Opening",
+            "note": ""
+          }
+        ],
+        "storyboardDrawings": [
+          {
+            "id": "draw-1",
+            "type": "arrow",
+            "x1": 0,
+            "y1": 1e+21,
+            "x2": 1e-7,
+            "y2": 123456789.125
+          }
+        ],
+        "timelineNodes": [
+          {
+            "id": "t-1",
+            "title": "Day One",
+            "date": "2026-01-01",
+            "time": "",
+            "description": "Start"
+          }
+        ],
+        "labels": [
+          {
+            "id": "label-1",
+            "name": "Draft",
+            "color": "#d69e2e"
+          }
+        ],
+        "comments": [
+          {
+            "id": "comment-1",
+            "documentId": "doc-1",
+            "quote": "dark",
+            "prefix": "It was \ud83c",
+            "suffix": ".",
+            "body": "Darker?",
+            "author": "Editor",
+            "createdAt": 1763370000000,
+            "resolved": false
+          }
+        ],
+        "snapshots": [
+          {
+            "id": "snap-1",
+            "documentId": "doc-1",
+            "createdAt": 1763360000000,
+            "title": "Opening Scene",
+            "content": "<p>It was dark.</p>",
+            "reason": "manual",
+            "note": "first"
+          }
+        ],
+        "citations": [
+          {
+            "id": "smith2020",
+            "type": "book",
+            "title": "Lighthouses",
+            "author": [
+              {
+                "family": "Smith",
+                "given": "Jo"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2020
+                ]
+              ]
+            }
+          }
+        ],
+        "publishOptions": {
+          "futureOption": {
+            "nested": [
+              1,
+              2.25,
+              null,
+              true
+            ]
+          }
+        },
+        "futureField": {
+          "kept": "as is",
+          "n": 7
+        }
+      },
+      "device": "device-c",
+      "now": 6000,
+      "result": {
+        "schemaVersion": 2,
+        "id": "project-1",
+        "createdAt": 1000,
+        "updatedAt": 6000,
+        "revision": 4,
+        "updatedBy": "device-c",
+        "deletedAt": null,
+        "project": {
+          "id": "project-1",
+          "name": "The Lighthouse 🌊 Keeper",
+          "author": "A. Writer",
+          "kind": "novel",
+          "activeDocumentId": "doc-1",
+          "projectGoal": 80000,
+          "chapterGoals": {
+            "2": 1.5,
+            "10": 3,
+            "chapter-1": 2500,
+            "-1": 4,
+            "01": 5
+          },
+          "activity": {
+            "2026-11-01": {
+              "edits": 12,
+              "wordsAdded": 345
+            },
+            "2026-11-02": {
+              "edits": 0.5,
+              "wordsAdded": -3
+            }
+          },
+          "chapters": [
+            {
+              "id": "chapter-1",
+              "title": "Chapter One",
+              "expanded": true,
+              "summary": "It begins.",
+              "labelId": "label-1"
+            },
+            {
+              "id": "chapter-2",
+              "title": "Chapitre deux — « voilà »",
+              "expanded": false,
+              "trashed": true
+            }
+          ],
+          "documents": [
+            {
+              "id": "doc-1",
+              "title": "Opening Scene",
+              "chapterId": "chapter-1",
+              "content": "<p>It was very dark.</p>",
+              "footnotes": [
+                {
+                  "id": "fn-1",
+                  "html": "A note with <em>emphasis</em>."
+                }
+              ]
+            },
+            {
+              "id": "doc-2",
+              "title": "Mara",
+              "space": "Wiki",
+              "folderId": "folder-1",
+              "content": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+              "character": {
+                "role": "Protagonist",
+                "age": "32",
+                "pronouns": "she/her"
+              }
+            },
+            {
+              "id": "doc-3",
+              "title": "INT. LIGHTHOUSE - NIGHT",
+              "chapterId": "chapter-1",
+              "format": "screenplay",
+              "content": "<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>",
+              "markdownSource": "INT. LIGHTHOUSE - NIGHT"
+            }
+          ],
+          "storyboardRows": [
+            {
+              "id": "row-1",
+              "title": "Act I"
+            }
+          ],
+          "storyboardCards": [
+            {
+              "id": "card-1",
+              "sourceId": "doc-1",
+              "rowId": "row-1",
+              "x": 12.5,
+              "y": 0.30000000000000004,
+              "kind": "scene",
+              "title": "Opening",
+              "note": ""
+            }
+          ],
+          "storyboardDrawings": [
+            {
+              "id": "draw-1",
+              "type": "arrow",
+              "x1": 0,
+              "y1": 1e+21,
+              "x2": 1e-7,
+              "y2": 123456789.125
+            }
+          ],
+          "timelineNodes": [
+            {
+              "id": "t-1",
+              "title": "Day One",
+              "date": "2026-01-01",
+              "time": "",
+              "description": "Start"
+            }
+          ],
+          "labels": [
+            {
+              "id": "label-1",
+              "name": "Draft",
+              "color": "#d69e2e"
+            }
+          ],
+          "comments": [
+            {
+              "id": "comment-1",
+              "documentId": "doc-1",
+              "quote": "dark",
+              "prefix": "It was \ud83c",
+              "suffix": ".",
+              "body": "Darker?",
+              "author": "Editor",
+              "createdAt": 1763370000000,
+              "resolved": false
+            }
+          ],
+          "snapshots": [
+            {
+              "id": "snap-1",
+              "documentId": "doc-1",
+              "createdAt": 1763360000000,
+              "title": "Opening Scene",
+              "content": "<p>It was dark.</p>",
+              "reason": "manual",
+              "note": "first"
+            }
+          ],
+          "citations": [
+            {
+              "id": "smith2020",
+              "type": "book",
+              "title": "Lighthouses",
+              "author": [
+                {
+                  "family": "Smith",
+                  "given": "Jo"
+                }
+              ],
+              "issued": {
+                "date-parts": [
+                  [
+                    2020
+                  ]
+                ]
+              }
+            }
+          ],
+          "publishOptions": {
+            "futureOption": {
+              "nested": [
+                1,
+                2.25,
+                null,
+                true
+              ]
+            }
+          },
+          "futureField": {
+            "kept": "as is",
+            "n": 7
+          }
+        },
+        "entities": {
+          "documents": {
+            "doc-1": {
+              "updatedAt": 3000,
+              "revision": 2,
+              "updatedBy": "device-b",
+              "deletedAt": null
+            },
+            "doc-2": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "doc-3": {
+              "updatedAt": 6000,
+              "revision": 3,
+              "updatedBy": "device-c",
+              "deletedAt": null
+            }
+          },
+          "chapters": {
+            "chapter-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "chapter-2": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "storyboardRows": {
+            "row-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "storyboardCards": {
+            "card-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "rename project",
+      "previous": {
+        "schemaVersion": 2,
+        "id": "project-1",
+        "createdAt": 1000,
+        "updatedAt": 6000,
+        "revision": 4,
+        "updatedBy": "device-c",
+        "deletedAt": null,
+        "project": {
+          "id": "project-1",
+          "name": "The Lighthouse 🌊 Keeper",
+          "author": "A. Writer",
+          "kind": "novel",
+          "activeDocumentId": "doc-1",
+          "projectGoal": 80000,
+          "chapterGoals": {
+            "2": 1.5,
+            "10": 3,
+            "chapter-1": 2500,
+            "-1": 4,
+            "01": 5
+          },
+          "activity": {
+            "2026-11-01": {
+              "edits": 12,
+              "wordsAdded": 345
+            },
+            "2026-11-02": {
+              "edits": 0.5,
+              "wordsAdded": -3
+            }
+          },
+          "chapters": [
+            {
+              "id": "chapter-1",
+              "title": "Chapter One",
+              "expanded": true,
+              "summary": "It begins.",
+              "labelId": "label-1"
+            },
+            {
+              "id": "chapter-2",
+              "title": "Chapitre deux — « voilà »",
+              "expanded": false,
+              "trashed": true
+            }
+          ],
+          "documents": [
+            {
+              "id": "doc-1",
+              "title": "Opening Scene",
+              "chapterId": "chapter-1",
+              "content": "<p>It was very dark.</p>",
+              "footnotes": [
+                {
+                  "id": "fn-1",
+                  "html": "A note with <em>emphasis</em>."
+                }
+              ]
+            },
+            {
+              "id": "doc-2",
+              "title": "Mara",
+              "space": "Wiki",
+              "folderId": "folder-1",
+              "content": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+              "character": {
+                "role": "Protagonist",
+                "age": "32",
+                "pronouns": "she/her"
+              }
+            },
+            {
+              "id": "doc-3",
+              "title": "INT. LIGHTHOUSE - NIGHT",
+              "chapterId": "chapter-1",
+              "format": "screenplay",
+              "content": "<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>",
+              "markdownSource": "INT. LIGHTHOUSE - NIGHT"
+            }
+          ],
+          "storyboardRows": [
+            {
+              "id": "row-1",
+              "title": "Act I"
+            }
+          ],
+          "storyboardCards": [
+            {
+              "id": "card-1",
+              "sourceId": "doc-1",
+              "rowId": "row-1",
+              "x": 12.5,
+              "y": 0.30000000000000004,
+              "kind": "scene",
+              "title": "Opening",
+              "note": ""
+            }
+          ],
+          "storyboardDrawings": [
+            {
+              "id": "draw-1",
+              "type": "arrow",
+              "x1": 0,
+              "y1": 1e+21,
+              "x2": 1e-7,
+              "y2": 123456789.125
+            }
+          ],
+          "timelineNodes": [
+            {
+              "id": "t-1",
+              "title": "Day One",
+              "date": "2026-01-01",
+              "time": "",
+              "description": "Start"
+            }
+          ],
+          "labels": [
+            {
+              "id": "label-1",
+              "name": "Draft",
+              "color": "#d69e2e"
+            }
+          ],
+          "comments": [
+            {
+              "id": "comment-1",
+              "documentId": "doc-1",
+              "quote": "dark",
+              "prefix": "It was \ud83c",
+              "suffix": ".",
+              "body": "Darker?",
+              "author": "Editor",
+              "createdAt": 1763370000000,
+              "resolved": false
+            }
+          ],
+          "snapshots": [
+            {
+              "id": "snap-1",
+              "documentId": "doc-1",
+              "createdAt": 1763360000000,
+              "title": "Opening Scene",
+              "content": "<p>It was dark.</p>",
+              "reason": "manual",
+              "note": "first"
+            }
+          ],
+          "citations": [
+            {
+              "id": "smith2020",
+              "type": "book",
+              "title": "Lighthouses",
+              "author": [
+                {
+                  "family": "Smith",
+                  "given": "Jo"
+                }
+              ],
+              "issued": {
+                "date-parts": [
+                  [
+                    2020
+                  ]
+                ]
+              }
+            }
+          ],
+          "publishOptions": {
+            "futureOption": {
+              "nested": [
+                1,
+                2.25,
+                null,
+                true
+              ]
+            }
+          },
+          "futureField": {
+            "kept": "as is",
+            "n": 7
+          }
+        },
+        "entities": {
+          "documents": {
+            "doc-1": {
+              "updatedAt": 3000,
+              "revision": 2,
+              "updatedBy": "device-b",
+              "deletedAt": null
+            },
+            "doc-2": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "doc-3": {
+              "updatedAt": 6000,
+              "revision": 3,
+              "updatedBy": "device-c",
+              "deletedAt": null
+            }
+          },
+          "chapters": {
+            "chapter-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "chapter-2": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "storyboardRows": {
+            "row-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "storyboardCards": {
+            "card-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          }
+        }
+      },
+      "project": {
+        "id": "project-1",
+        "name": "Renamed",
+        "author": "A. Writer",
+        "kind": "novel",
+        "activeDocumentId": "doc-1",
+        "projectGoal": 80000,
+        "chapterGoals": {
+          "2": 1.5,
+          "10": 3,
+          "chapter-1": 2500,
+          "-1": 4,
+          "01": 5
+        },
+        "activity": {
+          "2026-11-01": {
+            "edits": 12,
+            "wordsAdded": 345
+          },
+          "2026-11-02": {
+            "edits": 0.5,
+            "wordsAdded": -3
+          }
+        },
+        "chapters": [
+          {
+            "id": "chapter-1",
+            "title": "Chapter One",
+            "expanded": true,
+            "summary": "It begins.",
+            "labelId": "label-1"
+          },
+          {
+            "id": "chapter-2",
+            "title": "Chapitre deux — « voilà »",
+            "expanded": false,
+            "trashed": true
+          }
+        ],
+        "documents": [
+          {
+            "id": "doc-1",
+            "title": "Opening Scene",
+            "chapterId": "chapter-1",
+            "content": "<p>It was very dark.</p>",
+            "footnotes": [
+              {
+                "id": "fn-1",
+                "html": "A note with <em>emphasis</em>."
+              }
+            ]
+          },
+          {
+            "id": "doc-2",
+            "title": "Mara",
+            "space": "Wiki",
+            "folderId": "folder-1",
+            "content": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+            "character": {
+              "role": "Protagonist",
+              "age": "32",
+              "pronouns": "she/her"
+            }
+          },
+          {
+            "id": "doc-3",
+            "title": "INT. LIGHTHOUSE - NIGHT",
+            "chapterId": "chapter-1",
+            "format": "screenplay",
+            "content": "<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>",
+            "markdownSource": "INT. LIGHTHOUSE - NIGHT"
+          }
+        ],
+        "storyboardRows": [
+          {
+            "id": "row-1",
+            "title": "Act I"
+          }
+        ],
+        "storyboardCards": [
+          {
+            "id": "card-1",
+            "sourceId": "doc-1",
+            "rowId": "row-1",
+            "x": 12.5,
+            "y": 0.30000000000000004,
+            "kind": "scene",
+            "title": "Opening",
+            "note": ""
+          }
+        ],
+        "storyboardDrawings": [
+          {
+            "id": "draw-1",
+            "type": "arrow",
+            "x1": 0,
+            "y1": 1e+21,
+            "x2": 1e-7,
+            "y2": 123456789.125
+          }
+        ],
+        "timelineNodes": [
+          {
+            "id": "t-1",
+            "title": "Day One",
+            "date": "2026-01-01",
+            "time": "",
+            "description": "Start"
+          }
+        ],
+        "labels": [
+          {
+            "id": "label-1",
+            "name": "Draft",
+            "color": "#d69e2e"
+          }
+        ],
+        "comments": [
+          {
+            "id": "comment-1",
+            "documentId": "doc-1",
+            "quote": "dark",
+            "prefix": "It was \ud83c",
+            "suffix": ".",
+            "body": "Darker?",
+            "author": "Editor",
+            "createdAt": 1763370000000,
+            "resolved": false
+          }
+        ],
+        "snapshots": [
+          {
+            "id": "snap-1",
+            "documentId": "doc-1",
+            "createdAt": 1763360000000,
+            "title": "Opening Scene",
+            "content": "<p>It was dark.</p>",
+            "reason": "manual",
+            "note": "first"
+          }
+        ],
+        "citations": [
+          {
+            "id": "smith2020",
+            "type": "book",
+            "title": "Lighthouses",
+            "author": [
+              {
+                "family": "Smith",
+                "given": "Jo"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2020
+                ]
+              ]
+            }
+          }
+        ],
+        "publishOptions": {
+          "futureOption": {
+            "nested": [
+              1,
+              2.25,
+              null,
+              true
+            ]
+          }
+        },
+        "futureField": {
+          "kept": "as is",
+          "n": 7
+        }
+      },
+      "device": "device-c",
+      "now": 7000,
+      "result": {
+        "schemaVersion": 2,
+        "id": "project-1",
+        "createdAt": 1000,
+        "updatedAt": 7000,
+        "revision": 5,
+        "updatedBy": "device-c",
+        "deletedAt": null,
+        "project": {
+          "id": "project-1",
+          "name": "Renamed",
+          "author": "A. Writer",
+          "kind": "novel",
+          "activeDocumentId": "doc-1",
+          "projectGoal": 80000,
+          "chapterGoals": {
+            "2": 1.5,
+            "10": 3,
+            "chapter-1": 2500,
+            "-1": 4,
+            "01": 5
+          },
+          "activity": {
+            "2026-11-01": {
+              "edits": 12,
+              "wordsAdded": 345
+            },
+            "2026-11-02": {
+              "edits": 0.5,
+              "wordsAdded": -3
+            }
+          },
+          "chapters": [
+            {
+              "id": "chapter-1",
+              "title": "Chapter One",
+              "expanded": true,
+              "summary": "It begins.",
+              "labelId": "label-1"
+            },
+            {
+              "id": "chapter-2",
+              "title": "Chapitre deux — « voilà »",
+              "expanded": false,
+              "trashed": true
+            }
+          ],
+          "documents": [
+            {
+              "id": "doc-1",
+              "title": "Opening Scene",
+              "chapterId": "chapter-1",
+              "content": "<p>It was very dark.</p>",
+              "footnotes": [
+                {
+                  "id": "fn-1",
+                  "html": "A note with <em>emphasis</em>."
+                }
+              ]
+            },
+            {
+              "id": "doc-2",
+              "title": "Mara",
+              "space": "Wiki",
+              "folderId": "folder-1",
+              "content": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+              "character": {
+                "role": "Protagonist",
+                "age": "32",
+                "pronouns": "she/her"
+              }
+            },
+            {
+              "id": "doc-3",
+              "title": "INT. LIGHTHOUSE - NIGHT",
+              "chapterId": "chapter-1",
+              "format": "screenplay",
+              "content": "<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>",
+              "markdownSource": "INT. LIGHTHOUSE - NIGHT"
+            }
+          ],
+          "storyboardRows": [
+            {
+              "id": "row-1",
+              "title": "Act I"
+            }
+          ],
+          "storyboardCards": [
+            {
+              "id": "card-1",
+              "sourceId": "doc-1",
+              "rowId": "row-1",
+              "x": 12.5,
+              "y": 0.30000000000000004,
+              "kind": "scene",
+              "title": "Opening",
+              "note": ""
+            }
+          ],
+          "storyboardDrawings": [
+            {
+              "id": "draw-1",
+              "type": "arrow",
+              "x1": 0,
+              "y1": 1e+21,
+              "x2": 1e-7,
+              "y2": 123456789.125
+            }
+          ],
+          "timelineNodes": [
+            {
+              "id": "t-1",
+              "title": "Day One",
+              "date": "2026-01-01",
+              "time": "",
+              "description": "Start"
+            }
+          ],
+          "labels": [
+            {
+              "id": "label-1",
+              "name": "Draft",
+              "color": "#d69e2e"
+            }
+          ],
+          "comments": [
+            {
+              "id": "comment-1",
+              "documentId": "doc-1",
+              "quote": "dark",
+              "prefix": "It was \ud83c",
+              "suffix": ".",
+              "body": "Darker?",
+              "author": "Editor",
+              "createdAt": 1763370000000,
+              "resolved": false
+            }
+          ],
+          "snapshots": [
+            {
+              "id": "snap-1",
+              "documentId": "doc-1",
+              "createdAt": 1763360000000,
+              "title": "Opening Scene",
+              "content": "<p>It was dark.</p>",
+              "reason": "manual",
+              "note": "first"
+            }
+          ],
+          "citations": [
+            {
+              "id": "smith2020",
+              "type": "book",
+              "title": "Lighthouses",
+              "author": [
+                {
+                  "family": "Smith",
+                  "given": "Jo"
+                }
+              ],
+              "issued": {
+                "date-parts": [
+                  [
+                    2020
+                  ]
+                ]
+              }
+            }
+          ],
+          "publishOptions": {
+            "futureOption": {
+              "nested": [
+                1,
+                2.25,
+                null,
+                true
+              ]
+            }
+          },
+          "futureField": {
+            "kept": "as is",
+            "n": 7
+          }
+        },
+        "entities": {
+          "documents": {
+            "doc-1": {
+              "updatedAt": 3000,
+              "revision": 2,
+              "updatedBy": "device-b",
+              "deletedAt": null
+            },
+            "doc-2": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "doc-3": {
+              "updatedAt": 6000,
+              "revision": 3,
+              "updatedBy": "device-c",
+              "deletedAt": null
+            }
+          },
+          "chapters": {
+            "chapter-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "chapter-2": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "storyboardRows": {
+            "row-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "storyboardCards": {
+            "card-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "active document only",
+      "previous": {
+        "schemaVersion": 2,
+        "id": "project-1",
+        "createdAt": 1000,
+        "updatedAt": 6000,
+        "revision": 4,
+        "updatedBy": "device-c",
+        "deletedAt": null,
+        "project": {
+          "id": "project-1",
+          "name": "The Lighthouse 🌊 Keeper",
+          "author": "A. Writer",
+          "kind": "novel",
+          "activeDocumentId": "doc-1",
+          "projectGoal": 80000,
+          "chapterGoals": {
+            "2": 1.5,
+            "10": 3,
+            "chapter-1": 2500,
+            "-1": 4,
+            "01": 5
+          },
+          "activity": {
+            "2026-11-01": {
+              "edits": 12,
+              "wordsAdded": 345
+            },
+            "2026-11-02": {
+              "edits": 0.5,
+              "wordsAdded": -3
+            }
+          },
+          "chapters": [
+            {
+              "id": "chapter-1",
+              "title": "Chapter One",
+              "expanded": true,
+              "summary": "It begins.",
+              "labelId": "label-1"
+            },
+            {
+              "id": "chapter-2",
+              "title": "Chapitre deux — « voilà »",
+              "expanded": false,
+              "trashed": true
+            }
+          ],
+          "documents": [
+            {
+              "id": "doc-1",
+              "title": "Opening Scene",
+              "chapterId": "chapter-1",
+              "content": "<p>It was very dark.</p>",
+              "footnotes": [
+                {
+                  "id": "fn-1",
+                  "html": "A note with <em>emphasis</em>."
+                }
+              ]
+            },
+            {
+              "id": "doc-2",
+              "title": "Mara",
+              "space": "Wiki",
+              "folderId": "folder-1",
+              "content": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+              "character": {
+                "role": "Protagonist",
+                "age": "32",
+                "pronouns": "she/her"
+              }
+            },
+            {
+              "id": "doc-3",
+              "title": "INT. LIGHTHOUSE - NIGHT",
+              "chapterId": "chapter-1",
+              "format": "screenplay",
+              "content": "<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>",
+              "markdownSource": "INT. LIGHTHOUSE - NIGHT"
+            }
+          ],
+          "storyboardRows": [
+            {
+              "id": "row-1",
+              "title": "Act I"
+            }
+          ],
+          "storyboardCards": [
+            {
+              "id": "card-1",
+              "sourceId": "doc-1",
+              "rowId": "row-1",
+              "x": 12.5,
+              "y": 0.30000000000000004,
+              "kind": "scene",
+              "title": "Opening",
+              "note": ""
+            }
+          ],
+          "storyboardDrawings": [
+            {
+              "id": "draw-1",
+              "type": "arrow",
+              "x1": 0,
+              "y1": 1e+21,
+              "x2": 1e-7,
+              "y2": 123456789.125
+            }
+          ],
+          "timelineNodes": [
+            {
+              "id": "t-1",
+              "title": "Day One",
+              "date": "2026-01-01",
+              "time": "",
+              "description": "Start"
+            }
+          ],
+          "labels": [
+            {
+              "id": "label-1",
+              "name": "Draft",
+              "color": "#d69e2e"
+            }
+          ],
+          "comments": [
+            {
+              "id": "comment-1",
+              "documentId": "doc-1",
+              "quote": "dark",
+              "prefix": "It was \ud83c",
+              "suffix": ".",
+              "body": "Darker?",
+              "author": "Editor",
+              "createdAt": 1763370000000,
+              "resolved": false
+            }
+          ],
+          "snapshots": [
+            {
+              "id": "snap-1",
+              "documentId": "doc-1",
+              "createdAt": 1763360000000,
+              "title": "Opening Scene",
+              "content": "<p>It was dark.</p>",
+              "reason": "manual",
+              "note": "first"
+            }
+          ],
+          "citations": [
+            {
+              "id": "smith2020",
+              "type": "book",
+              "title": "Lighthouses",
+              "author": [
+                {
+                  "family": "Smith",
+                  "given": "Jo"
+                }
+              ],
+              "issued": {
+                "date-parts": [
+                  [
+                    2020
+                  ]
+                ]
+              }
+            }
+          ],
+          "publishOptions": {
+            "futureOption": {
+              "nested": [
+                1,
+                2.25,
+                null,
+                true
+              ]
+            }
+          },
+          "futureField": {
+            "kept": "as is",
+            "n": 7
+          }
+        },
+        "entities": {
+          "documents": {
+            "doc-1": {
+              "updatedAt": 3000,
+              "revision": 2,
+              "updatedBy": "device-b",
+              "deletedAt": null
+            },
+            "doc-2": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "doc-3": {
+              "updatedAt": 6000,
+              "revision": 3,
+              "updatedBy": "device-c",
+              "deletedAt": null
+            }
+          },
+          "chapters": {
+            "chapter-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "chapter-2": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "storyboardRows": {
+            "row-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "storyboardCards": {
+            "card-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          }
+        }
+      },
+      "project": {
+        "id": "project-1",
+        "name": "The Lighthouse 🌊 Keeper",
+        "author": "A. Writer",
+        "kind": "novel",
+        "activeDocumentId": "doc-2",
+        "projectGoal": 80000,
+        "chapterGoals": {
+          "2": 1.5,
+          "10": 3,
+          "chapter-1": 2500,
+          "-1": 4,
+          "01": 5
+        },
+        "activity": {
+          "2026-11-01": {
+            "edits": 12,
+            "wordsAdded": 345
+          },
+          "2026-11-02": {
+            "edits": 0.5,
+            "wordsAdded": -3
+          }
+        },
+        "chapters": [
+          {
+            "id": "chapter-1",
+            "title": "Chapter One",
+            "expanded": true,
+            "summary": "It begins.",
+            "labelId": "label-1"
+          },
+          {
+            "id": "chapter-2",
+            "title": "Chapitre deux — « voilà »",
+            "expanded": false,
+            "trashed": true
+          }
+        ],
+        "documents": [
+          {
+            "id": "doc-1",
+            "title": "Opening Scene",
+            "chapterId": "chapter-1",
+            "content": "<p>It was very dark.</p>",
+            "footnotes": [
+              {
+                "id": "fn-1",
+                "html": "A note with <em>emphasis</em>."
+              }
+            ]
+          },
+          {
+            "id": "doc-2",
+            "title": "Mara",
+            "space": "Wiki",
+            "folderId": "folder-1",
+            "content": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+            "character": {
+              "role": "Protagonist",
+              "age": "32",
+              "pronouns": "she/her"
+            }
+          },
+          {
+            "id": "doc-3",
+            "title": "INT. LIGHTHOUSE - NIGHT",
+            "chapterId": "chapter-1",
+            "format": "screenplay",
+            "content": "<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>",
+            "markdownSource": "INT. LIGHTHOUSE - NIGHT"
+          }
+        ],
+        "storyboardRows": [
+          {
+            "id": "row-1",
+            "title": "Act I"
+          }
+        ],
+        "storyboardCards": [
+          {
+            "id": "card-1",
+            "sourceId": "doc-1",
+            "rowId": "row-1",
+            "x": 12.5,
+            "y": 0.30000000000000004,
+            "kind": "scene",
+            "title": "Opening",
+            "note": ""
+          }
+        ],
+        "storyboardDrawings": [
+          {
+            "id": "draw-1",
+            "type": "arrow",
+            "x1": 0,
+            "y1": 1e+21,
+            "x2": 1e-7,
+            "y2": 123456789.125
+          }
+        ],
+        "timelineNodes": [
+          {
+            "id": "t-1",
+            "title": "Day One",
+            "date": "2026-01-01",
+            "time": "",
+            "description": "Start"
+          }
+        ],
+        "labels": [
+          {
+            "id": "label-1",
+            "name": "Draft",
+            "color": "#d69e2e"
+          }
+        ],
+        "comments": [
+          {
+            "id": "comment-1",
+            "documentId": "doc-1",
+            "quote": "dark",
+            "prefix": "It was \ud83c",
+            "suffix": ".",
+            "body": "Darker?",
+            "author": "Editor",
+            "createdAt": 1763370000000,
+            "resolved": false
+          }
+        ],
+        "snapshots": [
+          {
+            "id": "snap-1",
+            "documentId": "doc-1",
+            "createdAt": 1763360000000,
+            "title": "Opening Scene",
+            "content": "<p>It was dark.</p>",
+            "reason": "manual",
+            "note": "first"
+          }
+        ],
+        "citations": [
+          {
+            "id": "smith2020",
+            "type": "book",
+            "title": "Lighthouses",
+            "author": [
+              {
+                "family": "Smith",
+                "given": "Jo"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2020
+                ]
+              ]
+            }
+          }
+        ],
+        "publishOptions": {
+          "futureOption": {
+            "nested": [
+              1,
+              2.25,
+              null,
+              true
+            ]
+          }
+        },
+        "futureField": {
+          "kept": "as is",
+          "n": 7
+        }
+      },
+      "device": "device-c",
+      "now": 8000,
+      "result": {
+        "schemaVersion": 2,
+        "id": "project-1",
+        "createdAt": 1000,
+        "updatedAt": 6000,
+        "revision": 4,
+        "updatedBy": "device-c",
+        "deletedAt": null,
+        "project": {
+          "id": "project-1",
+          "name": "The Lighthouse 🌊 Keeper",
+          "author": "A. Writer",
+          "kind": "novel",
+          "activeDocumentId": "doc-2",
+          "projectGoal": 80000,
+          "chapterGoals": {
+            "2": 1.5,
+            "10": 3,
+            "chapter-1": 2500,
+            "-1": 4,
+            "01": 5
+          },
+          "activity": {
+            "2026-11-01": {
+              "edits": 12,
+              "wordsAdded": 345
+            },
+            "2026-11-02": {
+              "edits": 0.5,
+              "wordsAdded": -3
+            }
+          },
+          "chapters": [
+            {
+              "id": "chapter-1",
+              "title": "Chapter One",
+              "expanded": true,
+              "summary": "It begins.",
+              "labelId": "label-1"
+            },
+            {
+              "id": "chapter-2",
+              "title": "Chapitre deux — « voilà »",
+              "expanded": false,
+              "trashed": true
+            }
+          ],
+          "documents": [
+            {
+              "id": "doc-1",
+              "title": "Opening Scene",
+              "chapterId": "chapter-1",
+              "content": "<p>It was very dark.</p>",
+              "footnotes": [
+                {
+                  "id": "fn-1",
+                  "html": "A note with <em>emphasis</em>."
+                }
+              ]
+            },
+            {
+              "id": "doc-2",
+              "title": "Mara",
+              "space": "Wiki",
+              "folderId": "folder-1",
+              "content": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+              "character": {
+                "role": "Protagonist",
+                "age": "32",
+                "pronouns": "she/her"
+              }
+            },
+            {
+              "id": "doc-3",
+              "title": "INT. LIGHTHOUSE - NIGHT",
+              "chapterId": "chapter-1",
+              "format": "screenplay",
+              "content": "<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>",
+              "markdownSource": "INT. LIGHTHOUSE - NIGHT"
+            }
+          ],
+          "storyboardRows": [
+            {
+              "id": "row-1",
+              "title": "Act I"
+            }
+          ],
+          "storyboardCards": [
+            {
+              "id": "card-1",
+              "sourceId": "doc-1",
+              "rowId": "row-1",
+              "x": 12.5,
+              "y": 0.30000000000000004,
+              "kind": "scene",
+              "title": "Opening",
+              "note": ""
+            }
+          ],
+          "storyboardDrawings": [
+            {
+              "id": "draw-1",
+              "type": "arrow",
+              "x1": 0,
+              "y1": 1e+21,
+              "x2": 1e-7,
+              "y2": 123456789.125
+            }
+          ],
+          "timelineNodes": [
+            {
+              "id": "t-1",
+              "title": "Day One",
+              "date": "2026-01-01",
+              "time": "",
+              "description": "Start"
+            }
+          ],
+          "labels": [
+            {
+              "id": "label-1",
+              "name": "Draft",
+              "color": "#d69e2e"
+            }
+          ],
+          "comments": [
+            {
+              "id": "comment-1",
+              "documentId": "doc-1",
+              "quote": "dark",
+              "prefix": "It was \ud83c",
+              "suffix": ".",
+              "body": "Darker?",
+              "author": "Editor",
+              "createdAt": 1763370000000,
+              "resolved": false
+            }
+          ],
+          "snapshots": [
+            {
+              "id": "snap-1",
+              "documentId": "doc-1",
+              "createdAt": 1763360000000,
+              "title": "Opening Scene",
+              "content": "<p>It was dark.</p>",
+              "reason": "manual",
+              "note": "first"
+            }
+          ],
+          "citations": [
+            {
+              "id": "smith2020",
+              "type": "book",
+              "title": "Lighthouses",
+              "author": [
+                {
+                  "family": "Smith",
+                  "given": "Jo"
+                }
+              ],
+              "issued": {
+                "date-parts": [
+                  [
+                    2020
+                  ]
+                ]
+              }
+            }
+          ],
+          "publishOptions": {
+            "futureOption": {
+              "nested": [
+                1,
+                2.25,
+                null,
+                true
+              ]
+            }
+          },
+          "futureField": {
+            "kept": "as is",
+            "n": 7
+          }
+        },
+        "entities": {
+          "documents": {
+            "doc-1": {
+              "updatedAt": 3000,
+              "revision": 2,
+              "updatedBy": "device-b",
+              "deletedAt": null
+            },
+            "doc-2": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "doc-3": {
+              "updatedAt": 6000,
+              "revision": 3,
+              "updatedBy": "device-c",
+              "deletedAt": null
+            }
+          },
+          "chapters": {
+            "chapter-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            },
+            "chapter-2": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "storyboardRows": {
+            "row-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          },
+          "storyboardCards": {
+            "card-1": {
+              "updatedAt": 1000,
+              "revision": 1,
+              "updatedBy": "device-a",
+              "deletedAt": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "new project",
+      "previous": null,
+      "project": {
+        "id": "project-1",
+        "name": "The Lighthouse 🌊 Keeper",
+        "author": "A. Writer",
+        "kind": "novel",
+        "activeDocumentId": "doc-1",
+        "projectGoal": 80000,
+        "chapterGoals": {
+          "2": 1.5,
+          "10": 3,
+          "chapter-1": 2500,
+          "-1": 4,
+          "01": 5
+        },
+        "activity": {
+          "2026-11-01": {
+            "edits": 12,
+            "wordsAdded": 345
+          },
+          "2026-11-02": {
+            "edits": 0.5,
+            "wordsAdded": -3
+          }
+        },
+        "chapters": [
+          {
+            "id": "chapter-1",
+            "title": "Chapter One",
+            "expanded": true,
+            "summary": "It begins.",
+            "labelId": "label-1"
+          },
+          {
+            "id": "chapter-2",
+            "title": "Chapitre deux — « voilà »",
+            "expanded": false,
+            "trashed": true
+          }
+        ],
+        "documents": [
+          {
+            "id": "doc-1",
+            "title": "Opening Scene",
+            "chapterId": "chapter-1",
+            "content": "<p>It was <em>dark</em>.<sup class=\"footnote-ref\" data-footnote-id=\"fn-1\" contenteditable=\"false\"></sup></p><p>Then <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020&quot;}]\">(Smith 2020)</span>.</p>",
+            "footnotes": [
+              {
+                "id": "fn-1",
+                "html": "A note with <em>emphasis</em>."
+              }
+            ]
+          },
+          {
+            "id": "doc-2",
+            "title": "Mara",
+            "space": "Wiki",
+            "folderId": "folder-1",
+            "content": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+            "character": {
+              "role": "Protagonist",
+              "age": "32",
+              "pronouns": "she/her"
+            }
+          },
+          {
+            "id": "doc-3",
+            "title": "INT. LIGHTHOUSE - NIGHT",
+            "chapterId": "chapter-1",
+            "format": "screenplay",
+            "content": "<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>",
+            "markdownSource": "INT. LIGHTHOUSE - NIGHT"
+          }
+        ],
+        "storyboardRows": [
+          {
+            "id": "row-1",
+            "title": "Act I"
+          }
+        ],
+        "storyboardCards": [
+          {
+            "id": "card-1",
+            "sourceId": "doc-1",
+            "rowId": "row-1",
+            "x": 12.5,
+            "y": 0.30000000000000004,
+            "kind": "scene",
+            "title": "Opening",
+            "note": ""
+          }
+        ],
+        "storyboardDrawings": [
+          {
+            "id": "draw-1",
+            "type": "arrow",
+            "x1": 0,
+            "y1": 1e+21,
+            "x2": 1e-7,
+            "y2": 123456789.125
+          }
+        ],
+        "timelineNodes": [
+          {
+            "id": "t-1",
+            "title": "Day One",
+            "date": "2026-01-01",
+            "time": "",
+            "description": "Start"
+          }
+        ],
+        "labels": [
+          {
+            "id": "label-1",
+            "name": "Draft",
+            "color": "#d69e2e"
+          }
+        ],
+        "comments": [
+          {
+            "id": "comment-1",
+            "documentId": "doc-1",
+            "quote": "dark",
+            "prefix": "It was \ud83c",
+            "suffix": ".",
+            "body": "Darker?",
+            "author": "Editor",
+            "createdAt": 1763370000000,
+            "resolved": false
+          }
+        ],
+        "snapshots": [
+          {
+            "id": "snap-1",
+            "documentId": "doc-1",
+            "createdAt": 1763360000000,
+            "title": "Opening Scene",
+            "content": "<p>It was dark.</p>",
+            "reason": "manual",
+            "note": "first"
+          }
+        ],
+        "citations": [
+          {
+            "id": "smith2020",
+            "type": "book",
+            "title": "Lighthouses",
+            "author": [
+              {
+                "family": "Smith",
+                "given": "Jo"
+              }
+            ],
+            "issued": {
+              "date-parts": [
+                [
+                  2020
+                ]
+              ]
+            }
+          }
+        ],
+        "publishOptions": {
+          "futureOption": {
+            "nested": [
+              1,
+              2.25,
+              null,
+              true
+            ]
+          }
+        },
+        "futureField": {
+          "kept": "as is",
+          "n": 7
+        }
+      },
+      "device": "device-z",
+      "now": 9000,
+      "result": {
+        "schemaVersion": 2,
+        "id": "project-1",
+        "createdAt": 9000,
+        "updatedAt": 9000,
+        "revision": 1,
+        "updatedBy": "device-z",
+        "deletedAt": null,
+        "project": {
+          "id": "project-1",
+          "name": "The Lighthouse 🌊 Keeper",
+          "author": "A. Writer",
+          "kind": "novel",
+          "activeDocumentId": "doc-1",
+          "projectGoal": 80000,
+          "chapterGoals": {
+            "2": 1.5,
+            "10": 3,
+            "chapter-1": 2500,
+            "-1": 4,
+            "01": 5
+          },
+          "activity": {
+            "2026-11-01": {
+              "edits": 12,
+              "wordsAdded": 345
+            },
+            "2026-11-02": {
+              "edits": 0.5,
+              "wordsAdded": -3
+            }
+          },
+          "chapters": [
+            {
+              "id": "chapter-1",
+              "title": "Chapter One",
+              "expanded": true,
+              "summary": "It begins.",
+              "labelId": "label-1"
+            },
+            {
+              "id": "chapter-2",
+              "title": "Chapitre deux — « voilà »",
+              "expanded": false,
+              "trashed": true
+            }
+          ],
+          "documents": [
+            {
+              "id": "doc-1",
+              "title": "Opening Scene",
+              "chapterId": "chapter-1",
+              "content": "<p>It was <em>dark</em>.<sup class=\"footnote-ref\" data-footnote-id=\"fn-1\" contenteditable=\"false\"></sup></p><p>Then <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020&quot;}]\">(Smith 2020)</span>.</p>",
+              "footnotes": [
+                {
+                  "id": "fn-1",
+                  "html": "A note with <em>emphasis</em>."
+                }
+              ]
+            },
+            {
+              "id": "doc-2",
+              "title": "Mara",
+              "space": "Wiki",
+              "folderId": "folder-1",
+              "content": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+              "character": {
+                "role": "Protagonist",
+                "age": "32",
+                "pronouns": "she/her"
+              }
+            },
+            {
+              "id": "doc-3",
+              "title": "INT. LIGHTHOUSE - NIGHT",
+              "chapterId": "chapter-1",
+              "format": "screenplay",
+              "content": "<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>",
+              "markdownSource": "INT. LIGHTHOUSE - NIGHT"
+            }
+          ],
+          "storyboardRows": [
+            {
+              "id": "row-1",
+              "title": "Act I"
+            }
+          ],
+          "storyboardCards": [
+            {
+              "id": "card-1",
+              "sourceId": "doc-1",
+              "rowId": "row-1",
+              "x": 12.5,
+              "y": 0.30000000000000004,
+              "kind": "scene",
+              "title": "Opening",
+              "note": ""
+            }
+          ],
+          "storyboardDrawings": [
+            {
+              "id": "draw-1",
+              "type": "arrow",
+              "x1": 0,
+              "y1": 1e+21,
+              "x2": 1e-7,
+              "y2": 123456789.125
+            }
+          ],
+          "timelineNodes": [
+            {
+              "id": "t-1",
+              "title": "Day One",
+              "date": "2026-01-01",
+              "time": "",
+              "description": "Start"
+            }
+          ],
+          "labels": [
+            {
+              "id": "label-1",
+              "name": "Draft",
+              "color": "#d69e2e"
+            }
+          ],
+          "comments": [
+            {
+              "id": "comment-1",
+              "documentId": "doc-1",
+              "quote": "dark",
+              "prefix": "It was \ud83c",
+              "suffix": ".",
+              "body": "Darker?",
+              "author": "Editor",
+              "createdAt": 1763370000000,
+              "resolved": false
+            }
+          ],
+          "snapshots": [
+            {
+              "id": "snap-1",
+              "documentId": "doc-1",
+              "createdAt": 1763360000000,
+              "title": "Opening Scene",
+              "content": "<p>It was dark.</p>",
+              "reason": "manual",
+              "note": "first"
+            }
+          ],
+          "citations": [
+            {
+              "id": "smith2020",
+              "type": "book",
+              "title": "Lighthouses",
+              "author": [
+                {
+                  "family": "Smith",
+                  "given": "Jo"
+                }
+              ],
+              "issued": {
+                "date-parts": [
+                  [
+                    2020
+                  ]
+                ]
+              }
+            }
+          ],
+          "publishOptions": {
+            "futureOption": {
+              "nested": [
+                1,
+                2.25,
+                null,
+                true
+              ]
+            }
+          },
+          "futureField": {
+            "kept": "as is",
+            "n": 7
+          }
+        },
+        "entities": {
+          "documents": {
+            "doc-1": {
+              "updatedAt": 9000,
+              "revision": 1,
+              "updatedBy": "device-z",
+              "deletedAt": null
+            },
+            "doc-2": {
+              "updatedAt": 9000,
+              "revision": 1,
+              "updatedBy": "device-z",
+              "deletedAt": null
+            },
+            "doc-3": {
+              "updatedAt": 9000,
+              "revision": 1,
+              "updatedBy": "device-z",
+              "deletedAt": null
+            }
+          },
+          "chapters": {
+            "chapter-1": {
+              "updatedAt": 9000,
+              "revision": 1,
+              "updatedBy": "device-z",
+              "deletedAt": null
+            },
+            "chapter-2": {
+              "updatedAt": 9000,
+              "revision": 1,
+              "updatedBy": "device-z",
+              "deletedAt": null
+            }
+          },
+          "storyboardRows": {
+            "row-1": {
+              "updatedAt": 9000,
+              "revision": 1,
+              "updatedBy": "device-z",
+              "deletedAt": null
+            }
+          },
+          "storyboardCards": {
+            "card-1": {
+              "updatedAt": 9000,
+              "revision": 1,
+              "updatedBy": "device-z",
+              "deletedAt": null
+            }
+          }
+        }
+      }
+    }
+  ],
+  "contentKey": "{\"activity\":{\"2026-11-01\":{\"edits\":12,\"wordsAdded\":345},\"2026-11-02\":{\"edits\":0.5,\"wordsAdded\":-3}},\"author\":\"A. Writer\",\"chapterGoals\":{\"-1\":4,\"01\":5,\"10\":3,\"2\":1.5,\"chapter-1\":2500},\"chapters\":[{\"expanded\":true,\"id\":\"chapter-1\",\"labelId\":\"label-1\",\"summary\":\"It begins.\",\"title\":\"Chapter One\"},{\"expanded\":false,\"id\":\"chapter-2\",\"title\":\"Chapitre deux — « voilà »\",\"trashed\":true}],\"citations\":[{\"author\":[{\"family\":\"Smith\",\"given\":\"Jo\"}],\"id\":\"smith2020\",\"issued\":{\"date-parts\":[[2020]]},\"title\":\"Lighthouses\",\"type\":\"book\"}],\"comments\":[{\"author\":\"Editor\",\"body\":\"Darker?\",\"createdAt\":1763370000000,\"documentId\":\"doc-1\",\"id\":\"comment-1\",\"prefix\":\"It was \\ud83c\",\"quote\":\"dark\",\"resolved\":false,\"suffix\":\".\"}],\"documents\":[{\"chapterId\":\"chapter-1\",\"content\":\"<p>It was <em>dark</em>.<sup class=\\\"footnote-ref\\\" data-footnote-id=\\\"fn-1\\\" contenteditable=\\\"false\\\"></sup></p><p>Then <span class=\\\"cite-ref\\\" data-cites=\\\"[{&quot;id&quot;:&quot;smith2020&quot;}]\\\">(Smith 2020)</span>.</p>\",\"footnotes\":[{\"html\":\"A note with <em>emphasis</em>.\",\"id\":\"fn-1\"}],\"id\":\"doc-1\",\"title\":\"Opening Scene\"},{\"character\":{\"age\":\"32\",\"pronouns\":\"she/her\",\"role\":\"Protagonist\"},\"content\":\"<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>\",\"folderId\":\"folder-1\",\"id\":\"doc-2\",\"space\":\"Wiki\",\"title\":\"Mara\"},{\"chapterId\":\"chapter-1\",\"content\":\"<p data-sp=\\\"scene-heading\\\">INT. LIGHTHOUSE - NIGHT</p>\",\"format\":\"screenplay\",\"id\":\"doc-3\",\"markdownSource\":\"INT. LIGHTHOUSE - NIGHT\",\"title\":\"INT. LIGHTHOUSE - NIGHT\"}],\"id\":\"project-1\",\"kind\":\"novel\",\"labels\":[{\"color\":\"#d69e2e\",\"id\":\"label-1\",\"name\":\"Draft\"}],\"name\":\"The Lighthouse 🌊 Keeper\",\"noteFolders\":[],\"projectGoal\":80000,\"publishOptions\":{\"futureOption\":{\"nested\":[1,2.25,null,true]}},\"researchFolderName\":\"\",\"researchFolders\":[],\"researchItems\":[],\"snapshots\":[{\"content\":\"<p>It was dark.</p>\",\"createdAt\":1763360000000,\"documentId\":\"doc-1\",\"id\":\"snap-1\",\"note\":\"first\",\"reason\":\"manual\",\"title\":\"Opening Scene\"}],\"storyboardCards\":[{\"id\":\"card-1\",\"kind\":\"scene\",\"note\":\"\",\"rowId\":\"row-1\",\"sourceId\":\"doc-1\",\"title\":\"Opening\",\"x\":12.5,\"y\":0.30000000000000004}],\"storyboardDrawings\":[{\"id\":\"draw-1\",\"type\":\"arrow\",\"x1\":0,\"x2\":1e-7,\"y1\":1e+21,\"y2\":123456789.125}],\"storyboardRows\":[{\"id\":\"row-1\",\"title\":\"Act I\"}],\"timelineNodes\":[{\"date\":\"2026-01-01\",\"description\":\"Start\",\"id\":\"t-1\",\"time\":\"\",\"title\":\"Day One\"}]}"
+}

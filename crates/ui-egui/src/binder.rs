@@ -33,7 +33,25 @@ fn indent(ui: &mut Ui, depth: usize, add: impl FnOnce(&mut Ui)) {
     });
 }
 
+/// The binder's footer: open a backup, and export the library as one.
+fn footer(ui: &mut Ui, state: &mut AppState) {
+    ui.add_space(8.0);
+    ui.horizontal_wrapped(|ui| {
+        if ui.button("Open backup…").clicked() {
+            state.requests.push(crate::HostRequest::OpenBackup);
+        }
+        if state.has_home && state.library.is_some() && ui.button("Export backup…").clicked() {
+            state.export_wanted = true;
+        }
+    });
+}
+
 pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
+    egui::Panel::bottom("binder-footer")
+        .show_separator_line(false)
+        .resizable(false)
+        .frame(egui::Frame::NONE)
+        .show(ui, |ui| footer(ui, state));
     let palette = state.palette;
     let Some(library) = state.library.as_ref() else {
         eyebrow(ui, &palette, "No project open");

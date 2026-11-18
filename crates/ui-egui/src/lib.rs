@@ -32,6 +32,30 @@ use prosecraft_core::js::JsString;
 use prosecraft_core::storage::bundle::EncryptedBundle;
 
 pub use library::{Library, OpenError};
+pub use prosecraft_core::library::Library as ProjectLibrary;
+
+/// Where the app keeps its library: the host saves it (the desktop app to a file, atomically).
+pub trait LibraryStore {
+    /// Saves the library's text. An error leaves the previous library in place.
+    fn save(&mut self, text: &str) -> Result<(), String>;
+    /// Now, in milliseconds since 1970 (ProseCraft's timestamps).
+    fn now_ms(&self) -> f64;
+}
+
+/// Something only the host can do: native file dialogs, writing files the person chose.
+#[derive(Clone, Debug, PartialEq)]
+pub enum HostRequest {
+    /// Ask for a backup to open, then call [`ProseApp::open_backup_bytes`].
+    OpenBackup,
+    /// Ask where to save this backup, then write it there.
+    ExportBackup { file_name: String, text: String },
+}
+
+/// The app's own library and where it is saved.
+struct Home {
+    library: ProjectLibrary,
+    store: Box<dyn LibraryStore>,
+}
 
 /// The views of the main panel, as ProseCraft names them.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
@@ -131,6 +155,12 @@ pub struct AppState {
     palette: theme::Palette,
     /// The month the activity calendar shows, once the person has moved it.
     activity_month: Option<(i32, u32)>,
+    /// Whether there is a library to add backups to (else backups are only shown).
+    has_home: bool,
+    /// Requests for the host, taken with [`ProseApp::take_requests`].
+    requests: Vec<HostRequest>,
+    /// The binder's Export button was pressed; the app builds the backup after the frame.
+    export_wanted: bool,
 }
 
 impl AppState {
@@ -155,12 +185,8 @@ impl AppState {
         self.view = WorkspaceView::Write;
     }
 
-    fn set_library(&mut self, name: &str, library: Library) {
-        let count = library.projects().len();
-        self.status = Some(format!(
-            "Opened {name}: {count} project{}. Read-only: nothing is written back.",
-            if count == 1 { "" } else { "s" }
-        ));
+    fn set_library(&mut self, library: Library, status: String) {
+        self.status = Some(status);
         self.library = Some(library);
         self.active = 0;
         self.selection = None;
@@ -223,6 +249,7 @@ pub struct ProseApp {
     pane_states: HashMap<Pane, PaneState>,
     locked: Option<Locked>,
     ready: bool,
+    home: Option<Home>,
 }
 
 impl Default for ProseApp {
@@ -239,7 +266,82 @@ impl ProseApp {
             pane_states: HashMap::new(),
             locked: None,
             ready: false,
+            home: None,
         }
+    }
+
+    /// The app with its own library, saved through `store`. Backups opened later are added to it.
+    pub fn with_library(library: ProjectLibrary, store: Box<dyn LibraryStore>) -> Self {
+        let mut app = Self::new();
+        let views = Library::from_stored(library.projects().cloned().collect());
+        let count = views.projects().len();
+        let status = if library.is_read_only() {
+            "This library has a project from a newer version of ProseCraft. It is shown, but nothing is saved.".to_owned()
+        } else if count == 0 {
+            "Your library is empty. Open a ProseCraft backup to bring your projects in.".to_owned()
+        } else {
+            format!(
+                "Your library: {count} project{}.",
+                if count == 1 { "" } else { "s" }
+            )
+        };
+        app.state.set_library(views, status);
+        app.state.has_home = true;
+        app.home = Some(Home { library, store });
+        app
+    }
+
+    /// What the host should do for the app (file dialogs, writing exports). Take them after
+    /// each frame.
+    pub fn take_requests(&mut self) -> Vec<HostRequest> {
+        std::mem::take(&mut self.state.requests)
+    }
+
+    /// Projects read from a backup: added to the library (newer copies win, as in ProseCraft),
+    /// or, without one, only shown.
+    fn receive(&mut self, name: &str, projects: Vec<prosecraft_core::js::JsValue>) {
+        let Some(home) = self.home.as_mut() else {
+            let count = projects.len();
+            let status = format!(
+                "Opened {name}: {count} project{}. Read-only: nothing is written back.",
+                if count == 1 { "" } else { "s" }
+            );
+            self.state
+                .set_library(Library::from_stored(projects), status);
+            return;
+        };
+        let result = home.library.merge(projects);
+        let saved = if home.library.is_read_only() {
+            Err(
+                "it has a project from a newer version of ProseCraft, so nothing is saved"
+                    .to_owned(),
+            )
+        } else {
+            let text = home.library.to_text(home.store.now_ms());
+            home.store.save(&text)
+        };
+        let plural = if result.imported == 1 { "" } else { "s" };
+        let status = match saved {
+            Ok(()) => format!(
+                "Added {} project{plural} from {name} to your library ({} in all).",
+                result.imported, result.total
+            ),
+            Err(error) => format!("Read {name}, but couldn't save your library: {error}"),
+        };
+        let views = Library::from_stored(home.library.projects().cloned().collect());
+        self.state.set_library(views, status);
+    }
+
+    /// The library as a ProseCraft backup, for the host to save where the person chooses.
+    fn export(&mut self) {
+        let Some(home) = self.home.as_ref() else {
+            return;
+        };
+        let text = home.library.to_text(home.store.now_ms());
+        self.state.requests.push(HostRequest::ExportBackup {
+            file_name: "prosecraft-backup.prosecraft".into(),
+            text,
+        });
     }
 
     pub fn state(&self) -> &AppState {
@@ -254,8 +356,8 @@ impl ProseApp {
     /// Opens a ProseCraft backup (`.prosecraft`, plain or encrypted) from its text. An encrypted
     /// one asks for its passphrase first. Nothing is ever written back to the file.
     pub fn open_backup(&mut self, name: &str, text: &str) {
-        match Library::open(text) {
-            Ok(library) => self.state.set_library(name, library),
+        match Library::read(text) {
+            Ok(projects) => self.receive(name, projects),
             Err(OpenError::Encrypted(bundle)) => {
                 self.locked = Some(Locked {
                     name: name.to_owned(),
@@ -308,10 +410,10 @@ impl ProseApp {
             return;
         };
         match Library::unlock(&locked.bundle, &JsString::from(locked.passphrase.as_str())) {
-            Ok(library) => {
+            Ok(projects) => {
                 let name = locked.name.clone();
                 self.locked = None;
-                self.state.set_library(&name, library);
+                self.receive(&name, projects);
             }
             Err(error) => {
                 locked.passphrase.clear();
@@ -366,6 +468,9 @@ impl ProseApp {
         }
         egui::CentralPanel::default().show(ui, |ui| views::show(ui, &mut self.state));
         self.passphrase_dialog(ui);
+        if std::mem::take(&mut self.state.export_wanted) {
+            self.export();
+        }
     }
 
     fn passphrase_dialog(&mut self, ui: &mut Ui) {

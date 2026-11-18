@@ -2,9 +2,7 @@
 
 use egui::{RichText, Ui};
 use prosecraft_core::edit::chapter_label;
-use prosecraft_core::html::{
-    PlainTextOptions, RichText as RichMode, count_words, html_to_plain_text,
-};
+use prosecraft_core::html::{PlainTextOptions, RichText as RichMode, html_to_plain_text};
 use prosecraft_core::project::Project;
 use prosecraft_core::richtext::{ATOM, HARD_BREAK, LineKind, Mark, RichDoc};
 
@@ -848,9 +846,23 @@ pub(crate) enum AtomLabel {
     Math(String),
     /// A citation: its sources formatted in the publish style (`renderCitationLabels`).
     Cite(String),
+    /// A block kept whole (a rule, code, a table, a block equation, a diagram, a calculation):
+    /// drawn as a panel across the column.
+    Block(prosecraft_core::richtext::BlockPreview),
     /// Anything else (none yet): nothing drawn, nothing to click.
     Other,
 }
+
+/// The height of a kept block's row.
+fn block_height(preview: &prosecraft_core::richtext::BlockPreview) -> f32 {
+    if preview.kind == prosecraft_core::richtext::BlockKind::Rule {
+        return 28.0;
+    }
+    let lines = preview.lines.len().max(1) + usize::from(preview.more);
+    8.0 + 18.0 + lines as f32 * BLOCK_LINE + 12.0
+}
+
+const BLOCK_LINE: f32 = 18.0;
 
 fn is_footnote(html: &str) -> bool {
     html.contains("footnote-ref")
@@ -882,7 +894,12 @@ pub(crate) fn atom_labels(doc: &RichDoc, cites: &CiteStyle) -> Vec<AtomLabel> {
     doc.atoms
         .iter()
         .map(|html| {
-            if is_footnote(html) {
+            if let Some(preview) = prosecraft_core::richtext::is_block_atom(html)
+                .then(|| prosecraft_core::richtext::block_preview(html))
+                .flatten()
+            {
+                AtomLabel::Block(preview)
+            } else if is_footnote(html) {
                 let id = prosecraft_core::footnotes::extract_ids(html)
                     .into_iter()
                     .next()
@@ -927,11 +944,11 @@ fn cite_font() -> egui::FontId {
 
 /// The font size each atom's (invisible) character is laid out in: a citation's is scaled so
 /// the character is as wide as its label and padding, and wraps as one piece with it (0: the
-/// usual size).
+/// usual size); and for a kept block, the height of its row.
 pub(crate) fn atom_sizes(
     fonts: &mut egui::epaint::FontsView<'_>,
     labels: &[AtomLabel],
-) -> Vec<f32> {
+) -> Vec<(f32, Option<f32>)> {
     let glyph = fonts
         .layout_no_wrap(
             ATOM.to_string(),
@@ -949,13 +966,15 @@ pub(crate) fn atom_sizes(
                     .size()
                     .x;
                 // ProseCraft's 5px padding each side and 1px margin.
-                if glyph > 0.0 {
+                let size = if glyph > 0.0 {
                     (ATOM_FONT + 2.0) * (width + 12.0) / glyph
                 } else {
                     0.0
-                }
+                };
+                (size, None)
             }
-            AtomLabel::Footnote(_) | AtomLabel::Math(_) | AtomLabel::Other => 0.0,
+            AtomLabel::Block(preview) => (0.0, Some(block_height(preview))),
+            AtomLabel::Footnote(_) | AtomLabel::Math(_) | AtomLabel::Other => (0.0, None),
         })
         .collect()
 }
@@ -968,7 +987,7 @@ pub(crate) fn layout_doc(
     text: &str,
     palette: &Palette,
     wrap: f32,
-    atom_sizes: &[f32],
+    atom_sizes: &[(f32, Option<f32>)],
 ) -> egui::text::LayoutJob {
     let mut job = egui::text::LayoutJob::default();
     job.wrap.max_width = wrap;
@@ -984,6 +1003,8 @@ pub(crate) fn layout_doc(
             LineKind::Heading1 => (32.0, true),
             LineKind::Heading2 => (25.0, true),
             LineKind::Heading3 => (20.0, true),
+            // ProseCraft's `.eyebrow`: small, spaced capitals.
+            LineKind::Eyebrow => (12.0, false),
             _ => (17.0, false),
         };
         let bold = heading || Mark::Bold.applies(marks);
@@ -1000,8 +1021,12 @@ pub(crate) fn layout_doc(
             line_height: Some(size * if heading { 1.3 } else { 1.85 }),
             ..Default::default()
         };
+        if kind == LineKind::Eyebrow {
+            format.extra_letter_spacing = 1.2;
+        }
         format.color = match kind {
             LineKind::Quote => palette.quote,
+            LineKind::Eyebrow => palette.eyebrow,
             _ if heading => palette.text_heading,
             _ => palette.text_body,
         };
@@ -1014,12 +1039,12 @@ pub(crate) fn layout_doc(
         if c == ATOM {
             // The character itself is invisible; its label is painted in the room reserved here.
             // The character's own box holds a short painted label.
-            let size = atom_sizes
-                .get(atom)
-                .copied()
-                .filter(|s| *s > 0.0)
-                .unwrap_or(ATOM_FONT + 2.0);
+            let (size, row) = atom_sizes.get(atom).copied().unwrap_or((0.0, None));
+            let size = if size > 0.0 { size } else { ATOM_FONT + 2.0 };
             format.font_id = egui::FontId::proportional(size);
+            if row.is_some() {
+                format.line_height = row;
+            }
             format.color = egui::Color32::TRANSPARENT;
             atom += 1;
         }
@@ -1062,7 +1087,7 @@ fn editor(
         *edit.draft = Some(Draft {
             document: document.id.clone(),
             title: document.title.clone(),
-            words: count_words(&doc.text.replace(ATOM, " ")),
+            words: prosecraft_core::html::html_word_count(&doc.to_html()),
             body: doc.text.clone(),
             doc,
             title_dirty: false,
@@ -1431,7 +1456,8 @@ fn editor(
         draft.changed_at = now;
         // Writing activity, as ProseCraft's `trackActivity` on each input: one more edit, and
         // the words gained.
-        let words = count_words(&draft.body.replace(ATOM, " "));
+        // `refreshCounts`: the words of the scene's HTML, equations and diagrams left out.
+        let words = prosecraft_core::html::html_word_count(&draft.doc.to_html());
         draft.edits += 1;
         draft.words_added += (words as f64 - draft.words as f64).max(0.0);
         draft.words = words;
@@ -1708,7 +1734,12 @@ fn paint_extras(
     clip: egui::Rect,
 ) -> Vec<(egui::Rect, Clicked)> {
     let mut markers = Vec::new();
-    let painter = ui.painter_at(clip.expand2(egui::vec2(30.0, 0.0)));
+    // The text area is as wide as its text; kept blocks span the column.
+    let column = ui.max_rect().max.x.max(clip.max.x);
+    let painter = ui.painter_at(egui::Rect::from_min_max(
+        clip.min - egui::vec2(30.0, 0.0),
+        egui::pos2(column, clip.max.y),
+    ));
     let mut number = 0;
     let mut previous = None;
     for (line, (start, _end)) in doc.line_ranges().into_iter().enumerate() {
@@ -1748,8 +1779,66 @@ fn paint_extras(
         }
         previous = Some(kind);
     }
-    markers.extend(paint_atoms(&painter, palette, doc, labels, galley, origin));
+    markers.extend(paint_atoms(
+        &painter, palette, doc, labels, galley, origin, column,
+    ));
     markers
+}
+
+/// A kept block across the column, in its row: a rule as a line; anything else as a panel
+/// with its kind and its text (code, a table's rows, an equation's or diagram's source).
+fn paint_block(
+    painter: &egui::Painter,
+    palette: &Palette,
+    preview: &prosecraft_core::richtext::BlockPreview,
+    row: egui::Rect,
+    right_edge: f32,
+) {
+    let left = row.min.x;
+    let right = right_edge.max(left + 40.0);
+    if preview.kind == prosecraft_core::richtext::BlockKind::Rule {
+        let y = row.center().y;
+        painter.line_segment(
+            [egui::pos2(left, y), egui::pos2(right, y)],
+            egui::Stroke::new(1.0, palette.border_control),
+        );
+        return;
+    }
+    let panel = egui::Rect::from_min_max(
+        egui::pos2(left, row.min.y + 4.0),
+        egui::pos2(right, row.max.y - 4.0),
+    );
+    painter.rect_filled(panel, 6.0, palette.control_bg);
+    painter.rect_stroke(
+        panel,
+        6.0,
+        egui::Stroke::new(1.0, palette.border),
+        egui::StrokeKind::Inside,
+    );
+    let inner = painter.with_clip_rect(panel.shrink(1.0).intersect(painter.clip_rect()));
+    inner.text(
+        egui::pos2(panel.min.x + 10.0, panel.min.y + 6.0),
+        egui::Align2::LEFT_TOP,
+        preview.kind.name().to_uppercase(),
+        egui::FontId::proportional(10.0),
+        palette.text_muted,
+    );
+    let mut y = panel.min.y + 6.0 + 18.0;
+    let lines = preview
+        .lines
+        .iter()
+        .map(String::as_str)
+        .chain(preview.more.then_some("…"));
+    for line in lines {
+        inner.text(
+            egui::pos2(panel.min.x + 10.0, y),
+            egui::Align2::LEFT_TOP,
+            line,
+            egui::FontId::monospace(13.0),
+            palette.text_body,
+        );
+        y += BLOCK_LINE;
+    }
 }
 
 /// Each atom's label, painted in its character's box (footnote numbers, citation labels,
@@ -1761,6 +1850,7 @@ pub(crate) fn paint_atoms(
     labels: &[AtomLabel],
     galley: &egui::Galley,
     origin: egui::Pos2,
+    right_edge: f32,
 ) -> Vec<(egui::Rect, Clicked)> {
     let mut markers = Vec::new();
     let atoms = doc
@@ -1821,6 +1911,7 @@ pub(crate) fn paint_atoms(
                 );
             }
             AtomLabel::Other => {}
+            AtomLabel::Block(preview) => paint_block(painter, palette, preview, before, right_edge),
             AtomLabel::Cite(text) => {
                 // ProseCraft's `span.cite-ref`: the label on a faint accent tint, over the atom's
                 // own character, which the layout made as wide as the label.

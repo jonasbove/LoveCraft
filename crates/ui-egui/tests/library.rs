@@ -646,6 +646,65 @@ fn a_markdown_folder_is_sorted_into_manuscript_and_wiki_then_imported() {
 }
 
 #[test]
+fn a_table_and_code_stay_as_they_are_while_the_text_around_them_is_edited() {
+    use prosecraft_core::import::markdown_folder::MarkdownFile;
+    let memory = Memory::default();
+    let app = ProseApp::with_library(
+        ProjectLibrary::new("this-device".into()),
+        Box::new(memory.clone()),
+    );
+    let mut harness = harness(app);
+    harness.run();
+    harness.state_mut().import_markdown_folder(
+        "Vault",
+        vec![MarkdownFile {
+            path: "Manuscript/one.md".into(),
+            text: "# One\n\nBefore.\n\n---\n\n```\nlet x = 1 < 2;\n```\n\n| a | b |\n| - | - |\n| 1 | 2 |\n\nAfter.".into(),
+        }],
+        0,
+    );
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Import")
+        .click();
+    harness.run();
+    settle_import(&mut harness);
+    let imported = memory
+        .saved
+        .lock()
+        .map(|s| s.last().cloned())
+        .ok()
+        .flatten();
+    let imported = imported.expect("saved after the import");
+    let kept = |text: &str| -> String {
+        let start = text.find("<hr>").expect("the rule");
+        let end = text.find("</table>").expect("the table") + "</table>".len();
+        text[start..end].to_owned()
+    };
+    harness
+        .get_all_by_role_and_label(Role::TreeItem, "One")
+        .last()
+        .expect("the scene")
+        .click();
+    harness.run();
+    let body = harness.get_by_label("Scene text");
+    body.focus();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::End);
+    harness.get_by_label("Scene text").type_text(" More.");
+    harness.run_steps(12);
+    let saved = memory
+        .saved
+        .lock()
+        .map(|s| s.last().cloned())
+        .ok()
+        .flatten();
+    let saved = saved.expect("saved after typing");
+    assert!(saved.contains("<p>After. More.</p>"), "{saved}");
+    assert_eq!(kept(&saved), kept(&imported));
+    assert!(kept(&saved).contains("<pre><code>let x = 1 &lt; 2;"));
+}
+
+#[test]
 fn a_scene_the_rich_editor_cannot_hold_opens_as_markdown() {
     use prosecraft_core::import::markdown_folder::MarkdownFile;
     let memory = Memory::default();
@@ -655,12 +714,12 @@ fn a_scene_the_rich_editor_cannot_hold_opens_as_markdown() {
     );
     let mut harness = harness(app);
     harness.run();
-    // A table, which the rich editor can't hold yet.
+    // A nested list, which the rich editor can't hold yet.
     harness.state_mut().import_markdown_folder(
         "Vault",
         vec![MarkdownFile {
             path: "Manuscript/one.md".into(),
-            text: "# One\n\n| a | b |\n| - | - |\n| 1 | 2 |".into(),
+            text: "# One\n\n- a\n  - b".into(),
         }],
         0,
     );
@@ -684,8 +743,7 @@ fn a_scene_the_rich_editor_cannot_hold_opens_as_markdown() {
     let source = harness.get_by_label("Markdown source");
     assert_eq!(
         source.accesskit_node().value().as_deref(),
-        // ProseCraft's Turndown has no table rule, so the cells come out as paragraphs.
-        Some("a\n\nb\n\n1\n\n2")
+        Some("-   a\n    -   b")
     );
     // The preference stays off; Rich text editor goes back.
     harness

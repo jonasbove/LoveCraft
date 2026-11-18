@@ -591,7 +591,7 @@ pub(crate) struct CiteStyle<'a> {
 
 /// What an atom shows.
 #[derive(Clone, Debug, PartialEq)]
-enum AtomLabel {
+pub(crate) enum AtomLabel {
     /// A footnote reference: its number.
     Footnote(String),
     /// An equation: its TeX.
@@ -615,7 +615,7 @@ fn is_cite(html: &str) -> bool {
 }
 
 /// Each atom's label, in order.
-fn atom_labels(doc: &RichDoc, cites: &CiteStyle) -> Vec<AtomLabel> {
+pub(crate) fn atom_labels(doc: &RichDoc, cites: &CiteStyle) -> Vec<AtomLabel> {
     let cite_markers: Vec<&str> = doc
         .atoms
         .iter()
@@ -678,7 +678,10 @@ fn cite_font() -> egui::FontId {
 /// The font size each atom's (invisible) character is laid out in: a citation's is scaled so
 /// the character is as wide as its label and padding, and wraps as one piece with it (0: the
 /// usual size).
-fn atom_sizes(fonts: &mut egui::epaint::FontsView<'_>, labels: &[AtomLabel]) -> Vec<f32> {
+pub(crate) fn atom_sizes(
+    fonts: &mut egui::epaint::FontsView<'_>,
+    labels: &[AtomLabel],
+) -> Vec<f32> {
     let glyph = fonts
         .layout_no_wrap(
             ATOM.to_string(),
@@ -1136,17 +1139,7 @@ fn editor(
                     .doc
                     .atoms
                     .get(*atom)
-                    .and_then(|html| {
-                        prosecraft_core::html::parse_fragment(html)
-                            .into_iter()
-                            .find_map(|n| match n {
-                                prosecraft_core::html::Node::Element(e) => {
-                                    e.attr("data-cites").map(str::to_owned)
-                                }
-                                prosecraft_core::html::Node::Text(_) => None,
-                            })
-                    })
-                    .and_then(|raw| prosecraft_core::cite::parse_cite_data(Some(&raw)))
+                    .and_then(|html| cite_data(html))
                     .unwrap_or_default();
                 let mut picker = crate::citation_picker::CitationPicker::new(
                     &document.id,
@@ -1315,8 +1308,19 @@ fn glyph_rect(galley: &egui::Galley, index: usize) -> Option<egui::Rect> {
     None
 }
 
+/// A citation marker's sources, from its `data-cites`.
+pub(crate) fn cite_data(html: &str) -> Option<Vec<prosecraft_core::cite::CiteRefItem>> {
+    let raw = prosecraft_core::html::parse_fragment(html)
+        .into_iter()
+        .find_map(|n| match n {
+            prosecraft_core::html::Node::Element(e) => e.attr("data-cites").map(str::to_owned),
+            prosecraft_core::html::Node::Text(_) => None,
+        })?;
+    prosecraft_core::cite::parse_cite_data(Some(&raw))
+}
+
 /// A marker the writer can click.
-enum Clicked {
+pub(crate) enum Clicked {
     /// A footnote reference: its id.
     Footnote(String),
     /// A citation: its atom's index.
@@ -1376,7 +1380,22 @@ fn paint_extras(
         }
         previous = Some(kind);
     }
-    // Each atom's label, painted in its character's box.
+    markers.extend(paint_atoms(&painter, palette, doc, labels, output));
+    markers
+}
+
+/// Each atom's label, painted in its character's box (footnote numbers, citation labels,
+/// equations), and the markers that can be clicked.
+pub(crate) fn paint_atoms(
+    painter: &egui::Painter,
+    palette: &Palette,
+    doc: &RichDoc,
+    labels: &[AtomLabel],
+    output: &egui::text_edit::TextEditOutput,
+) -> Vec<(egui::Rect, Clicked)> {
+    let mut markers = Vec::new();
+    let galley = &output.galley;
+    let origin = output.galley_pos;
     let atoms = doc
         .text
         .chars()

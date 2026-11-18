@@ -102,7 +102,7 @@ fn label(cites: &[CiteRefItem], lookup: &Lookup, style: &str, context: &Citation
 /// [`citation_labels`] remembered for the inputs it was last asked with: the editor asks every
 /// frame, and working the labels out (year suffixes across the library) takes milliseconds
 /// for a large library.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LabelCache {
     key: Option<(Vec<String>, Vec<JsValue>, String, String)>,
     labels: Vec<Option<String>>,

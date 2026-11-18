@@ -71,6 +71,9 @@ pub(crate) struct CitationPicker {
     /// The scene's text when the picker opened: a change to it (typing, a footnote, another
     /// scene) closes the picker, so the target can't drift onto something else.
     pub body: String,
+    /// The footnote (its id) whose text the citation goes into, instead of the scene's; then
+    /// the target and `body` are the footnote editor's.
+    pub footnote: Option<String>,
     /// Where it opens (beside the caret or the citation), once the editor knows.
     pub pos: Option<egui::Pos2>,
     selected: Vec<Entry>,
@@ -86,6 +89,7 @@ impl CitationPicker {
             document: document.to_owned(),
             target,
             body: body.to_owned(),
+            footnote: None,
             pos: None,
             selected: initial
                 .iter()
@@ -399,7 +403,20 @@ pub(crate) fn still_valid(
     picker: &CitationPicker,
     view: crate::WorkspaceView,
     draft: Option<&crate::editing::Draft>,
+    footnote: Option<&crate::footnote_editor::FootnoteEdit>,
 ) -> bool {
+    let target_is_cite = |atoms: &[String]| match picker.target {
+        Target::Insert { .. } => true,
+        Target::Edit { atom } => atoms.get(atom).is_some_and(|h| is_cite_marker(h)),
+    };
+    if let Some(id) = &picker.footnote {
+        return footnote.is_some_and(|f| {
+            f.document == picker.document
+                && f.id == *id
+                && f.body() == picker.body
+                && f.atoms().is_some_and(target_is_cite)
+        });
+    }
     matches!(
         view,
         crate::WorkspaceView::Outline | crate::WorkspaceView::Write
@@ -416,11 +433,14 @@ pub(crate) fn still_valid(
 /// The picker.
 pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
     let palette = state.palette;
-    if state
-        .citation_picker
-        .as_ref()
-        .is_some_and(|p| !still_valid(p, state.view, state.draft.as_ref()))
-    {
+    if state.citation_picker.as_ref().is_some_and(|p| {
+        !still_valid(
+            p,
+            state.view,
+            state.draft.as_ref(),
+            state.footnote_edit.as_ref(),
+        )
+    }) {
         state.citation_picker = None;
     }
     let Some(project) = state
@@ -525,6 +545,30 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
     let document = picker.document.clone();
     let target = picker.target;
     let body = picker.body.clone();
+    // In a footnote, the footnote editor's text changes (saved when it closes, as it is).
+    if picker.footnote.is_some() {
+        if let Some(note) = state.footnote_edit.as_mut() {
+            match &outcome {
+                Some(Outcome::Commit(html)) => note.place_citation(target, html),
+                Some(Outcome::Remove) => {
+                    if let Target::Edit { atom } = target {
+                        note.remove_citation(atom);
+                    }
+                }
+                Some(Outcome::Close) => note.refocus(),
+                _ => {}
+            }
+        }
+        match outcome {
+            Some(Outcome::OpenSources) => {
+                state.citation_picker = None;
+                state.sources = Some(crate::sources::SourcesDialog::default());
+            }
+            Some(_) => state.citation_picker = None,
+            None => {}
+        }
+        return;
+    }
     match outcome {
         Some(Outcome::Commit(html)) => {
             state.intents.push(Intent::PlaceCitation {

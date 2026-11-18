@@ -6,6 +6,10 @@
 
 use egui::{Color32, CornerRadius, Stroke, Style, Visuals, vec2};
 
+/// Set by [`crate::setup_for_tests`]: the text caret doesn't blink.
+pub(crate) static STEADY_CURSOR: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+
 /// The colour tokens the interface uses.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Palette {
@@ -109,6 +113,9 @@ impl Palette {
         } else {
             Visuals::light()
         };
+        // Tests keep the caret steady: its blink follows the clock, and would make how many
+        // frames a test takes to settle depend on how loaded the machine is.
+        v.text_cursor.blink = !STEADY_CURSOR.load(std::sync::atomic::Ordering::Relaxed);
         let radius = CornerRadius::same(6);
         v.panel_fill = self.page_bg;
         v.window_fill = self.surface_raised;

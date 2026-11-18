@@ -2398,3 +2398,81 @@ fn a_citation_is_changed_and_removed_from_its_picker() {
     );
     assert!(content(&memory).contains("Then"));
 }
+
+#[test]
+fn a_footnote_cites_a_source() {
+    let (mut harness, memory) = app();
+    let footnotes = |memory: &Memory| -> String {
+        project(&memory.last(), "project-1")
+            .get("project")
+            .and_then(|p| p.get("documents"))
+            .and_then(JsValue::as_array)
+            .unwrap_or_default()
+            .iter()
+            .find(|d| {
+                d.get("id")
+                    .and_then(JsValue::as_js_string)
+                    .is_some_and(|i| i.eq_str("doc-1"))
+            })
+            .and_then(|d| d.get("footnotes"))
+            .map(js::stringify)
+            .unwrap_or_default()
+    };
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Insert footnote")
+        .click();
+    harness.run_steps(4);
+    harness.get_by_label("Footnote text").type_text("See ");
+    harness.run();
+    // The footnote's own Insert citation (the scene's toolbar has one too).
+    harness
+        .query_all_by_role_and_label(Role::Button, "Insert citation")
+        .last()
+        .expect("the footnote's Insert citation")
+        .click();
+    harness.run_steps(3);
+    harness
+        .get_by_role_and_label(Role::Button, "Lighthouses")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Insert")
+        .click();
+    harness.run_steps(3);
+    assert!(harness.query_by_label("Search citation sources").is_none());
+    assert!(
+        harness.query_by_label("Footnote text").is_some(),
+        "the footnote editor stays open"
+    );
+
+    // Escape with the picker open closes only the picker.
+    harness
+        .query_all_by_role_and_label(Role::Button, "Insert citation")
+        .last()
+        .expect("the footnote's Insert citation")
+        .click();
+    harness.run_steps(3);
+    harness.key_press(egui::Key::Escape);
+    harness.run_steps(3);
+    assert!(harness.query_by_label("Search citation sources").is_none());
+    assert!(harness.query_by_label("Footnote text").is_some());
+
+    // The caret is after the citation: typing continues there.
+    harness
+        .get_by_label("Footnote text")
+        .type_text(" for more.");
+    harness.run();
+    harness.get_by_role_and_label(Role::Button, "Done").click();
+    harness.run_steps(12);
+    let saved = footnotes(&memory);
+    assert!(
+        saved.contains(r#"See <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020&quot;}]\" contenteditable=\"false\"></span> for more."#),
+        "{saved}"
+    );
+}

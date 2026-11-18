@@ -411,6 +411,7 @@ pub fn setup(ctx: &egui::Context) {
 /// [`setup`] without the system's fonts, for tests: text draws the same everywhere, and no
 /// font arriving late from the background index repaints in the middle of a test.
 pub fn setup_for_tests(ctx: &egui::Context) {
+    theme::STEADY_CURSOR.store(true, std::sync::atomic::Ordering::Relaxed);
     setup_with(ctx, false);
 }
 
@@ -1083,9 +1084,10 @@ impl ProseApp {
         starter::show(ui, &mut self.state);
         project_settings::show(ui, &mut self.state);
         labels::show(ui, &mut self.state);
+        // The footnote editor before the picker it opens, so the picker is drawn over it.
+        footnote_editor::show(ui, &mut self.state);
         citation_picker::show(ui, &mut self.state);
         sources::show(ui, &mut self.state);
-        footnote_editor::show(ui, &mut self.state);
         scrivener_import::show(ui, &mut self.state);
         if let Some(preview) = self.state.scrivener_done.take() {
             self.finish_scrivener_import(preview);

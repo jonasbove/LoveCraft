@@ -501,6 +501,12 @@ impl ProseApp {
 
     /// What the host should do for the app (file dialogs, writing exports). Take them after
     /// each frame.
+    /// Says `message` in the status line (for what the host can't do, such as a folder on the
+    /// web).
+    pub fn report(&mut self, message: &str) {
+        self.state.status = Some(message.to_owned());
+    }
+
     pub fn take_requests(&mut self) -> Vec<HostRequest> {
         std::mem::take(&mut self.state.requests)
     }
@@ -1091,8 +1097,8 @@ impl ProseApp {
         {
             self.state.book_id = Some(home.store.new_id());
         }
-        // Files dropped on the window. (The web build reads them asynchronously; that comes
-        // with the web build's file handling.)
+        // Files dropped on the window. (In the browser they are read asynchronously, so the web
+        // app reads them and hands them in as it does a chosen file.)
         #[cfg(not(target_arch = "wasm32"))]
         {
             let dropped = ui.ctx().input(|input| input.raw.dropped_files.clone());

@@ -3631,6 +3631,8 @@ name = "prosecraft-rs-web"
 version = "0.1.0"
 dependencies = [
  "eframe",
+ "js-sys",
+ "prosecraft-core",
  "prosecraft-ui-egui",
  "wasm-bindgen-futures",
  "web-sys",

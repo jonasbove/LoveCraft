@@ -244,13 +244,13 @@ fn welcome(ui: &mut Ui, palette: &Palette) {
             .color(palette.text_heading),
     );
     ui.add_space(12.0);
-    ui.label(
-        RichText::new(
-            "Create a project with Create project, or open a ProseCraft backup: drop a .prosecraft file on this window, or start prosecraft-rs with the file's path.",
-        )
-        .size(14.0)
-        .color(palette.text_body),
-    );
+    // The desktop app also opens a backup given on the command line.
+    let how = if cfg!(target_arch = "wasm32") {
+        "Create a project with Create project, or open a ProseCraft backup: drop a .prosecraft file on this page, or use Open backup."
+    } else {
+        "Create a project with Create project, or open a ProseCraft backup: drop a .prosecraft file on this window, or start prosecraft-rs with the file's path."
+    };
+    ui.label(RichText::new(how).size(14.0).color(palette.text_body));
     ui.add_space(18.0);
     ui.label(
         RichText::new(prosecraft_core::about::credit_line())

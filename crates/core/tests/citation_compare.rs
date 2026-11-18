@@ -237,8 +237,10 @@ fn citation_import_matches_prosecraft_on_generated_corpus() {
 #[test]
 #[ignore = "replay mode; see docs/citation-compare.md"]
 fn citation_import_replay() {
+    // Only when asked for, so `--ignored` runs the comparison alone.
     let Ok(spec) = std::env::var("PROSECRAFT_CITATION_REPLAY") else {
-        panic!("set PROSECRAFT_CITATION_REPLAY=in.json,out.json");
+        eprintln!("skipped: set PROSECRAFT_CITATION_REPLAY=in.json,out.json to replay cases");
+        return;
     };
     let (input, output) = spec.split_once(',').unwrap_or((&spec, "/dev/stdout"));
     let source = std::fs::read_to_string(input).unwrap_or_else(|e| panic!("{input}: {e}"));

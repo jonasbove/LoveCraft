@@ -345,16 +345,18 @@ pub(crate) enum Category {
     #[default]
     General,
     Writing,
+    Proofreading,
     Data,
 }
 
 impl Category {
-    const ALL: [Self; 3] = [Self::General, Self::Writing, Self::Data];
+    const ALL: [Self; 4] = [Self::General, Self::Writing, Self::Proofreading, Self::Data];
 
     fn label(self) -> &'static str {
         match self {
             Self::General => "General",
             Self::Writing => "Writing",
+            Self::Proofreading => "Proofreading",
             Self::Data => "Data and sync",
         }
     }
@@ -506,6 +508,68 @@ fn general(ui: &mut Ui, state: &mut AppState) {
 
 /// The Settings dialog, while open: ProseCraft's categories on the left, the chosen one's
 /// settings beside them.
+/// "Proofreading": Harper's spelling and grammar checks, and the English they expect.
+fn proofreading(ui: &mut Ui, state: &mut AppState) {
+    let palette = state.palette;
+    ui.label(
+        RichText::new("Proofreading")
+            .strong()
+            .color(palette.text_heading),
+    );
+    help(ui, &palette, "Offline spelling and grammar checking");
+    ui.add_space(6.0);
+    let mut prefs = state.proofread.clone();
+    ui.checkbox(&mut prefs.enabled, "Check spelling and grammar");
+    help(
+        ui,
+        &palette,
+        "Runs entirely on this device — your writing never leaves the app. Click an underlined passage to see suggestions.",
+    );
+    if prefs.enabled {
+        ui.add_space(6.0);
+        ui.label("English dialect");
+        let label = prosecraft_core::proofread::DIALECTS
+            .iter()
+            .find(|(id, _)| *id == prefs.dialect)
+            .map_or("American", |(_, l)| l);
+        let combo = craft_ui::ComboBox::from_id_salt("harper-dialect")
+            .selected_text(label)
+            .show_ui(ui, |ui| {
+                for (id, name) in prosecraft_core::proofread::DIALECTS {
+                    ui.selectable_value(&mut prefs.dialect, id.to_owned(), name);
+                }
+            });
+        ui.ctx().accesskit_node_builder(combo.response.id, |n| {
+            n.set_label("English dialect");
+            n.set_value(label);
+        });
+        let open = state.draft.as_ref().map(|d| d.document.as_str());
+        let status = if state.proofing.checking {
+            Some("Checking the current scene…".to_owned())
+        } else if open.is_some_and(|d| d == state.proofing.document) {
+            let n = state.proofing.lints.len();
+            Some(if n == 0 {
+                "No issues found in the current scene.".to_owned()
+            } else {
+                format!(
+                    "{n} suggestion{} in the current scene.",
+                    if n == 1 { "" } else { "s" }
+                )
+            })
+        } else {
+            None
+        };
+        if let Some(status) = status {
+            let response = ui.label(RichText::new(status).size(11.0).color(palette.text_muted));
+            ui.ctx()
+                .accesskit_node_builder(response.id, |n| n.set_role(egui::accesskit::Role::Status));
+        }
+    }
+    if prefs != state.proofread {
+        state.proofread_choice = Some(prefs);
+    }
+}
+
 /// "Wiki files": where imported files live on this device.
 fn wiki_files(ui: &mut Ui, state: &mut AppState) {
     let palette = state.palette;
@@ -611,6 +675,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                     match state.settings_tab {
                         Category::General => general(ui, state),
                         Category::Writing => writing(ui, state),
+                        Category::Proofreading => proofreading(ui, state),
                         Category::Data => {
                             egui::ScrollArea::vertical()
                                 .id_salt("settings-data")

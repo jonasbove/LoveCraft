@@ -30,6 +30,7 @@ mod markdown_import;
 mod pictures;
 mod preview;
 mod project_settings;
+mod proofreading;
 mod publish;
 mod screenplay_editor;
 mod scrivener_import;
@@ -274,6 +275,10 @@ pub struct AppState {
     wiki_settings_status: Option<String>,
     wiki_link: Option<wiki_files::LinkDraft>,
     wiki_markdown: Option<(String, String)>,
+    /// Proofreading: the settings, a change asked for in Settings, and the open scene's check.
+    proofread: proofreading::ProofreadPrefs,
+    proofread_choice: Option<proofreading::ProofreadPrefs>,
+    proofing: proofreading::Proofing,
     /// Undo and redo (ProseCraft's `UndoManager`), by text field and by page; selections are
     /// character ranges.
     undo: prosecraft_core::undo::UndoManager<(usize, usize)>,
@@ -2365,6 +2370,41 @@ impl ProseApp {
         self.passphrase_dialog(ui);
         self.handle_sync_actions();
         self.save_custom_starters();
+        if let Some(prefs) = self.state.proofread_choice.take() {
+            // `setHarperEnabled`, `setHarperDialect`.
+            if prefs.dialect != self.state.proofread.dialect || !prefs.enabled {
+                self.state.proofing.clear();
+            }
+            self.state.proofread = prefs.clone();
+            if let Some(home) = self.home.as_mut() {
+                let saved = home
+                    .store
+                    .save_setting(
+                        proofreading::ENABLED_KEY,
+                        Some(if prefs.enabled { "true" } else { "false" }),
+                    )
+                    .and_then(|()| {
+                        home.store
+                            .save_setting(proofreading::DIALECT_KEY, Some(&prefs.dialect))
+                    });
+                if let Err(error) = saved {
+                    self.state.status = Some(format!("Could not save the setting: {error}"));
+                }
+            }
+        }
+        let draft = self
+            .state
+            .draft
+            .as_ref()
+            .filter(|_| self.state.view == WorkspaceView::Write);
+        if self
+            .state
+            .proofing
+            .tick(&self.state.proofread, draft, self.state.now)
+        {
+            ui.ctx()
+                .request_repaint_after(std::time::Duration::from_millis(200));
+        }
         if let Some(writing) = self.state.writing_choice.take() {
             self.state.writing = writing;
             if let Some(home) = self.home.as_mut()

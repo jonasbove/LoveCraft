@@ -1,0 +1,740 @@
+{
+  "american": [
+    {
+      "text": "",
+      "lints": []
+    },
+    {
+      "text": "This is an test of the the proofreader. Their going to the store tomorow.",
+      "lints": [
+        {
+          "start": 8,
+          "end": 10,
+          "message": "Incorrect indefinite article.",
+          "kind": "Miscellaneous",
+          "kindPretty": "Miscellaneous",
+          "suggestions": [
+            "a"
+          ]
+        },
+        {
+          "start": 19,
+          "end": 26,
+          "message": "Did you mean to repeat this word?",
+          "kind": "Repetition",
+          "kindPretty": "Repetition",
+          "suggestions": [
+            "the"
+          ]
+        },
+        {
+          "start": 40,
+          "end": 45,
+          "message": "Did you mean `they're`?",
+          "kind": "Grammar",
+          "kindPretty": "Grammar",
+          "suggestions": [
+            "They're",
+            "They're "
+          ]
+        },
+        {
+          "start": 65,
+          "end": 72,
+          "message": "Did you mean to spell `tomorow` this way?",
+          "kind": "Spelling",
+          "kindPretty": "Spelling",
+          "suggestions": [
+            "tomorrow",
+            "tomorrows",
+            "Comoros"
+          ]
+        }
+      ]
+    },
+    {
+      "text": "The colour of the organisation's centre was grey. I realize the color is gray.",
+      "lints": [
+        {
+          "start": 4,
+          "end": 10,
+          "message": "Did you mean to spell `colour` this way?",
+          "kind": "Spelling",
+          "kindPretty": "Spelling",
+          "suggestions": [
+            "color",
+            "cloud",
+            "collar"
+          ]
+        },
+        {
+          "start": 18,
+          "end": 32,
+          "message": "Did you mean to spell `organisation's` this way?",
+          "kind": "Spelling",
+          "kindPretty": "Spelling",
+          "suggestions": [
+            "organization's",
+            "organizations"
+          ]
+        },
+        {
+          "start": 33,
+          "end": 39,
+          "message": "Did you mean to spell `centre` this way?",
+          "kind": "Spelling",
+          "kindPretty": "Spelling",
+          "suggestions": [
+            "center",
+            "cent's",
+            "censure"
+          ]
+        },
+        {
+          "start": 44,
+          "end": 48,
+          "message": "Did you mean to spell `grey` this way?",
+          "kind": "Spelling",
+          "kindPretty": "Spelling",
+          "suggestions": [
+            "gray",
+            "grew",
+            "grep"
+          ]
+        }
+      ]
+    },
+    {
+      "text": "She dont know what to do,and he said that it were fine . Its a nice day isnt it",
+      "lints": [
+        {
+          "start": 4,
+          "end": 8,
+          "message": "Did you mean to spell `dont` this way?",
+          "kind": "Spelling",
+          "kindPretty": "Spelling",
+          "suggestions": [
+            "don't",
+            "dent",
+            "don"
+          ]
+        },
+        {
+          "start": 24,
+          "end": 25,
+          "message": "Use a space after a comma.",
+          "kind": "Punctuation",
+          "kindPretty": "Punctuation",
+          "suggestions": [
+            " "
+          ]
+        },
+        {
+          "start": 54,
+          "end": 55,
+          "message": "Unnecessary space at the end of the sentence.",
+          "kind": "Formatting",
+          "kindPretty": "Formatting",
+          "suggestions": [
+            ""
+          ]
+        },
+        {
+          "start": 57,
+          "end": 60,
+          "message": "Use `it's` (short for `it has` or `it is`) here, not the possessive `its`.",
+          "kind": "Punctuation",
+          "kindPretty": "Punctuation",
+          "suggestions": [
+            "It's",
+            "It has"
+          ]
+        },
+        {
+          "start": 72,
+          "end": 76,
+          "message": "Did you mean to spell `isnt` this way?",
+          "kind": "Spelling",
+          "kindPretty": "Spelling",
+          "suggestions": [
+            "isn't",
+            "inst",
+            "int"
+          ]
+        }
+      ]
+    },
+    {
+      "text": "Hello world.\nA new paragraph starts here without a space.Another sentence follows.",
+      "lints": []
+    },
+    {
+      "text": "Mr. Smith arrived at 5 p.m. on Tuesday , and we had alot of fun.",
+      "lints": [
+        {
+          "start": 38,
+          "end": 39,
+          "message": "Don't use a space before a comma.",
+          "kind": "Punctuation",
+          "kindPretty": "Punctuation",
+          "suggestions": [
+            ""
+          ]
+        },
+        {
+          "start": 52,
+          "end": 56,
+          "message": "`a lot` should be written as two words.",
+          "kind": "BoundaryError",
+          "kindPretty": "BoundaryError",
+          "suggestions": [
+            "a lot"
+          ]
+        }
+      ]
+    },
+    {
+      "text": "The lighthouse keeper climbed the stairs. Every night, the light turned slowly over the water.",
+      "lints": []
+    }
+  ],
+  "british": [
+    {
+      "text": "",
+      "lints": []
+    },
+    {
+      "text": "This is an test of the the proofreader. Their going to the store tomorow.",
+      "lints": [
+        {
+          "start": 8,
+          "end": 10,
+          "message": "Incorrect indefinite article.",
+          "kind": "Miscellaneous",
+          "kindPretty": "Miscellaneous",
+          "suggestions": [
+            "a"
+          ]
+        },
+        {
+          "start": 19,
+          "end": 26,
+          "message": "Did you mean to repeat this word?",
+          "kind": "Repetition",
+          "kindPretty": "Repetition",
+          "suggestions": [
+            "the"
+          ]
+        },
+        {
+          "start": 40,
+          "end": 45,
+          "message": "Did you mean `they're`?",
+          "kind": "Grammar",
+          "kindPretty": "Grammar",
+          "suggestions": [
+            "They're",
+            "They're "
+          ]
+        },
+        {
+          "start": 65,
+          "end": 72,
+          "message": "Did you mean to spell `tomorow` this way?",
+          "kind": "Spelling",
+          "kindPretty": "Spelling",
+          "suggestions": [
+            "tomorrow",
+            "tomorrows",
+            "Comoros"
+          ]
+        }
+      ]
+    },
+    {
+      "text": "The colour of the organisation's centre was grey. I realize the color is gray.",
+      "lints": [
+        {
+          "start": 64,
+          "end": 69,
+          "message": "Did you mean to spell `color` this way?",
+          "kind": "Spelling",
+          "kindPretty": "Spelling",
+          "suggestions": [
+            "colour",
+            "colon",
+            "clog"
+          ]
+        },
+        {
+          "start": 73,
+          "end": 77,
+          "message": "Did you mean to spell `gray` this way?",
+          "kind": "Spelling",
+          "kindPretty": "Spelling",
+          "suggestions": [
+            "grey",
+            "gay",
+            "grab"
+          ]
+        }
+      ]
+    },
+    {
+      "text": "She dont know what to do,and he said that it were fine . Its a nice day isnt it",
+      "lints": [
+        {
+          "start": 4,
+          "end": 8,
+          "message": "Did you mean to spell `dont` this way?",
+          "kind": "Spelling",
+          "kindPretty": "Spelling",
+          "suggestions": [
+            "don't",
+            "dent",
+            "don"
+          ]
+        },
+        {
+          "start": 24,
+          "end": 25,
+          "message": "Use a space after a comma.",
+          "kind": "Punctuation",
+          "kindPretty": "Punctuation",
+          "suggestions": [
+            " "
+          ]
+        },
+        {
+          "start": 54,
+          "end": 55,
+          "message": "Unnecessary space at the end of the sentence.",
+          "kind": "Formatting",
+          "kindPretty": "Formatting",
+          "suggestions": [
+            ""
+          ]
+        },
+        {
+          "start": 57,
+          "end": 60,
+          "message": "Use `it's` (short for `it has` or `it is`) here, not the possessive `its`.",
+          "kind": "Punctuation",
+          "kindPretty": "Punctuation",
+          "suggestions": [
+            "It's",
+            "It has"
+          ]
+        },
+        {
+          "start": 72,
+          "end": 76,
+          "message": "Did you mean to spell `isnt` this way?",
+          "kind": "Spelling",
+          "kindPretty": "Spelling",
+          "suggestions": [
+            "isn't",
+            "inst",
+            "int"
+          ]
+        }
+      ]
+    },
+    {
+      "text": "Hello world.\nA new paragraph starts here without a space.Another sentence follows.",
+      "lints": []
+    },
+    {
+      "text": "Mr. Smith arrived at 5 p.m. on Tuesday , and we had alot of fun.",
+      "lints": [
+        {
+          "start": 38,
+          "end": 39,
+          "message": "Don't use a space before a comma.",
+          "kind": "Punctuation",
+          "kindPretty": "Punctuation",
+          "suggestions": [
+            ""
+          ]
+        },
+        {
+          "start": 52,
+          "end": 56,
+          "message": "`a lot` should be written as two words.",
+          "kind": "BoundaryError",
+          "kindPretty": "BoundaryError",
+          "suggestions": [
+            "a lot"
+          ]
+        }
+      ]
+    },
+    {
+      "text": "The lighthouse keeper climbed the stairs. Every night, the light turned slowly over the water.",
+      "lints": []
+    }
+  ],
+  "australian": [
+    {
+      "text": "",
+      "lints": []
+    },
+    {
+      "text": "This is an test of the the proofreader. Their going to the store tomorow.",
+      "lints": [
+        {
+          "start": 8,
+          "end": 10,
+          "message": "Incorrect indefinite article.",
+          "kind": "Miscellaneous",
+          "kindPretty": "Miscellaneous",
+          "suggestions": [
+            "a"
+          ]
+        },
+        {
+          "start": 19,
+          "end": 26,
+          "message": "Did you mean to repeat this word?",
+          "kind": "Repetition",
+          "kindPretty": "Repetition",
+          "suggestions": [
+            "the"
+          ]
+        },
+        {
+          "start": 40,
+          "end": 45,
+          "message": "Did you mean `they're`?",
+          "kind": "Grammar",
+          "kindPretty": "Grammar",
+          "suggestions": [
+            "They're",
+            "They're "
+          ]
+        },
+        {
+          "start": 65,
+          "end": 72,
+          "message": "Did you mean to spell `tomorow` this way?",
+          "kind": "Spelling",
+          "kindPretty": "Spelling",
+          "suggestions": [
+            "tomorrow",
+            "tomorrows",
+            "Comoros"
+          ]
+        }
+      ]
+    },
+    {
+      "text": "The colour of the organisation's centre was grey. I realize the color is gray.",
+      "lints": [
+        {
+          "start": 64,
+          "end": 69,
+          "message": "Did you mean to spell `color` this way?",
+          "kind": "Spelling",
+          "kindPretty": "Spelling",
+          "suggestions": [
+            "colour",
+            "colon",
+            "clog"
+          ]
+        },
+        {
+          "start": 73,
+          "end": 77,
+          "message": "Did you mean to spell `gray` this way?",
+          "kind": "Spelling",
+          "kindPretty": "Spelling",
+          "suggestions": [
+            "grey",
+            "gay",
+            "grab"
+          ]
+        }
+      ]
+    },
+    {
+      "text": "She dont know what to do,and he said that it were fine . Its a nice day isnt it",
+      "lints": [
+        {
+          "start": 4,
+          "end": 8,
+          "message": "Did you mean to spell `dont` this way?",
+          "kind": "Spelling",
+          "kindPretty": "Spelling",
+          "suggestions": [
+            "don't",
+            "dent",
+            "don"
+          ]
+        },
+        {
+          "start": 24,
+          "end": 25,
+          "message": "Use a space after a comma.",
+          "kind": "Punctuation",
+          "kindPretty": "Punctuation",
+          "suggestions": [
+            " "
+          ]
+        },
+        {
+          "start": 54,
+          "end": 55,
+          "message": "Unnecessary space at the end of the sentence.",
+          "kind": "Formatting",
+          "kindPretty": "Formatting",
+          "suggestions": [
+            ""
+          ]
+        },
+        {
+          "start": 57,
+          "end": 60,
+          "message": "Use `it's` (short for `it has` or `it is`) here, not the possessive `its`.",
+          "kind": "Punctuation",
+          "kindPretty": "Punctuation",
+          "suggestions": [
+            "It's",
+            "It has"
+          ]
+        },
+        {
+          "start": 72,
+          "end": 76,
+          "message": "Did you mean to spell `isnt` this way?",
+          "kind": "Spelling",
+          "kindPretty": "Spelling",
+          "suggestions": [
+            "isn't",
+            "inst",
+            "int"
+          ]
+        }
+      ]
+    },
+    {
+      "text": "Hello world.\nA new paragraph starts here without a space.Another sentence follows.",
+      "lints": []
+    },
+    {
+      "text": "Mr. Smith arrived at 5 p.m. on Tuesday , and we had alot of fun.",
+      "lints": [
+        {
+          "start": 38,
+          "end": 39,
+          "message": "Don't use a space before a comma.",
+          "kind": "Punctuation",
+          "kindPretty": "Punctuation",
+          "suggestions": [
+            ""
+          ]
+        },
+        {
+          "start": 52,
+          "end": 56,
+          "message": "`a lot` should be written as two words.",
+          "kind": "BoundaryError",
+          "kindPretty": "BoundaryError",
+          "suggestions": [
+            "a lot"
+          ]
+        }
+      ]
+    },
+    {
+      "text": "The lighthouse keeper climbed the stairs. Every night, the light turned slowly over the water.",
+      "lints": []
+    }
+  ],
+  "canadian": [
+    {
+      "text": "",
+      "lints": []
+    },
+    {
+      "text": "This is an test of the the proofreader. Their going to the store tomorow.",
+      "lints": [
+        {
+          "start": 8,
+          "end": 10,
+          "message": "Incorrect indefinite article.",
+          "kind": "Miscellaneous",
+          "kindPretty": "Miscellaneous",
+          "suggestions": [
+            "a"
+          ]
+        },
+        {
+          "start": 19,
+          "end": 26,
+          "message": "Did you mean to repeat this word?",
+          "kind": "Repetition",
+          "kindPretty": "Repetition",
+          "suggestions": [
+            "the"
+          ]
+        },
+        {
+          "start": 40,
+          "end": 45,
+          "message": "Did you mean `they're`?",
+          "kind": "Grammar",
+          "kindPretty": "Grammar",
+          "suggestions": [
+            "They're",
+            "They're "
+          ]
+        },
+        {
+          "start": 65,
+          "end": 72,
+          "message": "Did you mean to spell `tomorow` this way?",
+          "kind": "Spelling",
+          "kindPretty": "Spelling",
+          "suggestions": [
+            "tomorrow",
+            "tomorrows",
+            "Comoros"
+          ]
+        }
+      ]
+    },
+    {
+      "text": "The colour of the organisation's centre was grey. I realize the color is gray.",
+      "lints": [
+        {
+          "start": 18,
+          "end": 32,
+          "message": "Did you mean to spell `organisation's` this way?",
+          "kind": "Spelling",
+          "kindPretty": "Spelling",
+          "suggestions": [
+            "organization's",
+            "organizations"
+          ]
+        },
+        {
+          "start": 64,
+          "end": 69,
+          "message": "Did you mean to spell `color` this way?",
+          "kind": "Spelling",
+          "kindPretty": "Spelling",
+          "suggestions": [
+            "colour",
+            "colon",
+            "clog"
+          ]
+        },
+        {
+          "start": 73,
+          "end": 77,
+          "message": "Did you mean to spell `gray` this way?",
+          "kind": "Spelling",
+          "kindPretty": "Spelling",
+          "suggestions": [
+            "grey",
+            "gay",
+            "grab"
+          ]
+        }
+      ]
+    },
+    {
+      "text": "She dont know what to do,and he said that it were fine . Its a nice day isnt it",
+      "lints": [
+        {
+          "start": 4,
+          "end": 8,
+          "message": "Did you mean to spell `dont` this way?",
+          "kind": "Spelling",
+          "kindPretty": "Spelling",
+          "suggestions": [
+            "don't",
+            "dent",
+            "don"
+          ]
+        },
+        {
+          "start": 24,
+          "end": 25,
+          "message": "Use a space after a comma.",
+          "kind": "Punctuation",
+          "kindPretty": "Punctuation",
+          "suggestions": [
+            " "
+          ]
+        },
+        {
+          "start": 54,
+          "end": 55,
+          "message": "Unnecessary space at the end of the sentence.",
+          "kind": "Formatting",
+          "kindPretty": "Formatting",
+          "suggestions": [
+            ""
+          ]
+        },
+        {
+          "start": 57,
+          "end": 60,
+          "message": "Use `it's` (short for `it has` or `it is`) here, not the possessive `its`.",
+          "kind": "Punctuation",
+          "kindPretty": "Punctuation",
+          "suggestions": [
+            "It's",
+            "It has"
+          ]
+        },
+        {
+          "start": 72,
+          "end": 76,
+          "message": "Did you mean to spell `isnt` this way?",
+          "kind": "Spelling",
+          "kindPretty": "Spelling",
+          "suggestions": [
+            "isn't",
+            "inst",
+            "int"
+          ]
+        }
+      ]
+    },
+    {
+      "text": "Hello world.\nA new paragraph starts here without a space.Another sentence follows.",
+      "lints": []
+    },
+    {
+      "text": "Mr. Smith arrived at 5 p.m. on Tuesday , and we had alot of fun.",
+      "lints": [
+        {
+          "start": 38,
+          "end": 39,
+          "message": "Don't use a space before a comma.",
+          "kind": "Punctuation",
+          "kindPretty": "Punctuation",
+          "suggestions": [
+            ""
+          ]
+        },
+        {
+          "start": 52,
+          "end": 56,
+          "message": "`a lot` should be written as two words.",
+          "kind": "BoundaryError",
+          "kindPretty": "BoundaryError",
+          "suggestions": [
+            "a lot"
+          ]
+        }
+      ]
+    },
+    {
+      "text": "The lighthouse keeper climbed the stairs. Every night, the light turned slowly over the water.",
+      "lints": []
+    }
+  ]
+}

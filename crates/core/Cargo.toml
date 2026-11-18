@@ -34,6 +34,8 @@ unicode-normalization = { workspace = true }
 zeroize = { workspace = true }
 # Formatting dates (no clock: callers pass the time).
 chrono = { workspace = true }
+# Spelling and grammar (ProseCraft's proofreading).
+harper-core = { workspace = true }
 
 # The operating system's random numbers on the desktop. The web build supplies the browser's
 # `crypto.getRandomValues` through `RandomSource` instead.

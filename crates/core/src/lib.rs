@@ -26,6 +26,7 @@ pub mod library;
 pub mod markdown;
 pub mod picture;
 pub mod project;
+pub mod proofread;
 pub mod publish;
 pub mod research;
 pub mod richtext;

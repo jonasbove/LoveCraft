@@ -882,6 +882,55 @@ impl RichDoc {
         CommentMap { text, offsets }
     }
 
+    /// What proofreading checks (`extractProofreadText`): the editor's text nodes in order,
+    /// without links, code and atoms (equations, diagrams, calculations, footnotes, citations,
+    /// pictures and the other blocks). Each checked character's editor character, or `None`
+    /// for a structural newline between blocks.
+    pub fn proofread_map(&self) -> (Vec<char>, Vec<Option<usize>>) {
+        let mut spans = Vec::new();
+        let html = self.write_html(&mut spans);
+        let chars: Vec<char> = self.text.chars().collect();
+        let mut text = Vec::new();
+        let mut at = Vec::new();
+        let mut written = 0;
+        let newlines = |text: &mut Vec<char>, at: &mut Vec<Option<usize>>, html: &str| {
+            for _ in 0..structural_newlines(html) {
+                text.push('\n');
+                at.push(None);
+            }
+        };
+        for (i, c) in chars.iter().enumerate() {
+            let span = spans.get(i).cloned().unwrap_or(0..0);
+            if *c == '\n' || span.is_empty() {
+                continue;
+            }
+            newlines(
+                &mut text,
+                &mut at,
+                html.get(written..span.start).unwrap_or_default(),
+            );
+            written = span.end;
+            let skipped = self
+                .marks
+                .get(i)
+                .is_some_and(|tags| tags.iter().any(|t| t.name == "a" || t.name == "code"));
+            match *c {
+                ATOM | HARD_BREAK => {}
+                _ if skipped => {}
+                SOFT_BREAK => {
+                    text.push('\n');
+                    at.push(Some(i));
+                }
+                c => {
+                    text.push(c);
+                    at.push(Some(i));
+                }
+            }
+        }
+        newlines(&mut text, &mut at, html.get(written..).unwrap_or_default());
+        (text, at)
+    }
+
     fn line_of(&self, char_index: usize) -> usize {
         self.text
             .chars()

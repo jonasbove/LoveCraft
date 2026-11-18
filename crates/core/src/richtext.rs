@@ -1183,6 +1183,76 @@ impl RichDoc {
         self.text.clone()
     }
 
+    /// Puts a block (a block equation, a diagram, a calculation) where the caret is, as
+    /// ProseCraft's `insertRichPlaceholder` does: an empty line becomes the block; otherwise the
+    /// block goes after the line. An empty paragraph follows it, and the caret goes there.
+    /// Returns the new text and the caret.
+    pub fn insert_block(&mut self, index: usize, html: &str) -> (String, usize) {
+        let ranges = self.line_ranges();
+        let line = ranges
+            .iter()
+            .position(|(start, end)| *start <= index && index <= *end)
+            .unwrap_or(ranges.len().saturating_sub(1));
+        let (start, end) = ranges.get(line).copied().unwrap_or((0, 0));
+        let empty = start == end;
+        let mut chars: Vec<char> = self.text.chars().collect();
+        let at = if empty { start } else { end };
+        let atoms_before = chars[..at].iter().filter(|c| **c == ATOM).count();
+        let (inserted, caret): (Vec<char>, usize) = if empty {
+            (vec![ATOM, '\n'], start + 2)
+        } else {
+            (vec!['\n', ATOM, '\n'], end + 3)
+        };
+        let count = inserted.len();
+        chars.splice(at..at, inserted);
+        self.text = chars.into_iter().collect();
+        for _ in 0..count {
+            self.marks.insert(at.min(self.marks.len()), Vec::new());
+        }
+        if self.lines.is_empty() {
+            self.lines.push(LineKind::Paragraph);
+        }
+        if empty {
+            self.lines[line] = LineKind::Block;
+            self.lines.insert(line + 1, LineKind::Paragraph);
+        } else {
+            self.lines.insert(line + 1, LineKind::Block);
+            self.lines.insert(line + 2, LineKind::Paragraph);
+        }
+        self.atoms
+            .insert(atoms_before.min(self.atoms.len()), html.to_owned());
+        self.empty_source = false;
+        self.keep_blocks_alone();
+        (self.text.clone(), caret)
+    }
+
+    /// Replaces atom `index`'s HTML (an edited equation, diagram or calculation); a block that
+    /// became inline, or the other way round, moves to or from a line of its own.
+    pub fn replace_atom(&mut self, index: usize, html: &str) -> String {
+        if let Some(atom) = self.atoms.get_mut(index) {
+            *atom = html.to_owned();
+        }
+        self.keep_blocks_alone();
+        self.text.clone()
+    }
+
+    /// Removes atom `index` (`removeRichTarget`); returns the new text and where it was.
+    pub fn remove_atom(&mut self, index: usize) -> (String, Option<usize>) {
+        let chars: Vec<char> = self.text.chars().collect();
+        let Some(at) = chars
+            .iter()
+            .enumerate()
+            .filter(|(_, c)| **c == ATOM)
+            .nth(index)
+            .map(|(i, _)| i)
+        else {
+            return (self.text.clone(), None);
+        };
+        let text: String = chars[..at].iter().chain(&chars[at + 1..]).collect();
+        let kept = self.apply_text_at(&text, Some(at));
+        (kept, Some(at))
+    }
+
     /// Puts a picture (its `<img>`) at character `index` as ProseCraft's `insertRichTextImage`
     /// does: the image, then a `<br>`; on an empty line the browser keeps the line's own `<br>`
     /// after them. Returns the new text and the character after the break.
@@ -1372,6 +1442,34 @@ impl RichDoc {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn blocks_are_inserted_as_insert_rich_placeholder_puts_them() {
+        let block = r#"<div class="math-block" data-tex="E = mc^2"></div>"#;
+        // On an empty line: the line becomes the block, an empty paragraph follows.
+        let mut doc = RichDoc::from_html("<p>One</p><p><br></p><p>Two</p>").expect("doc");
+        let (_, caret) = doc.insert_block(4, block);
+        assert_eq!(
+            doc.to_html(),
+            format!("<p>One</p>{block}<p><br></p><p>Two</p>")
+        );
+        assert_eq!(caret, 6);
+        // In a line with text: after the line, then an empty paragraph.
+        let mut doc = RichDoc::from_html("<p>One</p><p>Two</p>").expect("doc");
+        let (_, caret) = doc.insert_block(1, block);
+        assert_eq!(
+            doc.to_html(),
+            format!("<p>One</p>{block}<p><br></p><p>Two</p>")
+        );
+        assert_eq!(doc.text.chars().nth(caret - 1), Some('\n'));
+        // Edited, then removed.
+        let edited = r#"<div class="math-block" data-tex="a^2"></div>"#;
+        doc.replace_atom(0, edited);
+        assert!(doc.to_html().contains(edited));
+        let (_, at) = doc.remove_atom(0);
+        assert_eq!(at, Some(4));
+        assert!(!doc.to_html().contains("math-block"));
+    }
     use super::{ATOM, HARD_BREAK, LineKind, Mark, RichDoc};
 
     #[test]

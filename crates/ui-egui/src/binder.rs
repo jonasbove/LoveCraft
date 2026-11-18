@@ -246,6 +246,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                 state.editable,
                 &mut state.intents,
                 &mut manage_labels,
+                &mut state.renaming_scene,
             );
             if manage_labels {
                 state.labels_dialog = Some(crate::labels::LabelsDraft::for_project(project));
@@ -273,6 +274,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn chapters(
     ui: &mut Ui,
     palette: &Palette,
@@ -281,6 +283,7 @@ fn chapters(
     editable: bool,
     intents: &mut Vec<Intent>,
     manage_labels: &mut bool,
+    renaming: &mut Option<(String, String)>,
 ) -> Option<Selection> {
     let mut chosen = None;
     ui.horizontal(|ui| {
@@ -353,6 +356,32 @@ fn chapters(
                 scene.title.as_str()
             };
             indent(ui, 1, |ui| {
+                if let Some((id, draft)) = renaming.as_mut().filter(|(id, _)| *id == scene.id) {
+                    // `saveSceneRename`: Enter or leaving saves a title that isn't blank;
+                    // Escape cancels.
+                    let field = ui.add(
+                        egui::TextEdit::singleline(draft)
+                            .char_limit(120)
+                            .desired_width(180.0),
+                    );
+                    crate::views::name_field(ui, &field, &format!("Rename {title}"));
+                    if !field.has_focus() && !field.lost_focus() {
+                        field.request_focus();
+                    }
+                    if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+                        *renaming = None;
+                    } else if field.lost_focus() {
+                        let next = draft.trim();
+                        if !next.is_empty() {
+                            intents.push(Intent::SetDocumentTitle {
+                                document: id.clone(),
+                                title: next.to_owned(),
+                            });
+                        }
+                        *renaming = None;
+                    }
+                    return;
+                }
                 let row = tree_row(ui, palette, title, 2, selected);
                 label_dot(ui, palette, project, scene.label_id.as_deref());
                 if row.clicked() {
@@ -360,6 +389,11 @@ fn chapters(
                 }
                 if editable {
                     row_menu(ui, &row, &format!("Actions for {title}"), |ui| {
+                        if ui.button("Rename scene").clicked() {
+                            *renaming = Some((scene.id.clone(), title.to_owned()));
+                            ui.close();
+                        }
+                        ui.separator();
                         label_choices(
                             ui,
                             palette,

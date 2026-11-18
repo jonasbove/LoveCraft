@@ -2476,3 +2476,82 @@ fn a_footnote_cites_a_source() {
         "{saved}"
     );
 }
+
+#[test]
+fn a_scene_is_written_among_the_other_scenes_of_its_chapter() {
+    let (mut harness, memory) = app();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    // ProseCraft's chapter view: the title is the chapter's, and the chapter's other scene
+    // shows below the open one.
+    let title = harness.get_by_label("Chapter title");
+    assert_eq!(
+        title.accesskit_node().value().as_deref(),
+        Some("Chapter One")
+    );
+    assert!(harness.query_by_label("Scene title").is_none());
+    assert_eq!(harness.query_all_by_label("Scene text").count(), 1);
+    // A click in the other scene opens it there.
+    harness
+        .get_by_label("Scene INT. LIGHTHOUSE - NIGHT")
+        .click();
+    harness.run();
+    assert!(
+        harness
+            .query_by_label("Scene INT. LIGHTHOUSE - NIGHT")
+            .is_none()
+    );
+    harness.get_by_label("Scene Opening Scene");
+    harness.get_by_label("Element type");
+    // Typing goes to the scene now open; the first keeps its text.
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::End);
+    harness.get_by_label("Scene text").type_text(" Rain.");
+    harness.run_steps(12);
+    let saved = memory.last();
+    let stored = project(&saved, "project-1");
+    let text = |id: &str| {
+        document(stored, id)
+            .and_then(|d| d.get("content"))
+            .and_then(JsValue::as_js_string)
+            .map(|c| c.to_string_lossy())
+            .unwrap_or_default()
+    };
+    assert!(text("doc-3").contains("RAIN."), "{}", text("doc-3"));
+    assert!(!text("doc-1").to_uppercase().contains("RAIN."));
+}
+
+#[test]
+fn a_scene_is_renamed_from_the_binder() {
+    let (mut harness, memory) = app();
+    harness
+        .get_by_role_and_label(Role::Button, "Actions for Opening Scene")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Rename scene")
+        .click();
+    harness.run();
+    let field = harness.get_by_label("Rename Opening Scene");
+    field.focus();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    harness
+        .get_by_label("Rename Opening Scene")
+        .type_text("  Dawn  ");
+    harness.key_press(egui::Key::Enter);
+    harness.run_steps(12);
+    harness.get_by_role_and_label(Role::TreeItem, "Dawn");
+    let saved = memory.last();
+    let scene = document(project(&saved, "project-1"), "doc-1").expect("scene");
+    assert_eq!(
+        scene
+            .get("title")
+            .and_then(JsValue::as_js_string)
+            .map(|t| t.to_string_lossy())
+            .as_deref(),
+        Some("Dawn")
+    );
+}

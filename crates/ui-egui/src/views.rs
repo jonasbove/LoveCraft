@@ -100,6 +100,10 @@ struct Edit<'a> {
     cites: CiteStyle<'a>,
     /// The citation picker (opened from the toolbar, Ctrl+Alt+C, or a citation).
     citation_picker: &'a mut Option<crate::citation_picker::CitationPicker>,
+    /// What divides scenes in the chapter view (the publish settings' scene separator).
+    separator: prosecraft_core::publish::SceneSeparator,
+    /// Another scene of the chapter clicked into: open it in the editor.
+    open: Option<Selection>,
 }
 
 pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
@@ -180,6 +184,12 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         crate::publish::show(ui, &palette, &entry.stored, project, &mut edit);
         return;
     }
+    let options = prosecraft_core::publish::PublishOptions::read(
+        entry
+            .stored
+            .get("project")
+            .and_then(|p| p.get("publishOptions")),
+    );
     let mut edit = Edit {
         editable: *editable,
         draft,
@@ -197,20 +207,14 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         markdown_forced,
         sources,
         citation_picker,
-        cites: {
-            let options = prosecraft_core::publish::PublishOptions::read(
-                entry
-                    .stored
-                    .get("project")
-                    .and_then(|p| p.get("publishOptions")),
-            );
-            CiteStyle {
-                items: &project.citations,
-                style: options.citation_style,
-                locale: options.citation_locale,
-                cache: cite_labels,
-            }
+        cites: CiteStyle {
+            items: &project.citations,
+            style: options.citation_style,
+            locale: options.citation_locale,
+            cache: cite_labels,
         },
+        separator: options.scene_separator,
+        open: None,
     };
     let mut chosen = None;
     egui::ScrollArea::vertical()
@@ -226,7 +230,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                 WorkspaceView::Publish => {}
             });
         });
-    if let Some(selection) = chosen {
+    if let Some(selection) = chosen.or(edit.open.take()) {
         state.select(selection);
     }
 }
@@ -447,7 +451,8 @@ fn write(
                 }
                 match RichDoc::from_html(&document.content).filter(|_| edit.editable) {
                     Some(doc) => {
-                        editor(ui, palette, document, doc, screenplay, edit);
+                        let chapter = chapter_view(project, document);
+                        editor(ui, palette, document, doc, screenplay, chapter, edit);
                     }
                     None => {
                         ui.label(
@@ -485,38 +490,13 @@ fn write(
             eyebrow(ui, palette, "Chapter");
             let label = label_of(project, id);
             if edit.editable {
-                // The chapter's title, kept when the field is left. An automatically numbered
-                // chapter shows its number until it is given a name of its own.
-                let key = ui.scope_id().with(("chapter-title", id));
                 let stored = project
                     .chapters
                     .iter()
                     .find(|c| &c.id == id)
                     .map(|c| c.title.clone())
                     .unwrap_or_default();
-                let mut title = ui
-                    .data_mut(|d| d.get_temp::<String>(key))
-                    .unwrap_or_else(|| label.clone());
-                let response = ui.add(
-                    egui::TextEdit::singleline(&mut title)
-                        .font(fonts::serif(38.0))
-                        .text_color(palette.text_heading)
-                        .frame(egui::Frame::NONE)
-                        .desired_width(f32::INFINITY),
-                );
-                name_field(ui, &response, "Chapter title");
-                if response.changed() {
-                    ui.data_mut(|d| d.insert_temp(key, title.clone()));
-                }
-                if response.lost_focus() {
-                    ui.data_mut(|d| d.remove::<String>(key));
-                    if title != label && title != stored {
-                        edit.intents.push(Intent::SetChapterTitle {
-                            chapter: id.clone(),
-                            title,
-                        });
-                    }
-                }
+                chapter_title(ui, palette, id, &label, &stored, edit.intents);
                 ui.horizontal(|ui| {
                     if ui.button("Add scene").clicked() {
                         edit.intents.push(Intent::AddScene {
@@ -565,6 +545,193 @@ fn write(
                 .color(palette.text_muted);
             ui.label(hint);
         }
+    }
+}
+
+/// The chapter's title, kept when the field is left. An automatically numbered chapter shows
+/// its number until it is given a name of its own.
+fn chapter_title(
+    ui: &mut Ui,
+    palette: &Palette,
+    id: &str,
+    label: &str,
+    stored: &str,
+    intents: &mut Vec<Intent>,
+) {
+    let key = egui::Id::unique(("chapter-title", id));
+    let mut title = ui
+        .data_mut(|d| d.get_temp::<String>(key))
+        .unwrap_or_else(|| label.to_owned());
+    let response = ui.add(
+        egui::TextEdit::singleline(&mut title)
+            .font(fonts::serif(38.0))
+            .text_color(palette.text_heading)
+            .frame(egui::Frame::NONE)
+            .desired_width(f32::INFINITY),
+    );
+    name_field(ui, &response, "Chapter title");
+    if response.changed() {
+        ui.data_mut(|d| d.insert_temp(key, title.clone()));
+    }
+    if response.lost_focus() {
+        ui.data_mut(|d| d.remove::<String>(key));
+        if title != label && title != stored {
+            intents.push(Intent::SetChapterTitle {
+                chapter: id.to_owned(),
+                title,
+            });
+        }
+    }
+}
+
+/// ProseCraft's chapter view: a scene of a chapter is written among the chapter's other
+/// scenes, which show above and below it with a scene divider between each.
+struct ChapterView<'p> {
+    id: String,
+    label: String,
+    title: String,
+    before: Vec<&'p prosecraft_core::project::Document>,
+    after: Vec<&'p prosecraft_core::project::Document>,
+    /// The other scenes are screenplay scenes (a screenplay project).
+    screenplay_project: bool,
+    /// The words of the other scenes.
+    words: usize,
+}
+
+/// The chapter view for `document`, when it is a live scene of a live chapter.
+fn chapter_view<'p>(
+    project: &'p Project,
+    document: &'p prosecraft_core::project::Document,
+) -> Option<ChapterView<'p>> {
+    let id = document
+        .chapter_id
+        .as_deref()
+        .filter(|_| !document.is_wiki())?;
+    let chapter = project.live_chapters().find(|c| c.id == id)?;
+    let scenes: Vec<_> = project.scenes_in_chapter(id).collect();
+    let at = scenes.iter().position(|s| s.id == document.id)?;
+    let words = scenes
+        .iter()
+        .filter(|s| s.id != document.id)
+        .map(|s| s.word_count())
+        .sum();
+    Some(ChapterView {
+        id: id.to_owned(),
+        label: label_of(project, id),
+        title: chapter.title.clone(),
+        before: scenes[..at].to_vec(),
+        after: scenes[at + 1..].to_vec(),
+        screenplay_project: project.kind == prosecraft_core::project::ProjectKind::Screenplay,
+        words,
+    })
+}
+
+/// The editor's text field for a scene (also where a click in the chapter view puts the caret).
+fn body_id(document: &str) -> egui::Id {
+    egui::Id::unique(("scene-body", document))
+}
+
+/// A scene divider, as `sceneBreakHtml` shows it for the publish separator.
+fn scene_divider(
+    ui: &mut Ui,
+    palette: &Palette,
+    separator: prosecraft_core::publish::SceneSeparator,
+) {
+    use prosecraft_core::publish::SceneSeparator;
+    ui.add_space(14.0);
+    match separator {
+        SceneSeparator::Line => {
+            let width = ui.available_width();
+            let (rect, _) = ui.allocate_exact_size(egui::vec2(width, 12.0), egui::Sense::hover());
+            let middle = rect.center();
+            ui.painter().hline(
+                (middle.x - 48.0)..=(middle.x + 48.0),
+                middle.y,
+                egui::Stroke::new(1.0, palette.border_control),
+            );
+        }
+        SceneSeparator::Blank | SceneSeparator::None => {
+            ui.add_space(12.0);
+        }
+        _ => {
+            ui.vertical_centered(|ui| {
+                ui.label(
+                    RichText::new(prosecraft_core::chapter::scene_break_glyph(separator))
+                        .font(fonts::serif(17.0))
+                        .color(palette.text_muted),
+                );
+            });
+        }
+    }
+    ui.add_space(14.0);
+}
+
+/// Another scene of the open chapter, drawn as the editor draws it. A click opens it in the
+/// editor with the caret where the click was.
+fn chapter_scene(
+    ui: &mut Ui,
+    palette: &Palette,
+    scene: &prosecraft_core::project::Document,
+    screenplay: bool,
+    cites: &CiteStyle<'_>,
+    open: &mut Option<Selection>,
+) {
+    let title = if scene.title.is_empty() {
+        "Untitled scene"
+    } else {
+        scene.title.as_str()
+    };
+    let Some(doc) = RichDoc::from_html(&scene.content) else {
+        // Content the rich editor can't hold: its text, read-only until the scene is opened.
+        let response = ui
+            .scope(|ui| manuscript(ui, palette, &plain(&scene.content)))
+            .response
+            .interact(egui::Sense::click());
+        name_field(ui, &response, &format!("Scene {title}"));
+        if response.clicked() {
+            *open = Some(Selection::Document(scene.id.clone()));
+        }
+        return;
+    };
+    // Where the editor's own text starts, so the chapter reads as one column.
+    let left = 0.0;
+    let width = ui.available_width();
+    let wrap = (width - left).max(1.0);
+    let labels = atom_labels(&doc, cites);
+    let galley = if screenplay {
+        crate::screenplay_editor::galley(ui, &doc, &doc.text, palette, wrap)
+    } else {
+        ui.fonts_mut(|f| {
+            let spacing = atom_sizes(f, &labels);
+            f.layout_job(layout_doc(&doc, &doc.text, palette, wrap, &spacing))
+        })
+    };
+    let (rect, response) = ui.allocate_exact_size(
+        egui::vec2(width, galley.size().y.max(24.0)),
+        egui::Sense::click(),
+    );
+    let origin = rect.min + egui::vec2(left, 0.0);
+    ui.painter()
+        .galley(origin, galley.clone(), palette.text_body);
+    paint_extras(ui, palette, &doc, &labels, &galley, origin, rect);
+    name_field(ui, &response, &format!("Scene {title}"));
+    if response.hovered() {
+        ui.ctx().set_cursor_icon(egui::CursorIcon::Text);
+    }
+    if response.clicked() {
+        let at = response
+            .interact_pointer_pos()
+            .map_or(0, |pos| galley.cursor_from_pos(pos - origin).index.0);
+        let id = body_id(&scene.id);
+        let mut state = egui::TextEdit::load_state(ui.ctx(), id).unwrap_or_default();
+        state
+            .cursor
+            .set_char_range(Some(egui::text::CCursorRange::one(
+                egui::text::CCursor::new(at),
+            )));
+        state.store(ui.ctx(), id);
+        ui.memory_mut(|m| m.request_focus(id));
+        *open = Some(Selection::Document(scene.id.clone()));
     }
 }
 
@@ -790,6 +957,7 @@ fn editor(
     document: &prosecraft_core::project::Document,
     doc: RichDoc,
     screenplay: bool,
+    chapter: Option<ChapterView<'_>>,
     edit: &mut Edit<'_>,
 ) {
     // A new draft when another document opens, or when the stored one changed underneath an
@@ -819,22 +987,34 @@ fn editor(
     let Some(draft) = edit.draft.as_mut() else {
         return;
     };
-    let title = ui.add(
-        egui::TextEdit::singleline(&mut draft.title)
-            .font(fonts::serif(38.0))
-            .text_color(palette.text_heading)
-            .frame(egui::Frame::NONE)
-            .hint_text("Untitled scene")
-            .desired_width(f32::INFINITY),
-    );
-    name_field(ui, &title, "Scene title");
-    if title.changed() {
-        draft.title_dirty = true;
-        draft.changed_at = now;
+    // In the chapter view the title is the chapter's (scenes are renamed in the binder).
+    if let Some(chapter) = &chapter {
+        chapter_title(
+            ui,
+            palette,
+            &chapter.id,
+            &chapter.label,
+            &chapter.title,
+            edit.intents,
+        );
+    } else {
+        let title = ui.add(
+            egui::TextEdit::singleline(&mut draft.title)
+                .font(fonts::serif(38.0))
+                .text_color(palette.text_heading)
+                .frame(egui::Frame::NONE)
+                .hint_text("Untitled scene")
+                .desired_width(f32::INFINITY),
+        );
+        name_field(ui, &title, "Scene title");
+        if title.changed() {
+            draft.title_dirty = true;
+            draft.changed_at = now;
+        }
     }
     ui.add_space(10.0);
 
-    let body_id = ui.make_persistent_id(("scene-body", &document.id));
+    let body_id = body_id(&document.id);
     let selection = egui::TextEdit::load_state(ui.ctx(), body_id)
         .and_then(|s| s.cursor.char_range())
         .map(|r| {
@@ -1062,6 +1242,13 @@ fn editor(
         state.store(ui.ctx(), body_id);
         ui.memory_mut(|m| m.request_focus(body_id));
     }
+    if let Some(chapter) = &chapter {
+        for scene in &chapter.before {
+            let screenplay = scene.screenplay || chapter.screenplay_project;
+            chapter_scene(ui, palette, scene, screenplay, &edit.cites, &mut edit.open);
+            scene_divider(ui, palette, edit.separator);
+        }
+    }
     let doc_for_layout = draft.doc.clone();
     let layout_labels = atom_labels(&draft.doc, &edit.cites);
     let layout_palette = *palette;
@@ -1092,7 +1279,7 @@ fn editor(
         .frame(egui::Frame::NONE)
         .hint_text("Start writing…")
         .desired_width(f32::INFINITY)
-        .desired_rows(12)
+        .desired_rows(if chapter.is_some() { 1 } else { 12 })
         .layouter(&mut layouter)
         // In a screenplay, Tab walks the element cycle instead of leaving the text.
         .lock_focus(screenplay)
@@ -1121,7 +1308,15 @@ fn editor(
         draft.words = words;
     }
     let labels = atom_labels(&draft.doc, &edit.cites);
-    let markers = paint_extras(ui, palette, &draft.doc, &labels, &output);
+    let markers = paint_extras(
+        ui,
+        palette,
+        &draft.doc,
+        &labels,
+        &output.galley,
+        output.galley_pos,
+        output.text_clip_rect,
+    );
     // A click on a footnote marker opens its editor (`openFootnotePopoverForMarker`); on a
     // citation, the picker to change it (`openCitationPickerForMarker`).
     if output.response.clicked()
@@ -1168,7 +1363,15 @@ fn editor(
             .translate(output.galley_pos.to_vec2());
         picker.pos = Some(caret.left_bottom() + egui::vec2(0.0, 6.0));
     }
-    let count = draft.words;
+    let mut count = draft.words;
+    if let Some(chapter) = &chapter {
+        for scene in &chapter.after {
+            scene_divider(ui, palette, edit.separator);
+            let screenplay = scene.screenplay || chapter.screenplay_project;
+            chapter_scene(ui, palette, scene, screenplay, &edit.cites, &mut edit.open);
+        }
+        count += chapter.words;
+    }
     footer(ui, palette, count, &save_text(edit.save_state));
 }
 
@@ -1335,12 +1538,12 @@ fn paint_extras(
     palette: &Palette,
     doc: &RichDoc,
     labels: &[AtomLabel],
-    output: &egui::text_edit::TextEditOutput,
+    galley: &egui::Galley,
+    origin: egui::Pos2,
+    clip: egui::Rect,
 ) -> Vec<(egui::Rect, Clicked)> {
     let mut markers = Vec::new();
-    let painter = ui.painter_at(output.text_clip_rect.expand2(egui::vec2(30.0, 0.0)));
-    let galley = &output.galley;
-    let origin = output.galley_pos;
+    let painter = ui.painter_at(clip.expand2(egui::vec2(30.0, 0.0)));
     let mut number = 0;
     let mut previous = None;
     for (line, (start, _end)) in doc.line_ranges().into_iter().enumerate() {
@@ -1380,7 +1583,7 @@ fn paint_extras(
         }
         previous = Some(kind);
     }
-    markers.extend(paint_atoms(&painter, palette, doc, labels, output));
+    markers.extend(paint_atoms(&painter, palette, doc, labels, galley, origin));
     markers
 }
 
@@ -1391,11 +1594,10 @@ pub(crate) fn paint_atoms(
     palette: &Palette,
     doc: &RichDoc,
     labels: &[AtomLabel],
-    output: &egui::text_edit::TextEditOutput,
+    galley: &egui::Galley,
+    origin: egui::Pos2,
 ) -> Vec<(egui::Rect, Clicked)> {
     let mut markers = Vec::new();
-    let galley = &output.galley;
-    let origin = output.galley_pos;
     let atoms = doc
         .text
         .chars()

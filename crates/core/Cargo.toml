@@ -31,6 +31,7 @@ argon2 = { workspace = true }
 chacha20poly1305 = { workspace = true }
 base64 = { workspace = true }
 unicode-normalization = { workspace = true }
+unicode-properties = { workspace = true }
 zeroize = { workspace = true }
 # Formatting dates (no clock: callers pass the time).
 chrono = { workspace = true }

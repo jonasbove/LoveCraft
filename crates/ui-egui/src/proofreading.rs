@@ -254,32 +254,14 @@ pub fn paint(
     let color = egui::Color32::from_rgba_unmultiplied(0xb4, 0x23, 0x18, 190);
     let painter = ui.painter().with_clip_rect(clip);
     for shown in lints {
-        let start = galley.pos_from_cursor(egui::text::CCursor::new(shown.range.start));
-        let end = galley.pos_from_cursor(egui::text::CCursor::new(shown.range.end));
-        for row in &galley.rows {
-            let top = row.rect().top();
-            if top + 0.5 < start.top() || top > end.top() + 0.5 {
-                continue;
-            }
-            let left = if (top - start.top()).abs() < 0.5 {
-                start.left()
-            } else {
-                row.rect().left()
-            };
-            let right = if (top - end.top()).abs() < 0.5 {
-                end.left()
-            } else {
-                row.rect().right()
-            };
-            if right > left {
-                wave(
-                    &painter,
-                    origin.x + left,
-                    origin.x + right,
-                    origin.y + row.rect().bottom() - 1.0,
-                    color,
-                );
-            }
+        for rect in crate::text_marks::row_rects(galley, &shown.range) {
+            wave(
+                &painter,
+                origin.x + rect.left(),
+                origin.x + rect.right(),
+                origin.y + rect.bottom() - 1.0,
+                color,
+            );
         }
     }
 }

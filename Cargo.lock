@@ -3650,6 +3650,8 @@ dependencies = [
  "egui",
  "egui_kittest",
  "prosecraft-core",
+ "skrifa",
+ "vello_cpu",
 ]
 
 [[package]]

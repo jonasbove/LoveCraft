@@ -10,6 +10,7 @@
 mod citations;
 mod compile;
 pub mod cover;
+pub mod cover_art;
 mod docx;
 mod embedded_image;
 mod epub;

@@ -1282,6 +1282,41 @@ fn markdown_exports_from_the_publish_view() {
 }
 
 #[test]
+fn a_generated_cover_is_shown_and_exported() {
+    let (mut harness, _memory) = app();
+    harness.get_by_role_and_label(Role::Tab, "Publish").click();
+    harness.run();
+    harness.get_by_label("Cover: Generated").scroll_to_me();
+    harness.run();
+    harness.get_by_label("Cover: Generated").click_accesskit();
+    harness.run_steps(12);
+    harness.get_by_label("Generated cover preview");
+    for (role, name) in [
+        (Role::RadioButton, "HTML (html)"),
+        (Role::Button, "Export HTML"),
+    ] {
+        harness.get_by_role_and_label(role, name).scroll_to_me();
+        harness.run();
+        harness.get_by_role_and_label(role, name).click();
+        harness.run_steps(4);
+    }
+    let requests = harness.state_mut().take_requests();
+    let Some(prosecraft_ui_egui::HostRequest::ExportFile { bytes, .. }) = requests.first() else {
+        panic!("an export was asked for: {requests:?}");
+    };
+    let html = String::from_utf8_lossy(bytes);
+    // The Ink palette's colour behind the drawn cover, first in the book.
+    let book = html.find("<div class=\"book\">").expect("book");
+    assert!(
+        html[book..].starts_with(
+            "<div class=\"book\">\n<section class=\"cover-page\" style=\"background:#141813\" aria-label=\"Cover\"><img src=\"data:image/png;base64,"
+        ),
+        "{}",
+        &html[book..book + 200]
+    );
+}
+
+#[test]
 fn html_exports_from_the_publish_view() {
     let (mut harness, _memory) = app();
     harness.get_by_role_and_label(Role::Tab, "Publish").click();

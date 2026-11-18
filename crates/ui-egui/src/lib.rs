@@ -17,6 +17,7 @@
 
 mod binder;
 mod citation_picker;
+mod cover_art;
 mod device_sync;
 mod editing;
 pub mod find;

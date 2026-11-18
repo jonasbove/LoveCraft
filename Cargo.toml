@@ -58,6 +58,11 @@ dirs = "6"
 tempfile = "3"
 getrandom = "0.3"
 
+# Generated covers: drawn on the CPU with the vello_cpu and skrifa that egui's epaint already
+# builds (pinned to them, so there is one copy of each).
+vello_cpu = { version = "=0.2.0", default-features = false, features = ["std", "u8_pipeline"] }
+skrifa = { version = "=0.44.0", default-features = false, features = ["std"] }
+
 # ui
 egui = { version = "0.37", default-features = false, features = ["default_fonts"] }
 eframe = { version = "0.37", default-features = false, features = ["accesskit", "clipboard", "default_fonts", "glow", "web_screen_reader"] }

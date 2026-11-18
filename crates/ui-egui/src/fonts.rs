@@ -57,6 +57,14 @@ pub fn install(ctx: &egui::Context, system: bool) {
     fonts.install(ctx);
 }
 
+/// One of the faces `build.rs` embedded, by name (`None` without the craft-fonts checkout).
+pub(crate) fn app_face(name: &str) -> Option<&'static [u8]> {
+    APP_FACES
+        .iter()
+        .find(|(n, _)| *n == name)
+        .map(|(_, data)| *data)
+}
+
 /// Whether the build has the real faces (for tests and the About window).
 pub fn has_app_faces() -> bool {
     !APP_FACES.is_empty()

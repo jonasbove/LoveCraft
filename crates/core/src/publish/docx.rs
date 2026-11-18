@@ -25,7 +25,7 @@ use craft_wordmodel::{
 };
 
 use super::citations::resolve_book_citations;
-use super::embedded_image::{EmbeddedImage, decode_embedded_image};
+use super::embedded_image::{EmbeddedImage, decode_embedded_image, natural_size};
 use super::footnotes::{BookFootnotes, ResolvedFootnote, resolve_book_footnotes};
 use super::html::{StyleTokens, matter_paragraphs, style_tokens};
 use super::rich_text::{
@@ -210,7 +210,7 @@ fn note_ref(part: u32) -> (InlineObject, CharProps) {
 
 /// What the runs of one scene, note or bibliography refer to.
 struct InlineContext<'a> {
-    images: &'a HashMap<String, EmbeddedImage>,
+    images: &'a HashMap<String, Picture>,
     body_size_pt: f64,
     /// The scene's footnotes by id, and each note's story by its book-wide index.
     scene_footnotes: Option<&'a HashMap<String, ResolvedFootnote>>,
@@ -241,7 +241,7 @@ fn inline_to_children(
             continue;
         }
         if let Some(image) = &run.image {
-            let Some(asset) = cx.images.get(&image.src) else {
+            let Some(picture) = cx.images.get(&image.src) else {
                 let alt = if image.alt.is_empty() {
                     "[image]"
                 } else {
@@ -253,8 +253,8 @@ fn inline_to_children(
             // The image stands as tall as a line of text (body size at 1.15), keeping the
             // aspect ratio of its stated or natural size.
             let target_height = cx.body_size_pt * 96.0 / 72.0 * 1.15;
-            let aspect = image.width.unwrap_or(f64::from(asset.width))
-                / image.height.unwrap_or(f64::from(asset.height));
+            let aspect = image.width.unwrap_or(f64::from(picture.width))
+                / image.height.unwrap_or(f64::from(picture.height));
             // A zero natural height would make ProseCraft write NaN; a square stands in.
             let aspect = if aspect.is_finite() && aspect > 0.0 {
                 aspect
@@ -264,7 +264,7 @@ fn inline_to_children(
             let height = js_round(target_height).max(1.0);
             let width = js_round(height * aspect).max(1.0);
             let alt = image.alt.clone();
-            push_image(doc, p, asset, width, height, alt);
+            push_image(doc, p, &picture.asset, width, height, alt);
             continue;
         }
         let mut props = run_options(run);
@@ -296,6 +296,23 @@ fn push_image(
         },
         &CharProps::default(),
     );
+}
+
+/// An embedded picture and its natural size in pixels (`decodeEmbeddedImage`).
+struct Picture {
+    asset: EmbeddedImage,
+    width: u32,
+    height: u32,
+}
+
+fn decode_picture(src: &str) -> Result<Picture, DocxError> {
+    let asset = decode_embedded_image(src).map_err(DocxError::Image)?;
+    let (width, height) = natural_size(&asset).map_err(DocxError::Image)?;
+    Ok(Picture {
+        asset,
+        width,
+        height,
+    })
 }
 
 /// The first letter of `runs` lifted out for a drop cap, and the runs left after it
@@ -390,9 +407,9 @@ fn image_to_paragraph(
         .image
         .as_ref()
         .ok_or_else(|| DocxError::Image("an image without source data".into()))?;
-    let asset = decode_embedded_image(&image.src).map_err(DocxError::Image)?;
-    let width = image.width.unwrap_or(f64::from(asset.width));
-    let height = image.height.unwrap_or(f64::from(asset.height));
+    let picture = decode_picture(&image.src)?;
+    let width = image.width.unwrap_or(f64::from(picture.width));
+    let height = image.height.unwrap_or(f64::from(picture.height));
     let scale = 1f64.min(max_width / width).min(max_height / height);
     let display_width = js_round(width * scale).max(1.0);
     let display_height = js_round(height * scale).max(1.0);
@@ -403,7 +420,7 @@ fn image_to_paragraph(
     push_image(
         doc,
         &mut p,
-        &asset,
+        &picture.asset,
         display_width,
         display_height,
         image.alt.clone(),
@@ -451,7 +468,7 @@ fn cover_section(
     data_url: &str,
     tokens: &StyleTokens,
 ) -> Result<(Vec<Paragraph>, SectionProps), DocxError> {
-    let image = decode_embedded_image(data_url).map_err(DocxError::Image)?;
+    let image = decode_picture(data_url)?;
     let [width, height, ..] = tokens.page;
     let page_width_px = width * 96.0 / 72.0;
     let page_height_px = height * 96.0 / 72.0;
@@ -468,7 +485,7 @@ fn cover_section(
     push_image(
         doc,
         &mut p,
-        &image,
+        &image.asset,
         display_width,
         display_height,
         String::new(),
@@ -541,14 +558,13 @@ fn show_rich_sources(html: &str) -> String {
 /// Every image embedded in the runs, decoded once.
 fn decode_run_images<'a>(
     runs: impl Iterator<Item = &'a InlineRun>,
-    images: &mut HashMap<String, EmbeddedImage>,
+    images: &mut HashMap<String, Picture>,
 ) -> Result<(), DocxError> {
     for run in runs {
         if let Some(image) = &run.image
             && !images.contains_key(&image.src)
         {
-            let asset = decode_embedded_image(&image.src).map_err(DocxError::Image)?;
-            images.insert(image.src.clone(), asset);
+            images.insert(image.src.clone(), decode_picture(&image.src)?);
         }
     }
     Ok(())
@@ -1207,7 +1223,7 @@ fn assemble(doc: &mut Document, sections: Vec<(Vec<Paragraph>, SectionProps)>) {
 }
 
 /// The document `exportDocx` builds, on the word-processing model.
-pub fn docx_document(book: &CompiledBook, options: &PublishOptions) -> Result<Document, DocxError> {
+fn docx_document(book: &CompiledBook, options: &PublishOptions) -> Result<Document, DocxError> {
     let (book, bibliography) = resolve_book_citations(book, options);
     let tokens = style_tokens(&options.style);
     let mut doc = Document::new();
@@ -1541,5 +1557,32 @@ mod tests {
         let doc = round_trip(&book(Vec::new()), &options);
         assert_eq!(doc.sections().len(), 1);
         assert!(texts(&doc).iter().all(String::is_empty));
+    }
+
+    #[test]
+    fn a_note_referred_to_twice_is_one_note() {
+        let html = r#"<p>a<sup class="footnote-ref" data-footnote-id="n"></sup> b<sup class="footnote-ref" data-footnote-id="n"></sup></p>"#;
+        let doc = round_trip(
+            &book(vec![vec![scene(html, &[("n", "Once.")])]]),
+            &PublishOptions::default(),
+        );
+        let notes: Vec<u32> = doc
+            .body
+            .iter()
+            .filter_map(|b| b.as_para())
+            .flat_map(|p| p.objects.iter())
+            .filter_map(|o| match o {
+                InlineObject::NoteRef { id, .. } => Some(*id),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(notes.len(), 2);
+        assert_eq!(notes[0], notes[1], "both references are to the same note");
+        let stories = doc
+            .parts
+            .values()
+            .filter(|p| p.kind == PartKind::Footnote)
+            .count();
+        assert_eq!(stories, 1);
     }
 }

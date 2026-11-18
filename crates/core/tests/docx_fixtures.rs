@@ -268,8 +268,17 @@ fn difference(want: &[String], got: &[String]) -> Option<String> {
     Some(out)
 }
 
-#[test]
-fn docx_export_matches_prosecraft() {
+/// A fixture case: ProseCraft's file and ours, made from the same compiled book.
+struct Case {
+    name: String,
+    theirs: Vec<u8>,
+    ours: Vec<u8>,
+    their_file_name: String,
+    our_file_name: String,
+}
+
+/// Every fixture case.
+fn cases() -> Vec<Case> {
     let fixture = fixture();
     let projects = fixture
         .get("projects")
@@ -289,40 +298,57 @@ fn docx_export_matches_prosecraft() {
         .get("cases")
         .and_then(JsValue::as_array)
         .expect("cases");
+    cases
+        .iter()
+        .map(|case| {
+            let name = string(case.get("name"));
+            let index = case
+                .get("project")
+                .and_then(JsValue::as_number)
+                .expect("project") as usize;
+            let mut stored = js::JsObject::new();
+            stored.insert("project", projects[index].clone());
+            let project = Project::from_stored(&JsValue::Object(stored)).expect("project");
+            let options = PublishOptions::read(case.get("options"));
+            let mut book = compile_book(&project, &options);
+            // As `renderExport` prepares the book: the cover attached, the equations drawn.
+            for chapter in &mut book.chapters {
+                for scene in &mut chapter.scenes {
+                    for (from, to) in &prepared {
+                        scene.html = scene.html.replace(from.as_str(), to);
+                    }
+                }
+            }
+            book.cover = case
+                .get("cover")
+                .and_then(JsValue::as_js_string)
+                .and_then(JsString::as_string);
+            let theirs = base64::engine::general_purpose::STANDARD
+                .decode(string(case.get("docx")))
+                .expect("base64");
+            let ours = export_docx(&book, &options).expect("export");
+            Case {
+                name,
+                theirs,
+                ours: ours.bytes,
+                their_file_name: string(case.get("filename")),
+                our_file_name: ours.file_name,
+            }
+        })
+        .collect()
+}
+
+#[test]
+fn docx_export_matches_prosecraft() {
+    let cases = cases();
     assert!(cases.len() >= 7, "every case was generated");
     let mut failures = Vec::new();
     let mut lines = 0;
-    for case in cases {
-        let name = string(case.get("name"));
-        let index = case
-            .get("project")
-            .and_then(JsValue::as_number)
-            .expect("project") as usize;
-        let mut stored = js::JsObject::new();
-        stored.insert("project", projects[index].clone());
-        let project = Project::from_stored(&JsValue::Object(stored)).expect("project");
-        let options = PublishOptions::read(case.get("options"));
-        let mut book = compile_book(&project, &options);
-        // As `renderExport` prepares the book: the cover attached, the equations drawn.
-        for chapter in &mut book.chapters {
-            for scene in &mut chapter.scenes {
-                for (from, to) in &prepared {
-                    scene.html = scene.html.replace(from.as_str(), to);
-                }
-            }
-        }
-        book.cover = case
-            .get("cover")
-            .and_then(JsValue::as_js_string)
-            .and_then(JsString::as_string);
-
-        let theirs = base64::engine::general_purpose::STANDARD
-            .decode(string(case.get("docx")))
-            .expect("base64");
-        let theirs = craft_docx::read(&theirs).expect("ProseCraft's file reads");
-        let export = export_docx(&book, &options).expect("export");
-        assert_eq!(export.file_name, string(case.get("filename")), "{name}");
-        let ours = craft_docx::read(&export.bytes).expect("our file reads");
+    for case in &cases {
+        let name = &case.name;
+        assert_eq!(case.our_file_name, case.their_file_name, "{name}");
+        let theirs = craft_docx::read(&case.theirs).expect("ProseCraft's file reads");
+        let ours = craft_docx::read(&case.ours).expect("our file reads");
         let (want, got) = (view(&theirs), view(&ours));
         lines += want.len();
         if std::env::var_os("DOCX_VIEW").is_some() {
@@ -340,66 +366,16 @@ fn docx_export_matches_prosecraft() {
     assert!(lines > 400, "the views hold the documents ({lines} lines)");
 }
 
-/// Writes our file for each fixture case to `$DOCX_OUT`, for opening in a word processor.
+/// Writes both files of each case to `$DOCX_OUT`, for opening in a word processor.
 #[test]
-fn write_our_files_when_asked() {
+fn write_both_files_when_asked() {
     let Some(dir) = std::env::var_os("DOCX_OUT") else {
         return;
     };
-    let fixture = fixture();
-    let projects = fixture
-        .get("projects")
-        .and_then(JsValue::as_array)
-        .expect("projects");
-    let prepared: Vec<(String, String)> = fixture
-        .get("prepared")
-        .and_then(JsValue::as_array)
-        .expect("prepared")
-        .iter()
-        .map(|pair| {
-            let pair = pair.as_array().expect("pair");
-            (string(pair.first()), string(pair.get(1)))
-        })
-        .collect();
-    for case in fixture
-        .get("cases")
-        .and_then(JsValue::as_array)
-        .expect("cases")
-    {
-        let name = string(case.get("name"));
-        let index = case
-            .get("project")
-            .and_then(JsValue::as_number)
-            .expect("project") as usize;
-        let mut stored = js::JsObject::new();
-        stored.insert("project", projects[index].clone());
-        let project = Project::from_stored(&JsValue::Object(stored)).expect("project");
-        let options = PublishOptions::read(case.get("options"));
-        let mut book = compile_book(&project, &options);
-        for chapter in &mut book.chapters {
-            for scene in &mut chapter.scenes {
-                for (from, to) in &prepared {
-                    scene.html = scene.html.replace(from.as_str(), to);
-                }
-            }
-        }
-        book.cover = case
-            .get("cover")
-            .and_then(JsValue::as_js_string)
-            .and_then(JsString::as_string);
-        let export = export_docx(&book, &options).expect("export");
-        let theirs = base64::engine::general_purpose::STANDARD
-            .decode(string(case.get("docx")))
-            .expect("base64");
-        std::fs::write(
-            std::path::Path::new(&dir).join(format!("{name}-ours.docx")),
-            export.bytes,
-        )
-        .expect("write");
-        std::fs::write(
-            std::path::Path::new(&dir).join(format!("{name}-prosecraft.docx")),
-            theirs,
-        )
-        .expect("write");
+    let dir = std::path::Path::new(&dir);
+    for case in cases() {
+        let name = &case.name;
+        std::fs::write(dir.join(format!("{name}-prosecraft.docx")), case.theirs).expect("write");
+        std::fs::write(dir.join(format!("{name}-ours.docx")), case.ours).expect("write");
     }
 }

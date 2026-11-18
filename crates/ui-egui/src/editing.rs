@@ -164,6 +164,16 @@ pub enum Intent {
         document: String,
         at: usize,
     },
+    /// Undo or redo in the editor (Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y there, or the toolbar's
+    /// Undo and Redo): the scene's own history (`runFieldHistory`).
+    BodyHistory {
+        document: String,
+        undo: bool,
+    },
+    /// Undo or redo with no text field focused: the page's history (`runPageHistory`).
+    PageHistory {
+        undo: bool,
+    },
     /// ProseCraft's Insert image: ask the host for a picture, for a character of the open
     /// scene (placed with the editor's draft when it arrives).
     InsertPicture {
@@ -235,6 +245,9 @@ pub struct Draft {
     /// Where the caret last was in the text (a character), for what arrives later: a dropped
     /// picture.
     pub caret: Option<usize>,
+    /// The selection after the last edit recorded in the undo history; the caret having moved
+    /// since starts a new step.
+    pub undo_caret: Option<(usize, usize)>,
 }
 
 /// Seconds after the last keystroke before the draft reaches the project (ProseCraft: 250 ms).
@@ -414,6 +427,8 @@ pub fn run(
         }
         // Placed by the app, which holds the draft.
         Intent::InsertFootnote { .. }
+        | Intent::BodyHistory { .. }
+        | Intent::PageHistory { .. }
         | Intent::InsertPicture { .. }
         | Intent::PlaceCitation { .. }
         | Intent::RemoveCitation { .. } => Ok(()),

@@ -250,6 +250,13 @@ pub struct AppState {
     requests: Vec<HostRequest>,
     /// Where a picture asked for goes: the scene and a character.
     picture_target: Option<(String, usize)>,
+    /// Undo and redo (ProseCraft's `UndoManager`), by text field and by page; selections are
+    /// character ranges.
+    undo: prosecraft_core::undo::UndoManager<(usize, usize)>,
+    /// The page the history is kept for (`currentUndoPage`), worked out each frame.
+    undo_page: String,
+    /// An undo or redo being applied: the project change it makes isn't a new step.
+    applying_undo: bool,
     /// The binder's Export button was pressed; the app builds the backup after the frame.
     export_wanted: bool,
     /// Whether projects can be changed (a library that isn't read-only).
@@ -456,6 +463,44 @@ fn setup_with(ctx: &egui::Context, system_fonts: bool) {
     theme::Palette::default().apply(ctx);
 }
 
+/// `capturePageState`: the parts of a project a page's undo history covers.
+const UNDO_COLLECTIONS: [&str; 8] = [
+    "storyboardCards",
+    "storyboardDrawings",
+    "storyboardRows",
+    "timelineNodes",
+    "publishOptions",
+    "citations",
+    "chapters",
+    "documents",
+];
+
+/// `undoIgnoredProps`: what typing changes (the editor's own history covers it), and what
+/// only shows or hides.
+const UNDO_IGNORED: &[(&str, &[&str])] = &[
+    (
+        "documents",
+        &[
+            "content",
+            "title",
+            "markdownSource",
+            "folderId",
+            "footnotes",
+        ],
+    ),
+    ("chapters", &["expanded"]),
+];
+
+fn undo_state(data: &prosecraft_core::js::JsValue) -> prosecraft_core::js::JsObject {
+    let mut state = prosecraft_core::js::JsObject::new();
+    for name in UNDO_COLLECTIONS {
+        if let Some(value) = data.get(name) {
+            state.insert(name, value.clone());
+        }
+    }
+    state
+}
+
 /// ProseCraft's `localStorage` key for the comment author's name.
 const COMMENT_AUTHOR_KEY: &str = "prosecraft-comment-author";
 
@@ -621,17 +666,194 @@ impl ProseApp {
         let now_ms = home.store.now_ms();
         let store = &mut home.store;
         let mut new_id = || store.new_id();
+        // `commitPageState`: what the change did to the page's state, as an undo step.
+        let mut step = None;
         let result = editing::apply(&mut home.library, &project_id, now_ms, |data| {
-            change(data, &mut new_id)
+            let before = undo_state(data);
+            change(data, &mut new_id)?;
+            step =
+                prosecraft_core::undo::diff_state(&before, &undo_state(data), UNDO_IGNORED, now_ms);
+            Ok(())
         });
         match result {
             Ok(()) => {
                 self.unsaved_since = Some(self.state.now);
                 self.state.save_state = SaveState::Pending;
+                if let Some(step) = step.filter(|_| !self.state.applying_undo) {
+                    let page = self.state.undo_page.clone();
+                    self.state.undo.push_state(&page, step);
+                }
             }
             Err(error) => self.state.status = Some(format!("That change wasn't made: {error}")),
         }
         self.refresh_views();
+    }
+
+    /// `currentUndoPage`: the project and what is open in it (a scene, a chapter, or a view).
+    fn undo_page_key(&self) -> String {
+        let project = self.active_project_id().unwrap_or_default();
+        let page = match self.state.view {
+            WorkspaceView::Write => {
+                let scope = match &self.state.selection {
+                    Some(Selection::Chapter(id)) => format!("chapter:{id}"),
+                    Some(Selection::Document(id)) => {
+                        let chapter = self
+                            .state
+                            .library
+                            .as_ref()
+                            .and_then(|l| l.projects().get(self.state.active))
+                            .and_then(|p| p.view.document(id))
+                            .and_then(|d| d.chapter_id.clone())
+                            .filter(|c| !c.is_empty());
+                        chapter.map_or_else(|| id.clone(), |c| format!("chapter:{c}"))
+                    }
+                    None => String::new(),
+                };
+                format!("writing:{scope}")
+            }
+            WorkspaceView::Outline => "outline".to_owned(),
+            WorkspaceView::Storyboard => "storyboard".to_owned(),
+            WorkspaceView::Timeline => "timeline".to_owned(),
+            WorkspaceView::Publish => "publish".to_owned(),
+        };
+        format!("{project}/{page}")
+    }
+
+    /// `runFieldHistory` for the editor, or `runPageHistory`.
+    fn run_history(&mut self, document: Option<&str>, undo: bool) {
+        use prosecraft_core::undo::PageResult;
+        let project = self.active_project_id().unwrap_or_default();
+        let open = self
+            .state
+            .draft
+            .as_ref()
+            .filter(|d| d.markdown.is_none())
+            .map(|d| d.document.clone());
+        let body_key = open.as_ref().map(|d| format!("{project}/body:{d}"));
+        let result = match document {
+            Some(document) => {
+                let key = format!("{project}/body:{document}");
+                if body_key.as_deref() != Some(key.as_str()) {
+                    return;
+                }
+                let found = if undo {
+                    self.state.undo.undo_field(&key)
+                } else {
+                    self.state.undo.redo_field(&key)
+                };
+                found.map(PageResult::Field)
+            }
+            None => {
+                self.commit_draft();
+                let page = self.state.undo_page.clone();
+                let can = |key: &str| body_key.as_deref() == Some(key);
+                if undo {
+                    self.state.undo.undo_page(&page, can)
+                } else {
+                    self.state.undo.redo_page(&page, can)
+                }
+            }
+        };
+        match result {
+            Some(PageResult::Field(field)) => {
+                if let Some(document) = open {
+                    self.apply_body_history(&document, &field.value, field.selection);
+                }
+            }
+            Some(PageResult::State(step)) => self.apply_state_history(step, undo),
+            Some(PageResult::External { .. }) | None => {}
+        }
+    }
+
+    /// `applyFieldValue` for the editor: the scene and its footnotes as they were, and the
+    /// selection.
+    fn apply_body_history(&mut self, document: &str, value: &str, selection: (usize, usize)) {
+        let (html, scopes) = prosecraft_core::undo::decode_body(value);
+        let Some(doc) = prosecraft_core::richtext::RichDoc::from_html(&html) else {
+            return;
+        };
+        let now = self.state.now;
+        let Some(draft) = self.state.draft.as_mut().filter(|d| d.document == document) else {
+            return;
+        };
+        draft.body = doc.text.clone();
+        draft.doc = doc;
+        draft.body_dirty = true;
+        draft.changed_at = now;
+        draft.undo_caret = Some(selection);
+        self.state.comment_goto = Some((document.to_owned(), selection.0, selection.1));
+        let notes = scopes
+            .into_iter()
+            .find(|(d, _)| d == document)
+            .map(|(_, n)| n)
+            .unwrap_or_default();
+        let stored: Vec<(String, String)> = self
+            .state
+            .library
+            .as_ref()
+            .and_then(|l| l.projects().get(self.state.active))
+            .and_then(|p| p.view.document(document))
+            .map(|d| {
+                d.footnotes
+                    .iter()
+                    .map(|f| (f.id.clone(), f.html.clone()))
+                    .collect()
+            })
+            .unwrap_or_default();
+        self.commit_draft();
+        if stored != notes {
+            self.change(|data, _| {
+                prosecraft_core::footnotes::restore_definitions(data, document, &notes)
+            });
+        }
+    }
+
+    /// `applyPageStateStep`: the collections the step changed, as they were (or are again).
+    fn apply_state_history(&mut self, step: prosecraft_core::undo::StateStep, undo: bool) {
+        let page = self.state.undo_page.clone();
+        let original = step.clone();
+        let mut applied = step;
+        self.state.applying_undo = true;
+        self.change(|data, _| {
+            let current = undo_state(data);
+            let next = prosecraft_core::undo::apply_state_step(&current, &mut applied, undo);
+            let object = data
+                .as_object_mut()
+                .ok_or(prosecraft_core::edit::EditError::Shape)?;
+            for (name, _) in &applied.changes {
+                if let Some(value) = next.get(name) {
+                    object.insert(name.as_str(), value.clone());
+                }
+            }
+            Ok(())
+        });
+        self.state.applying_undo = false;
+        self.state.undo.replace_state(&original, applied.clone());
+        // The open scene may be gone (an added scene undone): open another.
+        let gone = match &self.state.selection {
+            Some(Selection::Document(id)) => self
+                .state
+                .library
+                .as_ref()
+                .and_then(|l| l.projects().get(self.state.active))
+                .and_then(|p| p.view.document(id))
+                .is_none_or(|d| d.trashed),
+            _ => false,
+        };
+        if gone {
+            self.state.draft = None;
+            let fallback = self
+                .state
+                .library
+                .as_ref()
+                .and_then(|l| l.projects().get(self.state.active))
+                .and_then(|p| p.view.documents.iter().find(|d| !d.trashed))
+                .map(|d| d.id.clone());
+            self.state.selection = fallback.map(Selection::Document);
+        }
+        let now_page = self.undo_page_key();
+        self.state.undo_page = now_page.clone();
+        self.state.undo.move_state(&page, &now_page, &applied);
     }
 
     /// Commits the draft to the project if it has unsaved typing.
@@ -980,6 +1202,14 @@ impl ProseApp {
         }
         for intent in std::mem::take(&mut self.state.intents) {
             match &intent {
+                editing::Intent::BodyHistory { document, undo } => {
+                    self.run_history(Some(document), *undo);
+                    continue;
+                }
+                editing::Intent::PageHistory { undo } => {
+                    self.run_history(None, *undo);
+                    continue;
+                }
                 editing::Intent::InsertFootnote { document, at } => {
                     self.insert_footnote(document, *at);
                     continue;
@@ -1185,6 +1415,25 @@ impl ProseApp {
             && let Some(home) = self.home.as_mut()
         {
             self.state.book_id = Some(home.store.new_id());
+        }
+        self.state.undo_page = self.undo_page_key();
+        // Undo and redo with no text field focused take back the page's last change
+        // (`handleHistoryShortcut`); a focused field keeps them for its own text.
+        if ui.ctx().memory(|m| m.focused().is_none()) {
+            let (undo, redo) = ui.ctx().input_mut(|i| {
+                // Ctrl+Shift+Z first: a Ctrl+Z pattern also matches it.
+                let redo = i.consume_key(
+                    egui::Modifiers::COMMAND | egui::Modifiers::SHIFT,
+                    egui::Key::Z,
+                ) || i.consume_key(egui::Modifiers::COMMAND, egui::Key::Y);
+                let undo = i.consume_key(egui::Modifiers::COMMAND, egui::Key::Z);
+                (undo, redo)
+            });
+            if undo || redo {
+                self.state
+                    .intents
+                    .push(editing::Intent::PageHistory { undo });
+            }
         }
         // Files dropped on the window. (In the browser they are read asynchronously, so the web
         // app reads them and hands them in as it does a chosen file.)

@@ -108,25 +108,18 @@ fn js_slice(text: &str, n: usize) -> String {
     out
 }
 
-/// Whether `new URL(href, page)` has an http, https or mailto protocol. A relative address
-/// resolves against the page, which is http(s).
+/// Whether `new URL(href, page)` parses and has an http, https or mailto protocol. A relative
+/// address resolves against the page, which is http(s). An address the URL Standard rejects (a
+/// host with a forbidden character, a port out of range) throws in ProseCraft, so its link is
+/// kept as plain text.
 fn is_safe_href(href: &str) -> bool {
-    // The URL parser strips surrounding controls and spaces, and tabs and newlines inside.
-    let cleaned: String = href
-        .trim_matches(|c: char| c <= ' ')
-        .chars()
-        .filter(|c| !matches!(c, '\t' | '\n' | '\r'))
-        .collect();
-    let scheme_end = cleaned.find(':');
-    let scheme = scheme_end.map(|end| &cleaned[..end]).filter(|s| {
-        let mut chars = s.chars();
-        chars.next().is_some_and(|c| c.is_ascii_alphabetic())
-            && chars.all(|c| c.is_ascii_alphanumeric() || matches!(c, '+' | '-' | '.'))
-    });
-    match scheme {
-        Some(scheme) => ["http", "https", "mailto"].contains(&scheme.to_ascii_lowercase().as_str()),
-        None => true,
-    }
+    let Ok(page) = url::Url::parse("http://localhost/") else {
+        return false;
+    };
+    url::Url::options()
+        .base_url(Some(&page))
+        .parse(href)
+        .is_ok_and(|parsed| ["http", "https", "mailto"].contains(&parsed.scheme()))
 }
 
 fn element(name: &str, attrs: Vec<(String, String)>, children: Vec<Node>) -> Node {
@@ -288,13 +281,31 @@ pub fn sanitize_nodes(nodes: &[Node], inline: bool) -> Vec<Node> {
     out
 }
 
+/// The body ProseCraft's `DOMParser.parseFromString(html, "text/html")` builds: as a fragment,
+/// except that whitespace before the first element or text is dropped, since a document
+/// ignores it (along with stray end tags and comments) until its body begins.
+fn document_body(html: &str) -> Vec<Node> {
+    let mut nodes = parse_fragment(html);
+    let is_html_space = |c: char| matches!(c, '\t' | '\n' | '\x0c' | '\r' | ' ');
+    while let Some(Node::Text(text)) = nodes.first_mut() {
+        let kept = text.trim_start_matches(is_html_space);
+        if kept.is_empty() {
+            nodes.remove(0);
+        } else {
+            *text = kept.to_owned();
+            break;
+        }
+    }
+    nodes
+}
+
 /// `sanitizeHtml`: scene HTML against the editor's allowlist.
 pub fn sanitize_html(html: &str) -> String {
-    serialize(&sanitize_nodes(&parse_fragment(html), false))
+    serialize(&sanitize_nodes(&document_body(html), false))
 }
 
 /// `sanitizeInlineHtml`: footnote HTML against the inline allowlist (no headings, images,
 /// tables, scene breaks or footnote markers).
 pub fn sanitize_inline_html(html: &str) -> String {
-    serialize(&sanitize_nodes(&parse_fragment(html), true))
+    serialize(&sanitize_nodes(&document_body(html), true))
 }

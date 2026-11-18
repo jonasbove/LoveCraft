@@ -19,7 +19,12 @@ impl LibraryStore for Nowhere {
         1_800_000_000_000.0
     }
     fn new_id(&mut self) -> String {
-        "new".into()
+        // Distinct ids, as the real store's UUIDs are.
+        static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+        format!(
+            "new-{}",
+            NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+        )
     }
     fn supports_sync(&self) -> bool {
         true
@@ -112,4 +117,8 @@ fn render_views() {
         .get_by_role_and_label(Role::RadioButton, "Fantasy")
         .click();
     save(&mut harness, "starter");
+    harness
+        .get_by_role_and_label(Role::Button, "Create")
+        .click();
+    save(&mut harness, "project-settings");
 }

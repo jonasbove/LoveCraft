@@ -87,33 +87,49 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
     ui.add_space(6.0);
     // ProseCraft shows the project's name as the switcher, with no label beside it. The name is
     // what's visible, so it leads the accessible name; "Project" says what the control is.
-    // Its "+" beside it creates a project.
-    let mut switcher_width = ui.available_width();
-    if state.has_home && state.editable {
-        switcher_width -= 34.0;
+    // Its gear and "+" beside it open Project settings and create a project. Laid out from the
+    // right, so the switcher takes exactly the width that is left and the row never overflows.
+    let actions = state.has_home && state.editable;
+    let row_size = egui::vec2(ui.available_width(), ui.spacing().interact_size.y + 6.0);
+    let row = ui.allocate_ui_with_layout(
+        row_size,
+        egui::Layout::right_to_left(egui::Align::Center),
+        |ui| {
+            let create = actions && {
+                let plus = ui.button("+").on_hover_text("Create project");
+                crate::views::name_field(ui, &plus, "Create project");
+                plus.clicked()
+            };
+            let settings = actions && {
+                let gear = ui.button("⚙").on_hover_text("Project settings");
+                crate::views::name_field(ui, &gear, "Project settings");
+                gear.clicked()
+            };
+            let switcher = craft_ui::ComboBox::from_id_salt("project-switcher")
+                .selected_text(
+                    RichText::new(current.view.name.as_str())
+                        .font(fonts::serif(17.0))
+                        .color(palette.text_heading),
+                )
+                .width(ui.available_width())
+                // A long name is shortened with "…" instead of widening the binder.
+                .truncate()
+                .show_ui(ui, |ui| {
+                    for (index, project) in
+                        projects.iter().enumerate().filter(|(_, p)| !p.view.trashed)
+                    {
+                        ui.selectable_value(&mut active, index, project.view.name.as_str());
+                    }
+                });
+            (switcher, create, settings)
+        },
+    );
+    let (switcher, create, settings) = row.inner;
+    if settings {
+        state.project_settings = Some(crate::project_settings::ProjectSettingsDraft::for_project(
+            &current.view,
+        ));
     }
-    let row = ui.horizontal(|ui| {
-        let switcher = craft_ui::ComboBox::from_id_salt("project-switcher")
-            .selected_text(
-                RichText::new(current.view.name.as_str())
-                    .font(fonts::serif(17.0))
-                    .color(palette.text_heading),
-            )
-            .width(switcher_width)
-            .show_ui(ui, |ui| {
-                for (index, project) in projects.iter().enumerate().filter(|(_, p)| !p.view.trashed)
-                {
-                    ui.selectable_value(&mut active, index, project.view.name.as_str());
-                }
-            });
-        let create = state.has_home && state.editable && {
-            let plus = ui.button("+").on_hover_text("Create project");
-            crate::views::name_field(ui, &plus, "Create project");
-            plus.clicked()
-        };
-        (switcher, create)
-    });
-    let (switcher, create) = row.inner;
     if create {
         state.starter = Some(crate::starter::StarterDraft::new());
     }

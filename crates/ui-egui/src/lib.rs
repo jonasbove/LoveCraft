@@ -20,6 +20,7 @@ mod device_sync;
 mod editing;
 pub mod fonts;
 mod library;
+mod project_settings;
 mod publish;
 mod settings;
 mod sidebar;
@@ -243,6 +244,8 @@ pub struct AppState {
     /// The "Start from" dialog for a new project, while open, and a project to create.
     starter: Option<starter::StarterDraft>,
     create_project: Option<(bool, prosecraft_core::starters::Blueprint)>,
+    /// The Project Settings dialog, while open.
+    project_settings: Option<project_settings::ProjectSettingsDraft>,
     /// The Settings dialog is open.
     settings_open: bool,
     /// The Settings dialog's category.
@@ -737,6 +740,7 @@ impl ProseApp {
         egui::CentralPanel::default().show(ui, |ui| views::show(ui, &mut self.state));
         settings::show(ui, &mut self.state);
         starter::show(ui, &mut self.state);
+        project_settings::show(ui, &mut self.state);
         if let Some((screenplay, blueprint)) = self.state.create_project.take() {
             self.create_project(screenplay, &blueprint);
         }

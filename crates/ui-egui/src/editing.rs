@@ -58,6 +58,12 @@ pub enum Intent {
         resolved: bool,
     },
     DeleteComment(String),
+    /// Project settings: name, author and type.
+    SetProjectDetails {
+        name: String,
+        author: String,
+        screenplay: bool,
+    },
 }
 
 /// The scene or page being typed into.
@@ -156,6 +162,11 @@ pub fn run(
             prosecraft_core::comments::set_resolved(data, id, *resolved)
         }
         Intent::DeleteComment(id) => prosecraft_core::comments::delete_comment(data, id),
+        Intent::SetProjectDetails {
+            name,
+            author,
+            screenplay,
+        } => edit::set_project_details(data, name, author, *screenplay),
     }
 }
 

@@ -5,3 +5,4 @@ pub mod editor_keys;
 pub mod export;
 pub mod fountain;
 pub mod layout;
+pub mod pdf;

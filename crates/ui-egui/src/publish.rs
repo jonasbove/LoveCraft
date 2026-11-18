@@ -65,8 +65,15 @@ const FORMATS: [(&str, &str, &str, &str); 8] = [
 ];
 
 /// Formats that can be exported here.
-const PORTED: [&str; 7] = [
-    "pdf", "epub", "docx", "markdown", "html", "text", "fountain",
+const PORTED: [&str; 8] = [
+    "pdf",
+    "epub",
+    "docx",
+    "markdown",
+    "html",
+    "text",
+    "fountain",
+    "screenplay-pdf",
 ];
 
 /// ProseCraft's built-in styles (`PRESETS`).
@@ -675,6 +682,8 @@ fn controls(
             "docx" => export_docx(book, options)
                 .map(|e| (e, 0))
                 .map_err(|e| e.to_string()),
+            "screenplay-pdf" => prosecraft_core::screenplay::pdf::export_screenplay_pdf(book)
+                .map_err(|e| e.to_string()),
             "markdown" => Ok((export_markdown(book, options), 0)),
             "fountain" => Ok((
                 prosecraft_core::screenplay::export::export_fountain(book),
@@ -727,7 +736,7 @@ fn controls(
     }
     let note = if !ported {
         format!(
-            "{} export isn't ported yet; PDF, EPUB, DOCX, HTML, Markdown, plain text and Fountain are.",
+            "{} export isn't ported yet; PDF, EPUB, DOCX, HTML, Markdown, plain text, Fountain and Screenplay PDF are.",
             format.1
         )
     } else if book.scenes() == 0 {

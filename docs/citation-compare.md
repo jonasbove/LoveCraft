@@ -91,8 +91,10 @@ Report-only buckets, counted but not failing the run:
   there. Both display the same text, and warnings are not stored.
 - **`js-prototype` (300 inputs):** entry types, bare tokens and months that are exactly
   `constructor` or `__proto__` (any case, also `CONSTRUCTOR.`). ProseCraft finds
-  `Object.prototype` members in its lookup tables for them. The port copies that on purpose; it is
-  being removed on both sides (upstream PR jennraeross/ProseCraft#48). All 300 currently match.
+  `Object.prototype` members in its lookup tables for them. The port follows the fix in upstream PR
+  jennraeross/ProseCraft#48 instead: against a corpus generated from the fork's
+  `tools/rust-fixtures-upstream-fixes` (that fix merged in), all 300 match, and all 48,305 inputs
+  match overall (2026-11-18). Against a corpus from unfixed ProseCraft, 139 of the 300 differ.
 
 Not checked here: other JavaScript engines' `JSON.parse` messages (WebKit words them differently;
 ProseCraft shows those on macOS and Linux) and lone surrogates in the input text itself, which a

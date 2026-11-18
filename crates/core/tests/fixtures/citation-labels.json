@@ -89,6 +89,42 @@
           "given": "N."
         }
       ]
+    },
+    {
+      "id": "constructor",
+      "type": "book",
+      "title": "Built",
+      "author": [
+        {
+          "family": "Builder",
+          "given": "B."
+        }
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            2018
+          ]
+        ]
+      }
+    },
+    {
+      "id": "toString",
+      "type": "book",
+      "title": "Strung",
+      "author": [
+        {
+          "family": "Stringer",
+          "given": "S."
+        }
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            2017
+          ]
+        ]
+      }
     }
   ],
   "markers": [
@@ -99,7 +135,9 @@
     "<span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;nodate&quot;,&quot;suppressAuthor&quot;:true},{&quot;id&quot;:&quot;gone&quot;}]\" contenteditable=\"false\"></span>",
     "<span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;doe-roe&quot;,&quot;locator&quot;:&quot;7-9&quot;,&quot;label&quot;:&quot;section&quot;}]\" contenteditable=\"false\"></span>",
     "<span class=\"cite-ref\" data-cites=\"&quot;not an array&quot;\" contenteditable=\"false\"></span>",
-    "<span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020&quot;},{&quot;id&quot;:&quot;smith2020&quot;}]\" contenteditable=\"false\"></span>"
+    "<span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020&quot;},{&quot;id&quot;:&quot;smith2020&quot;}]\" contenteditable=\"false\"></span>",
+    "<span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;constructor&quot;}]\" contenteditable=\"false\"></span>",
+    "<span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;toString&quot;},{&quot;id&quot;:&quot;__proto__&quot;}]\" contenteditable=\"false\"></span>"
   ],
   "cases": [
     {
@@ -113,7 +151,9 @@
         "(n.d.) [@gone]",
         "(Doe & Roe, 2019, sec. 7–9)",
         null,
-        "(Smith, 2020b; Smith, 2020b)"
+        "(Smith, 2020b; Smith, 2020b)",
+        "(Builder, 2018)",
+        "(Stringer, 2017) [@__proto__]"
       ]
     },
     {
@@ -127,7 +167,9 @@
         "(o. J.) [@gone]",
         "(Doe & Roe, 2019, Abschn. 7–9)",
         null,
-        "(Smith, 2020b; Smith, 2020b)"
+        "(Smith, 2020b; Smith, 2020b)",
+        "(Builder, 2018)",
+        "(Stringer, 2017) [@__proto__]"
       ]
     },
     {
@@ -141,7 +183,9 @@
         "(n.d.) [@gone]",
         "(Doe and Roe 2019, sec. 7–9)",
         null,
-        "(Smith 2020b; Smith 2020b)"
+        "(Smith 2020b; Smith 2020b)",
+        "(Builder 2018)",
+        "(Stringer 2017) [@__proto__]"
       ]
     },
     {
@@ -155,7 +199,9 @@
         "(o. J.) [@gone]",
         "(Doe und Roe 2019, Abschn. 7–9)",
         null,
-        "(Smith 2020b; Smith 2020b)"
+        "(Smith 2020b; Smith 2020b)",
+        "(Builder 2018)",
+        "(Stringer 2017) [@__proto__]"
       ]
     },
     {
@@ -169,7 +215,9 @@
         "Undated (n.d.). [@gone]",
         "Jane Doe and Richard Roe, \"Tides,\" Sea (2019): 101–120, sec. 7–9.",
         null,
-        "Jo Ann Smith, The Lighthouse Keeper (Harbour Press, 2020); Jo Ann Smith, The Lighthouse Keeper (Harbour Press, 2020)."
+        "Jo Ann Smith, The Lighthouse Keeper (Harbour Press, 2020); Jo Ann Smith, The Lighthouse Keeper (Harbour Press, 2020).",
+        "B. Builder, Built (2018).",
+        "S. Stringer, Strung (2017). [@__proto__]"
       ]
     },
     {
@@ -183,7 +231,9 @@
         "Undated (o. J.). [@gone]",
         "Jane Doe und Richard Roe, \"Tides\", Sea (2019): 101–120, Abschn. 7–9.",
         null,
-        "Jo Ann Smith, The Lighthouse Keeper (Harbour Press, 2020); Jo Ann Smith, The Lighthouse Keeper (Harbour Press, 2020)."
+        "Jo Ann Smith, The Lighthouse Keeper (Harbour Press, 2020); Jo Ann Smith, The Lighthouse Keeper (Harbour Press, 2020).",
+        "B. Builder, Built (2018).",
+        "S. Stringer, Strung (2017). [@__proto__]"
       ]
     },
     {
@@ -197,7 +247,9 @@
         "(Undated) [@gone]",
         "(Doe and Roe sec. 7–9)",
         null,
-        "(Smith; Smith)"
+        "(Smith; Smith)",
+        "(Builder)",
+        "(Stringer) [@__proto__]"
       ]
     },
     {
@@ -211,7 +263,9 @@
         "(Undated) [@gone]",
         "(Doe und Roe Abschn. 7–9)",
         null,
-        "(Smith; Smith)"
+        "(Smith; Smith)",
+        "(Builder)",
+        "(Stringer) [@__proto__]"
       ]
     },
     {
@@ -225,7 +279,9 @@
         "(n.d.) [@gone]",
         "(Doe and Roe, 2019, sec. 7–9)",
         null,
-        "(Smith, 2020b; Smith, 2020b)"
+        "(Smith, 2020b; Smith, 2020b)",
+        "(Builder, 2018)",
+        "(Stringer, 2017) [@__proto__]"
       ]
     },
     {
@@ -239,7 +295,9 @@
         "(o. J.) [@gone]",
         "(Doe und Roe, 2019, Abschn. 7–9)",
         null,
-        "(Smith, 2020b; Smith, 2020b)"
+        "(Smith, 2020b; Smith, 2020b)",
+        "(Builder, 2018)",
+        "(Stringer, 2017) [@__proto__]"
       ]
     },
     {
@@ -253,7 +311,9 @@
         "[5] [@gone]",
         "[1, sec. 7–9]",
         null,
-        "[2], [2]"
+        "[2], [2]",
+        "[6]",
+        "[7] [@__proto__]"
       ]
     },
     {
@@ -267,7 +327,9 @@
         "[5] [@gone]",
         "[1, Abschn. 7–9]",
         null,
-        "[2], [2]"
+        "[2], [2]",
+        "[6]",
+        "[7] [@__proto__]"
       ]
     },
     {
@@ -281,7 +343,9 @@
         "(5) [@gone]",
         "(1, sec. 7–9)",
         null,
-        "(2, 2)"
+        "(2, 2)",
+        "(6)",
+        "(7) [@__proto__]"
       ]
     },
     {
@@ -295,7 +359,9 @@
         "(5) [@gone]",
         "(1, Abschn. 7–9)",
         null,
-        "(2, 2)"
+        "(2, 2)",
+        "(6)",
+        "(7) [@__proto__]"
       ]
     },
     {
@@ -309,7 +375,9 @@
         "(n.d.) [@gone]",
         "(Doe and Roe 2019, sec. 7–9)",
         null,
-        "(Smith 2020b; Smith 2020b)"
+        "(Smith 2020b; Smith 2020b)",
+        "(Builder 2018)",
+        "(Stringer 2017) [@__proto__]"
       ]
     },
     {
@@ -323,7 +391,9 @@
         "(o. J.) [@gone]",
         "(Doe und Roe 2019, Abschn. 7–9)",
         null,
-        "(Smith 2020b; Smith 2020b)"
+        "(Smith 2020b; Smith 2020b)",
+        "(Builder 2018)",
+        "(Stringer 2017) [@__proto__]"
       ]
     },
     {
@@ -338,7 +408,9 @@
         "[@nodate; @gone]",
         "[@doe-roe]",
         null,
-        "[@smith2020; @smith2020]"
+        "[@smith2020; @smith2020]",
+        "[@constructor]",
+        "[@toString; @__proto__]"
       ]
     }
   ]

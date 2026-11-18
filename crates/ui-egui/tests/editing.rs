@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 
 use egui::accesskit::Role;
 use egui_kittest::Harness;
-use egui_kittest::kittest::Queryable;
+use egui_kittest::kittest::{NodeT, Queryable};
 use prosecraft_core::js::{self, JsValue};
 use prosecraft_ui_egui::{LibraryStore, ProjectLibrary, ProseApp};
 
@@ -492,4 +492,117 @@ fn epub_exports_from_the_publish_view() {
         "{file_name}"
     );
     assert!(bytes.starts_with(b"PK\x03\x04") && bytes[30..38] == *b"mimetype");
+}
+
+#[test]
+fn a_snapshot_is_taken_restored_and_deleted() {
+    let (mut harness, memory) = app();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Tab, "Snapshots")
+        .click();
+    harness.run();
+    harness.get_by_label("Snapshot note").focus();
+    harness
+        .get_by_label("Snapshot note")
+        .type_text("before the rewrite");
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Take snapshot")
+        .click();
+    harness.run_steps(12);
+    let snapshots = |memory: &Memory| -> Vec<JsValue> {
+        let saved = memory.last();
+        project(&saved, "project-1")
+            .get("project")
+            .and_then(|p| p.get("snapshots"))
+            .and_then(JsValue::as_array)
+            .unwrap_or_default()
+            .iter()
+            .filter(|s| {
+                s.get("documentId")
+                    .and_then(JsValue::as_js_string)
+                    .is_some_and(|d| d.eq_str("doc-1"))
+            })
+            .cloned()
+            .collect()
+    };
+    let taken = snapshots(&memory);
+    let mine = taken
+        .iter()
+        .find(|s| {
+            s.get("note")
+                .and_then(JsValue::as_js_string)
+                .is_some_and(|n| n.eq_str("before the rewrite"))
+        })
+        .cloned()
+        .expect("the snapshot with its note");
+    let original = mine
+        .get("content")
+        .and_then(JsValue::as_js_string)
+        .map(|c| c.to_string_lossy())
+        .expect("content");
+
+    // Change the scene, then restore the snapshot.
+    harness.get_by_label("Scene text").focus();
+    harness.get_by_label("Scene text").type_text(" More.");
+    harness.run_steps(12);
+    let id = mine
+        .get("id")
+        .and_then(JsValue::as_js_string)
+        .map(|c| c.to_string_lossy())
+        .expect("id");
+    let label = harness
+        .query_all_by_role(Role::Button)
+        .filter_map(|b| b.accesskit_node().label())
+        .find(|l| l.starts_with("Restore snapshot from") && !l.contains("before a restore"))
+        .expect("a restore button");
+    harness.get_by_role_and_label(Role::Button, &label).click();
+    harness.run_steps(12);
+    let saved = memory.last();
+    let scene = document(project(&saved, "project-1"), "doc-1").expect("scene");
+    assert_eq!(
+        scene
+            .get("content")
+            .and_then(JsValue::as_js_string)
+            .map(|c| c.to_string_lossy()),
+        Some(prosecraft_core::html::sanitize_html(&original)),
+        "restored"
+    );
+    let after = snapshots(&memory);
+    let before_restore = after
+        .iter()
+        .find(|s| {
+            s.get("reason")
+                .and_then(JsValue::as_js_string)
+                .is_some_and(|r| r.eq_str("before-restore"))
+        })
+        .expect("the replaced text was kept");
+    assert!(
+        before_restore
+            .get("content")
+            .and_then(JsValue::as_js_string)
+            .is_some_and(|c| c.to_string_lossy().contains("More."))
+    );
+    // The editor shows the restored text.
+    assert!(
+        !harness
+            .get_by_label("Scene text")
+            .value()
+            .unwrap_or_default()
+            .contains("More.")
+    );
+
+    // Delete the original snapshot.
+    let delete = label.replacen("Restore", "Delete", 1);
+    harness.get_by_role_and_label(Role::Button, &delete).click();
+    harness.run_steps(12);
+    assert!(!snapshots(&memory).iter().any(|s| {
+        s.get("id")
+            .and_then(JsValue::as_js_string)
+            .is_some_and(|i| i.eq_str(&id))
+    }));
 }

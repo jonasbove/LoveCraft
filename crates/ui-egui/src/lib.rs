@@ -228,6 +228,9 @@ pub struct AppState {
     now_ms: f64,
     /// A fresh id from the store for the next EPUB (its book identifier); an export takes it.
     book_id: Option<String>,
+    /// The Snapshots tab's note for the next snapshot, and the one being previewed.
+    snapshot_note: String,
+    snapshot_preview: Option<String>,
     /// The Settings dialog is open.
     settings_open: bool,
     /// The Settings dialog's category.
@@ -537,6 +540,10 @@ impl ProseApp {
         for intent in std::mem::take(&mut self.state.intents) {
             self.commit_draft();
             self.change(|data, new_id| editing::run(&intent, data, new_id));
+            if matches!(intent, editing::Intent::RestoreSnapshot { .. }) {
+                // The editor reloads the restored text (its draft held the replaced one).
+                self.state.draft = None;
+            }
         }
         let now = self.state.now;
         if self

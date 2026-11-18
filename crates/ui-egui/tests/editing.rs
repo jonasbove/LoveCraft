@@ -1337,3 +1337,219 @@ fn storyboard_cards_are_added_edited_nudged_and_removed() {
         (48.0, 24.0)
     );
 }
+
+#[test]
+fn storyboard_drawings_are_drawn_moved_labelled_and_deleted() {
+    let (mut harness, memory) = app();
+    let drawings = |memory: &Memory| -> Vec<JsValue> {
+        project(&memory.last(), "project-1")
+            .get("project")
+            .and_then(|p| p.get("storyboardDrawings"))
+            .and_then(JsValue::as_array)
+            .map(<[JsValue]>::to_vec)
+            .unwrap_or_default()
+    };
+    let field = |d: &JsValue, k: &str| match d.get(k) {
+        Some(JsValue::Number(n)) => n.to_string(),
+        Some(JsValue::String(s)) => s.to_string_lossy(),
+        _ => String::new(),
+    };
+    let drag = |harness: &mut Harness<'static, ProseApp>, from: egui::Pos2, to: egui::Pos2| {
+        harness.event(egui::Event::PointerMoved(from));
+        harness.event(egui::Event::PointerButton {
+            pos: from,
+            button: egui::PointerButton::Primary,
+            pressed: true,
+            modifiers: egui::Modifiers::NONE,
+        });
+        harness.run();
+        for step in 1..=5 {
+            harness.event(egui::Event::PointerMoved(
+                from + (to - from) * (step as f32 / 5.0),
+            ));
+            harness.run();
+        }
+        harness.event(egui::Event::PointerButton {
+            pos: to,
+            button: egui::PointerButton::Primary,
+            pressed: false,
+            modifiers: egui::Modifiers::NONE,
+        });
+        harness.run_steps(12);
+    };
+    harness
+        .get_by_role_and_label(Role::Tab, "Storyboard")
+        .click();
+    harness.run();
+    let canvas = harness.get_by_label("Freeform storyboard").rect();
+    let origin = canvas.max - egui::vec2(400.0, 300.0);
+
+    // A box, dragged out from any corner.
+    harness
+        .get_by_role_and_label(Role::Button, "Box tool")
+        .click();
+    harness.run();
+    drag(&mut harness, origin + egui::vec2(120.0, 90.0), origin);
+    let boxed = drawings(&memory)
+        .into_iter()
+        .find(|d| field(d, "type") == "box")
+        .expect("a box");
+    assert_eq!(
+        (
+            field(&boxed, "type"),
+            field(&boxed, "width"),
+            field(&boxed, "height")
+        ),
+        ("box".into(), "120".into(), "90".into())
+    );
+
+    // An arrow; then, with Select, nudge it and delete it from the keyboard.
+    harness
+        .get_by_role_and_label(Role::Button, "Arrow tool")
+        .click();
+    harness.run();
+    drag(
+        &mut harness,
+        origin + egui::vec2(200.0, 200.0),
+        origin + egui::vec2(300.0, 200.0),
+    );
+    let arrow = drawings(&memory)
+        .into_iter()
+        .rfind(|d| field(d, "type") == "arrow")
+        .expect("an arrow");
+    let length = field(&arrow, "endX").parse::<f64>().expect("x")
+        - field(&arrow, "startX").parse::<f64>().expect("x");
+    assert_eq!(length, 100.0);
+    harness
+        .get_by_role_and_label(Role::Button, "Select tool")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Select arrow diagram element")
+        .focus();
+    harness.run();
+    harness.key_press(egui::Key::ArrowDown);
+    harness.run_steps(12);
+    let nudged = drawings(&memory)
+        .into_iter()
+        .find(|d| field(d, "type") == "arrow")
+        .expect("an arrow");
+    assert_eq!(
+        field(&nudged, "startY").parse::<f64>().expect("y")
+            - field(&arrow, "startY").parse::<f64>().expect("y"),
+        12.0
+    );
+    harness.key_press(egui::Key::Delete);
+    harness.run_steps(12);
+    assert!(
+        !drawings(&memory)
+            .iter()
+            .any(|d| field(d, "type") == "arrow"),
+        "the arrow is deleted"
+    );
+
+    // A text label: placed by a click, typed into, kept; an empty one goes.
+    harness
+        .get_by_role_and_label(Role::Button, "Text tool")
+        .click();
+    harness.run();
+    harness.get_by_label("Freeform storyboard").rect();
+    let at = origin + egui::vec2(20.0, 150.0);
+    harness.event(egui::Event::PointerMoved(at));
+    harness.event(egui::Event::PointerButton {
+        pos: at,
+        button: egui::PointerButton::Primary,
+        pressed: true,
+        modifiers: egui::Modifiers::NONE,
+    });
+    harness.event(egui::Event::PointerButton {
+        pos: at,
+        button: egui::PointerButton::Primary,
+        pressed: false,
+        modifiers: egui::Modifiers::NONE,
+    });
+    harness.run_steps(12);
+    assert!(
+        harness
+            .get_by_role_and_label(Role::MultilineTextInput, "Diagram text")
+            .is_focused(),
+        "the new label is being edited"
+    );
+    harness
+        .get_by_role_and_label(Role::MultilineTextInput, "Diagram text")
+        .type_text("Act I");
+    harness.run();
+    harness.key_press(egui::Key::Escape);
+    harness.run_steps(12);
+    let text = drawings(&memory)
+        .into_iter()
+        .find(|d| field(d, "type") == "text")
+        .expect("a label");
+    assert_eq!(
+        (
+            field(&text, "text"),
+            field(&text, "fontSize"),
+            field(&text, "width")
+        ),
+        ("Act I".into(), "14".into(), "180".into())
+    );
+
+    let at = origin + egui::vec2(220.0, 20.0);
+    harness.event(egui::Event::PointerMoved(at));
+    harness.event(egui::Event::PointerButton {
+        pos: at,
+        button: egui::PointerButton::Primary,
+        pressed: true,
+        modifiers: egui::Modifiers::NONE,
+    });
+    harness.event(egui::Event::PointerButton {
+        pos: at,
+        button: egui::PointerButton::Primary,
+        pressed: false,
+        modifiers: egui::Modifiers::NONE,
+    });
+    harness.run_steps(12);
+    assert_eq!(
+        drawings(&memory)
+            .iter()
+            .filter(|d| field(d, "type") == "text")
+            .count(),
+        2
+    );
+    harness.key_press(egui::Key::Escape);
+    harness.run_steps(12);
+    assert_eq!(
+        drawings(&memory)
+            .iter()
+            .filter(|d| field(d, "type") == "text")
+            .count(),
+        1,
+        "the empty label is removed"
+    );
+    // With Select, dragging a box moves it (it doesn't pan the canvas).
+    harness
+        .get_by_role_and_label(Role::Button, "Select tool")
+        .click();
+    harness.run();
+    let before = drawings(&memory)
+        .into_iter()
+        .find(|d| field(d, "type") == "box")
+        .expect("box");
+    drag(
+        &mut harness,
+        origin + egui::vec2(60.0, 45.0),
+        origin + egui::vec2(90.0, 55.0),
+    );
+    let after = drawings(&memory)
+        .into_iter()
+        .find(|d| field(d, "type") == "box")
+        .expect("box");
+    let num = |d: &JsValue, k: &str| field(d, k).parse::<f64>().expect("number");
+    assert_eq!(
+        (
+            num(&after, "x") - num(&before, "x"),
+            num(&after, "y") - num(&before, "y")
+        ),
+        (30.0, 10.0)
+    );
+}

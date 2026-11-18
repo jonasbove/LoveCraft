@@ -444,6 +444,199 @@ pub fn sync_chapter_summary(
     Ok(())
 }
 
+impl Drawing {
+    pub fn id(&self) -> &str {
+        match self {
+            Self::Line { id, .. } | Self::Box { id, .. } | Self::Text { id, .. } => id,
+        }
+    }
+
+    fn with_id(&self, new: String) -> Self {
+        let mut d = self.clone();
+        match &mut d {
+            Self::Line { id, .. } | Self::Box { id, .. } | Self::Text { id, .. } => *id = new,
+        }
+        d
+    }
+
+    /// The stored record (ProseCraft's field order).
+    fn to_js(&self) -> JsObject {
+        let mut o = JsObject::new();
+        o.insert("id", JsValue::str(self.id()));
+        match self {
+            Self::Line {
+                arrow, start, end, ..
+            } => {
+                o.insert("type", JsValue::str(if *arrow { "arrow" } else { "line" }));
+                o.insert("startX", JsValue::Number(start.0));
+                o.insert("startY", JsValue::Number(start.1));
+                o.insert("endX", JsValue::Number(end.0));
+                o.insert("endY", JsValue::Number(end.1));
+            }
+            Self::Box {
+                x,
+                y,
+                width,
+                height,
+                ..
+            } => {
+                o.insert("type", JsValue::str("box"));
+                for (k, v) in [("x", x), ("y", y), ("width", width), ("height", height)] {
+                    o.insert(k, JsValue::Number(*v));
+                }
+            }
+            Self::Text {
+                x,
+                y,
+                width,
+                height,
+                text,
+                font_size,
+                ..
+            } => {
+                o.insert("type", JsValue::str("text"));
+                for (k, v) in [("x", x), ("y", y), ("width", width), ("height", height)] {
+                    o.insert(k, JsValue::Number(*v));
+                }
+                o.insert("text", JsValue::str(text));
+                o.insert("fontSize", JsValue::Number(*font_size));
+            }
+        }
+        o
+    }
+}
+
+/// `drawingBoundsFromPoints`: a rectangle from any corner to any corner, at least `minimum`.
+pub fn bounds_from_points(
+    start: (f64, f64),
+    end: (f64, f64),
+    minimum: f64,
+) -> (f64, f64, f64, f64) {
+    (
+        js_round(start.0.min(end.0)),
+        js_round(start.1.min(end.1)),
+        js_round((end.0 - start.0).abs()).max(minimum),
+        js_round((end.1 - start.1).abs()).max(minimum),
+    )
+}
+
+/// `moveStoryboardDrawing`.
+pub fn move_drawing(drawing: &Drawing, dx: f64, dy: f64) -> Drawing {
+    let mut d = drawing.clone();
+    match &mut d {
+        Drawing::Line { start, end, .. } => {
+            *start = (js_round(start.0 + dx), js_round(start.1 + dy));
+            *end = (js_round(end.0 + dx), js_round(end.1 + dy));
+        }
+        Drawing::Box { x, y, .. } | Drawing::Text { x, y, .. } => {
+            *x = js_round(*x + dx);
+            *y = js_round(*y + dy);
+        }
+    }
+    d
+}
+
+/// `resizeStoryboardDrawing` (boxes and text only).
+pub fn resize_drawing(
+    drawing: &Drawing,
+    dx: f64,
+    dy: f64,
+    min_width: f64,
+    min_height: f64,
+) -> Drawing {
+    let mut d = drawing.clone();
+    if let Drawing::Box { width, height, .. } | Drawing::Text { width, height, .. } = &mut d {
+        *width = js_round(*width + dx).max(min_width);
+        *height = js_round(*height + dy).max(min_height);
+    }
+    d
+}
+
+/// The stored drawings as ProseCraft saves them after loading (`normalizeStoryboardDrawings`):
+/// malformed ones dropped, the rest rounded, fields it doesn't know kept.
+fn normalize_drawings(project: &mut JsValue) -> Result<(), EditError> {
+    let valid = drawings(project);
+    let stored: Vec<JsValue> = project
+        .get("storyboardDrawings")
+        .and_then(JsValue::as_array)
+        .map(<[JsValue]>::to_vec)
+        .unwrap_or_default();
+    let mut next = Vec::new();
+    let mut used = vec![false; stored.len()];
+    for drawing in &valid {
+        // The first stored record of each valid drawing, in order (ids may repeat).
+        let found = stored.iter().enumerate().find(|(i, s)| {
+            !used[*i]
+                && string(s, "id").as_deref() == Some(drawing.id())
+                && drawings(&wrap(s)).first() == Some(drawing)
+        });
+        let mut record = match found {
+            Some((i, s)) => {
+                used[i] = true;
+                s.as_object().cloned().unwrap_or_default()
+            }
+            None => JsObject::new(),
+        };
+        for (k, v) in drawing.to_js().iter() {
+            record.insert(k.clone(), v.clone());
+        }
+        next.push(JsValue::Object(record));
+    }
+    project
+        .as_object_mut()
+        .ok_or(EditError::Shape)?
+        .insert("storyboardDrawings", JsValue::Array(next));
+    Ok(())
+}
+
+fn wrap(drawing: &JsValue) -> JsValue {
+    let mut o = JsObject::new();
+    o.insert("storyboardDrawings", JsValue::Array(vec![drawing.clone()]));
+    JsValue::Object(o)
+}
+
+fn drawings_mut(project: &mut JsValue) -> Result<&mut Vec<JsValue>, EditError> {
+    normalize_drawings(project)?;
+    match project
+        .as_object_mut()
+        .and_then(|o| o.get_mut("storyboardDrawings"))
+    {
+        Some(JsValue::Array(list)) => Ok(list),
+        _ => Err(EditError::Shape),
+    }
+}
+
+/// A new drawing (its id is made here), last.
+pub fn add_drawing(
+    project: &mut JsValue,
+    new_id: &mut dyn FnMut() -> String,
+    drawing: &Drawing,
+) -> Result<(), EditError> {
+    let drawing = drawing.with_id(new_id());
+    drawings_mut(project)?.push(JsValue::Object(drawing.to_js()));
+    Ok(())
+}
+
+/// A drawing moved, resized or retyped (`replaceStoryboardDrawing`).
+pub fn set_drawing(project: &mut JsValue, drawing: &Drawing) -> Result<(), EditError> {
+    let list = drawings_mut(project)?;
+    let record = list
+        .iter_mut()
+        .find(|d| string(d, "id").as_deref() == Some(drawing.id()))
+        .and_then(JsValue::as_object_mut)
+        .ok_or(EditError::Shape)?;
+    for (k, v) in drawing.to_js().iter() {
+        record.insert(k.clone(), v.clone());
+    }
+    Ok(())
+}
+
+/// `removeStoryboardDrawing`.
+pub fn remove_drawing(project: &mut JsValue, id: &str) -> Result<(), EditError> {
+    drawings_mut(project)?.retain(|d| string(d, "id").as_deref() != Some(id));
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
@@ -553,6 +746,45 @@ mod tests {
         );
         remove_card(&mut p, &mut new_id, "id2").expect("remove");
         assert_eq!(cards(&p).len(), 1);
+    }
+
+    #[test]
+    fn drawings_are_added_changed_and_removed() {
+        use super::{
+            add_drawing, bounds_from_points, move_drawing, remove_drawing, resize_drawing,
+            set_drawing,
+        };
+        let mut p = parse(r#"{"storyboardDrawings":[{"id":"old","type":"box","x":1.6,"y":0,"width":10,"height":10,"color":"red"},{"id":"bad","type":"blob"}]}"#).expect("json");
+        let mut n = 0;
+        let mut new_id = || {
+            n += 1;
+            format!("d{n}")
+        };
+        let (x, y, w, h) = bounds_from_points((50.0, 40.0), (10.0, 38.0), 24.0);
+        assert_eq!((x, y, w, h), (10.0, 38.0, 40.0, 24.0));
+        add_drawing(
+            &mut p,
+            &mut new_id,
+            &Drawing::Line {
+                id: String::new(),
+                arrow: true,
+                start: (0.0, 0.0),
+                end: (5.0, 5.0),
+            },
+        )
+        .expect("add");
+        let boxed = drawings(&p)[0].clone();
+        set_drawing(
+            &mut p,
+            &resize_drawing(&move_drawing(&boxed, 10.0, -2.0), -100.0, 6.4, 24.0, 24.0),
+        )
+        .expect("set");
+        assert_eq!(
+            stringify(&p),
+            r#"{"storyboardDrawings":[{"id":"old","type":"box","x":12,"y":-2,"width":24,"height":24,"color":"red"},{"id":"d1","type":"arrow","startX":0,"startY":0,"endX":5,"endY":5}]}"#
+        );
+        remove_drawing(&mut p, "old").expect("remove");
+        assert_eq!(drawings(&p).len(), 1);
     }
 
     #[test]

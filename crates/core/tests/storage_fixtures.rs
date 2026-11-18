@@ -365,3 +365,44 @@ fn markdown_export_matches_prosecraft_byte_for_byte() {
         assert_eq!(export.file_name, "the-lighthouse-keeper.md");
     }
 }
+
+#[test]
+fn html_export_matches_prosecraft_byte_for_byte() {
+    use prosecraft_core::project::Project;
+    use prosecraft_core::publish::{PublishOptions, compile_book, export_html};
+    let fixture = fixture("export-html.json");
+    let mut stored = prosecraft_core::js::JsObject::new();
+    stored.insert("project", fixture.get("project").cloned().expect("project"));
+    let project = Project::from_stored(&JsValue::Object(stored)).expect("project view");
+    for (name, case) in fixture
+        .get("exports")
+        .and_then(JsValue::as_object)
+        .expect("exports")
+        .iter()
+    {
+        let options = PublishOptions::read(case.get("options"));
+        let export = export_html(&compile_book(&project, &options), &options);
+        let expected = case
+            .get("html")
+            .and_then(JsValue::as_js_string)
+            .and_then(JsString::as_string)
+            .expect("html");
+        let got = String::from_utf8_lossy(&export.bytes);
+        if got != expected {
+            let at = got
+                .chars()
+                .zip(expected.chars())
+                .take_while(|(a, b)| a == b)
+                .count();
+            let start = at.saturating_sub(120);
+            let window = |s: &str| s.chars().skip(start).take(260).collect::<String>();
+            panic!(
+                "{}: differs at char {at}\n--- want\n{}\n--- got\n{}",
+                name.to_string_lossy(),
+                window(&expected),
+                window(&got)
+            );
+        }
+        assert_eq!(export.file_name, "the-lighthouse-keeper.html");
+    }
+}

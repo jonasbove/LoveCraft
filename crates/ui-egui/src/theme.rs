@@ -149,10 +149,11 @@ impl Palette {
         v
     }
 
-    /// Visuals plus ProseCraft's roomier spacing.
+    /// Visuals plus ProseCraft's roomier spacing, in both of egui's styles (its dark and light
+    /// slots): the app chooses the palette itself, so whichever slot egui uses shows it.
     pub fn apply(&self, ctx: &egui::Context) {
         let visuals = self.visuals();
-        ctx.global_style_mut(|style: &mut Style| {
+        ctx.all_styles_mut(|style: &mut Style| {
             style.visuals = visuals.clone();
             style.spacing.item_spacing = vec2(8.0, 6.0);
             style.spacing.button_padding = vec2(10.0, 5.0);

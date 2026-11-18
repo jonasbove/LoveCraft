@@ -4,7 +4,7 @@
 //! its result replaces the library.
 
 use prosecraft_core::js::{JsObject, JsString, JsValue};
-use prosecraft_core::sync::state::SyncState;
+use prosecraft_core::sync::state::{SYNC_STATE_KEY, SyncState};
 use prosecraft_core::sync::{SyncMode, SyncResult};
 
 use crate::settings::{SyncAction, created_message, folder_saved_message, synced_message};
@@ -29,9 +29,15 @@ impl ProseApp {
         };
         self.state.sync.available = home.store.supports_sync();
         self.state.sync.craftcloud = home.store.has_craftcloud();
+        self.state.theme = home
+            .store
+            .load_setting(crate::settings::THEME_KEY)
+            .as_deref()
+            .and_then(crate::settings::ThemePreference::from_id)
+            .unwrap_or_default();
         if let Some(state) = home
             .store
-            .load_sync_state()
+            .load_setting(SYNC_STATE_KEY)
             .as_deref()
             .and_then(SyncState::read)
         {
@@ -44,7 +50,7 @@ impl ProseApp {
         self.home
             .as_mut()?
             .store
-            .load_sync_state()
+            .load_setting(SYNC_STATE_KEY)
             .as_deref()
             .and_then(SyncState::read)
     }
@@ -66,7 +72,9 @@ impl ProseApp {
                 .map_or_else(empty, |p| p.last_synced)
         });
         if let Some(home) = self.home.as_mut()
-            && let Err(error) = home.store.save_sync_state(Some(&state.to_text()))
+            && let Err(error) = home
+                .store
+                .save_setting(SYNC_STATE_KEY, Some(&state.to_text()))
         {
             self.state.sync.status = format!("Could not save the sync settings: {error}");
         }
@@ -128,7 +136,7 @@ impl ProseApp {
                 }
                 SyncAction::Forget => {
                     if let Some(home) = self.home.as_mut() {
-                        let _ = home.store.save_sync_state(None);
+                        let _ = home.store.save_setting(SYNC_STATE_KEY, None);
                     }
                     self.state.sync.folder.clear();
                     self.state.sync.passphrase.clear();
@@ -231,7 +239,9 @@ impl ProseApp {
                 let Some(home) = self.home.as_mut() else {
                     return false;
                 };
-                let _ = home.store.save_sync_state(Some(&state.to_text()));
+                let _ = home
+                    .store
+                    .save_setting(SYNC_STATE_KEY, Some(&state.to_text()));
                 home.library.replace_synced(result.projects.clone());
                 let text = home.library.to_text(home.store.now_ms());
                 let saved = home.store.save(&text);

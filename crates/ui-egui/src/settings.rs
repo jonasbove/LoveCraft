@@ -249,7 +249,95 @@ fn device_sync(ui: &mut Ui, state: &mut AppState) {
     }
 }
 
-/// The Settings dialog, while open.
+/// ProseCraft's `localStorage` key for the Theme preference.
+pub const THEME_KEY: &str = "prosecraft-theme";
+
+/// ProseCraft's Theme preference (`prosecraft-theme`).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ThemePreference {
+    #[default]
+    System,
+    Light,
+    Dark,
+}
+
+impl ThemePreference {
+    pub const ALL: [Self; 3] = [Self::System, Self::Light, Self::Dark];
+
+    pub fn id(self) -> &'static str {
+        match self {
+            Self::System => "system",
+            Self::Light => "light",
+            Self::Dark => "dark",
+        }
+    }
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::System => "Follow system",
+            Self::Light => "Light",
+            Self::Dark => "Dark",
+        }
+    }
+
+    pub fn from_id(id: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|t| t.id() == id)
+    }
+}
+
+/// The dialog's categories, as ProseCraft's (the ones with ported settings).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum Category {
+    #[default]
+    General,
+    Data,
+}
+
+impl Category {
+    const ALL: [Self; 2] = [Self::General, Self::Data];
+
+    fn label(self) -> &'static str {
+        match self {
+            Self::General => "General",
+            Self::Data => "Data and sync",
+        }
+    }
+}
+
+fn general(ui: &mut Ui, state: &mut AppState) {
+    let palette = state.palette;
+    ui.label(
+        RichText::new("Appearance")
+            .strong()
+            .color(palette.text_heading),
+    );
+    help(ui, &palette, "Choose how ProseCraft looks");
+    ui.add_space(8.0);
+    ui.label(
+        RichText::new("Theme")
+            .size(12.0)
+            .color(palette.text_secondary),
+    );
+    let current = state.theme;
+    let mut chosen = current;
+    let combo = craft_ui::ComboBox::from_id_salt("theme-preference")
+        .selected_text(current.label())
+        .show_ui(ui, |ui| {
+            for option in ThemePreference::ALL {
+                ui.selectable_value(&mut chosen, option, option.label());
+            }
+        });
+    ui.ctx().accesskit_node_builder(combo.response.id, |node| {
+        node.set_label("Theme");
+        node.set_value(current.label());
+    });
+    if chosen != current {
+        state.theme_choice = Some(chosen);
+    }
+}
+
+/// The Settings dialog, while open: ProseCraft's categories on the left, the chosen one's
+/// settings beside them.
 pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
     if !state.settings_open {
         return;
@@ -259,11 +347,61 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         .open(&mut open)
         .collapsible(false)
         .resizable(false)
-        .default_width(460.0)
+        .default_width(620.0)
         .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
         .show(ui.ctx(), |ui| {
-            ui.set_width(440.0);
-            device_sync(ui, state);
+            ui.horizontal_top(|ui| {
+                ui.vertical(|ui| {
+                    ui.set_width(140.0);
+                    let palette = state.palette;
+                    for category in Category::ALL {
+                        let selected = state.settings_tab == category;
+                        let (rect, _) =
+                            ui.allocate_exact_size(egui::vec2(140.0, 30.0), egui::Sense::hover());
+                        let tab = craft_ui::tabs::Tab::new(
+                            egui::Id::unique(("settings-category", category.label())),
+                            category.label(),
+                            selected,
+                        )
+                        .show_at(ui, rect, |ui, response| {
+                            let fill = if selected {
+                                Some(palette.selected_bg)
+                            } else if response.hovered() {
+                                Some(palette.hover_bg)
+                            } else {
+                                None
+                            };
+                            if let Some(fill) = fill {
+                                ui.painter()
+                                    .rect_filled(rect, egui::CornerRadius::same(6), fill);
+                            }
+                            let color = if selected {
+                                palette.selected_text
+                            } else {
+                                palette.text_secondary
+                            };
+                            ui.painter().text(
+                                rect.left_center() + egui::vec2(10.0, 0.0),
+                                egui::Align2::LEFT_CENTER,
+                                category.label(),
+                                egui::FontId::proportional(13.0),
+                                color,
+                            );
+                        });
+                        if tab.clicked() {
+                            state.settings_tab = category;
+                        }
+                    }
+                });
+                ui.separator();
+                ui.vertical(|ui| {
+                    ui.set_width(440.0);
+                    match state.settings_tab {
+                        Category::General => general(ui, state),
+                        Category::Data => device_sync(ui, state),
+                    }
+                });
+            });
         });
     if !open || ui.input(|i| i.key_pressed(egui::Key::Escape)) {
         state.settings_open = false;

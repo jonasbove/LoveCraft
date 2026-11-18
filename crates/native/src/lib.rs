@@ -37,32 +37,47 @@ pub fn data_dir() -> Option<PathBuf> {
     }
 }
 
-/// The device's sync settings, beside the library (ProseCraft keeps them in `localStorage`).
-pub const SYNC_STATE_FILE: &str = "sync-state.json";
+/// The device's settings, beside the library: one JSON object of ProseCraft's `localStorage`
+/// keys (`prosecraft-theme`, `prosecraft-sync-state`…) to their string values.
+pub const SETTINGS_FILE: &str = "settings.json";
 
-/// The sync settings file in `dir`: its text, or `None`.
-pub fn load_sync_state(dir: &Path) -> Option<String> {
-    let path = dir.join(SYNC_STATE_FILE);
+fn read_settings(dir: &Path) -> prosecraft_core::js::JsObject {
+    let path = dir.join(SETTINGS_FILE);
     // Settings are a few kilobytes; anything far larger isn't them.
-    if std::fs::metadata(&path).ok()?.len() > 16 * 1024 * 1024 {
-        return None;
+    let too_big = std::fs::metadata(&path)
+        .map(|m| m.len() > 16 * 1024 * 1024)
+        .unwrap_or(true);
+    if too_big {
+        return prosecraft_core::js::JsObject::new();
     }
-    std::fs::read_to_string(path).ok()
+    std::fs::read_to_string(path)
+        .ok()
+        .and_then(|text| prosecraft_core::js::parse(&text).ok())
+        .and_then(|value| value.as_object().cloned())
+        .unwrap_or_default()
 }
 
-/// Saves (or, with `None`, removes) the sync settings in `dir`, atomically.
-pub fn save_sync_state(dir: &Path, text: Option<&str>) -> io::Result<()> {
-    let path = dir.join(SYNC_STATE_FILE);
-    match text {
-        Some(text) => {
-            std::fs::create_dir_all(dir)?;
-            craft_atomic::atomic_write(&path, text.as_bytes())
+/// One setting's value.
+pub fn load_setting(dir: &Path, key: &str) -> Option<String> {
+    read_settings(dir)
+        .get(key)
+        .and_then(|v| v.as_js_string())
+        .map(|s| s.to_string_lossy())
+}
+
+/// Sets (or, with `None`, removes) one setting, writing the file atomically.
+pub fn save_setting(dir: &Path, key: &str, value: Option<&str>) -> io::Result<()> {
+    let mut settings = read_settings(dir);
+    match value {
+        Some(v) => settings.insert(key, prosecraft_core::js::JsValue::str(v)),
+        None => {
+            settings.remove(key);
         }
-        None => match std::fs::remove_file(&path) {
-            Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(()),
-            other => other,
-        },
     }
+    std::fs::create_dir_all(dir)?;
+    let text =
+        prosecraft_core::js::stringify_pretty(&prosecraft_core::js::JsValue::Object(settings));
+    craft_atomic::atomic_write(&dir.join(SETTINGS_FILE), text.as_bytes())
 }
 
 /// The library file on disk.

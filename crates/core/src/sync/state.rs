@@ -6,6 +6,9 @@
 //! set up.
 
 use super::SyncMode;
+
+/// ProseCraft's `localStorage` key for these settings.
+pub const SYNC_STATE_KEY: &str = "prosecraft-sync-state";
 use crate::js::{self, JsObject, JsValue};
 
 #[derive(Clone, Debug, PartialEq)]

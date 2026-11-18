@@ -76,4 +76,17 @@ fn render_views() {
         .state_mut()
         .set_sync_folder("/home/writer/Nextcloud/ProseCraft".into());
     save(&mut harness, "settings");
+    harness
+        .get_by_role_and_label(Role::ComboBox, "Theme")
+        .click();
+    harness.run();
+    harness.get_by_role_and_label(Role::Button, "Light").click();
+    harness.run();
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    harness.get_by_role_and_label(Role::Tab, "Write").click();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    save(&mut harness, "write-light");
 }

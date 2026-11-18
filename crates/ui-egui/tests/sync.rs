@@ -78,11 +78,15 @@ impl LibraryStore for Store {
     fn sync_fs(&mut self, _folder: &str) -> Option<Box<dyn SyncFileSystem + Send>> {
         Some(Box::new(self.folder.clone()))
     }
-    fn load_sync_state(&mut self) -> Option<String> {
-        self.state.lock().ok()?.clone()
+    fn load_setting(&mut self, key: &str) -> Option<String> {
+        (key == "prosecraft-sync-state")
+            .then(|| self.state.lock().ok()?.clone())
+            .flatten()
     }
-    fn save_sync_state(&mut self, text: Option<&str>) -> Result<(), String> {
-        *self.state.lock().map_err(|e| e.to_string())? = text.map(str::to_owned);
+    fn save_setting(&mut self, key: &str, value: Option<&str>) -> Result<(), String> {
+        if key == "prosecraft-sync-state" {
+            *self.state.lock().map_err(|e| e.to_string())? = value.map(str::to_owned);
+        }
         Ok(())
     }
 }
@@ -133,6 +137,10 @@ fn status(harness: &Harness<'_, ProseApp>) -> String {
 fn sync(harness: &mut Harness<'_, ProseApp>, passphrase: &str) -> String {
     harness
         .get_by_role_and_label(Role::Button, "Settings…")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Tab, "Data and sync")
         .click();
     harness.run();
     if harness.query_by_label("Sync passphrase").is_none() {
@@ -235,6 +243,10 @@ fn the_craftcloud_folder_is_one_click_away() {
         .click();
     harness.run();
     harness
+        .get_by_role_and_label(Role::Tab, "Data and sync")
+        .click();
+    harness.run();
+    harness
         .get_by_role_and_label(Role::Button, "Use the CraftCloud folder")
         .click();
     harness.run();
@@ -251,4 +263,83 @@ fn the_craftcloud_folder_is_one_click_away() {
     // Without CraftCloud the button isn't there.
     let plain = app(&Store::default(), true);
     assert!(plain.query_by_label("Use the CraftCloud folder").is_none());
+}
+
+#[test]
+fn the_theme_is_chosen_in_settings_and_remembered() {
+    /// Every setting saved, in order: key and value.
+    type Saved = Vec<(String, Option<String>)>;
+    #[derive(Clone, Default)]
+    struct Settings(Arc<Mutex<Saved>>);
+    struct ThemeStore(Settings);
+    impl LibraryStore for ThemeStore {
+        fn save(&mut self, _text: &str) -> Result<(), String> {
+            Ok(())
+        }
+        fn now_ms(&self) -> f64 {
+            0.0
+        }
+        fn new_id(&mut self) -> String {
+            "id".into()
+        }
+        fn load_setting(&mut self, key: &str) -> Option<String> {
+            self.0
+                .0
+                .lock()
+                .ok()?
+                .iter()
+                .rev()
+                .find(|(k, _)| k == key)
+                .and_then(|(_, v)| v.clone())
+        }
+        fn save_setting(&mut self, key: &str, value: Option<&str>) -> Result<(), String> {
+            self.0
+                .0
+                .lock()
+                .map_err(|e| e.to_string())?
+                .push((key.to_owned(), value.map(str::to_owned)));
+            Ok(())
+        }
+    }
+    let settings = Settings::default();
+    let app = ProseApp::with_library(
+        ProjectLibrary::new("d".into()),
+        Box::new(ThemeStore(settings.clone())),
+    );
+    let mut harness = Harness::builder()
+        .with_size([1280.0, 850.0])
+        .build_ui_state(|ui, app: &mut ProseApp| app.show(ui), app);
+    prosecraft_ui_egui::setup_for_tests(&harness.ctx);
+    harness.run();
+    let dark_bg = harness.ctx.global_style().visuals.panel_fill;
+    harness
+        .get_by_role_and_label(Role::Button, "Settings…")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::ComboBox, "Theme")
+        .click();
+    harness.run();
+    harness.get_by_role_and_label(Role::Button, "Light").click();
+    harness.run();
+    assert_eq!(
+        settings.0.lock().expect("settings").last().cloned(),
+        Some(("prosecraft-theme".to_owned(), Some("light".to_owned())))
+    );
+    assert_ne!(
+        harness.ctx.global_style().visuals.panel_fill,
+        dark_bg,
+        "the light palette is in use"
+    );
+    // A new app on this device opens in the remembered theme.
+    let again = ProseApp::with_library(
+        ProjectLibrary::new("d".into()),
+        Box::new(ThemeStore(settings)),
+    );
+    let mut harness = Harness::builder()
+        .with_size([800.0, 600.0])
+        .build_ui_state(|ui, app: &mut ProseApp| app.show(ui), again);
+    prosecraft_ui_egui::setup_for_tests(&harness.ctx);
+    harness.run();
+    assert_ne!(harness.ctx.global_style().visuals.panel_fill, dark_bg);
 }

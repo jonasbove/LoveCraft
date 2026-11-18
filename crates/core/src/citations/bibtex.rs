@@ -47,7 +47,10 @@ rule!(identifier_braces, r"^\{+|\}+$");
 rule!(identifier_escape, r"\\([_&#%])");
 rule!(iso_date, r"^(\d{4})(?:-(\d{1,2})(?:-(\d{1,2}))?)?");
 rule!(year, r"^(-?\d{1,4})$");
-rule!(field_name, r"^[a-z0-9_.-]+$", "i");
+// ProseCraft's `/^[a-z0-9_.-]+$/i`. Without the `u` flag JavaScript folds case by upper-casing
+// and never maps a non-ASCII character onto ASCII, so `ſ` (long s) does not match; `regress`
+// folds it to `s`. Spelling out both cases keeps the JavaScript set.
+rule!(field_name, r"^[A-Za-z0-9_.-]+$");
 rule!(entry_header, r"^@([A-Za-z]+)\s*([{(])");
 rule!(bad_cite_key, r"\s|[=]");
 rule!(page_dashes, r"\s*[–—-]+\s*");

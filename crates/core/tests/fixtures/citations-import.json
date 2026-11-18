@@ -1067,6 +1067,58 @@
           "Invalid CSL-JSON input: Unexpected token '@', \"@article{q\"... is not valid JSON"
         ]
       }
+    },
+    {
+      "text": "@string{ſ = {x}}\n@book{k, ſ = {y}, Key = {z}, title = ſ}",
+      "filename": "refs.bib",
+      "result": {
+        "format": "bibtex",
+        "items": [
+          {
+            "id": "k",
+            "type": "book",
+            "title": "ſ",
+            "citeKey": "k",
+            "provider": "import"
+          }
+        ],
+        "warnings": [
+          "Invalid @string macro key \"ſ\" skipped.",
+          "Invalid field name \"ſ\" in @book{k}."
+        ]
+      }
+    },
+    {
+      "text": "[\"\\İ\"]",
+      "filename": "refs.json",
+      "result": {
+        "format": "csl-json",
+        "items": [],
+        "warnings": [
+          "Invalid CSL-JSON input: Unexpected token 'İ', \"[\"\\İ\"]\" is not valid JSON"
+        ]
+      }
+    },
+    {
+      "text": "[{\"type\":\"book\",\"title\":\"cut \\ud83d\"},{\"type\":\"book\",\"title\":\"\\ude00 x\",\"container-title\":\"a\\ud83d\\ude00\"}]",
+      "filename": "refs.json",
+      "result": {
+        "format": "csl-json",
+        "items": [
+          {
+            "id": "cut-9v6k33",
+            "type": "book",
+            "title": "cut \ud83d"
+          },
+          {
+            "id": "ref-moeug1",
+            "type": "book",
+            "title": "\ude00 x",
+            "container-title": "a😀"
+          }
+        ],
+        "warnings": []
+      }
     }
   ],
   "bibtex": [

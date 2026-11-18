@@ -34,9 +34,6 @@ rule!(
     control_chars,
     r"[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]"
 );
-rule!(line_breaks, r"[\r\n\t]+");
-rule!(spaces, r"\s{2,}");
-rule!(crlf, r"\r\n?");
 rule!(id_disallowed, r"[^A-Za-z0-9_.:/-]+");
 rule!(dashes, r"-{2,}");
 rule!(id_ends, r"^[-./]+|[-./]+$");
@@ -48,40 +45,92 @@ fn js_trim(s: &str) -> &str {
     s.trim_matches(is_js_whitespace)
 }
 
-/// `text.slice(0, max).trim()`, by UTF-16 units as JavaScript cuts it.
-fn cut(text: &str, max: usize) -> JsString {
-    let mut units: Vec<u16> = text.encode_utf16().take(max).collect();
-    let is_space = |u: u16| char::from_u32(u32::from(u)).is_some_and(is_js_whitespace);
-    while units.last().is_some_and(|u| is_space(*u)) {
-        units.pop();
-    }
-    let start = units.iter().take_while(|u| is_space(**u)).count();
-    JsString::from_units(units[start..].to_vec())
+fn is_space_unit(unit: u16) -> bool {
+    char::from_u32(u32::from(unit)).is_some_and(is_js_whitespace)
 }
 
-fn text_of(value: Option<&JsValue>) -> Option<String> {
-    value
-        .and_then(JsValue::as_js_string)
-        .map(JsString::to_string_lossy)
+/// `.trim()` on UTF-16 units.
+fn trim_units(units: &[u16]) -> &[u16] {
+    let start = units.iter().take_while(|u| is_space_unit(**u)).count();
+    let end = units.len()
+        - units[start..]
+            .iter()
+            .rev()
+            .take_while(|u| is_space_unit(**u))
+            .count();
+    &units[start..end]
+}
+
+/// `text.slice(0, max).trim()`, by UTF-16 units as JavaScript cuts it.
+fn cut_units(units: &[u16], max: usize) -> JsString {
+    JsString::from_units(trim_units(&units[..units.len().min(max)]).to_vec())
+}
+
+/// `/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/`.
+fn is_control_unit(unit: u16) -> bool {
+    matches!(unit, 0x00..=0x08 | 0x0b | 0x0c | 0x0e..=0x1f | 0x7f)
+}
+
+/// Runs of units matching `class` (at least `min` long) replaced by `with`, as
+/// `replace(/[class]{min,}/g, with)` does.
+fn squeeze_units(units: &[u16], class: impl Fn(u16) -> bool, min: usize, with: &[u16]) -> Vec<u16> {
+    let mut out = Vec::with_capacity(units.len());
+    let mut i = 0;
+    while i < units.len() {
+        let run = units[i..].iter().take_while(|u| class(**u)).count();
+        if run >= min.max(1) {
+            out.extend_from_slice(with);
+            i += run;
+        } else {
+            out.push(units[i]);
+            i += 1;
+        }
+    }
+    out
+}
+
+/// The cleaning works on UTF-16 units, as the TypeScript does, so a lone surrogate in a
+/// CSL-JSON string (`"\ud83d"`) is kept rather than replaced.
+fn units_of(value: Option<&JsValue>) -> Option<Vec<u16>> {
+    value.and_then(JsValue::as_js_string).map(|s| {
+        s.units()
+            .iter()
+            .copied()
+            .filter(|u| !is_control_unit(*u))
+            .collect()
+    })
 }
 
 /// `cleanSingleLine`: one line, control characters removed, runs of space as one.
 fn clean_single_line(value: Option<&JsValue>, max: usize) -> Option<JsString> {
-    let text = text_of(value)?;
-    let cleaned = control_chars().replace(&text, true, "");
-    let cleaned = line_breaks().replace(&cleaned, true, " ");
-    let cleaned = spaces().replace(&cleaned, true, " ");
-    let cleaned = js_trim(&cleaned);
-    (!cleaned.is_empty()).then(|| cut(cleaned, max))
+    let units = units_of(value)?;
+    let line_break = |u: u16| matches!(u, 0x0d | 0x0a | 0x09);
+    let units = squeeze_units(&units, line_break, 1, &[0x20]);
+    let units = squeeze_units(&units, is_space_unit, 2, &[0x20]);
+    let cleaned = trim_units(&units);
+    (!cleaned.is_empty()).then(|| cut_units(cleaned, max))
 }
 
 /// `cleanMultiLine`: control characters removed and line endings as `\n`.
 fn clean_multi_line(value: Option<&JsValue>, max: usize) -> Option<JsString> {
-    let text = text_of(value)?;
-    let cleaned = control_chars().replace(&text, true, "");
-    let cleaned = crlf().replace(&cleaned, true, "\n");
-    let cleaned = js_trim(&cleaned);
-    (!cleaned.is_empty()).then(|| cut(cleaned, max))
+    let units = units_of(value)?;
+    let mut lines = Vec::with_capacity(units.len());
+    let mut i = 0;
+    while i < units.len() {
+        if units[i] == 0x0d {
+            lines.push(0x0a);
+            i += if units.get(i + 1) == Some(&0x0a) {
+                2
+            } else {
+                1
+            };
+        } else {
+            lines.push(units[i]);
+            i += 1;
+        }
+    }
+    let cleaned = trim_units(&lines);
+    (!cleaned.is_empty()).then(|| cut_units(cleaned, max))
 }
 
 /// `cleanStringOrNumber`.

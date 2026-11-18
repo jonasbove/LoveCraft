@@ -35,6 +35,12 @@ pub enum Intent {
     /// The open project to the Trash, a project back from it, or gone for good
     /// (`trashActiveProject`, `restoreProject`, `permanentlyDeleteProject`).
     TrashProject,
+    /// A matter page from a preset (`addMatterPage`): front or back, its title, blank or not.
+    AddMatterPage {
+        front: bool,
+        title: String,
+        blank: bool,
+    },
     RestoreProject(String),
     DeleteProject(String),
     /// From the Trash, gone for good (`permanentlyDelete`, `permanentlyDeleteChapter`).
@@ -326,6 +332,17 @@ pub fn run(
         Intent::TrashDocument(id) => edit::trash_document(data, id),
         Intent::TrashChapter(id) => edit::trash_chapter(data, id),
         Intent::MoveChapter { id, offset } => edit::move_chapter(data, id, *offset),
+        Intent::AddMatterPage {
+            front,
+            title,
+            blank,
+        } => edit::add_matter_page(
+            data,
+            if *front { "frontMatter" } else { "backMatter" },
+            &new_id(),
+            title,
+            *blank,
+        ),
         Intent::MoveScene { id, offset } => edit::move_scene(data, id, *offset),
         Intent::MoveSceneToChapter { scene, chapter } => {
             edit::move_scene_to_chapter_end(data, scene, chapter)

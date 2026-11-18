@@ -563,6 +563,44 @@ pub fn delete_chapter(project: &mut JsValue, id: &str) -> Result<(), EditError> 
     Ok(())
 }
 
+/// `addMatterPage`: a new front (`frontMatter`) or back (`backMatter`) matter page from a
+/// preset, at the end, while there are fewer than 12.
+pub fn add_matter_page(
+    project: &mut JsValue,
+    key: &str,
+    id: &str,
+    title: &str,
+    blank: bool,
+) -> Result<(), EditError> {
+    let options = project
+        .as_object_mut()
+        .ok_or(EditError::Shape)?
+        .get_mut("publishOptions")
+        .and_then(JsValue::as_object_mut)
+        .ok_or(EditError::Shape)?;
+    let mut pages = options
+        .get(key)
+        .and_then(JsValue::as_array)
+        .map(<[JsValue]>::to_vec)
+        .unwrap_or_default();
+    if pages.len() >= 12 {
+        return Ok(());
+    }
+    let mut page = JsObject::new();
+    page.insert("id", JsValue::str(&format!("matter-{id}")));
+    page.insert(
+        "title",
+        JsValue::str(&title.chars().take(120).collect::<String>()),
+    );
+    page.insert("body", JsValue::str(""));
+    if blank {
+        page.insert("blank", JsValue::Bool(true));
+    }
+    pages.push(JsValue::Object(page));
+    options.insert(key, JsValue::Array(pages));
+    Ok(())
+}
+
 fn escape(text: &str) -> String {
     text.replace('&', "&amp;")
         .replace('<', "&lt;")

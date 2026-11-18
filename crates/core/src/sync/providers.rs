@@ -1,5 +1,6 @@
 //! The encrypted single file (`bundle-provider.ts`) and the encrypted folder
-//! (`folder-provider.ts`), and the flow both run (`orchestrate.ts`).
+//! (`folder-provider.ts`), and the flow every layout runs (`orchestrate.ts`). The open folder is
+//! in [`super::open_layout`].
 
 use super::layout::{
     encode_project_files, entity_dir, entity_file_name, project_dir_name, read_project_files,
@@ -17,7 +18,8 @@ use crate::storage::schema::ENTITY_KINDS;
 
 /// The folder's projects once unlocked or set up (`SyncConnection`).
 pub struct Connection {
-    pub key: VaultKey,
+    /// The vault's key; the open folder has none.
+    pub key: Option<VaultKey>,
     pub projects: Vec<JsValue>,
     pub created: bool,
 }
@@ -32,10 +34,15 @@ pub trait SyncProvider {
     fn push(
         &mut self,
         projects: &[JsValue],
-        key: &VaultKey,
+        key: Option<&VaultKey>,
         random: &mut dyn RandomSource,
     ) -> Result<(), SyncError>;
     fn remove(&mut self, project_ids: &[String]) -> Result<(), SyncError>;
+    /// The merged projects as this layout will keep them (`normalize`), before they are pushed
+    /// and returned. Only the open folder changes them.
+    fn normalize(&mut self, projects: Vec<JsValue>) -> Vec<JsValue> {
+        projects
+    }
     /// Files in the folder that look like another sync tool's conflict copies of this
     /// layout's files. prosecraft-rs never deletes them; it says they are there.
     fn conflict_files(&mut self) -> Result<Vec<String>, SyncError> {
@@ -105,7 +112,7 @@ impl SyncProvider for EncryptedFileProvider<'_> {
             self.hint = bundle.hint();
             self.header = Some(bundle.header);
             return Ok(Connection {
-                key,
+                key: Some(key),
                 projects,
                 created: false,
             });
@@ -129,7 +136,7 @@ impl SyncProvider for EncryptedFileProvider<'_> {
         self.created_at = self.now;
         self.hint = None;
         Ok(Connection {
-            key,
+            key: Some(key),
             projects: Vec::new(),
             created: true,
         })
@@ -138,9 +145,10 @@ impl SyncProvider for EncryptedFileProvider<'_> {
     fn push(
         &mut self,
         projects: &[JsValue],
-        key: &VaultKey,
+        key: Option<&VaultKey>,
         random: &mut dyn RandomSource,
     ) -> Result<(), SyncError> {
+        let key = key.ok_or_else(|| SyncError::Folder("The sync folder is locked.".into()))?;
         let header = self
             .header
             .as_ref()
@@ -302,7 +310,7 @@ impl SyncProvider for FolderProvider<'_> {
             self.fs
                 .write_text(VAULT_FILE, &js::stringify_pretty(&header.raw))?;
             return Ok(Connection {
-                key,
+                key: Some(key),
                 projects: Vec::new(),
                 created: true,
             });
@@ -314,7 +322,7 @@ impl SyncProvider for FolderProvider<'_> {
         let key = unlock_vault(&header, passphrase)?;
         let projects = self.pull(&key)?;
         Ok(Connection {
-            key,
+            key: Some(key),
             projects,
             created: false,
         })
@@ -323,9 +331,10 @@ impl SyncProvider for FolderProvider<'_> {
     fn push(
         &mut self,
         projects: &[JsValue],
-        key: &VaultKey,
+        key: Option<&VaultKey>,
         random: &mut dyn RandomSource,
     ) -> Result<(), SyncError> {
+        let key = key.ok_or_else(|| SyncError::Folder("The sync folder is locked.".into()))?;
         self.fs.create_dir(PROJECTS_DIR)?;
         for project in projects {
             let id = project
@@ -404,14 +413,15 @@ pub fn sync_via(
         device_id,
         suffix,
     );
-    provider.push(&merged.projects, &connection.key, random)?;
+    let projects = provider.normalize(merged.projects);
+    provider.push(&projects, connection.key.as_ref(), random)?;
     if !merged.removed_ids.is_empty() {
         provider.remove(&merged.removed_ids)?;
     }
     let conflict_files = provider.conflict_files()?;
     Ok(SyncResult {
         conflict_files,
-        projects: merged.projects,
+        projects,
         created: connection.created,
         imported: merged.imported,
         exported: merged.exported,

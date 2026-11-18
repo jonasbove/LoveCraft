@@ -1,9 +1,9 @@
 //! Sync folders (ProseCraft `src/lib/storage/sync/`, upstream `7dae544`): the working set of
 //! projects kept in step with a folder another program syncs (Syncthing, Nextcloud, Dropbox…).
 //!
-//! Two layouts are ported: one encrypted file (`prosecraft-sync.prosecraft`, an encrypted
-//! backup) and an encrypted folder (`vault.json` and one encrypted file per project, chapter,
-//! scene and storyboard record). The open folder of Markdown files is not ported yet.
+//! All three layouts are ported: one encrypted file (`prosecraft-sync.prosecraft`, an encrypted
+//! backup), an encrypted folder (`vault.json` and one encrypted file per project, chapter, scene
+//! and storyboard record), and the open folder of Markdown and JSON files.
 //!
 //! Every layout runs the same flow (`syncViaProvider`): connect (unlock or create the vault),
 //! merge the folder's projects with the library's ([`merge::merge_projects`]), write the result
@@ -12,6 +12,7 @@
 pub mod layout;
 pub mod memory;
 pub mod merge;
+pub mod open_layout;
 pub mod providers;
 pub mod state;
 
@@ -20,6 +21,7 @@ use crate::storage::bundle::BundleError;
 use crate::storage::crypto::CryptoError;
 
 pub use merge::{MergeOutcome, SyncStamp, merge_projects};
+pub use open_layout::OpenFolderProvider;
 pub use providers::{EncryptedFileProvider, FolderProvider, SyncProvider, sync_via};
 
 /// Root-level names that identify each layout (`files.ts`).

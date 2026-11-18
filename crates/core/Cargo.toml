@@ -21,6 +21,7 @@ craft-i18n = { workspace = true, features = ["collate"] }
 encoding_rs = { workspace = true }
 regress = { workspace = true }
 url = { workspace = true }
+sha2 = { workspace = true }
 thiserror = { workspace = true }
 argon2 = { workspace = true }
 chacha20poly1305 = { workspace = true }

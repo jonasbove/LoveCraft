@@ -111,7 +111,7 @@ fn writes_the_folder_layout_prosecraft_reads() {
             .expect("create");
         assert!(connection.created);
         provider
-            .push(&projects(&f), &connection.key, &mut OsRandom)
+            .push(&projects(&f), connection.key.as_ref(), &mut OsRandom)
             .expect("push");
     }
     let mut got_paths: Vec<String> = fs.files().keys().cloned().collect();
@@ -142,7 +142,7 @@ fn writes_the_single_file_and_reads_it_back() {
             .connect(&passphrase(&f), &mut OsRandom)
             .expect("create");
         provider
-            .push(&projects(&f), &connection.key, &mut OsRandom)
+            .push(&projects(&f), connection.key.as_ref(), &mut OsRandom)
             .expect("push");
     }
     assert_eq!(
@@ -345,7 +345,7 @@ fn write_layouts_for_prosecraft() {
                 .connect(&passphrase(&f), &mut OsRandom)
                 .expect("create");
             provider
-                .push(&projects(&f), &c.key, &mut OsRandom)
+                .push(&projects(&f), c.key.as_ref(), &mut OsRandom)
                 .expect("push");
         } else {
             let mut provider = EncryptedFileProvider::new(&mut fs, 1_800_000_000_000.0)
@@ -354,7 +354,7 @@ fn write_layouts_for_prosecraft() {
                 .connect(&passphrase(&f), &mut OsRandom)
                 .expect("create");
             provider
-                .push(&projects(&f), &c.key, &mut OsRandom)
+                .push(&projects(&f), c.key.as_ref(), &mut OsRandom)
                 .expect("push");
         }
         let mut out = prosecraft_core::js::JsObject::new();
@@ -401,7 +401,7 @@ fn pruning_keeps_files_the_folder_did_not_write() {
         .connect(&passphrase(&f), &mut OsRandom)
         .expect("connect");
     provider
-        .push(&connection.projects, &connection.key, &mut OsRandom)
+        .push(&connection.projects, connection.key.as_ref(), &mut OsRandom)
         .expect("push");
     let names: Vec<&str> = fs
         .files()
@@ -485,4 +485,180 @@ fn conflict_copies_are_reported_not_removed() {
         result.conflict_files,
         ["projects/project-1/documents/doc-1 (conflict 2026-11-17 10.00 Laptop).enc"]
     );
+}
+
+mod open_folder {
+    use super::{files, text};
+    use prosecraft_core::js::{self, JsString, JsValue};
+    use prosecraft_core::storage::crypto::OsRandom;
+    use prosecraft_core::sync::memory::MemoryFs;
+    use prosecraft_core::sync::open_layout::{normalize_document, read_open_projects};
+    use prosecraft_core::sync::{OpenFolderProvider, SyncProvider, sync_via};
+
+    fn fixture() -> JsValue {
+        let path = format!(
+            "{}/tests/fixtures/sync-open.json",
+            env!("CARGO_MANIFEST_DIR")
+        );
+        js::parse(&std::fs::read_to_string(&path).expect("fixture")).expect("json")
+    }
+
+    fn list(f: &JsValue, key: &str) -> Vec<JsValue> {
+        f.get(key)
+            .and_then(JsValue::as_array)
+            .unwrap_or_default()
+            .to_vec()
+    }
+
+    fn json(values: &[JsValue]) -> String {
+        js::stringify(&JsValue::Array(values.to_vec()))
+    }
+
+    fn same_files(fs: &MemoryFs, want: &JsValue, label: &str) {
+        let have: Vec<(String, String)> = fs
+            .files()
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect();
+        let mut want: Vec<(String, String)> = want
+            .as_object()
+            .expect("files")
+            .iter()
+            .map(|(k, v)| (k.to_string_lossy(), text(v)))
+            .collect();
+        want.sort();
+        assert_eq!(
+            have.len(),
+            want.len(),
+            "{label}: {:?}",
+            have.iter().map(|f| &f.0).collect::<Vec<_>>()
+        );
+        for ((hp, hc), (wp, wc)) in have.iter().zip(&want) {
+            assert_eq!(hp, wp, "{label}");
+            assert_eq!(hc, wc, "{label}: {hp}");
+        }
+    }
+
+    fn now(f: &JsValue) -> f64 {
+        f.get("now").and_then(JsValue::as_number).expect("now")
+    }
+
+    /// The open folder ProseCraft writes, file for file: the marker, the projects normalized
+    /// through Markdown, each document's front matter and hash, chapters, storyboard and header.
+    #[test]
+    fn writes_the_open_folder_prosecraft_writes() {
+        let f = fixture();
+        let mut fs = MemoryFs::new();
+        let mut provider = OpenFolderProvider::new(&mut fs, now(&f));
+        let connection = provider
+            .connect(&JsString::from(""), &mut OsRandom)
+            .expect("connect");
+        assert!(connection.created && connection.projects.is_empty());
+        let normalized = provider.normalize(list(&f, "projects"));
+        assert_eq!(json(&normalized), json(&list(&f, "normalized")));
+        provider
+            .push(&normalized, None, &mut OsRandom)
+            .expect("push");
+        same_files(&fs, f.get("files").expect("files"), "written");
+        assert_eq!(fs.files().len(), 14);
+        assert_eq!(list(&f, "documents").len(), 7);
+        for case in list(&f, "documents") {
+            let document = case
+                .get("document")
+                .and_then(JsValue::as_object)
+                .expect("document");
+            assert_eq!(
+                js::stringify(&JsValue::Object(normalize_document(document))),
+                case.get("normalized")
+                    .map(js::stringify)
+                    .unwrap_or_default()
+            );
+        }
+    }
+
+    /// Reading it back, and what an edit made outside ProseCraft does: a changed body, title or
+    /// chapter, a removed hash, a new file, an edited storyboard or header, and the folders it
+    /// refuses with ProseCraft's messages.
+    #[test]
+    fn reads_the_open_folder_and_its_outside_edits_as_prosecraft_does() {
+        let f = fixture();
+        let mut fs = files(f.get("files").expect("files"));
+        let read = read_open_projects(&mut fs, now(&f)).expect("read");
+        assert_eq!(read.len(), 2);
+        assert_eq!(json(&read), json(&list(&f, "read")));
+        assert_eq!(list(&f, "outside").len(), 14);
+        assert_eq!(list(&f, "refusals").len(), 6);
+        for case in list(&f, "outside") {
+            let name = case.get("name").map(text).unwrap_or_default();
+            let mut fs = files(case.get("files").expect("files"));
+            match (read_open_projects(&mut fs, now(&f)), case.get("error")) {
+                (Ok(projects), None) => assert_eq!(
+                    json(&projects),
+                    case.get("projects").map(js::stringify).unwrap_or_default(),
+                    "{name}"
+                ),
+                (Err(error), Some(want)) => assert_eq!(error.to_string(), text(want), "{name}"),
+                (got, want) => panic!("{name}: {got:?} where ProseCraft gave {want:?}"),
+            }
+        }
+        for case in list(&f, "refusals") {
+            let name = case.get("name").map(text).unwrap_or_default();
+            let mut fs = files(case.get("files").expect("files"));
+            let result = OpenFolderProvider::new(&mut fs, now(&f))
+                .connect(&JsString::from(""), &mut OsRandom);
+            match (result, case.get("error")) {
+                (Err(error), Some(want)) if !want.is_null() => {
+                    assert_eq!(error.to_string(), text(want), "{name}")
+                }
+                (Ok(_), Some(want)) if want.is_null() => {}
+                (got, want) => panic!(
+                    "{name}: {:?} where ProseCraft gave {want:?}",
+                    got.map(|c| c.created)
+                ),
+            }
+        }
+    }
+
+    /// A whole sync after an edit outside ProseCraft and one inside: what it reports, the
+    /// projects it hands back, and the folder after it.
+    #[test]
+    fn syncs_an_open_folder_as_prosecraft_does() {
+        let f = fixture();
+        let sync = f.get("sync").expect("sync");
+        let mut fs = files(sync.get("files").expect("files"));
+        let mut provider = OpenFolderProvider::new(&mut fs, now(&f));
+        let mut suffix = || "x".to_owned();
+        let result = sync_via(
+            &mut provider,
+            &JsString::from(""),
+            &list(sync, "local"),
+            sync.get("lastSynced").expect("lastSynced"),
+            now(&f),
+            "device-a",
+            &mut OsRandom,
+            &mut suffix,
+        )
+        .expect("sync");
+        let want = sync.get("result").expect("result");
+        let n = |k: &str| want.get(k).and_then(JsValue::as_number).unwrap_or(-1.0) as usize;
+        assert_eq!(
+            (
+                result.imported,
+                result.exported,
+                result.removed,
+                result.conflicts
+            ),
+            (n("imported"), n("exported"), n("removed"), n("conflicts"))
+        );
+        assert!(!result.created);
+        assert_eq!(result.projects.len(), 2);
+        assert_eq!(json(&result.projects), json(&list(want, "projects")));
+        assert_eq!(
+            js::stringify(&result.last_synced),
+            want.get("lastSynced")
+                .map(js::stringify)
+                .unwrap_or_default()
+        );
+        same_files(&fs, sync.get("after").expect("after"), "after sync");
+    }
 }

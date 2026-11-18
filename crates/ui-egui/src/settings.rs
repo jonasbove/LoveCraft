@@ -1,7 +1,6 @@
 //! The Settings dialog. Its "Device sync" group is ProseCraft's (in `+page.svelte`): the
 //! sync method, the folder, the passphrase, Sync now and Forget folder, with ProseCraft's
-//! messages. Only folder sync is ported (not Google Drive), and of its methods the single
-//! encrypted file and the encrypted folder (not the open folder of Markdown files yet).
+//! messages. Only folder sync is ported (not Google Drive), with all three of its methods.
 
 use egui::{RichText, Ui};
 use prosecraft_core::sync::SyncMode;
@@ -192,7 +191,7 @@ fn device_sync(ui: &mut Ui, state: &mut AppState) {
     ui.add_space(6.0);
     let group = ui.scope(|ui| {
         mode_option(ui, panel, actions, SyncMode::EncryptedFile, "Single encrypted file", "All projects in one passphrase-protected file. Best for cloud folders and Google Drive.", true);
-        mode_option(ui, panel, actions, SyncMode::OpenFolder, "Open folder", "Plain Markdown and JSON, one folder per project. Not encrypted. (Not available in prosecraft-rs yet.)", false);
+        mode_option(ui, panel, actions, SyncMode::OpenFolder, "Open folder", "Plain Markdown and JSON, one folder per project. Not encrypted.", true);
         if panel.mode == SyncMode::EncryptedFolder {
             mode_option(ui, panel, actions, SyncMode::EncryptedFolder, "Encrypted folder (existing layout)", "One encrypted file per project record. Keeps existing sync folders working.", true);
         }
@@ -215,7 +214,7 @@ fn device_sync(ui: &mut Ui, state: &mut AppState) {
         SyncMode::OpenFolder => help(
             ui,
             &palette,
-            "This sync location is not encrypted. Anyone with access to it can read and edit your writing.",
+            "This sync location is not encrypted. Anyone with access to it can read and edit your writing. Delete scenes in ProseCraft rather than removing their files.",
         ),
     }
     ui.add_space(8.0);
@@ -248,22 +247,26 @@ fn device_sync(ui: &mut Ui, state: &mut AppState) {
         );
     }
     if !panel.folder.is_empty() {
-        ui.add_space(6.0);
-        let field = ui.add_enabled(
-            !panel.busy,
-            egui::TextEdit::singleline(&mut panel.passphrase)
-                .password(true)
-                .hint_text("Sync passphrase")
-                .desired_width(260.0),
-        );
-        crate::views::name_field(ui, &field, "Sync passphrase");
-        let long_enough = panel.passphrase.encode_utf16().count() >= 8;
-        if field.lost_focus()
-            && ui.input(|i| i.key_pressed(egui::Key::Enter))
-            && long_enough
-            && !panel.busy
-        {
-            actions.push(SyncAction::SyncNow);
+        // The open folder has no passphrase: nothing in it is encrypted.
+        let open = panel.mode == SyncMode::OpenFolder;
+        let long_enough = open || panel.passphrase.encode_utf16().count() >= 8;
+        if !open {
+            ui.add_space(6.0);
+            let field = ui.add_enabled(
+                !panel.busy,
+                egui::TextEdit::singleline(&mut panel.passphrase)
+                    .password(true)
+                    .hint_text("Sync passphrase")
+                    .desired_width(260.0),
+            );
+            crate::views::name_field(ui, &field, "Sync passphrase");
+            if field.lost_focus()
+                && ui.input(|i| i.key_pressed(egui::Key::Enter))
+                && long_enough
+                && !panel.busy
+            {
+                actions.push(SyncAction::SyncNow);
+            }
         }
         ui.add_space(6.0);
         ui.horizontal(|ui| {

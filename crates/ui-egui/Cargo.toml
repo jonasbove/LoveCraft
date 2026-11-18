@@ -28,3 +28,4 @@ craft-fonts-build = { workspace = true }
 [dev-dependencies]
 # `wgpu` and `snapshot`: render the app offscreen to look at it (never a screen capture).
 egui_kittest = { workspace = true, features = ["wgpu", "snapshot"] }
+base64 = { workspace = true }

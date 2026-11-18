@@ -309,55 +309,11 @@ impl ProseApp {
     /// `createProjectWithStarter`: the new project is added to the library, saved and opened at
     /// its first scene.
     pub(crate) fn create_project(&mut self, screenplay: bool, blueprint: &Blueprint) {
-        self.commit_draft();
-        self.save_now();
-        let Some(home) = self.home.as_mut() else {
+        let Some(saved) = self.add_and_open(|store, existing| {
+            starters::new_project(screenplay, existing, blueprint, &mut || store.new_id())
+        }) else {
             return;
         };
-        if home.library.is_read_only() {
-            self.state.status = Some("This library has a project from a newer version of ProseCraft, so no project can be added.".into());
-            return;
-        }
-        let existing = home
-            .library
-            .projects()
-            .filter(|p| {
-                !p.get("project")
-                    .and_then(|d| d.get("trashed"))
-                    .is_some_and(|t| matches!(t, prosecraft_core::js::JsValue::Bool(true)))
-            })
-            .count();
-        let store = &mut home.store;
-        let data = starters::new_project(screenplay, existing, blueprint, &mut || store.new_id());
-        let now = home.store.now_ms();
-        let stored = prosecraft_core::storage::stamp::create_stored_project(
-            data,
-            &home.library.device_id,
-            now,
-        );
-        let id = stored
-            .get("id")
-            .and_then(|v| v.as_js_string())
-            .map(|s| s.to_string_lossy())
-            .unwrap_or_default();
-        let scene = stored
-            .get("project")
-            .and_then(|p| p.get("activeDocumentId"))
-            .and_then(|v| v.as_js_string())
-            .map(|s| s.to_string_lossy());
-        home.library.put(stored);
-        let text = home.library.to_text(now);
-        let saved = home.store.save(&text);
-        let views = Library::from_stored(home.library.projects().cloned().collect());
-        self.state.active = views
-            .projects()
-            .iter()
-            .position(|p| p.view.id == id)
-            .unwrap_or(0);
-        self.state.library = Some(views);
-        self.state.draft = None;
-        self.state.selection = scene.map(Selection::Document);
-        self.state.view = WorkspaceView::Write;
         // As ProseCraft, Project Settings opens next, to name the project.
         if let Some(project) = self
             .state
@@ -373,5 +329,93 @@ impl ProseApp {
             Ok(()) => "Created a new project.".into(),
             Err(error) => format!("Created a new project, but couldn't save your library: {error}"),
         });
+    }
+
+    /// Adds the project `make` builds (from the store's ids and how many live projects there
+    /// are) to the library, saves it and opens it at its active scene. `None` when there is no
+    /// library to add to; else whether saving worked.
+    pub(crate) fn add_and_open(
+        &mut self,
+        make: impl FnOnce(&mut Box<dyn crate::LibraryStore>, usize) -> prosecraft_core::js::JsValue,
+    ) -> Option<Result<(), String>> {
+        self.commit_draft();
+        self.save_now();
+        let home = self.home.as_mut()?;
+        if home.library.is_read_only() {
+            self.state.status = Some("This library has a project from a newer version of ProseCraft, so no project can be added.".into());
+            return None;
+        }
+        let existing = home
+            .library
+            .projects()
+            .filter(|p| {
+                !p.get("project")
+                    .and_then(|d| d.get("trashed"))
+                    .is_some_and(|t| matches!(t, prosecraft_core::js::JsValue::Bool(true)))
+            })
+            .count();
+        let data = make(&mut home.store, existing);
+        let now = home.store.now_ms();
+        let stored = prosecraft_core::storage::stamp::create_stored_project(
+            data,
+            &home.library.device_id,
+            now,
+        );
+        let id = stored
+            .get("id")
+            .and_then(|v| v.as_js_string())
+            .map(|s| s.to_string_lossy())
+            .unwrap_or_default();
+        let scene = stored
+            .get("project")
+            .and_then(|p| p.get("activeDocumentId"))
+            .and_then(|v| v.as_js_string())
+            .map(|s| s.to_string_lossy())
+            .filter(|s| !s.is_empty());
+        home.library.put(stored);
+        let text = home.library.to_text(now);
+        let saved = home.store.save(&text).map_err(|e| e.to_string());
+        let views = Library::from_stored(home.library.projects().cloned().collect());
+        self.state.active = views
+            .projects()
+            .iter()
+            .position(|p| p.view.id == id)
+            .unwrap_or(0);
+        self.state.library = Some(views);
+        self.state.draft = None;
+        self.state.selection = scene.map(Selection::Document);
+        self.state.view = WorkspaceView::Write;
+        Some(saved)
+    }
+
+    /// `importEpubData`: the book becomes a new project, opened.
+    pub fn import_epub(&mut self, name: &str, bytes: &[u8]) {
+        use prosecraft_core::import::epub::{build_epub_project, parse_epub};
+        let manuscript = match parse_epub(bytes, Some(name)) {
+            Ok(m) => m,
+            Err(error) => {
+                self.state.status = Some(error.0);
+                return;
+            }
+        };
+        let Some(saved) =
+            self.add_and_open(|store, _| build_epub_project(&manuscript, &mut || store.new_id()))
+        else {
+            return;
+        };
+        let scenes: usize = manuscript.chapters.iter().map(|c| c.scenes.len()).sum();
+        let images = match manuscript.skipped_images {
+            0 => String::new(),
+            n => format!(", {n} image(s) skipped"),
+        };
+        let mut status = format!(
+            "Imported “{}” — {} chapter(s), {scenes} scene(s){images}.",
+            manuscript.title,
+            manuscript.chapters.len()
+        );
+        if let Err(error) = saved {
+            status.push_str(&format!(" Couldn't save your library: {error}"));
+        }
+        self.state.status = Some(status);
     }
 }

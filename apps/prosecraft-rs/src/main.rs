@@ -24,6 +24,8 @@ const APP_ID: &str = "io.github.jonasbove.prosecraft_rs";
 /// What to do with a dialog's answer.
 enum Then {
     Open,
+    /// Import this EPUB as a new project.
+    ImportEpub,
     /// Write these bytes where the person chose (a backup or an exported manuscript).
     Export(Vec<u8>),
     /// The folder to sync through.
@@ -173,6 +175,26 @@ impl eframe::App for DesktopApp {
                         read_backup(&mut self.app, &path);
                     }
                 }
+                (Then::ImportEpub, Answer::Paths(paths)) => {
+                    for path in paths {
+                        let name = path.file_name().map_or_else(
+                            || path.display().to_string(),
+                            |n| n.to_string_lossy().into_owned(),
+                        );
+                        // No more than the importer accepts (100 MB) and one byte to tell it the file is larger.
+                        let mut bytes = Vec::new();
+                        let read = std::fs::File::open(&path).and_then(|f| {
+                            std::io::Read::read_to_end(
+                                &mut std::io::Read::take(f, 100 * 1024 * 1024 + 1),
+                                &mut bytes,
+                            )
+                        });
+                        match read {
+                            Ok(_) => self.app.import_epub(&name, &bytes),
+                            Err(e) => eprintln!("{}: {e}", path.display()),
+                        }
+                    }
+                }
                 (Then::Export(text), Answer::Paths(paths)) => {
                     if let Some(path) = paths.first()
                         && let Err(e) = craft_atomic::atomic_write(path, &text)
@@ -202,6 +224,12 @@ impl eframe::App for DesktopApp {
                         .title("Open a ProseCraft backup")
                         .filter("ProseCraft backup", &["prosecraft", "json"]);
                     self.dialogs.ask(dialog, Then::Open);
+                }
+                HostRequest::ImportEpub => {
+                    let dialog = FileDialog::open()
+                        .title("Import EPUB")
+                        .filter("EPUB", &["epub"]);
+                    self.dialogs.ask(dialog, Then::ImportEpub);
                 }
                 HostRequest::ExportBackup { file_name, text } => {
                     let dialog = FileDialog::save()

@@ -180,10 +180,11 @@ pub fn delete_comment(project: &mut JsValue, id: &str) -> Result<(), EditError> 
 }
 
 /// Maps between the editor's text (blocks joined by `\n`, markers as U+FFFC, line breaks
-/// as U+2028) and the comment text (none of those), in UTF-16 units on the comment side.
+/// as U+2028, `<br>` as U+2029) and the comment text (none of those), in UTF-16 units on the
+/// comment side.
 pub mod editor_text {
     fn kept(c: char) -> bool {
-        !matches!(c, '\n' | '\u{fffc}' | '\u{2028}')
+        !matches!(c, '\n' | '\u{fffc}' | '\u{2028}' | '\u{2029}')
     }
 
     /// The comment-text offset of editor character `index`.

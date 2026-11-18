@@ -175,6 +175,36 @@ fn a_new_chapter_and_typed_scene_are_saved_as_prosecraft_writes_them() {
 }
 
 #[test]
+fn shift_enter_breaks_the_line_inside_a_paragraph() {
+    let (mut harness, memory) = app();
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("an add button")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Scene 1")
+        .click();
+    harness.run();
+    let body = harness.get_by_label("Scene text");
+    body.focus();
+    body.type_text("Roses are red,");
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::SHIFT, egui::Key::Enter);
+    harness
+        .get_by_label("Scene text")
+        .type_text("violets are blue.");
+    harness.run_steps(12);
+    let saved = memory.last();
+    let scene = document(project(&saved, "project-1"), "new-1").expect("the new scene");
+    assert_eq!(
+        js::stringify(scene.get("content").expect("content")),
+        r#""<p>Roses are red,<br>violets are blue.</p>""#
+    );
+}
+
+#[test]
 fn a_screenplay_scene_opens_in_the_screenplay_editor() {
     let (mut harness, _memory) = app();
     harness

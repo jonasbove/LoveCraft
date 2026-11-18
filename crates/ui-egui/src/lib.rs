@@ -417,7 +417,29 @@ pub fn setup_for_tests(ctx: &egui::Context) {
     setup_with(ctx, false);
 }
 
+/// egui's own line breaking, with a row ending after a line separator: the editor's newline in
+/// the text (U+2028) and `<br>` (U+2029) end their row as they do in ProseCraft.
+struct RowBreaks;
+
+impl egui::epaint::text::LineBreaker for RowBreaks {
+    fn line_breaks(
+        &self,
+        text: &str,
+        language: Option<&str>,
+        out: &mut Vec<egui::epaint::text::LineBreak>,
+    ) {
+        use egui::epaint::text::{LineBreak, SimpleLineBreaker};
+        SimpleLineBreaker.line_breaks(text, language, out);
+        for (at, c) in text.char_indices() {
+            if matches!(c, '\u{2028}' | '\u{2029}') {
+                out.push(LineBreak::hard(at + c.len_utf8()));
+            }
+        }
+    }
+}
+
 fn setup_with(ctx: &egui::Context, system_fonts: bool) {
+    ctx.set_line_breaker(std::sync::Arc::new(RowBreaks));
     ctx.set_missing_glyph_policy(egui::MissingGlyphPolicy::Tofu);
     fonts::install(ctx, system_fonts);
     theme::Palette::default().apply(ctx);

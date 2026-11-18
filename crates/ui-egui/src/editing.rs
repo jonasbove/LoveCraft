@@ -248,6 +248,9 @@ pub struct Draft {
     /// The selection after the last edit recorded in the undo history; the caret having moved
     /// since starts a new step.
     pub undo_caret: Option<(usize, usize)>,
+    /// Add link's prompt, while open: the characters it links, what was typed, and why it
+    /// isn't a link yet.
+    pub link_prompt: Option<(std::ops::Range<usize>, String, Option<&'static str>)>,
 }
 
 /// Seconds after the last keystroke before the draft reaches the project (ProseCraft: 250 ms).

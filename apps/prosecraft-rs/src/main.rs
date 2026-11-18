@@ -26,14 +26,20 @@ enum Then {
     Open,
     /// Write these bytes where the person chose (a backup or an exported manuscript).
     Export(Vec<u8>),
+    /// The folder to sync through.
+    SyncFolder,
 }
 
 /// The library file, saved atomically.
-struct DiskStore(LibraryFile);
+struct DiskStore {
+    file: LibraryFile,
+    /// CraftCloud's `craftcloud` program, found on `PATH` at start.
+    craftcloud: Option<std::path::PathBuf>,
+}
 
 impl LibraryStore for DiskStore {
     fn save(&mut self, text: &str) -> Result<(), String> {
-        self.0.save(text).map_err(|e| e.to_string())
+        self.file.save(text).map_err(|e| e.to_string())
     }
     fn now_ms(&self) -> f64 {
         chrono::Utc::now().timestamp_millis() as f64
@@ -46,6 +52,33 @@ impl LibraryStore for DiskStore {
                 chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default()
             )
         })
+    }
+    fn supports_sync(&self) -> bool {
+        true
+    }
+    fn has_craftcloud(&self) -> bool {
+        self.craftcloud.is_some()
+    }
+    fn craftcloud_folder(&mut self) -> Result<String, String> {
+        let program = self
+            .craftcloud
+            .as_ref()
+            .ok_or("CraftCloud isn't installed.")?;
+        prosecraft_native::craftcloud::prosecraft_folder(program)
+            .map(|p| p.to_string_lossy().into_owned())
+    }
+    fn sync_fs(
+        &mut self,
+        folder: &str,
+    ) -> Option<Box<dyn prosecraft_core::sync::SyncFileSystem + Send>> {
+        Some(Box::new(prosecraft_native::sync_fs::FolderFs::new(folder)))
+    }
+    fn load_sync_state(&mut self) -> Option<String> {
+        prosecraft_native::load_sync_state(self.file.path().parent()?)
+    }
+    fn save_sync_state(&mut self, text: Option<&str>) -> Result<(), String> {
+        let dir = self.file.path().parent().ok_or("there is no data folder")?;
+        prosecraft_native::save_sync_state(dir, text).map_err(|e| e.to_string())
     }
 }
 
@@ -87,7 +120,13 @@ fn start() -> (ProseApp, Option<String>) {
         }
     };
     (
-        ProseApp::with_library(library, Box::new(DiskStore(file))),
+        ProseApp::with_library(
+            library,
+            Box::new(DiskStore {
+                file,
+                craftcloud: prosecraft_native::craftcloud::find_on_path(),
+            }),
+        ),
         None,
     )
 }
@@ -138,6 +177,12 @@ impl eframe::App for DesktopApp {
                         eprintln!("{}: {e}", path.display());
                     }
                 }
+                (Then::SyncFolder, Answer::Paths(paths)) => {
+                    if let Some(path) = paths.first() {
+                        self.app
+                            .set_sync_folder(path.to_string_lossy().into_owned());
+                    }
+                }
                 (_, Answer::Unavailable(why)) => eprintln!("file dialog unavailable: {why}"),
                 _ => {}
             }
@@ -145,6 +190,10 @@ impl eframe::App for DesktopApp {
         self.app.show(ui);
         for request in self.app.take_requests() {
             match request {
+                HostRequest::ChooseSyncFolder => {
+                    let dialog = FileDialog::folder().title("Choose a sync folder");
+                    self.dialogs.ask(dialog, Then::SyncFolder);
+                }
                 HostRequest::OpenBackup => {
                     let dialog = FileDialog::open()
                         .title("Open a ProseCraft backup")

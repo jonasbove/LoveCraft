@@ -16,10 +16,12 @@
 )]
 
 mod binder;
+mod device_sync;
 mod editing;
 pub mod fonts;
 mod library;
 mod publish;
+mod settings;
 mod sidebar;
 pub mod theme;
 mod views;
@@ -44,6 +46,33 @@ pub trait LibraryStore {
     fn now_ms(&self) -> f64;
     /// A new random id for a chapter or scene (a UUID, as ProseCraft's `crypto.randomUUID()`).
     fn new_id(&mut self) -> String;
+    /// Whether this host can sync through a folder (the desktop app).
+    fn supports_sync(&self) -> bool {
+        false
+    }
+    /// The sync folder's files, for a sync on a background thread.
+    fn sync_fs(
+        &mut self,
+        _folder: &str,
+    ) -> Option<Box<dyn prosecraft_core::sync::SyncFileSystem + Send>> {
+        None
+    }
+    /// The device's saved sync settings (ProseCraft's `prosecraft-sync-state`).
+    fn load_sync_state(&mut self) -> Option<String> {
+        None
+    }
+    /// Whether CraftCloud's `craftcloud` program is installed (then its folder is offered).
+    fn has_craftcloud(&self) -> bool {
+        false
+    }
+    /// The folder to sync through inside CraftCloud's sync folder, or why there is none.
+    fn craftcloud_folder(&mut self) -> Result<String, String> {
+        Err("CraftCloud isn't installed.".into())
+    }
+    /// Saves (or, with `None`, forgets) the device's sync settings.
+    fn save_sync_state(&mut self, _text: Option<&str>) -> Result<(), String> {
+        Ok(())
+    }
 }
 
 /// Where the library's changes are.
@@ -62,6 +91,8 @@ pub enum HostRequest {
     OpenBackup,
     /// Ask where to save this backup, then write it there.
     ExportBackup { file_name: String, text: String },
+    /// Ask for a sync folder, then call [`ProseApp::set_sync_folder`].
+    ChooseSyncFolder,
     /// Ask where to save an exported manuscript, then write it there. `kind` names the format
     /// ("Plain text") and `extension` its file extension, for the dialog's filter.
     ExportFile {
@@ -196,6 +227,12 @@ pub struct AppState {
     now_ms: f64,
     /// A fresh id from the store for the next EPUB (its book identifier); an export takes it.
     book_id: Option<String>,
+    /// The Settings dialog is open.
+    settings_open: bool,
+    /// The Settings dialog's Device sync group.
+    sync: settings::SyncPanel,
+    /// What the Device sync group asked for this frame.
+    sync_actions: Vec<settings::SyncAction>,
 }
 
 impl AppState {
@@ -305,6 +342,8 @@ pub struct ProseApp {
     home: Option<Home>,
     /// The library has changes not yet saved, last made at this egui time.
     unsaved_since: Option<f64>,
+    /// A device sync running in the background.
+    sync_job: Option<device_sync::SyncJob>,
 }
 
 impl Default for ProseApp {
@@ -323,6 +362,7 @@ impl ProseApp {
             ready: false,
             home: None,
             unsaved_since: None,
+            sync_job: None,
         }
     }
 
@@ -346,6 +386,7 @@ impl ProseApp {
         app.state.editable = !library.is_read_only();
         app.state.save_state = SaveState::Saved;
         app.home = Some(Home { library, store });
+        app.init_sync();
         app
     }
 
@@ -652,7 +693,13 @@ impl ProseApp {
             }
         }
         egui::CentralPanel::default().show(ui, |ui| views::show(ui, &mut self.state));
+        settings::show(ui, &mut self.state);
         self.passphrase_dialog(ui);
+        self.handle_sync_actions();
+        if self.poll_sync() {
+            ui.ctx()
+                .request_repaint_after(std::time::Duration::from_millis(100));
+        }
         if std::mem::take(&mut self.state.export_wanted) {
             self.flush();
             self.export();

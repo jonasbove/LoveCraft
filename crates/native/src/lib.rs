@@ -14,6 +14,9 @@
     clippy::unreachable
 )]
 
+pub mod craftcloud;
+pub mod sync_fs;
+
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -31,6 +34,34 @@ pub fn data_dir() -> Option<PathBuf> {
     match std::env::var_os(DATA_DIR_ENV).filter(|v| !v.is_empty()) {
         Some(dir) => Some(PathBuf::from(dir)),
         None => dirs::data_dir().map(|d| d.join(APP_DIR)),
+    }
+}
+
+/// The device's sync settings, beside the library (ProseCraft keeps them in `localStorage`).
+pub const SYNC_STATE_FILE: &str = "sync-state.json";
+
+/// The sync settings file in `dir`: its text, or `None`.
+pub fn load_sync_state(dir: &Path) -> Option<String> {
+    let path = dir.join(SYNC_STATE_FILE);
+    // Settings are a few kilobytes; anything far larger isn't them.
+    if std::fs::metadata(&path).ok()?.len() > 16 * 1024 * 1024 {
+        return None;
+    }
+    std::fs::read_to_string(path).ok()
+}
+
+/// Saves (or, with `None`, removes) the sync settings in `dir`, atomically.
+pub fn save_sync_state(dir: &Path, text: Option<&str>) -> io::Result<()> {
+    let path = dir.join(SYNC_STATE_FILE);
+    match text {
+        Some(text) => {
+            std::fs::create_dir_all(dir)?;
+            craft_atomic::atomic_write(&path, text.as_bytes())
+        }
+        None => match std::fs::remove_file(&path) {
+            Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(()),
+            other => other,
+        },
     }
 }
 

@@ -735,6 +735,57 @@ fn chapter_scene(
     }
 }
 
+/// The chapter view's own keys, taken before the text field sees them: Enter on an empty
+/// paragraph starts a new scene with the text after it (`handleChapterEnter`; never before the
+/// chapter's first line), and Backspace at the start of a scene joins it to the one before (as
+/// deleting the divider does).
+fn chapter_keys(
+    ui: &mut Ui,
+    draft: &Draft,
+    document: &str,
+    chapter: &ChapterView<'_>,
+    body_id: egui::Id,
+    selection: Option<std::ops::Range<usize>>,
+    intents: &mut Vec<Intent>,
+) {
+    if !ui.memory(|m| m.has_focus(body_id)) {
+        return;
+    }
+    let Some(caret) = selection.filter(|r| r.is_empty()).map(|r| r.start) else {
+        return;
+    };
+    let ranges = draft.doc.line_ranges();
+    let Some(line) = ranges.iter().position(|(s, e)| (*s..=*e).contains(&caret)) else {
+        return;
+    };
+    let (start, end) = ranges[line];
+    let empty_paragraph = start == end && draft.doc.lines.get(line) == Some(&LineKind::Paragraph);
+    let leads = chapter.before.is_empty() && line == 0;
+    if empty_paragraph
+        && !leads
+        && ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Enter))
+    {
+        let (before, after) = draft.doc.split_at_line(line);
+        intents.push(Intent::SplitScene {
+            document: document.to_owned(),
+            before: before.to_html(),
+            after: after.to_html(),
+        });
+        return;
+    }
+    if caret == 0
+        && let Some(previous) = chapter.before.last()
+        && ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Backspace))
+    {
+        let joined_at =
+            RichDoc::from_html(&previous.content).map_or(0, |d| d.text.chars().count() + 1);
+        intents.push(Intent::JoinScene {
+            document: document.to_owned(),
+            caret: joined_at,
+        });
+    }
+}
+
 /// The block styles of ProseCraft's toolbar.
 const BLOCK_STYLES: [(LineKind, &str); 7] = [
     (LineKind::Paragraph, "Normal text"),
@@ -1023,6 +1074,17 @@ fn editor(
         });
     let cursor = selection.clone().map_or(0, |r| r.start);
     let mut changed_format = false;
+    if let Some(chapter) = chapter.as_ref().filter(|_| !screenplay) {
+        chapter_keys(
+            ui,
+            draft,
+            &document.id,
+            chapter,
+            body_id,
+            selection.clone(),
+            edit.intents,
+        );
+    }
     // The screenplay keys (Enter, Tab, Shift+Tab) are the editor's, taken before anything is
     // drawn so the Screenplay bar shows the element they leave the caret on.
     let mut cursor = cursor;

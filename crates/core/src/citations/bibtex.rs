@@ -2,7 +2,7 @@
 //! entries read into CSL-JSON items, LaTeX accents and macros turned into Unicode text, and a
 //! warning for each part that could not be read.
 
-use crate::csl::{Inherited, parse_month_value, parse_person_name};
+use crate::csl::{parse_month_number, parse_person_name};
 use crate::html::is_js_whitespace;
 use crate::js::regexp::Re;
 use crate::js::{JsObject, JsValue, string_to_number};
@@ -452,9 +452,9 @@ fn parse_bibtex_issued(fields: &HashMap<String, String>) -> Option<JsValue> {
     };
     let mut parts = vec![JsValue::Number(string_to_number(caps.at(1)))];
     if !raw_month.is_empty()
-        && let Some(month) = parse_month_value(&raw_month)
+        && let Some(month) = parse_month_number(&raw_month)
     {
-        parts.push(month);
+        parts.push(JsValue::Number(month));
     }
     Some(date_parts(parts))
 }
@@ -532,10 +532,7 @@ fn evaluate_value_expression(expr: &str, macros: &HashMap<String, String>) -> St
             if let Some(value) = macros.get(&lower) {
                 return value.clone();
             }
-            builtin_month(&lower)
-                .or_else(|| Inherited::of(&lower).map(Inherited::text))
-                .unwrap_or(token)
-                .to_owned()
+            builtin_month(&lower).unwrap_or(token).to_owned()
         })
         .collect()
 }
@@ -646,14 +643,10 @@ impl Fields {
 fn entry_item(cite_key: &str, entry_type: &str, fields: &Fields) -> JsValue {
     let mut item = JsObject::new();
     item.insert("id", JsValue::str(cite_key));
-    // `BIBTEX_TYPE_MAP.constructor` is a function: JSON leaves the key out, and
-    // normalization finds no type.
-    if Inherited::of(entry_type).is_none() {
-        item.insert(
-            "type",
-            JsValue::str(csl_type(entry_type).unwrap_or("document")),
-        );
-    }
+    item.insert(
+        "type",
+        JsValue::str(csl_type(entry_type).unwrap_or("document")),
+    );
     item.insert("citeKey", JsValue::str(cite_key));
     item.insert("provider", JsValue::str("import"));
     let is_book = entry_type == "book";

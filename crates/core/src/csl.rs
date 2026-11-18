@@ -616,47 +616,10 @@ fn month_by_name(name: &str) -> Option<f64> {
     Some(f64::from(month))
 }
 
-/// What looking up a missing key in a plain JavaScript object (`{}`) finds: the members of
-/// `Object.prototype`. ProseCraft's tables (`MONTH_NAMES`, `BUILTIN_MONTHS`,
-/// `BIBTEX_TYPE_MAP`) are such objects, looked up with lower-case keys, and the only
-/// lower-case members are `constructor` (the function `Object`) and `__proto__`
-/// (`Object.prototype` itself).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum Inherited {
-    Constructor,
-    Proto,
-}
-
-impl Inherited {
-    pub(crate) fn of(key: &str) -> Option<Self> {
-        match key {
-            "constructor" => Some(Self::Constructor),
-            "__proto__" => Some(Self::Proto),
-            _ => None,
-        }
-    }
-
-    /// `String(value)`.
-    pub(crate) fn text(self) -> &'static str {
-        match self {
-            Self::Constructor => "function Object() { [native code] }",
-            Self::Proto => "[object Object]",
-        }
-    }
-
-    /// The value as `JSON.stringify` writes it in an array (a function as `null`, the
-    /// prototype as `{}`); neither is a number or string, so normalization drops both.
-    pub(crate) fn value(self) -> JsValue {
-        match self {
-            Self::Constructor => JsValue::Null,
-            Self::Proto => JsValue::Object(JsObject::new()),
-        }
-    }
-}
-
-/// `parseMonthNumber` with what JavaScript returns for every input: a month number, or the
-/// `Object.prototype` member `MONTH_NAMES[name]` finds for `constructor` and `__proto__`.
-pub(crate) fn parse_month_value(raw: &str) -> Option<JsValue> {
+/// `parseMonthNumber`: a month (1 to 12) from a number or an English or German month name.
+/// (Names are looked up as own entries only, as since jennraeross/ProseCraft#48; before it,
+/// `constructor` and `__proto__` found `Object.prototype` members.)
+pub fn parse_month_number(raw: &str) -> Option<f64> {
     let lower = js_trim(raw).to_lowercase();
     let cleaned = lower.strip_suffix('.').unwrap_or(&lower);
     if cleaned.is_empty() {
@@ -664,16 +627,7 @@ pub(crate) fn parse_month_value(raw: &str) -> Option<JsValue> {
     }
     if (1..=2).contains(&cleaned.len()) && cleaned.bytes().all(|b| b.is_ascii_digit()) {
         let number = crate::js::string_to_number(cleaned);
-        return (1.0..=12.0)
-            .contains(&number)
-            .then_some(JsValue::Number(number));
+        return (1.0..=12.0).contains(&number).then_some(number);
     }
     month_by_name(cleaned)
-        .map(JsValue::Number)
-        .or_else(|| Inherited::of(cleaned).map(Inherited::value))
-}
-
-/// `parseMonthNumber`: a month (1 to 12) from a number or an English or German month name.
-pub fn parse_month_number(raw: &str) -> Option<f64> {
-    parse_month_value(raw).and_then(|month| month.as_number())
 }

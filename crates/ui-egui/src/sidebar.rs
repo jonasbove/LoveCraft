@@ -58,7 +58,9 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         .id_salt("sidebar-scroll")
         .auto_shrink([false, false])
         .show(ui, |ui| match state.side_tab {
-            SideTab::Progress => progress(ui, &palette, project, month),
+            SideTab::Progress => {
+                progress(ui, &palette, project, month, &mut state.intents, editable)
+            }
             SideTab::Comments => {
                 let mut edit = CommentEdit {
                     pending: &mut state.pending_comment,
@@ -111,7 +113,52 @@ fn section(ui: &mut Ui) {
     ui.add_space(10.0);
 }
 
-fn progress(ui: &mut Ui, palette: &Palette, project: &Project, month: &mut Option<(i32, u32)>) {
+/// A number field that saves when it is left or Enter is pressed (ProseCraft's `onchange`), so
+/// typing a number isn't a change per keystroke. Returns the new value then.
+fn goal_field(ui: &mut Ui, id_salt: &str, value: f64, name: &str, editable: bool) -> Option<f64> {
+    let id = ui.make_persistent_id(("goal-field", id_salt));
+    let shown = if value > 0.0 {
+        format!("{value}")
+    } else {
+        String::new()
+    };
+    let mut text = ui
+        .data(|d| d.get_temp::<String>(id))
+        .unwrap_or(shown.clone());
+    let response = ui.add_enabled(
+        editable,
+        egui::TextEdit::singleline(&mut text)
+            .desired_width(90.0)
+            .hint_text("Set word goal"),
+    );
+    crate::views::name_field(ui, &response, name);
+    if response.changed() {
+        let digits: String = text.chars().filter(char::is_ascii_digit).collect();
+        ui.data_mut(|d| d.insert_temp(id, digits));
+    }
+    if response.lost_focus() {
+        ui.data_mut(|d| d.remove_temp::<String>(id));
+        let digits: String = text.chars().filter(char::is_ascii_digit).collect();
+        let next = if digits.is_empty() {
+            0.0
+        } else {
+            digits.parse::<f64>().unwrap_or(0.0)
+        };
+        if next != value {
+            return Some(next);
+        }
+    }
+    None
+}
+
+fn progress(
+    ui: &mut Ui,
+    palette: &Palette,
+    project: &Project,
+    month: &mut Option<(i32, u32)>,
+    intents: &mut Vec<crate::editing::Intent>,
+    editable: bool,
+) {
     heading(ui, palette, "Your writing", "Progress");
     let total = project.word_count();
     ui.label(
@@ -146,6 +193,23 @@ fn progress(ui: &mut Ui, palette: &Palette, project: &Project, month: &mut Optio
                 .color(palette.text_muted),
         );
     }
+    ui.horizontal(|ui| {
+        ui.label(
+            RichText::new("Word count goal")
+                .size(12.0)
+                .color(palette.text_secondary),
+        );
+        if let Some(goal) = goal_field(
+            ui,
+            "project",
+            project.project_goal,
+            "Word count goal",
+            editable,
+        ) {
+            intents.push(crate::editing::Intent::SetProjectGoal(goal));
+        }
+        ui.label(RichText::new("words").size(12.0).color(palette.text_muted));
+    });
     section(ui);
     ui.label(
         RichText::new("Chapter goals")
@@ -168,6 +232,28 @@ fn progress(ui: &mut Ui, palette: &Palette, project: &Project, month: &mut Optio
                 };
                 ui.label(RichText::new(text).size(12.0).color(palette.text_muted));
             });
+        });
+        // ProseCraft's per-chapter goal field, named for its chapter.
+        let goal = project.chapter_goal(&chapter.id).unwrap_or(0.0);
+        ui.horizontal(|ui| {
+            ui.add_space(8.0);
+            if let Some(next) = goal_field(
+                ui,
+                &chapter.id,
+                goal,
+                &format!("{} word goal", chapter.title),
+                editable,
+            ) {
+                intents.push(crate::editing::Intent::SetChapterGoal {
+                    chapter: chapter.id.clone(),
+                    goal: next,
+                });
+            }
+            ui.label(
+                RichText::new(if goal > 0.0 { "goal" } else { "words" })
+                    .size(11.5)
+                    .color(palette.text_muted),
+            );
         });
     }
     section(ui);

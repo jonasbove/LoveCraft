@@ -632,11 +632,14 @@ fn editor(
         *edit.draft = Some(Draft {
             document: document.id.clone(),
             title: document.title.clone(),
+            words: count_words(&doc.text.replace(ATOM, " ")),
             body: doc.text.clone(),
             doc,
             title_dirty: false,
             body_dirty: false,
             changed_at: edit.now,
+            edits: 0,
+            words_added: 0.0,
         });
     }
     let now = edit.now;
@@ -813,9 +816,15 @@ fn editor(
         }
         draft.body_dirty = true;
         draft.changed_at = now;
+        // Writing activity, as ProseCraft's `trackActivity` on each input: one more edit, and
+        // the words gained.
+        let words = count_words(&draft.body.replace(ATOM, " "));
+        draft.edits += 1;
+        draft.words_added += (words as f64 - draft.words as f64).max(0.0);
+        draft.words = words;
     }
     paint_extras(ui, palette, &draft.doc, &output);
-    let count = count_words(&draft.body.replace(ATOM, " "));
+    let count = draft.words;
     footer(ui, palette, count, &save_text(edit.save_state));
 }
 

@@ -66,6 +66,12 @@ pub enum Intent {
         only: Vec<String>,
         now: f64,
     },
+    /// The project's word count goal, and a chapter's.
+    SetProjectGoal(f64),
+    SetChapterGoal {
+        chapter: String,
+        goal: f64,
+    },
     /// Project settings: name, author and type.
     SetProjectDetails {
         name: String,
@@ -88,6 +94,11 @@ pub struct Draft {
     pub body_dirty: bool,
     /// When (in egui's seconds) the last keystroke came.
     pub changed_at: f64,
+    /// The text's word count, and the writing activity (edits, words added) not yet recorded
+    /// in the project (ProseCraft's `trackActivity`, applied when the draft commits).
+    pub words: usize,
+    pub edits: u32,
+    pub words_added: f64,
 }
 
 /// Seconds after the last keystroke before the draft reaches the project (ProseCraft: 250 ms).
@@ -175,6 +186,8 @@ pub fn run(
             author,
             screenplay,
         } => edit::set_project_details(data, name, author, *screenplay),
+        Intent::SetProjectGoal(goal) => edit::set_project_goal(data, *goal),
+        Intent::SetChapterGoal { chapter, goal } => edit::set_chapter_goal(data, chapter, *goal),
         Intent::ReplaceInProject {
             query,
             replacement,
@@ -202,7 +215,10 @@ impl Draft {
 
 /// The draft's edit: what changed of its title and its paragraphs (as ProseCraft's HTML). An
 /// unchanged body is left alone, so a rename never rewrites the scene.
-pub fn commit_draft(draft: &Draft, data: &mut JsValue) -> Result<(), EditError> {
+pub fn commit_draft(draft: &Draft, data: &mut JsValue, today: &str) -> Result<(), EditError> {
+    if draft.edits > 0 && !today.is_empty() {
+        edit::track_activity(data, today, f64::from(draft.edits), draft.words_added)?;
+    }
     if draft.title_dirty {
         edit::set_document_title(data, &draft.document, &draft.title)?;
     }

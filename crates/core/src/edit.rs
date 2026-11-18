@@ -226,6 +226,84 @@ pub fn set_project_details(
     Ok(())
 }
 
+/// A goal as ProseCraft keeps it: a whole number, never negative (`Math.max(0, Math.floor(n))`,
+/// 0 when not a number).
+fn goal(value: f64) -> f64 {
+    if value.is_finite() {
+        value.floor().max(0.0)
+    } else {
+        0.0
+    }
+}
+
+/// `setProjectGoal`.
+pub fn set_project_goal(project: &mut JsValue, value: f64) -> Result<(), EditError> {
+    project
+        .as_object_mut()
+        .ok_or(EditError::Shape)?
+        .insert("projectGoal", JsValue::Number(goal(value)));
+    Ok(())
+}
+
+/// `setChapterGoal`: the chapter's entry in `chapterGoals`.
+pub fn set_chapter_goal(
+    project: &mut JsValue,
+    chapter_id: &str,
+    value: f64,
+) -> Result<(), EditError> {
+    let object = project.as_object_mut().ok_or(EditError::Shape)?;
+    if object
+        .get("chapterGoals")
+        .and_then(JsValue::as_object)
+        .is_none()
+    {
+        object.insert("chapterGoals", JsValue::Object(crate::js::JsObject::new()));
+    }
+    object
+        .get_mut("chapterGoals")
+        .and_then(JsValue::as_object_mut)
+        .ok_or(EditError::Shape)?
+        .insert(chapter_id, JsValue::Number(goal(value)));
+    Ok(())
+}
+
+/// `trackActivity`, for several edits at once: the day's `{ edits, wordsAdded }` grow by
+/// `edits` and by the words added (never less than 0). `day` is `YYYY-MM-DD`.
+pub fn track_activity(
+    project: &mut JsValue,
+    day: &str,
+    edits: f64,
+    words_added: f64,
+) -> Result<(), EditError> {
+    let object = project.as_object_mut().ok_or(EditError::Shape)?;
+    if object
+        .get("activity")
+        .and_then(JsValue::as_object)
+        .is_none()
+    {
+        object.insert("activity", JsValue::Object(crate::js::JsObject::new()));
+    }
+    let activity = object
+        .get_mut("activity")
+        .and_then(JsValue::as_object_mut)
+        .ok_or(EditError::Shape)?;
+    let previous = |k: &str| {
+        activity
+            .get(day)
+            .and_then(|d| d.get(k))
+            .and_then(JsValue::as_number)
+            .unwrap_or(0.0)
+    };
+    let mut entry = crate::js::JsObject::new();
+    entry.insert("edits", JsValue::Number(previous("edits") + edits));
+    entry.insert(
+        "wordsAdded",
+        JsValue::Number(previous("wordsAdded") + words_added.max(0.0)),
+    );
+    activity.insert(day, JsValue::Object(entry));
+    Ok(())
+}
+
 /// `moveToTrash` for one document.
 pub fn trash_document(project: &mut JsValue, id: &str) -> Result<(), EditError> {
     find_mut(project, "documents", id)?.insert("trashed", JsValue::Bool(true));
@@ -460,5 +538,25 @@ mod tests {
         );
         assert_eq!(chapter_label("Prologue", &["Prologue"]), "Prologue");
         assert_eq!(chapter_label("Chapter ٣", &["Chapter ٣"]), "Chapter ٣");
+    }
+}
+
+#[cfg(test)]
+mod goal_tests {
+    use super::{set_chapter_goal, set_project_goal, track_activity};
+    use crate::js::{parse, stringify};
+
+    #[test]
+    fn goals_and_activity_as_prosecraft_keeps_them() {
+        let mut p = parse(r#"{"projectGoal":1,"chapterGoals":{"a":5},"activity":{"2026-11-01":{"edits":2,"wordsAdded":3}}}"#).expect("json");
+        set_project_goal(&mut p, 1234.9).expect("goal");
+        set_chapter_goal(&mut p, "b", -3.0).expect("goal");
+        set_chapter_goal(&mut p, "a", f64::NAN).expect("goal");
+        track_activity(&mut p, "2026-11-01", 4.0, 10.0).expect("activity");
+        track_activity(&mut p, "2026-11-02", 1.0, -5.0).expect("activity");
+        assert_eq!(
+            stringify(&p),
+            r#"{"projectGoal":1234,"chapterGoals":{"a":0,"b":0},"activity":{"2026-11-01":{"edits":6,"wordsAdded":13},"2026-11-02":{"edits":1,"wordsAdded":0}}}"#
+        );
     }
 }

@@ -334,3 +334,57 @@ fn pdf_export_draws_what_prosecraft_draws() {
             .join("\n")
     );
 }
+
+#[test]
+fn screenplay_pdf_draws_what_prosecraft_draws() {
+    use prosecraft_core::screenplay::fountain::ScreenplayElement;
+    use prosecraft_core::screenplay::pdf::layout_screenplay_pdf;
+    let fixture = fixture("export-screenplay-pdf.json");
+    let text = |v: &JsValue, key: &str| {
+        v.get(key)
+            .and_then(JsValue::as_js_string)
+            .map(|s| s.to_string_lossy())
+            .unwrap_or_default()
+    };
+    let mut report = Vec::new();
+    let mut compared = 0;
+    for (name, case) in fixture.as_object().expect("cases").iter() {
+        let elements: Vec<ScreenplayElement> = case
+            .get("elements")
+            .and_then(JsValue::as_array)
+            .unwrap_or_default()
+            .iter()
+            .map(|e| ScreenplayElement::new(&text(e, "type"), text(e, "text")))
+            .collect();
+        let layout = layout_screenplay_pdf(&text(case, "title"), &text(case, "author"), &elements);
+        let ours = write_pdf(&layout).expect("written");
+        let theirs = base64::engine::general_purpose::STANDARD
+            .decode(text(case, "pdf"))
+            .expect("base64");
+        let (want, have) = (draws(&theirs), draws(&ours));
+        let name = name.to_string_lossy();
+        if want.len() != have.len() {
+            report.push(format!("{name}: {} pages, want {}", have.len(), want.len()));
+        }
+        for (page, (w, h)) in want.iter().zip(&have).enumerate() {
+            if w.len() != h.len() {
+                report.push(format!(
+                    "{name} page {}: {} draws, want {}",
+                    page + 1,
+                    h.len(),
+                    w.len()
+                ));
+            }
+            for (a, b) in w.iter().zip(h) {
+                compared += 1;
+                if let Some(d) = differ(a, b) {
+                    report.push(format!("{name} page {}: {d}", page + 1));
+                    break;
+                }
+            }
+        }
+    }
+    eprintln!("compared {compared} draws");
+    assert_eq!(compared, 343);
+    assert!(report.is_empty(), "{}", report.join("\n"));
+}

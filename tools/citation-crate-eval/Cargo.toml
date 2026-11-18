@@ -1,0 +1,18 @@
+[package]
+name = "citation-crate-eval"
+version = "0.0.0"
+edition = "2024"
+publish = false
+license = "MIT OR Apache-2.0"
+description = "Measures third-party BibTeX/RIS crates against ProseCraft's import results"
+
+# Not part of the prosecraft-rs workspace: the candidates never enter its Cargo.lock.
+[workspace]
+
+[dependencies]
+prosecraft-core = { path = "../../crates/core" }
+biblatex = "0.12"
+nom-bibtex = "0.6"
+serde_bibtex = "0.7"
+biblib = "0.10"
+serde = { version = "1", features = ["derive"] }

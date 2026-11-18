@@ -3,6 +3,7 @@
 //! is ProseCraft's own new project (`core::starters::new_project`).
 
 use egui::{RichText, Ui};
+use prosecraft_core::starters::custom::CustomStarter;
 use prosecraft_core::starters::{self, Blueprint, BlueprintFolder};
 
 use crate::{AppState, Library, ProseApp, Selection, WorkspaceView};
@@ -16,6 +17,11 @@ pub(crate) struct StarterDraft {
     /// The blueprint being customised, and the folder and page keys included.
     pub working: Blueprint,
     pub selected: Vec<String>,
+    /// "Save as my template": the name being typed, and what the last save or delete said.
+    template_name: String,
+    notice: String,
+    /// A template whose deletion is being asked about.
+    confirm_delete: Option<String>,
 }
 
 impl StarterDraft {
@@ -25,15 +31,25 @@ impl StarterDraft {
             preset: String::new(),
             working: Blueprint::default(),
             selected: Vec::new(),
+            template_name: String::new(),
+            notice: String::new(),
+            confirm_delete: None,
         };
-        draft.select_preset("blank");
+        draft.select_preset("blank", &[]);
         draft
     }
 
-    /// `selectStarter`.
-    fn select_preset(&mut self, id: &str) {
+    /// `selectStarter`: a preset, or one of the user's own templates (`custom:<id>`).
+    fn select_preset(&mut self, id: &str, templates: &[CustomStarter]) {
         self.preset = id.to_owned();
-        self.working = if id == "blank" {
+        self.notice.clear();
+        self.working = if let Some(custom) = id.strip_prefix("custom:") {
+            templates
+                .iter()
+                .find(|t| t.id == custom)
+                .map(|t| t.blueprint.clone())
+                .unwrap_or_default()
+        } else if id == "blank" {
             Blueprint::default()
         } else {
             starters::starter_blueprint(id)
@@ -49,7 +65,7 @@ impl StarterDraft {
             self.working = starters::screenplay_blueprint();
             self.selected = starters::all_keys(&self.working);
         } else {
-            self.select_preset("blank");
+            self.select_preset("blank", &[]);
         }
     }
 
@@ -95,6 +111,20 @@ impl StarterDraft {
         }
     }
 
+    /// `starterExtraFolders`: the template's folders that aren't modules.
+    fn extra_folders(&self) -> Vec<BlueprintFolder> {
+        self.working
+            .folders
+            .iter()
+            .filter(|f| {
+                !starters::modules()
+                    .iter()
+                    .any(|m| starters::module_folder_key(&m.id) == f.key)
+            })
+            .cloned()
+            .collect()
+    }
+
     fn module_included(&self, id: &str) -> bool {
         let key = starters::module_folder_key(id);
         self.working
@@ -114,6 +144,11 @@ impl StarterDraft {
             .flat_map(Self::folder_keys)
             .collect();
         self.set_keys(keys, false);
+    }
+
+    /// The last save didn't work.
+    pub fn failed(&mut self, notice: &str) {
+        self.notice = notice.to_owned();
     }
 
     /// What the project will start with.
@@ -152,6 +187,9 @@ fn option(ui: &mut Ui, selected: bool, title: &str, text: &str) -> bool {
 /// The dialog, while open.
 pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
     let palette = state.palette;
+    let templates = &state.custom_starters;
+    let mut delete_template: Option<String> = None;
+    let mut save_template: Option<CustomStarter> = None;
     let Some(draft) = state.starter.as_mut() else {
         return;
     };
@@ -214,7 +252,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                                     &starter.label,
                                     &starter.description,
                                 ) {
-                                    draft.select_preset(&starter.id);
+                                    draft.select_preset(&starter.id, templates);
                                 }
                             }
                         });
@@ -223,6 +261,43 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                                 node.set_role(egui::accesskit::Role::RadioGroup);
                                 node.set_label("Starter");
                             });
+                        // "My templates": the user's own, saved on this device.
+                        if !templates.is_empty() {
+                            ui.add_space(6.0);
+                            heading(ui, &palette, "My templates", "Saved on this device.");
+                            let mine = ui.scope(|ui| {
+                                for template in templates {
+                                    let key = format!("custom:{}", template.id);
+                                    ui.horizontal(|ui| {
+                                        let picked = ui.vertical(|ui| option(ui, draft.preset == key, &template.name, &summary(&template.blueprint))).inner;
+                                        if picked {
+                                            draft.select_preset(&key, templates);
+                                        }
+                                        let delete = ui.small_button("🗑");
+                                        crate::views::name_field(ui, &delete, &format!("Delete {}", template.name));
+                                        if delete.clicked() {
+                                            draft.confirm_delete = Some(template.id.clone());
+                                        }
+                                    });
+                                    if draft.confirm_delete.as_deref() == Some(template.id.as_str()) {
+                                        ui.label(format!("Delete the template “{}”? Projects created from it keep their pages.", template.name));
+                                        ui.horizontal(|ui| {
+                                            if ui.button(RichText::new("Delete").color(palette.danger)).clicked() {
+                                                delete_template = Some(template.id.clone());
+                                                draft.confirm_delete = None;
+                                            }
+                                            if ui.button("Cancel").clicked() {
+                                                draft.confirm_delete = None;
+                                            }
+                                        });
+                                    }
+                                }
+                            });
+                            ui.ctx().accesskit_node_builder(mine.response.id, |node| {
+                                node.set_role(egui::accesskit::Role::RadioGroup);
+                                node.set_label("My templates");
+                            });
+                        }
                         ui.separator();
                     }
                     heading(ui, &palette, "Customise", &summary(&draft.blueprint()));
@@ -288,6 +363,56 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                                 }
                             }
                         });
+                    // "Template content": the selected template's folders that aren't modules.
+                    let extras = draft.extra_folders();
+                    if !extras.is_empty() {
+                        ui.add_space(8.0);
+                        let included = extras.iter().filter(|f| draft.included(f)).count();
+                        ui.horizontal(|ui| {
+                            ui.label(RichText::new("Template content").strong());
+                            ui.label(RichText::new(format!("{included} of {} included", extras.len())).size(12.0).color(palette.text_muted));
+                        });
+                        ui.add(egui::Label::new(RichText::new("Folders from the selected template that aren't modules.").size(12.0).color(palette.text_muted)).wrap());
+                        for folder in &extras {
+                            let on = draft.included(folder);
+                            let pages = if folder.pages.is_empty() { "Empty folder".to_owned() } else { folder.pages.iter().map(|p| p.title.as_str()).collect::<Vec<_>>().join(" · ") };
+                            let button = ui.add(egui::Button::selectable(on, RichText::new(&folder.name).strong()).min_size(egui::vec2(260.0, 26.0))).on_hover_text(&pages);
+                            let (label, description) = (folder.name.clone(), pages.clone());
+                            ui.ctx().accesskit_node_builder(button.id, move |node| {
+                                node.set_role(egui::accesskit::Role::Button);
+                                node.set_label(label);
+                                node.set_description(description);
+                                node.set_toggled(if on { egui::accesskit::Toggled::True } else { egui::accesskit::Toggled::False });
+                            });
+                            if button.clicked() {
+                                draft.set_keys(StarterDraft::folder_keys(folder), !on);
+                            }
+                        }
+                    }
+                    // "Save as my template".
+                    ui.add_space(8.0);
+                    ui.horizontal(|ui| {
+                        let name = ui.add(egui::TextEdit::singleline(&mut draft.template_name).hint_text("Template name").desired_width(220.0));
+                        crate::views::name_field(ui, &name, "Template name");
+                        let ready = !draft.template_name.trim().is_empty();
+                        let enter = name.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
+                        if ui.add_enabled(ready, egui::Button::new("Save as my template")).clicked() || (ready && enter) {
+                            // The app gives it its id when it saves it.
+                            let id = String::new();
+                            let name = draft.template_name.trim().to_owned();
+                            save_template = Some(CustomStarter { id, name: name.clone(), blueprint: draft.blueprint() });
+                            draft.template_name.clear();
+                            draft.notice = format!("Saved as \"{name}\".");
+                        }
+                    });
+                    if !draft.notice.is_empty() {
+                        let notice = ui.label(RichText::new(&draft.notice).size(12.0).color(palette.text_muted));
+                        let text = draft.notice.clone();
+                        ui.ctx().accesskit_node_builder(notice.id, move |node| {
+                            node.set_role(egui::accesskit::Role::Status);
+                            node.set_label(text);
+                        });
+                    }
                 });
             ui.separator();
             ui.horizontal(|ui| {
@@ -297,6 +422,23 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                 });
             });
         });
+    if let Some(template) = save_template {
+        let mut next = state.custom_starters.clone();
+        next.push(template);
+        state.custom_starters_save = Some(next);
+    }
+    if let Some(id) = delete_template {
+        let next: Vec<CustomStarter> = state
+            .custom_starters
+            .iter()
+            .filter(|t| t.id != id)
+            .cloned()
+            .collect();
+        if draft.preset == format!("custom:{id}") {
+            draft.select_preset("blank", &next);
+        }
+        state.custom_starters_save = Some(next);
+    }
     if create {
         state.create_project = Some((draft.screenplay, draft.blueprint()));
         state.starter = None;

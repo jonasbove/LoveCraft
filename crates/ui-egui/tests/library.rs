@@ -21,9 +21,21 @@ struct Memory {
     saved: Arc<Mutex<Vec<String>>>,
     fail: bool,
     ids: Arc<std::sync::atomic::AtomicUsize>,
+    settings: Arc<Mutex<std::collections::HashMap<String, String>>>,
 }
 
 impl LibraryStore for Memory {
+    fn load_setting(&mut self, key: &str) -> Option<String> {
+        self.settings.lock().ok()?.get(key).cloned()
+    }
+    fn save_setting(&mut self, key: &str, value: Option<&str>) -> Result<(), String> {
+        let mut settings = self.settings.lock().map_err(|e| e.to_string())?;
+        match value {
+            Some(v) => settings.insert(key.to_owned(), v.to_owned()),
+            None => settings.remove(key),
+        };
+        Ok(())
+    }
     fn save(&mut self, text: &str) -> Result<(), String> {
         if self.fail {
             return Err("the disk is full".into());
@@ -459,4 +471,89 @@ fn a_scrivener_project_is_previewed_then_imported() {
     harness.state_mut().import_scrivener_zip(b"not a zip");
     harness.run();
     harness.get_by_label_contains("Scrivener import: this file is not a readable zip archive.");
+}
+
+#[test]
+fn a_composed_starter_is_saved_as_my_template_and_deleted() {
+    let memory = Memory::default();
+    let app = ProseApp::with_library(
+        ProjectLibrary::new("this-device".into()),
+        Box::new(memory.clone()),
+    );
+    let mut first = harness(app);
+    first.run();
+    first
+        .get_by_role_and_label(Role::Button, "Create project")
+        .click();
+    first.run();
+    first
+        .get_by_role_and_label(Role::RadioButton, "Crime")
+        .click();
+    first.run();
+    // A preset's own folders are "Template content".
+    first.get_by_label("Template content");
+    first.get_by_label("Template name").focus();
+    first.get_by_label("Template name").type_text("My fantasy");
+    first.run();
+    first
+        .get_by_role_and_label(Role::Button, "Save as my template")
+        .scroll_to_me();
+    first.run();
+    first
+        .get_by_role_and_label(Role::Button, "Save as my template")
+        .click();
+    first.run_steps(3);
+    first.get_by_label("Saved as \"My fantasy\".");
+    first.get_by_role_and_label(Role::RadioButton, "My fantasy");
+    let saved = |memory: &Memory| {
+        memory
+            .settings
+            .lock()
+            .unwrap()
+            .get("prosecraft-custom-starters")
+            .cloned()
+            .unwrap_or_default()
+    };
+    assert!(
+        saved(&memory).contains(r#""name":"My fantasy""#),
+        "{}",
+        saved(&memory)
+    );
+
+    // Another app on this device has it too.
+    let other = ProseApp::with_library(
+        ProjectLibrary::new("this-device".into()),
+        Box::new(memory.clone()),
+    );
+    let mut second = harness(other);
+    second.run();
+    second
+        .get_by_role_and_label(Role::Button, "Create project")
+        .click();
+    second.run();
+    second
+        .get_by_role_and_label(Role::RadioButton, "My fantasy")
+        .click();
+    second.run();
+
+    // Deleted (asked first), it is gone.
+    first
+        .get_by_role_and_label(Role::Button, "Delete My fantasy")
+        .scroll_to_me();
+    first.run();
+    first
+        .get_by_role_and_label(Role::Button, "Delete My fantasy")
+        .click();
+    first.run();
+    first.get_by_label_contains(
+        "Delete the template “My fantasy”? Projects created from it keep their pages.",
+    );
+    first.get_by_role_and_label(Role::Button, "Delete").click();
+    first.run_steps(3);
+    assert!(
+        first
+            .query_by_role_and_label(Role::RadioButton, "My fantasy")
+            .is_none()
+    );
+    assert_eq!(saved(&memory), "[]");
 }

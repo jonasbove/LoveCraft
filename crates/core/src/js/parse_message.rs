@@ -97,6 +97,11 @@ impl Scan {
             self.pos += 1;
             return Ok(());
         }
+        // V8 classifies escapes with a one-byte table; a character past U+00FF after the
+        // backslash is reported as an unexpected token instead.
+        if unit > 0xff {
+            return Err(Fail::Token(self.pos));
+        }
         if unit != u16::from(b'u') {
             return Err(Fail::At("Bad escaped character in JSON", self.pos));
         }
@@ -371,6 +376,14 @@ mod tests {
             (
                 "\"\\x\"",
                 "Bad escaped character in JSON at position 2 (line 1 column 3)",
+            ),
+            (
+                "\"\\\u{ff}\"",
+                "Bad escaped character in JSON at position 2 (line 1 column 3)",
+            ),
+            (
+                "\"ab\\\u{130}cd\"",
+                "Unexpected token '\u{130}', \"\"ab\\\u{130}cd\"\" is not valid JSON",
             ),
             (
                 "\"\\u12G4\"",

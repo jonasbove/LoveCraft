@@ -66,6 +66,18 @@ pub enum Intent {
         only: Vec<String>,
         now: f64,
     },
+    /// The timeline: a new moment, one field of a moment, removing and moving one.
+    AddMoment,
+    SetMoment {
+        id: String,
+        field: prosecraft_core::timeline::Field,
+        value: String,
+    },
+    RemoveMoment(String),
+    MoveMoment {
+        id: String,
+        offset: isize,
+    },
     /// The project's word count goal, and a chapter's.
     SetProjectGoal(f64),
     SetChapterGoal {
@@ -186,6 +198,14 @@ pub fn run(
             author,
             screenplay,
         } => edit::set_project_details(data, name, author, *screenplay),
+        Intent::AddMoment => prosecraft_core::timeline::add_node(data, &new_id()),
+        Intent::SetMoment { id, field, value } => {
+            prosecraft_core::timeline::set_field(data, id, *field, value)
+        }
+        Intent::RemoveMoment(id) => prosecraft_core::timeline::remove_node(data, id),
+        Intent::MoveMoment { id, offset } => {
+            prosecraft_core::timeline::move_node(data, id, *offset)
+        }
         Intent::SetProjectGoal(goal) => edit::set_project_goal(data, *goal),
         Intent::SetChapterGoal { chapter, goal } => edit::set_chapter_goal(data, chapter, *goal),
         Intent::ReplaceInProject {

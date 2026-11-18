@@ -866,3 +866,72 @@ fn goals_are_set_and_writing_is_recorded_as_activity() {
             .is_some_and(|e| e >= 1.0)
     );
 }
+
+#[test]
+fn timeline_moments_are_added_edited_moved_and_removed() {
+    let (mut harness, memory) = app();
+    harness.get_by_role_and_label(Role::Tab, "Timeline").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "+ Add moment")
+        .click();
+    harness.run_steps(2);
+    // The new moment's title has the focus: type into it and leave with Enter.
+    let title = harness.get_by_role_and_label(Role::TextInput, "Title for timeline moment 2");
+    assert!(title.is_focused(), "the new moment's title is focused");
+    title.type_text("The storm");
+    harness.key_press(egui::Key::Enter);
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TextInput, "Date for The storm")
+        .focus();
+    harness
+        .get_by_role_and_label(Role::TextInput, "Date for The storm")
+        .type_text("Day 3");
+    harness.key_press(egui::Key::Enter);
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Move The storm earlier")
+        .click();
+    harness.run_steps(12);
+    let nodes = |memory: &Memory| -> Vec<(String, String, String)> {
+        let saved = memory.last();
+        project(&saved, "project-1")
+            .get("project")
+            .and_then(|p| p.get("timelineNodes"))
+            .and_then(JsValue::as_array)
+            .unwrap_or_default()
+            .iter()
+            .map(|n| {
+                let s = |k: &str| {
+                    n.get(k)
+                        .and_then(JsValue::as_js_string)
+                        .map(|v| v.to_string_lossy())
+                        .unwrap_or_default()
+                };
+                (s("id"), s("title"), s("date"))
+            })
+            .collect()
+    };
+    let after = nodes(&memory);
+    assert_eq!(
+        (
+            after[0].1.as_str(),
+            after[0].2.as_str(),
+            after[1].1.as_str()
+        ),
+        ("The storm", "Day 3", "Day One"),
+        "{after:?}"
+    );
+    harness
+        .get_by_role_and_label(Role::Button, "Remove The storm")
+        .click();
+    harness.run_steps(12);
+    assert_eq!(
+        nodes(&memory)
+            .iter()
+            .map(|n| n.1.clone())
+            .collect::<Vec<_>>(),
+        ["Day One"]
+    );
+}

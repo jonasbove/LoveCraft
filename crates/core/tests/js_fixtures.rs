@@ -1233,3 +1233,71 @@ fn publish_rich_text_matches_prosecraft() {
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
+
+#[test]
+fn pdf_text_is_measured_and_split_as_jspdf_does() {
+    use prosecraft_core::publish::pdf_text::{Face, Family};
+    let data = fixture("pdf-standard-fonts.json");
+    let face = |case: &JsValue| {
+        let style = text(case, "style");
+        Face::new(
+            Family::from_name(&text(case, "family")),
+            style.contains("bold"),
+            style.contains("italic"),
+        )
+    };
+    let mut failures = Vec::new();
+    let measured = data
+        .get("measured")
+        .and_then(JsValue::as_array)
+        .unwrap_or_default();
+    for case in measured {
+        let size = case.get("size").and_then(JsValue::as_number).expect("size");
+        let want = case
+            .get("width")
+            .and_then(JsValue::as_number)
+            .expect("width");
+        let have = face(case).text_width(&text(case, "text"), size);
+        if have != want {
+            failures.push(format!(
+                "{} {} {size} {:?}: want {want} have {have}",
+                text(case, "family"),
+                text(case, "style"),
+                text(case, "text")
+            ));
+        }
+    }
+    let splits = data
+        .get("splits")
+        .and_then(JsValue::as_array)
+        .unwrap_or_default();
+    for case in splits {
+        let size = case.get("size").and_then(JsValue::as_number).expect("size");
+        let width = case
+            .get("width")
+            .and_then(JsValue::as_number)
+            .expect("width");
+        let want: Vec<String> = case
+            .get("lines")
+            .and_then(JsValue::as_array)
+            .unwrap_or_default()
+            .iter()
+            .map(|l| {
+                l.as_js_string()
+                    .map(|s| s.to_string_lossy())
+                    .unwrap_or_default()
+            })
+            .collect();
+        let regular = Face::new(Family::from_name(&text(case, "family")), false, false);
+        let have = regular.split_text_to_size(&text(case, "text"), width, size);
+        if have != want {
+            failures.push(format!(
+                "split {size}/{width} {:?}:\n  want {want:?}\n  have {have:?}",
+                text(case, "text")
+            ));
+        }
+    }
+    assert_eq!(measured.len(), 540);
+    assert_eq!(splits.len(), 40);
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}

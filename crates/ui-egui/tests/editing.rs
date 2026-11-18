@@ -2625,3 +2625,79 @@ fn enter_on_an_empty_paragraph_starts_a_scene_and_backspace_joins_it_back() {
         content(project(&saved, "project-1"), "doc-1")
     );
 }
+
+#[test]
+fn a_chapter_is_written_in_markdown_with_scene_break_lines() {
+    let (mut harness, memory) = app();
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("an add button")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Actions for Chapter 1")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Add scene")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Scene 1")
+        .click();
+    harness.run();
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    harness.get_by_label("Scene text").type_text("First.");
+    harness.run_steps(12);
+    harness
+        .get_by_role_and_label(Role::Button, "Settings…")
+        .click();
+    harness.run();
+    harness.get_by_label("Writing").click();
+    harness.run();
+    harness.get_by_label("Enable Markdown editor").click();
+    harness.run();
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    harness.get_by_label("Markdown editor").click();
+    harness.run_steps(2);
+
+    // The chapter's two scenes, with a marker line between them.
+    let source = harness.get_by_label("Markdown source");
+    assert_eq!(
+        source.accesskit_node().value().as_deref(),
+        Some("First.\n\n<!-- scene-break -->\n\n")
+    );
+    harness.get_by_label("Chapter title");
+    source.focus();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::End);
+    harness
+        .get_by_label("Markdown source")
+        .type_text("Second *one*.");
+    harness.run_steps(12);
+    let saved = memory.last();
+    let stored = project(&saved, "project-1");
+    let text = |id: &str, key: &str| {
+        document(stored, id)
+            .and_then(|d| d.get(key))
+            .map(js::stringify)
+            .unwrap_or_default()
+    };
+    assert_eq!(text("new-1", "markdownSource"), r#""First.""#);
+    assert_eq!(text("new-2", "markdownSource"), r#""Second *one*.""#);
+    assert_eq!(
+        text("new-2", "content"),
+        r#""<p>Second <em>one</em>.</p>\n""#
+    );
+    // The source stays as typed while it's written back.
+    assert_eq!(
+        harness
+            .get_by_label("Markdown source")
+            .accesskit_node()
+            .value()
+            .as_deref(),
+        Some("First.\n\n<!-- scene-break -->\n\nSecond *one*.")
+    );
+}

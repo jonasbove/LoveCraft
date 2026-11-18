@@ -270,6 +270,8 @@ pub struct AppState {
     focus_hint_until: f64,
     /// Focus mode asked for from the Settings dialog.
     focus_wanted: bool,
+    /// The binder's label filter: the project it is for, and the label (`labelFilter`).
+    label_filter: Option<(String, String)>,
     /// The keyboard shortcuts sheet, and which platform's keys it shows.
     shortcuts: Option<bool>,
     /// Where the editor's text was drawn last frame (the pointer leaving it brings Zen mode's
@@ -724,6 +726,60 @@ impl ProseApp {
             .and_then(|id| views.projects().iter().position(|p| p.view.id == id))
             .unwrap_or(0);
         self.state.library = Some(views);
+    }
+
+    /// A project's `trashed` flag, stamped, without an undo step (projects aren't on a page).
+    fn set_project_trashed(&mut self, id: &str, trashed: bool) {
+        let Some(home) = self.home.as_mut().filter(|h| !h.library.is_read_only()) else {
+            return;
+        };
+        let now_ms = home.store.now_ms();
+        let result = editing::apply(&mut home.library, id, now_ms, |data| {
+            data.as_object_mut()
+                .ok_or(prosecraft_core::edit::EditError::Shape)?
+                .insert("trashed", prosecraft_core::js::JsValue::Bool(trashed));
+            Ok(())
+        });
+        match result {
+            Ok(()) => {
+                self.unsaved_since = Some(self.state.now);
+                self.state.save_state = SaveState::Pending;
+            }
+            Err(error) => self.state.status = Some(format!("That change wasn't made: {error}")),
+        }
+        self.refresh_views();
+    }
+
+    /// `trashActiveProject`: the open project to the Trash and another one opened; the last
+    /// project can't go.
+    fn trash_project(&mut self) {
+        let Some(library) = self.state.library.as_ref() else {
+            return;
+        };
+        let live: Vec<String> = library
+            .projects()
+            .iter()
+            .filter(|p| !p.view.trashed)
+            .map(|p| p.view.id.clone())
+            .collect();
+        let Some(current) = self.active_project_id().filter(|_| live.len() > 1) else {
+            return;
+        };
+        let Some(next) = live.iter().find(|id| **id != current).cloned() else {
+            return;
+        };
+        self.commit_draft();
+        self.state.draft = None;
+        self.set_project_trashed(&current, true);
+        if let Some(index) = self
+            .state
+            .library
+            .as_ref()
+            .and_then(|l| l.projects().iter().position(|p| p.view.id == next))
+        {
+            self.state.active = index;
+            self.state.selection = None;
+        }
     }
 
     /// Applies one change to the open project, stamped, and marks the library unsaved.
@@ -1544,6 +1600,25 @@ impl ProseApp {
             match &intent {
                 editing::Intent::BodyHistory { document, undo } => {
                     self.run_history(Some(document), *undo);
+                    continue;
+                }
+                editing::Intent::TrashProject => {
+                    self.trash_project();
+                    continue;
+                }
+                editing::Intent::RestoreProject(id) => {
+                    self.set_project_trashed(id, false);
+                    continue;
+                }
+                editing::Intent::DeleteProject(id) => {
+                    if let Some(home) = self.home.as_mut()
+                        && !home.library.is_read_only()
+                        && home.library.remove(id)
+                    {
+                        self.unsaved_since = Some(self.state.now);
+                        self.state.save_state = SaveState::Pending;
+                        self.refresh_views();
+                    }
                     continue;
                 }
                 editing::Intent::DeleteDocument(_) | editing::Intent::DeleteChapter(_) => {

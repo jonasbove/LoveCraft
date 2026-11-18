@@ -568,6 +568,81 @@ fn chapters_and_scenes_move_rename_and_leave_the_trash_for_good() {
 }
 
 #[test]
+fn the_label_filter_project_trash_and_converting_from_the_binder() {
+    let (mut harness, memory) = app();
+    let menu = |harness: &mut Harness<'static, ProseApp>, row: &str| {
+        harness
+            .get_by_role_and_label(Role::Button, &format!("Actions for {row}"))
+            .click();
+        harness.run();
+    };
+    // Label the opening scene "Draft", then show only Draft scenes.
+    menu(&mut harness, "Opening Scene");
+    harness.get_by_role_and_label(Role::Button, "Draft").click();
+    harness.run_steps(4);
+    harness.get_by_label("Filter scenes by label").click();
+    harness.run();
+    harness.get_by_role_and_label(Role::Button, "Draft").click();
+    harness.run();
+    harness.get_by_role_and_label(Role::TreeItem, "Opening Scene");
+    assert!(
+        harness
+            .query_by_role_and_label(Role::TreeItem, "INT. LIGHTHOUSE - NIGHT")
+            .is_none()
+    );
+    harness
+        .get_by_role_and_label(Role::Button, "Clear label filter: Draft")
+        .click();
+    harness.run();
+    harness.get_by_role_and_label(Role::TreeItem, "INT. LIGHTHOUSE - NIGHT");
+    // Convert a scene from its menu (it asks first).
+    menu(&mut harness, "Opening Scene");
+    harness
+        .get_by_role_and_label(Role::Button, "Convert this scene to screenplay")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Convert")
+        .click();
+    harness.run_steps(12);
+    let saved = memory.last();
+    let opening = document(project(&saved, "project-1"), "doc-1").expect("opening");
+    assert_eq!(
+        opening
+            .get("format")
+            .and_then(JsValue::as_js_string)
+            .map(|f| f.to_string_lossy())
+            .as_deref(),
+        Some("screenplay")
+    );
+    // The project to the Trash (it asks first): the other one opens; back, then gone for good.
+    harness
+        .get_by_role_and_label(Role::Button, "Move current project to Trash")
+        .click();
+    harness.run();
+    harness.get_by_label_contains("to Trash? You can restore it later.");
+    harness
+        .get_by_role_and_label(Role::Button, "Move to Trash")
+        .click();
+    harness.run_steps(12);
+    let trashed = |memory: &Memory, id: &str| {
+        project(&memory.last(), id)
+            .get("project")
+            .and_then(|p| p.get("trashed"))
+            .is_some_and(|t| matches!(t, JsValue::Bool(true)))
+    };
+    assert!(trashed(&memory, "project-1"));
+    harness.get_by_label_contains("Trash (").click();
+    harness.run();
+    harness.get_by_label_contains("Project: The Lighthouse");
+    harness
+        .get_by_role_and_label(Role::Button, "Restore project The Lighthouse 🌊 Keeper")
+        .click();
+    harness.run_steps(12);
+    assert!(!trashed(&memory, "project-1"));
+}
+
+#[test]
 fn undo_takes_back_formatting() {
     let (mut harness, memory) = app();
     harness

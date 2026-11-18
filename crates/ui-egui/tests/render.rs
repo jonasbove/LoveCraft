@@ -133,4 +133,16 @@ fn render_views() {
         .get_by_role_and_label(Role::Button, "Create")
         .click();
     save(&mut harness, "project-settings");
+    harness
+        .get_by_role_and_label(Role::Button, "Manage labels…")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Add label")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Delete label Final")
+        .click();
+    save(&mut harness, "labels");
 }

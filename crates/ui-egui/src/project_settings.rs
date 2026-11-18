@@ -1,5 +1,5 @@
-//! ProseCraft's Project Settings dialog: the project's name, author and type. (Its Labels
-//! section, "Manage labels…", isn't ported yet.)
+//! ProseCraft's Project Settings dialog: the project's name, author and type, and Labels
+//! ("Manage labels…").
 
 use egui::{RichText, Ui};
 
@@ -30,16 +30,22 @@ impl ProjectSettingsDraft {
 pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
     let palette = state.palette;
     let editable = state.editable;
+    // Under the Labels dialog (which covers it) Project Settings is inert, as ProseCraft's
+    // modal dialogs are: it isn't drawn, so only the Labels dialog's controls are there.
+    if state.labels_dialog.is_some() {
+        return;
+    }
     let Some(draft) = state.project_settings.as_mut() else {
         return;
     };
     let mut open = true;
     let mut save = false;
+    let mut manage = false;
     egui::Window::new("Project Settings")
         .open(&mut open)
         .collapsible(false)
         .resizable(false)
-        .fixed_size(egui::vec2(440.0, 320.0))
+        .fixed_size(egui::vec2(440.0, 390.0))
         .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
         .show(ui.ctx(), |ui| {
             ui.label(
@@ -109,6 +115,14 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                     .color(palette.text_muted),
             );
             ui.add_space(10.0);
+            ui.label(RichText::new("Labels").strong().color(palette.text_heading));
+            ui.label(
+                RichText::new("Rename, recolour or remove the labels used on scenes and chapters")
+                    .size(12.0)
+                    .color(palette.text_muted),
+            );
+            manage = ui.button("Manage labels…").clicked();
+            ui.add_space(10.0);
             ui.separator();
             ui.horizontal(|ui| {
                 ui.label(
@@ -127,6 +141,14 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                 });
             });
         });
+    if manage {
+        // As ProseCraft, the Labels dialog opens over Project Settings.
+        state.labels_dialog = state
+            .library
+            .as_ref()
+            .and_then(|l| l.projects().get(state.active))
+            .map(|p| crate::labels::LabelsDraft::for_project(&p.view));
+    }
     if save {
         let intent = crate::editing::Intent::SetProjectDetails {
             name: draft.name.clone(),
@@ -135,7 +157,9 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         };
         state.intents.push(intent);
         state.project_settings = None;
-    } else if !open || ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+    } else if !open
+        || (state.labels_dialog.is_none() && ui.input(|i| i.key_pressed(egui::Key::Escape)))
+    {
         state.project_settings = None;
     }
 }

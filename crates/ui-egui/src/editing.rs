@@ -83,6 +83,13 @@ pub enum Intent {
         document: String,
         folder: Option<String>,
     },
+    /// The Labels dialog's labels (new ones have `new:` ids), and one scene's or chapter's label.
+    SaveLabels(Vec<prosecraft_core::project::Label>),
+    SetLabel {
+        chapter: bool,
+        id: String,
+        label: Option<String>,
+    },
     /// The timeline: a new moment, one field of a moment, removing and moving one.
     AddMoment,
     SetMoment {
@@ -227,6 +234,23 @@ pub fn run(
         Intent::RemoveWikiFolder(id) => prosecraft_core::wiki::remove_folder(data, id),
         Intent::MoveWikiPage { document, folder } => {
             prosecraft_core::wiki::move_page(data, document, folder.as_deref())
+        }
+        Intent::SaveLabels(labels) => {
+            let labels: Vec<_> = labels
+                .iter()
+                .map(|l| prosecraft_core::project::Label {
+                    id: if l.id.starts_with("new:") {
+                        format!("label-{}", new_id())
+                    } else {
+                        l.id.clone()
+                    },
+                    ..l.clone()
+                })
+                .collect();
+            prosecraft_core::labels::save_labels(data, &labels)
+        }
+        Intent::SetLabel { chapter, id, label } => {
+            prosecraft_core::labels::set_label(data, *chapter, id, label.as_deref())
         }
         Intent::AddMoment => prosecraft_core::timeline::add_node(data, &new_id()),
         Intent::SetMoment { id, field, value } => {

@@ -302,14 +302,7 @@ impl Project {
                     link: text(item, "kind") == "link",
                 })
                 .collect(),
-            labels: list(project, "labels")
-                .iter()
-                .map(|l| Label {
-                    id: text(l, "id"),
-                    name: text(l, "name"),
-                    color: text(l, "color"),
-                })
-                .collect(),
+            labels: crate::labels::project_labels(project),
             comments: list(project, "comments")
                 .iter()
                 .map(|c| Comment {

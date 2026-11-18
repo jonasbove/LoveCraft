@@ -740,7 +740,11 @@ impl ProseApp {
             ) {
                 self.after_wiki_add(matches!(intent, editing::Intent::AddWikiPage { .. }));
             }
-            if matches!(intent, editing::Intent::RestoreSnapshot { .. }) {
+            if matches!(
+                intent,
+                editing::Intent::RestoreSnapshot { .. }
+                    | editing::Intent::ConvertToScreenplay { .. }
+            ) {
                 // The editor reloads the restored text (its draft held the replaced one).
                 self.state.draft = None;
             }

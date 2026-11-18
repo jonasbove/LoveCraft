@@ -121,6 +121,24 @@ pub fn take_snapshots(
     Ok(())
 }
 
+/// One scene's snapshot taken for `reason` ("before-restore"), with `note`: what ProseCraft
+/// saves before changing a scene for you (a restore, a screenplay conversion).
+pub fn snapshot_before(
+    project: &mut JsValue,
+    document_id: &str,
+    id: &str,
+    now: f64,
+    reason: &str,
+    note: &str,
+) -> Result<(), EditError> {
+    let found = document(project, document_id)
+        .cloned()
+        .ok_or(EditError::Shape)?;
+    let list = snapshots_mut(project)?;
+    add(list, create(&found, id, now, reason, Some(note)));
+    Ok(())
+}
+
 /// Restores snapshot `id`: the scene's current text is snapshotted first ("before a
 /// restore"), then the snapshot's HTML, sanitized, replaces it (and any Markdown source).
 /// Returns the scene's id.

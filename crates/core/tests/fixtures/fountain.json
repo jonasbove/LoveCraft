@@ -4117,5 +4117,373 @@
         "short"
       ]
     }
-  ]
+  ],
+  "documents": [
+    {
+      "id": "d1",
+      "title": "Opening",
+      "chapterId": "c1",
+      "content": "<p data-sp=\"scene-heading\">EXT. LIGHTHOUSE - NIGHT</p><p data-sp=\"action\">Waves crash against the rocks.</p><p data-sp=\"character\">MARA</p><p data-sp=\"parenthetical\">(quietly)</p><p data-sp=\"dialogue\">Is anyone there?</p><p data-sp=\"transition\">CUT TO:</p><p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p><p data-sp=\"character\">MARA</p><p data-sp=\"parenthetical\">(into the dark)</p><p data-sp=\"dialogue\">Hello?</p><p data-sp=\"centered\">THE END</p><p data-sp=\"page-break\"></p>",
+      "format": "screenplay"
+    },
+    {
+      "id": "d2",
+      "title": "Prose",
+      "chapterId": "c1",
+      "content": "<p>A <em>prose</em> scene.</p>"
+    },
+    {
+      "id": "d3",
+      "title": "Second",
+      "chapterId": "c2",
+      "content": "<p data-sp=\"scene-heading\">INT. KITCHEN - DAY</p><p data-sp=\"character\">ALICE</p><p data-sp=\"dialogue\">Left.</p><p data-sp=\"character\">BOB</p><p data-sp=\"dialogue\">Right.</p>",
+      "format": "screenplay"
+    },
+    {
+      "id": "d4",
+      "title": "Trashed",
+      "chapterId": "c2",
+      "content": "<p data-sp=\"action\">A door opens.</p><p data-sp=\"action\">INT. NOT A HEADING</p>",
+      "trashed": true
+    }
+  ],
+  "chapters": [
+    {
+      "id": "c1",
+      "title": "Act One"
+    },
+    {
+      "id": "c2",
+      "title": "Chapter 2"
+    }
+  ],
+  "books": [
+    {
+      "title": "The Pilot",
+      "author": "A. Writer",
+      "fountain": "Title: The Pilot\nCredit: Written by\nAuthor: A. Writer\n\nEXT. LIGHTHOUSE - NIGHT\n\nWaves crash against the rocks.\n\nMARA\n(quietly)\nIs anyone there?\n\nCUT TO:\n\nINT. LIGHTHOUSE - NIGHT\n\nMARA\n(into the dark)\nHello?\n\n> THE END <\n\n===\n\nA *prose* scene.\n\nINT. KITCHEN - DAY\n\nALICE\nLeft.\n\nBOB\nRight.\n"
+    },
+    {
+      "title": "Untitled <&>",
+      "author": "  ",
+      "fountain": "Title: Untitled <&>\n\nEXT. LIGHTHOUSE - NIGHT\n\nWaves crash against the rocks.\n\nMARA\n(quietly)\nIs anyone there?\n\nCUT TO:\n\nINT. LIGHTHOUSE - NIGHT\n\nMARA\n(into the dark)\nHello?\n\n> THE END <\n\n===\n\nA *prose* scene.\n\nINT. KITCHEN - DAY\n\nALICE\nLeft.\n\nBOB\nRight.\n"
+    }
+  ],
+  "conversions": [
+    {
+      "html": "<p>Mara: Is anyone there?</p><p>Old Tom (V.O.): \"Nobody, child.\"</p><p>The door creaks.</p>",
+      "elements": [
+        {
+          "type": "scene-heading",
+          "text": "INT./EXT. LOCATION - DAY"
+        },
+        {
+          "type": "character",
+          "text": "MARA"
+        },
+        {
+          "type": "dialogue",
+          "text": "Is anyone there?"
+        },
+        {
+          "type": "character",
+          "text": "OLD TOM (V.O.)"
+        },
+        {
+          "type": "dialogue",
+          "text": "Nobody, child."
+        },
+        {
+          "type": "action",
+          "text": "The door creaks."
+        }
+      ]
+    },
+    {
+      "html": "<p>— Hello? she said. — Who is it?</p><p>– Leave, he whispered.</p><p>- Fine, I will, — Mara said.</p>",
+      "elements": [
+        {
+          "type": "scene-heading",
+          "text": "INT./EXT. LOCATION - DAY"
+        },
+        {
+          "type": "character",
+          "text": "CHARACTER"
+        },
+        {
+          "type": "dialogue",
+          "text": "Hello? she said."
+        },
+        {
+          "type": "action",
+          "text": "Who is it?"
+        },
+        {
+          "type": "character",
+          "text": "CHARACTER"
+        },
+        {
+          "type": "dialogue",
+          "text": "Leave, he whispered."
+        },
+        {
+          "type": "character",
+          "text": "CHARACTER"
+        },
+        {
+          "type": "dialogue",
+          "text": "Fine, I will,"
+        },
+        {
+          "type": "action",
+          "text": "Mara said."
+        }
+      ]
+    },
+    {
+      "html": "<p>She said \"Go away\" and then “Now!” and „Bitte“ and «Allez» to nobody.</p>",
+      "elements": [
+        {
+          "type": "scene-heading",
+          "text": "INT./EXT. LOCATION - DAY"
+        },
+        {
+          "type": "action",
+          "text": "She said"
+        },
+        {
+          "type": "character",
+          "text": "CHARACTER"
+        },
+        {
+          "type": "dialogue",
+          "text": "Go away"
+        },
+        {
+          "type": "action",
+          "text": "and then"
+        },
+        {
+          "type": "character",
+          "text": "CHARACTER"
+        },
+        {
+          "type": "dialogue",
+          "text": "Now!"
+        },
+        {
+          "type": "action",
+          "text": "and"
+        },
+        {
+          "type": "character",
+          "text": "CHARACTER"
+        },
+        {
+          "type": "dialogue",
+          "text": "Bitte"
+        },
+        {
+          "type": "action",
+          "text": "and"
+        },
+        {
+          "type": "character",
+          "text": "CHARACTER"
+        },
+        {
+          "type": "dialogue",
+          "text": "Allez"
+        },
+        {
+          "type": "action",
+          "text": "to nobody."
+        }
+      ]
+    },
+    {
+      "html": "<p>Note: not a speaker</p><p>http: also not</p><p>Van der Berg: a speaker</p><p>de la Cruz: also one</p><p>The very long name of five: too many words</p><p>Who, me: no</p>",
+      "elements": [
+        {
+          "type": "scene-heading",
+          "text": "INT./EXT. LOCATION - DAY"
+        },
+        {
+          "type": "action",
+          "text": "Note: not a speaker"
+        },
+        {
+          "type": "action",
+          "text": "http: also not"
+        },
+        {
+          "type": "character",
+          "text": "VAN DER BERG"
+        },
+        {
+          "type": "dialogue",
+          "text": "a speaker"
+        },
+        {
+          "type": "character",
+          "text": "DE LA CRUZ"
+        },
+        {
+          "type": "dialogue",
+          "text": "also one"
+        },
+        {
+          "type": "action",
+          "text": "The very long name of five: too many words"
+        },
+        {
+          "type": "action",
+          "text": "Who, me: no"
+        }
+      ]
+    },
+    {
+      "html": "<blockquote><p>Quoted <em>prose</em> line.</p><p>Second <strong>bold</strong> <u>under</u>.</p></blockquote><ul><li>One</li><li>Two<br>Three</li></ul>",
+      "elements": [
+        {
+          "type": "scene-heading",
+          "text": "INT./EXT. LOCATION - DAY"
+        },
+        {
+          "type": "action",
+          "text": "Quoted *prose* line."
+        },
+        {
+          "type": "action",
+          "text": "Second **bold** _under_."
+        },
+        {
+          "type": "action",
+          "text": "One"
+        },
+        {
+          "type": "action",
+          "text": "Two"
+        },
+        {
+          "type": "action",
+          "text": "Three"
+        }
+      ]
+    },
+    {
+      "html": "<h1>Title</h1><p>Line one<br>Line two</p><div><p>Nested</p></div><div>Loose div text</div>",
+      "elements": [
+        {
+          "type": "scene-heading",
+          "text": "INT./EXT. LOCATION - DAY"
+        },
+        {
+          "type": "action",
+          "text": "Title"
+        },
+        {
+          "type": "action",
+          "text": "Line one"
+        },
+        {
+          "type": "action",
+          "text": "Line two"
+        },
+        {
+          "type": "action",
+          "text": "Nested"
+        },
+        {
+          "type": "action",
+          "text": "Loose div text"
+        }
+      ]
+    },
+    {
+      "html": "<p>Élodie: Bonjour.</p><p>ÉLODIE (O.S.): Encore.</p><p>Ünal: Merhaba.</p><p>3PO: Beep.</p>",
+      "elements": [
+        {
+          "type": "scene-heading",
+          "text": "INT./EXT. LOCATION - DAY"
+        },
+        {
+          "type": "character",
+          "text": "ÉLODIE"
+        },
+        {
+          "type": "dialogue",
+          "text": "Bonjour."
+        },
+        {
+          "type": "character",
+          "text": "ÉLODIE (O.S.)"
+        },
+        {
+          "type": "dialogue",
+          "text": "Encore."
+        },
+        {
+          "type": "character",
+          "text": "ÜNAL"
+        },
+        {
+          "type": "dialogue",
+          "text": "Merhaba."
+        },
+        {
+          "type": "action",
+          "text": "3PO: Beep."
+        }
+      ]
+    },
+    {
+      "html": "<p>Text with a footnote<sup class=\"footnote-ref\" data-footnote-id=\"fn-1\" contenteditable=\"false\"></sup>.</p>",
+      "elements": [
+        {
+          "type": "scene-heading",
+          "text": "INT./EXT. LOCATION - DAY"
+        },
+        {
+          "type": "action",
+          "text": "Text with a footnote."
+        }
+      ]
+    },
+    {
+      "html": "",
+      "elements": [
+        {
+          "type": "scene-heading",
+          "text": "INT./EXT. LOCATION - DAY"
+        }
+      ]
+    },
+    {
+      "html": "<p><br></p>",
+      "elements": [
+        {
+          "type": "scene-heading",
+          "text": "INT./EXT. LOCATION - DAY"
+        }
+      ]
+    },
+    {
+      "html": "<p>   </p>",
+      "elements": [
+        {
+          "type": "scene-heading",
+          "text": "INT./EXT. LOCATION - DAY"
+        }
+      ]
+    }
+  ],
+  "converted": {
+    "id": "d1",
+    "title": "Prose",
+    "content": "<p data-sp=\"scene-heading\">INT./EXT. LOCATION - DAY</p><p data-sp=\"character\">MARA</p><p data-sp=\"dialogue\">Is anyone there?</p><p data-sp=\"character\">OLD TOM (V.O.)</p><p data-sp=\"dialogue\">Nobody, child.</p><p data-sp=\"action\">The door creaks.</p>",
+    "chapterId": "c1",
+    "labelId": "l1",
+    "format": "screenplay"
+  }
 }

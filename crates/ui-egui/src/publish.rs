@@ -17,7 +17,7 @@ use crate::widgets::{card, eyebrow};
 use crate::{HostRequest, fonts};
 
 /// ProseCraft's formats: id, label, extension, description (`FORMAT_INFO`).
-const FORMATS: [(&str, &str, &str, &str); 6] = [
+const FORMATS: [(&str, &str, &str, &str); 8] = [
     (
         "pdf",
         "PDF",
@@ -49,10 +49,23 @@ const FORMATS: [(&str, &str, &str, &str); 6] = [
         "txt",
         "Clean text with no formatting.",
     ),
+    // `SCREENPLAY_FORMAT_ORDER`: only for projects with screenplay scenes.
+    (
+        "fountain",
+        "Fountain",
+        "fountain",
+        "Plain-text screenplay format for screenwriting apps.",
+    ),
+    (
+        "screenplay-pdf",
+        "Screenplay PDF",
+        "pdf",
+        "US Letter pages in industry screenplay format.",
+    ),
 ];
 
 /// Formats that can be exported here.
-const PORTED: [&str; 4] = ["epub", "markdown", "html", "text"];
+const PORTED: [&str; 5] = ["epub", "markdown", "html", "text", "fountain"];
 
 /// ProseCraft's built-in styles (`PRESETS`).
 const STYLES: [(&str, &str, &str); 4] = [
@@ -241,7 +254,9 @@ pub(crate) fn show(
                 .auto_shrink([false, false])
                 .show(ui, |ui| {
                     ui.set_width(CONTROLS_WIDTH - 12.0);
-                    controls(ui, palette, &options, &book, edit);
+                    // `hasScreenplayDocuments`: the screenplay formats join the list.
+                    let screenplay = project.documents.iter().any(|d| d.screenplay);
+                    controls(ui, palette, &options, &book, screenplay, edit);
                 });
         });
         ui.add_space(18.0);
@@ -256,6 +271,7 @@ fn controls(
     palette: &Palette,
     options: &PublishOptions,
     book: &prosecraft_core::publish::CompiledBook,
+    screenplay: bool,
     edit: &mut PublishEdit<'_>,
 ) {
     let editable = edit.editable;
@@ -316,14 +332,15 @@ fn controls(
     ui.separator();
 
     // Format.
-    let format = FORMATS
+    let offered = &FORMATS[..if screenplay { 8 } else { 6 }];
+    let format = offered
         .iter()
         .find(|f| f.0 == options.format)
         .copied()
-        .unwrap_or(FORMATS[0]);
+        .unwrap_or(offered[0]);
     section_heading(ui, palette, "Format", format.2);
     ui.add_space(4.0);
-    grid(ui, &FORMATS, |ui, (id, label, ext, description), width| {
+    grid(ui, offered, |ui, (id, label, ext, description), width| {
         if choice_card(
             ui,
             palette,
@@ -541,6 +558,7 @@ fn controls(
             }
             .map_err(|e| e.to_string()),
             "markdown" => Ok(export_markdown(book, options)),
+            "fountain" => Ok(prosecraft_core::screenplay::export::export_fountain(book)),
             "html" => Ok(export_html(book, options)),
             _ => Ok(export_text(book, options)),
         };
@@ -574,7 +592,7 @@ fn controls(
     }
     let note = if !ported {
         format!(
-            "{} export isn't ported yet; EPUB, HTML, Markdown and plain text are.",
+            "{} export isn't ported yet; EPUB, HTML, Markdown, plain text and Fountain are.",
             format.1
         )
     } else if book.scenes() == 0 {

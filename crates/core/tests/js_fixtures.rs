@@ -74,6 +74,7 @@ fn plain_text_and_word_counts_match_prosecraft() {
             &clean,
             &PlainTextOptions {
                 rich: RichText::Omit,
+                ..Default::default()
             },
         );
         assert_eq!(omit, text(case, "omit"), "omit for {clean}");
@@ -81,6 +82,7 @@ fn plain_text_and_word_counts_match_prosecraft() {
             &clean,
             &PlainTextOptions {
                 rich: RichText::Source,
+                ..Default::default()
             },
         );
         assert_eq!(source, text(case, "source"), "source for {clean}");

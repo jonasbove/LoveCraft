@@ -49,7 +49,7 @@ fn harness(app: ProseApp) -> Harness<'static, ProseApp> {
     let harness = Harness::builder()
         .with_size([1280.0, 850.0])
         .build_ui_state(|ui, app: &mut ProseApp| app.show(ui), app);
-    prosecraft_ui_egui::setup(&harness.ctx);
+    prosecraft_ui_egui::setup_for_tests(&harness.ctx);
     harness
 }
 

@@ -9,6 +9,9 @@ tested against what the original really reads and writes, not against our readin
 | `numbers.json` | `String(n)` for 3,500 doubles (special values plus a fixed pseudo-random sample) |
 | `crypto.json` | Argon2id key derivation (with NFKC and a lone surrogate in a passphrase), vault keys, and sealed records |
 | `plain-text.json` | `htmlToPlainText` (equations and diagrams kept and left out) and `countWords` for the fixture scenes and HTML edge cases |
+| `stamping.json` | `stampProject`: revisions, timestamps and tombstones after each kind of change |
+| `rich-corpus.json` | Rich scene HTML as ProseCraft's Markdown converter and sanitizer write it, for the editor's lossless round trip |
+| `export-text.json` | `compileBook` and `exportText` for a project with footnotes, lists, an empty and a trashed scene, under three sets of publish options |
 | `bundle-plain.prosecraft` | A plain backup with two projects that touch every stored field, including a field from a "future release" |
 | `bundle-encrypted.prosecraft` | The same projects as an encrypted backup; `bundle-encrypted.key.json` holds its test passphrase and key |
 

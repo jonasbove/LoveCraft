@@ -24,7 +24,8 @@ const APP_ID: &str = "io.github.jonasbove.prosecraft_rs";
 /// What to do with a dialog's answer.
 enum Then {
     Open,
-    Export(String),
+    /// Write these bytes where the person chose (a backup or an exported manuscript).
+    Export(Vec<u8>),
 }
 
 /// The library file, saved atomically.
@@ -132,7 +133,7 @@ impl eframe::App for DesktopApp {
                 }
                 (Then::Export(text), Answer::Paths(paths)) => {
                     if let Some(path) = paths.first()
-                        && let Err(e) = craft_atomic::atomic_write(path, text.as_bytes())
+                        && let Err(e) = craft_atomic::atomic_write(path, &text)
                     {
                         eprintln!("{}: {e}", path.display());
                     }
@@ -155,7 +156,19 @@ impl eframe::App for DesktopApp {
                         .title("Export a backup")
                         .filter("ProseCraft backup", &["prosecraft"])
                         .file_name(file_name);
-                    self.dialogs.ask(dialog, Then::Export(text));
+                    self.dialogs.ask(dialog, Then::Export(text.into_bytes()));
+                }
+                HostRequest::ExportFile {
+                    file_name,
+                    bytes,
+                    kind,
+                    extension,
+                } => {
+                    let dialog = FileDialog::save()
+                        .title("Export the manuscript")
+                        .filter(&kind, &[extension.as_str()])
+                        .file_name(file_name);
+                    self.dialogs.ask(dialog, Then::Export(bytes));
                 }
             }
         }

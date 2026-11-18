@@ -294,3 +294,43 @@ fn stamping_matches_prosecraft_step_by_step() {
         );
     }
 }
+
+#[test]
+fn plain_text_export_matches_prosecraft_byte_for_byte() {
+    use prosecraft_core::project::Project;
+    use prosecraft_core::publish::{PublishOptions, compile_book, export_text};
+    let fixture = fixture("export-text.json");
+    // The fixture's project is project data; wrap it as a stored project for the view.
+    let mut stored = prosecraft_core::js::JsObject::new();
+    stored.insert("project", fixture.get("project").cloned().expect("project"));
+    let project = Project::from_stored(&JsValue::Object(stored)).expect("project view");
+    for (name, case) in fixture
+        .get("exports")
+        .and_then(JsValue::as_object)
+        .expect("exports")
+        .iter()
+    {
+        let options = PublishOptions::read(case.get("options"));
+        let book = compile_book(&project, &options);
+        let export = export_text(&book, &options);
+        let expected = case
+            .get("text")
+            .and_then(JsValue::as_js_string)
+            .and_then(JsString::as_string)
+            .expect("text");
+        assert_eq!(
+            String::from_utf8_lossy(&export.bytes),
+            expected,
+            "{}",
+            name.to_string_lossy()
+        );
+        assert_eq!(
+            Some(export.file_name.as_str()),
+            fixture
+                .get("filename")
+                .and_then(JsValue::as_js_string)
+                .and_then(JsString::as_string)
+                .as_deref()
+        );
+    }
+}

@@ -51,6 +51,27 @@ pub enum RichText {
 #[derive(Clone, Debug, Default)]
 pub struct PlainTextOptions {
     pub rich: RichText,
+    /// Footnote id → its number in the book: references become `[n]` (`footnoteNumbers`).
+    pub footnote_numbers: Option<std::collections::HashMap<String, usize>>,
+    /// Citation markers written as text (an exporter's resolved citations); `None` keeps the
+    /// marker's own text.
+    pub citations: Option<fn(&Element) -> String>,
+}
+
+impl PlainTextOptions {
+    fn footnote(&self, element: &Element) -> String {
+        let id = element.attr("data-footnote-id").unwrap_or_default();
+        self.footnote_numbers
+            .as_ref()
+            .and_then(|m| m.get(id))
+            .map(|n| format!("[{n}]"))
+            .unwrap_or_default()
+    }
+
+    fn citation(&self, element: &Element) -> Option<String> {
+        let resolve = self.citations?;
+        (element.name == "span" && element.has_class("cite-ref")).then(|| resolve(element))
+    }
 }
 
 /// JavaScript's `\s` (and what `String.prototype.trim` removes): WhiteSpace and LineTerminator.
@@ -86,6 +107,7 @@ pub fn html_word_count(html: &str) -> usize {
         html,
         &PlainTextOptions {
             rich: RichText::Omit,
+            ..Default::default()
         },
     ))
 }
@@ -183,7 +205,10 @@ fn inline_text(node: &Node, options: &PlainTextOptions) -> String {
         return rich;
     }
     if element.name == "sup" && element.has_class(FOOTNOTE_REF_CLASS) {
-        return String::new();
+        return options.footnote(element);
+    }
+    if let Some(text) = options.citation(element) {
+        return text;
     }
     if element.name == "br" {
         return "\n".to_owned();
@@ -246,6 +271,12 @@ impl Blocks<'_> {
             return;
         }
         if element.name == "sup" && element.has_class(FOOTNOTE_REF_CLASS) {
+            let marker = self.options.footnote(element);
+            self.buffer.push_str(&marker);
+            return;
+        }
+        if let Some(text) = self.options.citation(element) {
+            self.buffer.push_str(&text);
             return;
         }
         if element.name == "ul" || element.name == "ol" {

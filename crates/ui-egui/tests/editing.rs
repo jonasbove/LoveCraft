@@ -65,7 +65,7 @@ fn app() -> (Harness<'static, ProseApp>, Memory) {
     let mut harness = Harness::builder()
         .with_size([1280.0, 850.0])
         .build_ui_state(|ui, app: &mut ProseApp| app.show(ui), app);
-    prosecraft_ui_egui::setup(&harness.ctx);
+    prosecraft_ui_egui::setup_for_tests(&harness.ctx);
     harness.run();
     (harness, memory)
 }
@@ -284,7 +284,7 @@ fn a_backup_opened_without_a_library_offers_no_editing() {
     let mut harness = Harness::builder()
         .with_size([1280.0, 850.0])
         .build_ui_state(|ui, app: &mut ProseApp| app.show(ui), app);
-    prosecraft_ui_egui::setup(&harness.ctx);
+    prosecraft_ui_egui::setup_for_tests(&harness.ctx);
     harness.run();
     assert!(
         harness
@@ -327,4 +327,76 @@ fn export_an_edited_library_for_prosecraft() {
         .and_then(|s| s.last().cloned())
         .expect("saved");
     std::fs::write(path, text).expect("write");
+}
+
+#[test]
+fn publish_settings_are_saved_and_plain_text_exports() {
+    let (mut harness, memory) = app();
+    harness.get_by_role_and_label(Role::Tab, "Publish").click();
+    harness.run();
+    // Only plain text is ported: with the default PDF chosen, Export is unavailable.
+    assert!(
+        harness
+            .query_by_role_and_label(Role::Button, "Export PDF")
+            .is_some()
+    );
+    // Below the fold: scrolled to first, as focus would.
+    harness
+        .get_by_role_and_label(Role::CheckBox, "Scene titles")
+        .scroll_to_me();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::CheckBox, "Scene titles")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::RadioButton, "Plain text (txt)")
+        .scroll_to_me();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::RadioButton, "Plain text (txt)")
+        .click();
+    harness.run_steps(12);
+
+    let saved = memory.last();
+    let options = project(&saved, "project-1")
+        .get("project")
+        .and_then(|p| p.get("publishOptions"))
+        .expect("publishOptions were saved");
+    assert_eq!(
+        options.get("includeSceneTitles"),
+        Some(&JsValue::Bool(true))
+    );
+    assert_eq!(
+        options
+            .get("format")
+            .and_then(JsValue::as_js_string)
+            .map(|s| s.to_string_lossy()),
+        Some("text".to_owned())
+    );
+
+    harness
+        .get_by_role_and_label(Role::Button, "Export Plain text")
+        .scroll_to_me();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Export Plain text")
+        .click();
+    harness.run();
+    let requests = harness.state_mut().take_requests();
+    let Some(prosecraft_ui_egui::HostRequest::ExportFile {
+        file_name,
+        bytes,
+        extension,
+        ..
+    }) = requests.first()
+    else {
+        panic!("an export was asked for: {requests:?}");
+    };
+    assert!(
+        file_name.ends_with(".txt") && extension == "txt",
+        "{file_name}"
+    );
+    let text = String::from_utf8_lossy(bytes);
+    assert!(text.contains("Opening Scene\n\nIt was dark."), "{text}");
 }

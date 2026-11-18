@@ -19,6 +19,7 @@ mod binder;
 mod editing;
 pub mod fonts;
 mod library;
+mod publish;
 mod sidebar;
 pub mod theme;
 mod views;
@@ -61,6 +62,14 @@ pub enum HostRequest {
     OpenBackup,
     /// Ask where to save this backup, then write it there.
     ExportBackup { file_name: String, text: String },
+    /// Ask where to save an exported manuscript, then write it there. `kind` names the format
+    /// ("Plain text") and `extension` its file extension, for the dialog's filter.
+    ExportFile {
+        file_name: String,
+        bytes: Vec<u8>,
+        kind: String,
+        extension: String,
+    },
 }
 
 /// The app's own library and where it is saved.
@@ -266,8 +275,18 @@ impl PaneContent<Pane> for AppState {
 /// covers). egui can panic on a character it has no glyph for; here it draws a box instead, so
 /// text never crashes the app.
 pub fn setup(ctx: &egui::Context) {
+    setup_with(ctx, true);
+}
+
+/// [`setup`] without the system's fonts, for tests: text draws the same everywhere, and no
+/// font arriving late from the background index repaints in the middle of a test.
+pub fn setup_for_tests(ctx: &egui::Context) {
+    setup_with(ctx, false);
+}
+
+fn setup_with(ctx: &egui::Context, system_fonts: bool) {
     ctx.set_missing_glyph_policy(egui::MissingGlyphPolicy::Tofu);
-    fonts::install(ctx);
+    fonts::install(ctx, system_fonts);
     theme::Palette::default().apply(ctx);
 }
 

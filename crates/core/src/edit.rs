@@ -149,8 +149,9 @@ pub fn set_chapter_summary(
     id: &str,
     summary: &str,
 ) -> Result<(), EditError> {
-    find_mut(project, "chapters", id)?.insert("summary", JsValue::str(summary));
-    Ok(())
+    // `syncChapterSummary`: at most 4000, and the chapter's storyboard cards follow.
+    find_mut(project, "chapters", id)?;
+    crate::storyboard::sync_chapter_summary(project, id, summary)
 }
 
 /// Sets one of the project's `publishOptions`, keeping the others (and any this version

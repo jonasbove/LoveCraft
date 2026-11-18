@@ -74,6 +74,18 @@ fn render_views() {
         .get_by_role_and_label(Role::Tab, "Snapshots")
         .click();
     save(&mut harness, "snapshots");
+    harness
+        .get_by_role_and_label(Role::Tab, "Storyboard")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Add Chapter One near the canvas center")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "+ Add blank card")
+        .click();
+    save(&mut harness, "storyboard");
     harness.get_by_role_and_label(Role::Tab, "Timeline").click();
     save(&mut harness, "timeline");
     harness.get_by_role_and_label(Role::Tab, "Write").click();

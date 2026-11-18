@@ -136,6 +136,14 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         return;
     };
     let project = &entry.view;
+    if *view == WorkspaceView::Storyboard {
+        let data = entry
+            .stored
+            .get("project")
+            .unwrap_or(&prosecraft_core::js::JsValue::Null);
+        crate::storyboard::show(ui, &palette, data, project, *editable, intents);
+        return;
+    }
     if *view == WorkspaceView::Publish {
         let mut edit = crate::publish::PublishEdit {
             editable: *editable,
@@ -164,13 +172,8 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
             column(ui, |ui| match view {
                 WorkspaceView::Outline => chosen = outline(ui, &palette, project, &mut edit),
                 WorkspaceView::Write => write(ui, &palette, project, selection.as_ref(), &mut edit),
-                WorkspaceView::Storyboard => {
-                    let text = format!(
-                        "The storyboard ({} cards) isn't ported yet.",
-                        project.storyboard_cards
-                    );
-                    not_ported(ui, &palette, "Storyboard", &text);
-                }
+                // Shown above, as a full-width canvas.
+                WorkspaceView::Storyboard => {}
                 WorkspaceView::Timeline => timeline(ui, &palette, project, &mut edit),
                 // Shown above, in its own two-column layout.
                 WorkspaceView::Publish => {}
@@ -201,21 +204,6 @@ fn welcome(ui: &mut Ui, palette: &Palette) {
     ui.label(
         RichText::new(prosecraft_core::about::credit_line())
             .size(12.0)
-            .color(palette.text_muted),
-    );
-}
-
-fn not_ported(ui: &mut Ui, palette: &Palette, title: &str, text: &str) {
-    ui.add_space(40.0);
-    eyebrow(ui, palette, title);
-    ui.label(
-        RichText::new(text)
-            .font(fonts::serif(22.0))
-            .color(palette.text_heading),
-    );
-    ui.add_space(6.0);
-    ui.label(
-        RichText::new("It is on the roadmap; your data for it is kept as it is.")
             .color(palette.text_muted),
     );
 }
@@ -941,6 +929,26 @@ fn saved_field(
     editable: bool,
     focus: bool,
 ) -> Option<String> {
+    let (saved, response) =
+        saved_field_response(ui, salt, value, hint, name, multiline, limit, editable);
+    if focus {
+        response.request_focus();
+    }
+    saved
+}
+
+/// [`saved_field`] with the field's response.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn saved_field_response(
+    ui: &mut Ui,
+    salt: (&str, &str),
+    value: &str,
+    hint: &str,
+    name: &str,
+    multiline: bool,
+    limit: usize,
+    editable: bool,
+) -> (Option<String>, egui::Response) {
     let id = ui.make_persistent_id(("saved-field", salt.0, salt.1));
     let mut text = ui
         .data(|d| d.get_temp::<String>(id))
@@ -959,19 +967,17 @@ fn saved_field(
             .desired_width(f32::INFINITY),
     );
     name_field(ui, &response, name);
-    if focus {
-        response.request_focus();
-    }
     if response.changed() {
         ui.data_mut(|d| d.insert_temp(id, text.clone()));
     }
+    let mut saved = None;
     if response.lost_focus() {
         ui.data_mut(|d| d.remove_temp::<String>(id));
         if text != value {
-            return Some(text);
+            saved = Some(text);
         }
     }
-    None
+    (saved, response)
 }
 
 /// ProseCraft's Timeline view: the story's moments in order, each with a title, a date, a

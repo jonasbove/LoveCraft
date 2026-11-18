@@ -20,6 +20,7 @@ fn fixture(name: &str) -> String {
 struct Memory {
     saved: Arc<Mutex<Vec<String>>>,
     fail: bool,
+    ids: Arc<std::sync::atomic::AtomicUsize>,
 }
 
 impl LibraryStore for Memory {
@@ -35,6 +36,12 @@ impl LibraryStore for Memory {
     }
     fn now_ms(&self) -> f64 {
         1_800_000_000_000.0
+    }
+    fn new_id(&mut self) -> String {
+        format!(
+            "id-{}",
+            self.ids.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+        )
     }
 }
 

@@ -37,6 +37,15 @@ impl LibraryStore for DiskStore {
     fn now_ms(&self) -> f64 {
         chrono::Utc::now().timestamp_millis() as f64
     }
+    fn new_id(&mut self) -> String {
+        // A random UUID; should the OS have no random numbers, the clock keeps ids distinct.
+        new_device_id(&mut OsRandom).unwrap_or_else(|_| {
+            format!(
+                "id-{}",
+                chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default()
+            )
+        })
+    }
 }
 
 /// The app with its library, or why it runs without one. A library that exists but can't be
@@ -108,6 +117,11 @@ fn read_backup(app: &mut ProseApp, path: &Path) {
 }
 
 impl eframe::App for DesktopApp {
+    /// The last keystrokes are saved before the window closes.
+    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
+        self.app.flush();
+    }
+
     fn ui(&mut self, ui: &mut eframe::egui::Ui, frame: &mut eframe::Frame) {
         for (then, answer) in self.dialogs.take_answers() {
             match (then, answer) {

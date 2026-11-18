@@ -1,0 +1,116 @@
+//! Changing projects: what the panes ask for, the scene being typed into, and saving.
+//!
+//! The panes push [`Intent`]s; the app applies them after the frame, each through
+//! `prosecraft_core::edit`, then `stamp_project`, as ProseCraft's `saveVault` does, and saves the
+//! library once nothing has changed for a moment. Typing goes into a [`Draft`] first and reaches
+//! the project after a short pause, so a keystroke doesn't re-stamp a whole book.
+
+use prosecraft_core::edit::{self, EditError};
+use prosecraft_core::js::JsValue;
+use prosecraft_core::storage::stamp::stamp_project;
+
+/// A change the interface asks for.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Intent {
+    AddChapter,
+    AddScene { chapter: String },
+    TrashDocument(String),
+    TrashChapter(String),
+    RestoreDocument(String),
+    RestoreChapter(String),
+    SetChapterSummary { chapter: String, summary: String },
+    SetChapterTitle { chapter: String, title: String },
+}
+
+/// The scene or page being typed into.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Draft {
+    pub document: String,
+    pub title: String,
+    /// One paragraph per line.
+    pub body: String,
+    /// Changed since the last commit to the project.
+    pub title_dirty: bool,
+    pub body_dirty: bool,
+    /// When (in egui's seconds) the last keystroke came.
+    pub changed_at: f64,
+}
+
+/// Seconds after the last keystroke before the draft reaches the project (ProseCraft: 250 ms).
+pub const COMMIT_AFTER: f64 = 0.25;
+/// Seconds after the last change before the library is written.
+pub const SAVE_AFTER: f64 = 1.0;
+
+/// Applies `change` to project `id` in `library` and stamps it. Nothing changes on an error.
+pub fn apply(
+    library: &mut prosecraft_core::library::Library,
+    project_id: &str,
+    now_ms: f64,
+    change: impl FnOnce(&mut JsValue) -> Result<(), EditError>,
+) -> Result<(), EditError> {
+    let previous = library
+        .project(project_id)
+        .cloned()
+        .ok_or(EditError::Shape)?;
+    let mut data = previous.get("project").cloned().ok_or(EditError::Shape)?;
+    change(&mut data)?;
+    let device = library.device_id.clone();
+    let stamped = stamp_project(Some(&previous), data, &device, now_ms);
+    library.put(stamped);
+    Ok(())
+}
+
+/// The edit an intent stands for. New records take ids from `new_id`.
+pub fn run(
+    intent: &Intent,
+    data: &mut JsValue,
+    new_id: &mut dyn FnMut() -> String,
+) -> Result<(), EditError> {
+    match intent {
+        Intent::AddChapter => edit::add_chapter(data, new_id(), new_id()).map(|_| ()),
+        Intent::AddScene { chapter } => {
+            let count = data
+                .get("documents")
+                .and_then(JsValue::as_array)
+                .unwrap_or_default()
+                .iter()
+                .filter(|d| {
+                    d.get("chapterId")
+                        .and_then(JsValue::as_js_string)
+                        .is_some_and(|c| c.eq_str(chapter))
+                })
+                .count();
+            edit::add_scene(data, chapter, &format!("Scene {}", count + 1), new_id()).map(|_| ())
+        }
+        Intent::TrashDocument(id) => edit::trash_document(data, id),
+        Intent::TrashChapter(id) => edit::trash_chapter(data, id),
+        Intent::RestoreDocument(id) => edit::restore_document(data, id),
+        Intent::RestoreChapter(id) => edit::restore_chapter(data, id, None),
+        Intent::SetChapterSummary { chapter, summary } => {
+            edit::set_chapter_summary(data, chapter, summary)
+        }
+        Intent::SetChapterTitle { chapter, title } => edit::set_chapter_title(data, chapter, title),
+    }
+}
+
+impl Draft {
+    pub fn is_dirty(&self) -> bool {
+        self.title_dirty || self.body_dirty
+    }
+}
+
+/// The draft's edit: what changed of its title and its paragraphs (as ProseCraft's HTML). An
+/// unchanged body is left alone, so a rename never rewrites the scene.
+pub fn commit_draft(draft: &Draft, data: &mut JsValue) -> Result<(), EditError> {
+    if draft.title_dirty {
+        edit::set_document_title(data, &draft.document, &draft.title)?;
+    }
+    if draft.body_dirty {
+        edit::set_document_content(
+            data,
+            &draft.document,
+            &edit::paragraphs_to_html(&draft.body),
+        )?;
+    }
+    Ok(())
+}

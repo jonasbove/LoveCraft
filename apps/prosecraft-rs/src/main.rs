@@ -166,6 +166,10 @@ impl prosecraft_ui_egui::WikiFileStore for WikiFiles {
     fn read_markdown(&self, root: &str, folder: &str, key: &str) -> Result<String, String> {
         prosecraft_native::wiki_files::read_markdown(root, folder, key)
     }
+    fn read(&self, root: &str, folder: &str, key: &str, max: u64) -> Result<Vec<u8>, String> {
+        let path = prosecraft_native::wiki_files::file_path(root, folder, key)?;
+        read_capped(&path, max).map_err(|e| e.to_string())
+    }
     fn file_path(&self, root: &str, folder: &str, key: &str) -> Result<String, String> {
         prosecraft_native::wiki_files::file_path(root, folder, key)
             .map(|p| p.to_string_lossy().into_owned())

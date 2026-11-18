@@ -22,6 +22,14 @@ pub trait WikiFileStore {
     ) -> Result<u64, String>;
     /// A Markdown file's text for the preview.
     fn read_markdown(&self, root: &str, folder: &str, storage_key: &str) -> Result<String, String>;
+    /// A stored file's bytes, refused past `max` bytes (the split view's limits).
+    fn read(
+        &self,
+        root: &str,
+        folder: &str,
+        storage_key: &str,
+        max: u64,
+    ) -> Result<Vec<u8>, String>;
     /// Where a stored file is.
     fn file_path(&self, root: &str, folder: &str, storage_key: &str) -> Result<String, String>;
     fn delete(&self, root: &str, folder: &str, storage_key: &str) -> Result<(), String>;

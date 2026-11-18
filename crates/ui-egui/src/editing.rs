@@ -40,6 +40,10 @@ pub enum Intent {
     /// Wiki files and links (`addResearchFiles`, `openResearchLinkDialog`, `openResearchFile`,
     /// `openResearchLink`, `revealResearchFile`, `moveResearchItem`, `removeResearchItem`).
     AddWikiFiles(Option<String>),
+    /// `openBesideTarget`: shown in a split view pane (`doc:<id>`, `file:<id>`).
+    OpenBeside(String),
+    /// "Open externally" from a pane.
+    OpenWikiFileExternally(String),
     AddWikiLink(Option<String>),
     OpenWikiItem(String),
     RevealWikiFile(String),
@@ -511,6 +515,8 @@ pub fn run(
         | Intent::InsertPicture { .. }
         | Intent::ChooseCover
         | Intent::AddWikiFiles(_)
+        | Intent::OpenBeside(_)
+        | Intent::OpenWikiFileExternally(_)
         | Intent::AddWikiLink(_)
         | Intent::OpenWikiItem(_)
         | Intent::RevealWikiFile(_)

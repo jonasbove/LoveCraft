@@ -39,6 +39,7 @@ mod scrivener_import;
 mod settings;
 mod sidebar;
 mod sources;
+mod split_view;
 mod starter;
 mod storyboard;
 pub mod theme;
@@ -282,6 +283,10 @@ pub struct AppState {
     proofread_choice: Option<proofreading::ProofreadPrefs>,
     proofing: proofreading::Proofing,
     rich_dialog: Option<rich_dialog::RichDialog>,
+    /// The split view's panes (none when it is closed), and the device's wiki file store for
+    /// what they show.
+    split: Vec<prosecraft_core::split::Pane>,
+    wiki_store: Option<std::rc::Rc<dyn WikiFileStore>>,
     /// Undo and redo (ProseCraft's `UndoManager`), by text field and by page; selections are
     /// character ranges.
     undo: prosecraft_core::undo::UndoManager<(usize, usize)>,
@@ -652,7 +657,7 @@ pub struct ProseApp {
         )>,
     >,
     /// Where wiki files live on this device (the desktop host's).
-    wiki_files: Option<Box<dyn WikiFileStore>>,
+    wiki_files: Option<std::rc::Rc<dyn WikiFileStore>>,
 }
 
 impl Default for ProseApp {
@@ -1476,6 +1481,8 @@ impl ProseApp {
 
     /// Gives the app the device's wiki file store (the desktop host's).
     pub fn set_wiki_files(&mut self, store: Box<dyn WikiFileStore>) {
+        let store: std::rc::Rc<dyn WikiFileStore> = std::rc::Rc::from(store);
+        self.state.wiki_store = Some(store.clone());
         self.wiki_files = Some(store);
         self.state.wiki_available = true;
         let _ = self.wiki_root();
@@ -1685,6 +1692,25 @@ impl ProseApp {
                 .and_then(|path| store.open(&path))
         };
         if let Err(e) = result {
+            self.state.wiki_status = Some(e);
+        }
+    }
+
+    /// `openResearchFile(file, { external: true })`: in its app, even a Markdown file.
+    fn open_wiki_file_externally(&mut self, item: &prosecraft_core::research::Item) {
+        let prosecraft_core::research::Item::File { storage_key, .. } = item else {
+            return;
+        };
+        let (Some(root), Some(folder)) = (self.wiki_root(), self.wiki_folder_name()) else {
+            return;
+        };
+        let Some(store) = self.wiki_files.as_ref() else {
+            return;
+        };
+        if let Err(e) = store
+            .file_path(&root, &folder, storage_key)
+            .and_then(|path| store.open(&path))
+        {
             self.state.wiki_status = Some(e);
         }
     }
@@ -2044,6 +2070,21 @@ impl ProseApp {
                 }
                 editing::Intent::InsertFootnote { document, at } => {
                     self.insert_footnote(document, *at);
+                    continue;
+                }
+                editing::Intent::OpenBeside(target) => {
+                    self.state.split = prosecraft_core::split::open_beside(
+                        &self.state.split,
+                        target,
+                        &split_view::pane_id(),
+                    );
+                    self.state.view = WorkspaceView::Write;
+                    continue;
+                }
+                editing::Intent::OpenWikiFileExternally(id) => {
+                    if let Some(item) = self.wiki_item(id) {
+                        self.open_wiki_file_externally(&item);
+                    }
                     continue;
                 }
                 editing::Intent::AddWikiFiles(folder) => {

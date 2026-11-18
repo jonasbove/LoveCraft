@@ -110,6 +110,11 @@ debug = 0
 # craft-pdf's content-stream parser (`cos::content`, used by the PDF export test) needs the
 # patched Hayro tokenizer craft-libs vendors, at the same revision as craft-pdf.
 hayro-syntax = { git = "https://github.com/storytold/craft-libs", rev = "8672aff3d85ccad8f2a391304139d192a7d08dd5" }
+# The split view draws PDFs with craft-pdf's raster, which needs the rest of the Hayro crates
+# craft-libs vendors.
+hayro = { git = "https://github.com/storytold/craft-libs", rev = "8672aff3d85ccad8f2a391304139d192a7d08dd5" }
+hayro-interpret = { git = "https://github.com/storytold/craft-libs", rev = "8672aff3d85ccad8f2a391304139d192a7d08dd5" }
+hayro-jbig2 = { git = "https://github.com/storytold/craft-libs", rev = "8672aff3d85ccad8f2a391304139d192a7d08dd5" }
 ecolor = { git = "https://github.com/storytold/egui.git", rev = "6d518fc799681571963842f95b55a6b68431b15a" }
 emath = { git = "https://github.com/storytold/egui.git", rev = "6d518fc799681571963842f95b55a6b68431b15a" }
 epaint = { git = "https://github.com/storytold/egui.git", rev = "6d518fc799681571963842f95b55a6b68431b15a" }

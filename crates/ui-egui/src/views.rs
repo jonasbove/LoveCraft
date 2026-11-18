@@ -139,6 +139,24 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                     state.find = Some(crate::find::FindState::new());
                 }
             }
+            // `toggleSplitView`, in the Write view.
+            if state.library.is_some() && state.view == WorkspaceView::Write {
+                let open = !state.split.is_empty();
+                let name = if open {
+                    "Close split view"
+                } else {
+                    "Open split view"
+                };
+                let toggle = ui.selectable_label(open, "Split").on_hover_text(name);
+                name_field(ui, &toggle, name);
+                if toggle.clicked() {
+                    state.split = if open {
+                        Vec::new()
+                    } else {
+                        prosecraft_core::split::add(&[], &crate::split_view::pane_id())
+                    };
+                }
+            }
         });
         if let Some(status) = &state.status {
             ui.horizontal(|ui| {
@@ -178,6 +196,9 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         editor_rect,
         proofing,
         rich_dialog,
+        split,
+        wiki_store,
+        wiki_root,
         ..
     } = state;
     let entry = library.as_ref().and_then(|l| l.projects().get(*active));
@@ -208,6 +229,8 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         crate::publish::show(ui, &palette, &entry.stored, project, &mut edit);
         return;
     }
+    let mut from_split = None;
+    let split_open = *view == WorkspaceView::Write && !split.is_empty();
     let options = prosecraft_core::publish::PublishOptions::read(
         entry
             .stored
@@ -248,20 +271,84 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         open: None,
     };
     let mut chosen = None;
-    egui::ScrollArea::vertical()
-        .auto_shrink([false, false])
-        .show(ui, |ui| {
-            column(ui, |ui| match view {
-                WorkspaceView::Outline => chosen = outline(ui, &palette, project, &mut edit),
-                WorkspaceView::Write => write(ui, &palette, project, selection.as_ref(), &mut edit),
-                // Shown above, as a full-width canvas.
-                WorkspaceView::Storyboard => {}
-                WorkspaceView::Timeline => timeline(ui, &palette, project, &mut edit),
-                // Shown above, in its own two-column layout.
-                WorkspaceView::Publish => {}
-            });
-        });
-    if let Some(selection) = chosen.or(edit.open.take()) {
+    let total = ui.available_size();
+    let split_width = if split_open {
+        (total.x * 0.45).max(320.0)
+    } else {
+        0.0
+    };
+    ui.horizontal_top(|ui| {
+        let gap = ui.spacing().item_spacing.x;
+        let editor_width = (total.x - split_width - if split_open { gap } else { 0.0 }).max(200.0);
+        ui.allocate_ui_with_layout(
+            egui::vec2(editor_width, total.y),
+            egui::Layout::top_down(egui::Align::Min),
+            |ui| {
+                ui.set_width(editor_width);
+                egui::ScrollArea::vertical()
+                    .auto_shrink([false, false])
+                    .show(ui, |ui| {
+                        column(ui, |ui| match view {
+                            WorkspaceView::Outline => {
+                                chosen = outline(ui, &palette, project, &mut edit)
+                            }
+                            WorkspaceView::Write => {
+                                write(ui, &palette, project, selection.as_ref(), &mut edit)
+                            }
+                            // Shown above, as a full-width canvas.
+                            WorkspaceView::Storyboard => {}
+                            WorkspaceView::Timeline => timeline(ui, &palette, project, &mut edit),
+                            // Shown above, in its own two-column layout.
+                            WorkspaceView::Publish => {}
+                        });
+                    });
+            },
+        );
+        if split_open {
+            ui.allocate_ui_with_layout(
+                egui::vec2(split_width, total.y),
+                egui::Layout::top_down(egui::Align::Min),
+                |ui| {
+                    ui.set_width(split_width);
+                    ui.set_max_width(split_width);
+                    let options = prosecraft_core::publish::PublishOptions::read(
+                        entry
+                            .stored
+                            .get("project")
+                            .and_then(|p| p.get("publishOptions")),
+                    );
+                    let files = crate::split_view::Files {
+                        store: wiki_store.as_deref(),
+                        root: wiki_root.clone().filter(|r| !r.is_empty()),
+                        folder: prosecraft_core::research::normalize_folder_name(
+                            entry
+                                .stored
+                                .get("project")
+                                .and_then(|p| p.get("researchFolderName")),
+                        ),
+                        citation_style: options.citation_style.clone(),
+                        citation_locale: options.citation_locale.clone(),
+                    };
+                    let active = edit.draft.as_ref().map(|d| d.document.clone());
+                    let asked = crate::split_view::show(
+                        ui,
+                        &palette,
+                        project,
+                        split,
+                        active.as_deref(),
+                        options.scene_separator,
+                        &files,
+                        &mut crate::split_view::pane_id,
+                    );
+                    from_split = asked.open;
+                    if let Some(file) = asked.open_file {
+                        edit.intents.push(Intent::OpenWikiFileExternally(file));
+                    }
+                },
+            );
+        }
+    });
+    if let Some(selection) = chosen.or(edit.open.take()).or(from_split) {
         state.select(selection);
     }
 }
@@ -794,6 +881,18 @@ fn rich_dialog(
 /// HTML shown read-only as the editor draws text (a Wiki Markdown file's preview), or as its
 /// plain text when the editor can't hold it.
 pub(crate) fn read_only_html(ui: &mut Ui, palette: &Palette, html: &str, name: &str) {
+    read_only_html_cited(ui, palette, html, name, &[], ("", "en"));
+}
+
+/// [`read_only_html`] with the project's citations labelled in its style and locale.
+pub(crate) fn read_only_html_cited(
+    ui: &mut Ui,
+    palette: &Palette,
+    html: &str,
+    name: &str,
+    items: &[prosecraft_core::js::JsValue],
+    (style, locale): (&str, &str),
+) {
     let cleaned = prosecraft_core::html::sanitize::sanitize_html(html);
     let Some(doc) = RichDoc::from_html(&cleaned) else {
         let response = ui
@@ -804,9 +903,9 @@ pub(crate) fn read_only_html(ui: &mut Ui, palette: &Palette, html: &str, name: &
     };
     let cache = std::cell::RefCell::new(Default::default());
     let cites = CiteStyle {
-        items: &[],
-        style: String::new(),
-        locale: "en".into(),
+        items,
+        style: style.to_owned(),
+        locale: locale.to_owned(),
         cache: &cache,
     };
     let labels = atom_labels(&doc, &cites);

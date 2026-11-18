@@ -420,7 +420,14 @@ fn chapters(
                 row
             })
             .inner;
-        if row.clicked() {
+        // `openBesideTarget` with Alt+Click: the chapter's first scene.
+        if row.clicked() && ui.input(|i| i.modifiers.alt) {
+            if let Some(first) = project.scenes_in_chapter(&chapter.id).next() {
+                intents.push(Intent::OpenBeside(prosecraft_core::split::doc_target(
+                    &first.id,
+                )));
+            }
+        } else if row.clicked() {
             chosen = Some(Selection::Chapter(chapter.id.clone()));
         }
         if editable {
@@ -512,11 +519,21 @@ fn chapters(
                 }
                 let row = tree_row(ui, palette, title, 2, selected);
                 label_dot(ui, palette, project, scene.label_id.as_deref());
-                if row.clicked() {
+                if row.clicked() && ui.input(|i| i.modifiers.alt) {
+                    intents.push(Intent::OpenBeside(prosecraft_core::split::doc_target(
+                        &scene.id,
+                    )));
+                } else if row.clicked() {
                     chosen = Some(Selection::Document(scene.id.clone()));
                 }
                 if editable {
                     row_menu(ui, &row, &format!("Actions for {title}"), |ui| {
+                        if ui.button("Open beside").clicked() {
+                            intents.push(Intent::OpenBeside(prosecraft_core::split::doc_target(
+                                &scene.id,
+                            )));
+                            ui.close();
+                        }
                         if ui.button("Rename scene").clicked() {
                             *renaming = Some((scene.id.clone(), title.to_owned()));
                             ui.close();
@@ -657,13 +674,23 @@ fn wiki(
                     item.title.as_str()
                 };
                 let row = tree_row(ui, palette, title, item.depth + 1, selected);
-                if row.clicked() {
+                if row.clicked() && ui.input(|i| i.modifiers.alt) {
+                    intents.push(Intent::OpenBeside(prosecraft_core::split::doc_target(
+                        &item.id,
+                    )));
+                } else if row.clicked() {
                     chosen = Some(Selection::Document(item.id.clone()));
                 }
                 if editable {
                     row_menu(ui, &row, &format!("Actions for {title}"), |ui| {
                         if ui.button("Open page").clicked() {
                             chosen = Some(Selection::Document(item.id.clone()));
+                            ui.close();
+                        }
+                        if ui.button("Open beside").clicked() {
+                            intents.push(Intent::OpenBeside(prosecraft_core::split::doc_target(
+                                &item.id,
+                            )));
                             ui.close();
                         }
                         ui.menu_button("Move to folder…", |ui| {
@@ -836,7 +863,9 @@ fn research_row(
         item.meta()
     };
     let row = row.on_hover_text(hover);
-    if row.clicked() {
+    if row.clicked() && file && ui.input(|i| i.modifiers.alt) {
+        intents.push(Intent::OpenBeside(prosecraft_core::split::file_target(id)));
+    } else if row.clicked() {
         intents.push(Intent::OpenWikiItem(id.clone()));
     }
     if !editable {
@@ -848,6 +877,10 @@ fn research_row(
             .clicked()
         {
             intents.push(Intent::OpenWikiItem(id.clone()));
+            ui.close();
+        }
+        if file && ui.button("Open beside").clicked() {
+            intents.push(Intent::OpenBeside(prosecraft_core::split::file_target(id)));
             ui.close();
         }
         if file && ui.button("Reveal in folder").clicked() {

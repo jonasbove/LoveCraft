@@ -347,7 +347,8 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         .open(&mut open)
         .collapsible(false)
         .resizable(false)
-        .default_width(620.0)
+        // A fixed size, so the window doesn\'t jump between categories or drift while it grows.
+        .fixed_size(egui::vec2(620.0, 520.0))
         .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
         .show(ui.ctx(), |ui| {
             ui.horizontal_top(|ui| {

@@ -185,7 +185,7 @@ fn welcome(ui: &mut Ui, palette: &Palette) {
     ui.add_space(12.0);
     ui.label(
         RichText::new(
-            "Open a ProseCraft backup to see your projects: drop a .prosecraft file on this window, or start prosecraft-rs with the file's path.",
+            "Create a project with Create project, or open a ProseCraft backup: drop a .prosecraft file on this window, or start prosecraft-rs with the file's path.",
         )
         .size(14.0)
         .color(palette.text_body),

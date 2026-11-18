@@ -22,5 +22,6 @@ pub mod project;
 pub mod publish;
 pub mod richtext;
 pub mod snapshots;
+pub mod starters;
 pub mod storage;
 pub mod sync;

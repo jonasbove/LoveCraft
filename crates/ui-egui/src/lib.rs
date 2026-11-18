@@ -23,6 +23,7 @@ mod library;
 mod publish;
 mod settings;
 mod sidebar;
+mod starter;
 pub mod theme;
 mod views;
 mod widgets;
@@ -239,6 +240,9 @@ pub struct AppState {
     /// The Snapshots tab's note for the next snapshot, and the one being previewed.
     snapshot_note: String,
     snapshot_preview: Option<String>,
+    /// The "Start from" dialog for a new project, while open, and a project to create.
+    starter: Option<starter::StarterDraft>,
+    create_project: Option<(bool, prosecraft_core::starters::Blueprint)>,
     /// The Settings dialog is open.
     settings_open: bool,
     /// The Settings dialog's category.
@@ -401,7 +405,7 @@ impl ProseApp {
         let status = if library.is_read_only() {
             "This library has a project from a newer version of ProseCraft. It is shown, but nothing is saved.".to_owned()
         } else if count == 0 {
-            "Your library is empty. Open a ProseCraft backup to bring your projects in.".to_owned()
+            "Your library is empty. Create a project, or open a ProseCraft backup to bring your projects in.".to_owned()
         } else {
             format!(
                 "Your library: {count} project{}.",
@@ -732,6 +736,10 @@ impl ProseApp {
         self.apply_theme(ui.ctx());
         egui::CentralPanel::default().show(ui, |ui| views::show(ui, &mut self.state));
         settings::show(ui, &mut self.state);
+        starter::show(ui, &mut self.state);
+        if let Some((screenplay, blueprint)) = self.state.create_project.take() {
+            self.create_project(screenplay, &blueprint);
+        }
         self.passphrase_dialog(ui);
         self.handle_sync_actions();
         if let Some(theme) = self.state.theme_choice.take() {

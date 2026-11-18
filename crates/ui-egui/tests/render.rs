@@ -217,6 +217,25 @@ fn render_views() {
     harness.get_by_role_and_label(Role::Button, "Done").click();
     harness.run();
     harness
+        .get_by_role_and_label(Role::Button, "Insert citation")
+        .click();
+    harness.run_steps(3);
+    harness
+        .get_by_role_and_label(Role::Button, "Lighthouses")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TextInput, "Locator")
+        .focus();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TextInput, "Locator")
+        .type_text("42");
+    harness.run();
+    save(&mut harness, "citation-picker");
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    harness
         .get_by_role_and_label(Role::Button, "Settings…")
         .click();
     harness.run();

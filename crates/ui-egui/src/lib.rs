@@ -16,6 +16,7 @@
 )]
 
 mod binder;
+mod citation_picker;
 mod device_sync;
 mod editing;
 pub mod find;
@@ -303,6 +304,8 @@ pub struct AppState {
     labels_dialog: Option<labels::LabelsDraft>,
     /// The Sources dialog (the citation library), while open.
     sources: Option<sources::SourcesDialog>,
+    /// The citation picker, while open.
+    citation_picker: Option<citation_picker::CitationPicker>,
     /// The Project Settings dialog, while open.
     project_settings: Option<project_settings::ProjectSettingsDraft>,
     /// The Settings dialog is open.
@@ -690,6 +693,59 @@ impl ProseApp {
         self.state.footnote_open = Some((document.to_owned(), id));
     }
 
+    /// `commitCitationPicker`: the citation goes into the open scene's draft, new at a
+    /// character or in place of an atom, and the caret after it.
+    fn place_citation(&mut self, document: &str, target: citation_picker::Target, html: &str) {
+        let now = self.state.now;
+        let Some(draft) = self.state.draft.as_mut().filter(|d| d.document == document) else {
+            return;
+        };
+        let after = match target {
+            citation_picker::Target::Insert { at } => {
+                draft.body = draft.doc.insert_atom(at, html);
+                at.min(draft.body.chars().count().saturating_sub(1)) + 1
+            }
+            citation_picker::Target::Edit { atom } => {
+                let Some(slot) = draft.doc.atoms.get_mut(atom) else {
+                    return;
+                };
+                html.clone_into(slot);
+                draft
+                    .body
+                    .chars()
+                    .enumerate()
+                    .filter(|(_, c)| *c == prosecraft_core::richtext::ATOM)
+                    .nth(atom)
+                    .map_or(0, |(i, _)| i + 1)
+            }
+        };
+        draft.body_dirty = true;
+        draft.changed_at = now;
+        self.state.comment_goto = Some((document.to_owned(), after, after));
+        self.commit_draft();
+    }
+
+    /// `removeCitationFromPicker`: the open scene's `atom`th atom leaves its draft.
+    fn remove_citation(&mut self, document: &str, atom: usize) {
+        let now = self.state.now;
+        let Some(draft) = self.state.draft.as_mut().filter(|d| d.document == document) else {
+            return;
+        };
+        let seen = std::cell::Cell::new(0);
+        let (body, at) = draft.doc.remove_atoms(|_| {
+            let index = seen.get();
+            seen.set(index + 1);
+            index == atom
+        });
+        if let Some(at) = at {
+            draft.body = body;
+            draft.body_dirty = true;
+            draft.changed_at = now;
+            self.state.comment_goto = Some((document.to_owned(), at, at));
+            self.commit_draft();
+        }
+    }
+
     /// The markers of footnote `id` leave the open scene's draft (the caret where the first
     /// was); the definition goes with the intent.
     fn remove_footnote_marker(&mut self, document: &str, id: &str) {
@@ -788,6 +844,18 @@ impl ProseApp {
             match &intent {
                 editing::Intent::InsertFootnote { document, at } => {
                     self.insert_footnote(document, *at);
+                    continue;
+                }
+                editing::Intent::PlaceCitation {
+                    document,
+                    target,
+                    html,
+                } => {
+                    self.place_citation(document, *target, html);
+                    continue;
+                }
+                editing::Intent::RemoveCitation { document, atom } => {
+                    self.remove_citation(document, *atom);
                     continue;
                 }
                 editing::Intent::RemoveFootnote { document, id } => {
@@ -987,6 +1055,7 @@ impl ProseApp {
         starter::show(ui, &mut self.state);
         project_settings::show(ui, &mut self.state);
         labels::show(ui, &mut self.state);
+        citation_picker::show(ui, &mut self.state);
         sources::show(ui, &mut self.state);
         footnote_editor::show(ui, &mut self.state);
         scrivener_import::show(ui, &mut self.state);

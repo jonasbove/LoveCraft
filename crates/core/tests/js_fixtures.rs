@@ -1043,6 +1043,48 @@ fn editor_citation_labels_match_prosecraft() {
         .filter_map(text)
         .collect();
     let markers: Vec<&str> = markers.iter().map(String::as_str).collect();
+    // The first six were made by `citeMarkerHtml` from these sources.
+    let cite = |id: &str| prosecraft_core::cite::CiteRefItem {
+        id: id.into(),
+        ..Default::default()
+    };
+    let located = |id: &str, locator: &str, label: &str| prosecraft_core::cite::CiteRefItem {
+        locator: Some(locator.into()),
+        label: Some(label.into()),
+        ..cite(id)
+    };
+    let made = [
+        vec![cite("doe-roe")],
+        vec![located("smithLH", "42", "page")],
+        vec![
+            prosecraft_core::cite::CiteRefItem {
+                prefix: Some("see ".into()),
+                suffix: Some("for more".into()),
+                ..cite("smith2020b")
+            },
+            located("corp", "3", "chapter"),
+        ],
+        vec![cite("missing")],
+        vec![
+            prosecraft_core::cite::CiteRefItem {
+                suppress_author: true,
+                ..cite("nodate")
+            },
+            cite("gone"),
+        ],
+        vec![located("doe-roe", "7-9", "section")],
+    ];
+    for (items, marker) in made.iter().zip(&markers) {
+        assert_eq!(
+            prosecraft_core::cite::cite_marker_html(items).as_deref(),
+            Some(*marker)
+        );
+    }
+    assert_eq!(prosecraft_core::cite::cite_marker_html(&[]), None);
+    assert_eq!(
+        prosecraft_core::cite::cite_marker_html(&[cite("bad id!")]),
+        None
+    );
     let cases = fx.get("cases").and_then(JsValue::as_array).expect("cases");
     assert!(cases.len() > 16);
     for case in cases {

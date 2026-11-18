@@ -280,6 +280,31 @@ fn outer_html(element: &Element) -> String {
     out
 }
 
+/// `addLink`: the address typed for a link as the link's `href` (`https://` added when it has
+/// no scheme), or ProseCraft's message for why it can't be one.
+pub fn link_href(entered: &str) -> Result<String, &'static str> {
+    let value = entered.trim_matches(crate::html::is_js_whitespace);
+    let has_scheme = value.split_once(':').is_some_and(|(scheme, _)| {
+        scheme
+            .chars()
+            .next()
+            .is_some_and(|c| c.is_ascii_alphabetic())
+            && scheme
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || matches!(c, '+' | '.' | '-'))
+    });
+    let href = if has_scheme {
+        value.to_owned()
+    } else {
+        format!("https://{value}")
+    };
+    let url = url::Url::parse(&href).map_err(|_| "Please enter a valid link.")?;
+    if !matches!(url.scheme(), "http" | "https" | "mailto") {
+        return Err("Please use a web link or email address.");
+    }
+    Ok(url.to_string())
+}
+
 /// The rich placeholders that stand as blocks (`src/lib/rich/model.ts`).
 const RICH_BLOCK_CLASSES: [&str; 3] = ["math-block", "mermaid-diagram", "calc-worksheet"];
 
@@ -1220,6 +1245,47 @@ impl RichDoc {
         }
     }
 
+    /// `createLink`: the characters of `range` become a link to `href` (any link they were in
+    /// replaced). With nothing selected the address itself goes in as the link's text, as the
+    /// browser does.
+    pub fn set_link(&mut self, range: std::ops::Range<usize>, href: &str) -> String {
+        let tag = Tag {
+            name: "a".to_owned(),
+            attrs: vec![("href".to_owned(), href.to_owned())],
+        };
+        let range = if range.is_empty() {
+            let chars: Vec<char> = self.text.chars().collect();
+            let at = range.start.min(chars.len());
+            let text: String = chars[..at]
+                .iter()
+                .copied()
+                .chain(href.chars())
+                .chain(chars[at..].iter().copied())
+                .collect();
+            self.apply_text_at(&text, Some(at + href.chars().count()));
+            at..at + href.chars().count()
+        } else {
+            range
+        };
+        let chars: Vec<char> = self.text.chars().collect();
+        let ranges = self.line_ranges();
+        for i in range {
+            let in_block = ranges
+                .iter()
+                .position(|(s, e)| (*s..*e).contains(&i))
+                .and_then(|line| self.lines.get(line))
+                == Some(&LineKind::Block);
+            if chars.get(i).is_none_or(|c| *c == '\n') || in_block {
+                continue;
+            }
+            if let Some(stack) = self.marks.get_mut(i) {
+                stack.retain(|t| t.name != "a");
+                stack.insert(0, tag.clone());
+            }
+        }
+        self.text.clone()
+    }
+
     /// Sets the kind of every line touched by characters `range`; a kept block stays one.
     pub fn set_line_kind(&mut self, range: std::ops::Range<usize>, kind: LineKind) {
         if kind == LineKind::Block {
@@ -1480,6 +1546,46 @@ mod tests {
         assert_eq!(
             doc.to_html(),
             "<ul><li>a<ol><li>b</li></ol></li></ul><p>b2</p><ul><li>c</li></ul>"
+        );
+    }
+
+    #[test]
+    fn links_go_on_the_selection_or_in_as_the_address() {
+        use super::link_href;
+        assert_eq!(
+            link_href(" example.com/a b "),
+            Ok("https://example.com/a%20b".to_owned())
+        );
+        assert_eq!(
+            link_href("mailto:me@example.com"),
+            Ok("mailto:me@example.com".to_owned())
+        );
+        assert_eq!(
+            link_href("HTTP://Example.COM"),
+            Ok("http://example.com/".to_owned())
+        );
+        assert_eq!(
+            link_href("javascript:alert(1)"),
+            Err("Please use a web link or email address.")
+        );
+        assert_eq!(link_href("http://"), Err("Please enter a valid link."));
+        let mut doc = RichDoc::from_html("<p>See <strong>the map</strong> here.</p>").expect("doc");
+        doc.set_link(4..11, "https://example.com/");
+        assert_eq!(
+            doc.to_html(),
+            r#"<p>See <a href="https://example.com/"><strong>the map</strong></a> here.</p>"#
+        );
+        // Linking again replaces the link.
+        doc.set_link(4..7, "https://other.example/");
+        assert_eq!(
+            doc.to_html(),
+            r#"<p>See <a href="https://other.example/"><strong>the</strong></a><a href="https://example.com/"><strong> map</strong></a> here.</p>"#
+        );
+        let mut doc = RichDoc::from_html("<p>Go </p>").expect("doc");
+        doc.set_link(3..3, "https://example.com/");
+        assert_eq!(
+            doc.to_html(),
+            r#"<p>Go <a href="https://example.com/">https://example.com/</a></p>"#
         );
     }
 

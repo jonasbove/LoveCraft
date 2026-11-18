@@ -340,6 +340,51 @@ fn undo_takes_back_typing_a_step_at_a_time_and_redo_brings_it_back() {
 }
 
 #[test]
+fn add_link_links_the_selection() {
+    let (mut harness, memory) = app();
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("an add button")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Scene 1")
+        .click();
+    harness.run();
+    let body = harness.get_by_label("Scene text");
+    body.focus();
+    body.type_text("See the map");
+    harness.run();
+    for _ in 0..7 {
+        harness.key_press_modifiers(egui::Modifiers::SHIFT, egui::Key::ArrowLeft);
+    }
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Add link")
+        .click();
+    harness.run();
+    harness
+        .get_by_label("Paste a link")
+        .type_text("javascript:alert(1)");
+    harness.key_press(egui::Key::Enter);
+    harness.run();
+    harness.get_by_label("Please use a web link or email address.");
+    harness.get_by_label("Paste a link").focus();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    harness
+        .get_by_label("Paste a link")
+        .type_text("example.com/map");
+    harness.key_press(egui::Key::Enter);
+    harness.run_steps(12);
+    assert_eq!(
+        content(&memory, "new-1"),
+        r#"<p>See <a href="https://example.com/map">the map</a></p>"#
+    );
+    assert!(harness.query_by_label("Paste a link").is_none());
+}
+
+#[test]
 fn undo_takes_back_formatting() {
     let (mut harness, memory) = app();
     harness

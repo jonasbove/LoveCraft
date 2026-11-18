@@ -802,6 +802,52 @@ fn chapter_keys(
 /// `recordFieldEdit` for the editor: the scene's HTML and footnotes in its history, as one step
 /// per change, typing grouped as ProseCraft groups it. A history that doesn't end at this text
 /// (another scene opened, a change from elsewhere) starts over.
+/// `addLink`'s prompt ("Paste a link"), with ProseCraft's messages for what can't be a link.
+fn link_prompt(ui: &mut Ui, draft: &mut Draft, now: f64) {
+    let Some((range, entered, error)) = draft.link_prompt.as_mut() else {
+        return;
+    };
+    let mut open = true;
+    let mut add = false;
+    let mut cancel = false;
+    egui::Window::new("Add link")
+        .open(&mut open)
+        .collapsible(false)
+        .resizable(false)
+        .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+        .show(ui.ctx(), |ui| {
+            let field = ui.add(
+                egui::TextEdit::singleline(entered)
+                    .hint_text("Paste a link")
+                    .desired_width(320.0),
+            );
+            name_field(ui, &field, "Paste a link");
+            field.request_focus();
+            if let Some(error) = error {
+                ui.label(RichText::new(*error).color(ui.visuals().error_fg_color));
+            }
+            ui.horizontal(|ui| {
+                cancel = ui.button("Cancel").clicked();
+                add = ui.button(RichText::new("Add link").strong()).clicked()
+                    || ui.input(|i| i.key_pressed(egui::Key::Enter));
+            });
+        });
+    if add && !entered.trim().is_empty() {
+        match prosecraft_core::richtext::link_href(entered) {
+            Ok(href) => {
+                let range = range.clone();
+                draft.body = draft.doc.set_link(range, &href);
+                draft.body_dirty = true;
+                draft.changed_at = now;
+                draft.link_prompt = None;
+            }
+            Err(message) => *error = Some(message),
+        }
+    } else if !open || cancel || (add && entered.trim().is_empty()) {
+        draft.link_prompt = None;
+    }
+}
+
 /// The history and where an edit is recorded in it.
 struct UndoAt<'a> {
     undo: &'a mut prosecraft_core::undo::UndoManager<(usize, usize)>,
@@ -1269,6 +1315,7 @@ fn editor(
             chapter: None,
             caret: None,
             undo_caret: None,
+            link_prompt: None,
         });
     }
     let now = edit.now;
@@ -1465,6 +1512,14 @@ fn editor(
                 }
             }
             ui.separator();
+            // ProseCraft's Add link: an address for the selection (or put in as its own text).
+            let link = ui.button("Link").on_hover_text("Add link");
+            name_field(ui, &link, "Add link");
+            if link.clicked() {
+                let range = selection.clone().unwrap_or(cursor..cursor);
+                draft.link_prompt = Some((range, String::new(), None));
+            }
+            ui.separator();
             // ProseCraft's Undo and Redo: the scene's own history.
             for (label, undo) in [("Undo", true), ("Redo", false)] {
                 let button = ui.button(label).on_hover_text(label);
@@ -1630,6 +1685,7 @@ fn editor(
             f.layout_job(job)
         })
     };
+    link_prompt(ui, draft, now);
     // Undo and redo in the text are the scene's history, taken before the text field's own.
     if ui.memory(|m| m.has_focus(body_id)) {
         let (undo, redo) = ui.input_mut(|i| {
@@ -1849,6 +1905,7 @@ fn markdown_editor(
             chapter: chapter.as_ref().map(|c| c.id.clone()),
             caret: None,
             undo_caret: None,
+            link_prompt: None,
         });
     }
     let now = edit.now;

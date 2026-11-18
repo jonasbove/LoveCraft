@@ -35,6 +35,9 @@ pub enum Intent {
     /// The open project to the Trash, a project back from it, or gone for good
     /// (`trashActiveProject`, `restoreProject`, `permanentlyDeleteProject`).
     TrashProject,
+    /// A custom export style saved (a new one gets its id) and chosen, or deleted.
+    SaveCustomStyle(Box<prosecraft_core::publish::styles::CustomStyle>),
+    DeleteCustomStyle(String),
     /// A matter page from a preset (`addMatterPage`): front or back, its title, blank or not.
     AddMatterPage {
         front: bool,
@@ -332,6 +335,8 @@ pub fn run(
         Intent::TrashDocument(id) => edit::trash_document(data, id),
         Intent::TrashChapter(id) => edit::trash_chapter(data, id),
         Intent::MoveChapter { id, offset } => edit::move_chapter(data, id, *offset),
+        Intent::SaveCustomStyle(style) => edit::save_custom_style(data, style, &new_id()),
+        Intent::DeleteCustomStyle(id) => edit::delete_custom_style(data, id),
         Intent::AddMatterPage {
             front,
             title,

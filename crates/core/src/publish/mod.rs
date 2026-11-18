@@ -23,6 +23,7 @@ mod pdf_metrics;
 pub mod pdf_text;
 pub mod pdf_writer;
 pub mod rich_text;
+pub mod styles;
 mod text;
 
 pub use compile::{

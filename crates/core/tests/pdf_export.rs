@@ -291,16 +291,73 @@ fn pdf_export_draws_what_prosecraft_draws() {
             &DataUrlSizes::default(),
         );
         let ours = write_pdf(&layout).expect("written");
+        compare(
+            &name.to_string_lossy(),
+            &ours,
+            case.get("pdf"),
+            &mut report,
+            &mut compared,
+        );
+    }
+    eprintln!("compared {compared} draws");
+    assert!(report.is_empty(), "{}", report.join("\n"));
+}
+
+/// The same book in two of ProseCraft's custom styles (`custom-styles.json`): Courier on
+/// Letter and IBM Plex Sans (Helvetica in PDF) on A5, measured with those fonts' widths.
+#[test]
+fn pdf_export_in_a_custom_style_draws_what_prosecraft_draws() {
+    let fixture = fixture("custom-styles.json");
+    let mut stored = js::JsObject::new();
+    stored.insert("project", fixture.get("project").cloned().expect("project"));
+    let mut project = Project::from_stored(&JsValue::Object(stored)).expect("project view");
+    project.citations.clear();
+    let raw = js::stringify(fixture.get("raw").expect("raw"))
+        .replace(r#""lineHeight":"NaN""#, r#""lineHeight":null"#);
+    let mut report = Vec::new();
+    let mut compared = 0;
+    for (style, pdf) in fixture
+        .get("pdf")
+        .and_then(JsValue::as_object)
+        .expect("pdf")
+        .iter()
+    {
+        let style = style.to_string_lossy();
+        let mut options = js::JsObject::new();
+        options.insert("style", JsValue::str(&style));
+        options.insert("customStyles", js::parse(&raw).expect("raw"));
+        options.insert("dropCaps", JsValue::Bool(true));
+        options.insert("includeTableOfContents", JsValue::Bool(true));
+        let options = PublishOptions::read(Some(&JsValue::Object(options)));
+        let layout = layout_pdf(
+            &compile_book(&project, &options),
+            &options,
+            &DataUrlSizes::default(),
+        );
+        let ours = write_pdf(&layout).expect("written");
+        compare(&style, &ours, Some(pdf), &mut report, &mut compared);
+    }
+    eprintln!("compared {compared} draws");
+    assert!(compared > 0);
+    assert!(report.is_empty(), "{}", report.join("\n"));
+}
+
+fn compare(
+    name: &str,
+    ours: &[u8],
+    pdf: Option<&JsValue>,
+    report: &mut Vec<String>,
+    compared: &mut usize,
+) {
+    {
         let theirs = base64::engine::general_purpose::STANDARD
             .decode(
-                case.get("pdf")
-                    .and_then(JsValue::as_js_string)
+                pdf.and_then(JsValue::as_js_string)
                     .expect("pdf")
                     .to_string_lossy(),
             )
             .expect("base64");
-        let (want, have) = (draws(&theirs), draws(&ours));
-        let name = name.to_string_lossy();
+        let (want, have) = (draws(&theirs), draws(ours));
         if want.len() != have.len() {
             report.push(format!("{name}: {} pages, want {}", have.len(), want.len()));
         }
@@ -314,7 +371,7 @@ fn pdf_export_draws_what_prosecraft_draws() {
                 ));
             }
             for (a, b) in w.iter().zip(h) {
-                compared += 1;
+                *compared += 1;
                 if let Some(d) = differ(a, b) {
                     report.push(format!("{name} page {}: {d}", page + 1));
                     break;
@@ -322,17 +379,6 @@ fn pdf_export_draws_what_prosecraft_draws() {
             }
         }
     }
-    eprintln!("compared {compared} draws");
-    assert!(
-        report.is_empty(),
-        "{}",
-        report
-            .iter()
-            .take(40)
-            .cloned()
-            .collect::<Vec<_>>()
-            .join("\n")
-    );
 }
 
 #[test]

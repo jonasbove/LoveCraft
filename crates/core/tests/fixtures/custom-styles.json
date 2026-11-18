@@ -1,0 +1,704 @@
+{
+  "raw": [
+    {
+      "id": "custom-a",
+      "label": "  Courier draft  ",
+      "fontId": "courier",
+      "bodySizePt": 12,
+      "lineHeight": 2,
+      "trimId": "letter",
+      "marginTopIn": 1,
+      "marginRightIn": 1,
+      "marginBottomIn": 1,
+      "marginLeftIn": 1,
+      "chapterHeadingAlign": "center",
+      "chapterHeadingUppercase": true,
+      "dropCap": true,
+      "justify": true,
+      "runningHeader": true,
+      "pageNumbers": true
+    },
+    {
+      "id": "custom-b",
+      "label": "Sans A5",
+      "fontId": "ibm-plex-sans",
+      "bodySizePt": "10.5",
+      "lineHeight": 9,
+      "paragraphIndentEm": -2,
+      "trimId": "a5",
+      "marginTopIn": "0.6",
+      "sceneBreakSpacing": 2.25,
+      "pageNumbers": false
+    },
+    {
+      "id": "custom-c",
+      "label": "Clamped",
+      "fontId": "comic-sans",
+      "bodySizePt": "",
+      "lineHeight": "NaN",
+      "chapterHeadingAlign": "right",
+      "trimId": "folio",
+      "marginLeftIn": 99,
+      "justify": "yes"
+    },
+    {
+      "id": "custom-a",
+      "label": "Duplicate id"
+    },
+    {
+      "id": "classic",
+      "label": "Built-in id"
+    },
+    {
+      "id": "custom-d",
+      "label": "   "
+    },
+    {
+      "id": "",
+      "label": "No id"
+    },
+    "not an object",
+    {
+      "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "label": "Long id"
+    },
+    {
+      "id": "custom-e",
+      "label": "A label that goes on and on, much longer than sixty characters allow"
+    }
+  ],
+  "normalized": [
+    {
+      "id": "custom-a",
+      "label": "Courier draft",
+      "fontId": "courier",
+      "bodySizePt": 12,
+      "lineHeight": 2,
+      "paragraphIndentEm": 1.5,
+      "paragraphSpacingEm": 0,
+      "justify": true,
+      "chapterHeadingSizePt": 18,
+      "chapterHeadingUppercase": true,
+      "chapterHeadingAlign": "center",
+      "chapterHeadingSpaceBefore": 1,
+      "chapterHeadingSpaceAfter": 1.5,
+      "sceneBreakSpacing": 1.1,
+      "dropCap": true,
+      "trimId": "letter",
+      "marginTopIn": 1,
+      "marginRightIn": 1,
+      "marginBottomIn": 1,
+      "marginLeftIn": 1,
+      "runningHeader": true,
+      "pageNumbers": true
+    },
+    {
+      "id": "custom-b",
+      "label": "Sans A5",
+      "fontId": "ibm-plex-sans",
+      "bodySizePt": 10.5,
+      "lineHeight": 3,
+      "paragraphIndentEm": 0,
+      "paragraphSpacingEm": 0,
+      "justify": false,
+      "chapterHeadingSizePt": 18,
+      "chapterHeadingUppercase": false,
+      "chapterHeadingAlign": "left",
+      "chapterHeadingSpaceBefore": 1,
+      "chapterHeadingSpaceAfter": 1.5,
+      "sceneBreakSpacing": 2.25,
+      "dropCap": false,
+      "trimId": "a5",
+      "marginTopIn": 0.6,
+      "marginRightIn": 0.75,
+      "marginBottomIn": 0.75,
+      "marginLeftIn": 0.75,
+      "runningHeader": false,
+      "pageNumbers": false
+    },
+    {
+      "id": "custom-c",
+      "label": "Clamped",
+      "fontId": "georgia",
+      "bodySizePt": 11.5,
+      "lineHeight": 1.5,
+      "paragraphIndentEm": 1.5,
+      "paragraphSpacingEm": 0,
+      "justify": false,
+      "chapterHeadingSizePt": 18,
+      "chapterHeadingUppercase": false,
+      "chapterHeadingAlign": "left",
+      "chapterHeadingSpaceBefore": 1,
+      "chapterHeadingSpaceAfter": 1.5,
+      "sceneBreakSpacing": 1.1,
+      "dropCap": false,
+      "trimId": "trade-6x9",
+      "marginTopIn": 0.75,
+      "marginRightIn": 0.75,
+      "marginBottomIn": 0.75,
+      "marginLeftIn": 1.5,
+      "runningHeader": false,
+      "pageNumbers": true
+    },
+    {
+      "id": "custom-e",
+      "label": "A label that goes on and on, much longer than sixty characte",
+      "fontId": "georgia",
+      "bodySizePt": 11.5,
+      "lineHeight": 1.5,
+      "paragraphIndentEm": 1.5,
+      "paragraphSpacingEm": 0,
+      "justify": false,
+      "chapterHeadingSizePt": 18,
+      "chapterHeadingUppercase": false,
+      "chapterHeadingAlign": "left",
+      "chapterHeadingSpaceBefore": 1,
+      "chapterHeadingSpaceAfter": 1.5,
+      "sceneBreakSpacing": 1.1,
+      "dropCap": false,
+      "trimId": "trade-6x9",
+      "marginTopIn": 0.75,
+      "marginRightIn": 0.75,
+      "marginBottomIn": 0.75,
+      "marginLeftIn": 0.75,
+      "runningHeader": false,
+      "pageNumbers": true
+    }
+  ],
+  "tokens": [
+    {
+      "id": "custom-a",
+      "label": "Courier draft",
+      "description": "Custom style",
+      "detail": "12 pt · Courier · US Letter",
+      "cssFontFamily": "'Courier New', Courier, monospace",
+      "docxFont": "Courier New",
+      "pdfFont": "courier",
+      "bodySizePt": 12,
+      "lineHeight": 2,
+      "paragraphIndentEm": 1.5,
+      "paragraphSpacingEm": 0,
+      "justify": true,
+      "chapterHeadingSizePt": 18,
+      "chapterHeadingUppercase": true,
+      "chapterHeadingAlign": "center",
+      "chapterHeadingSpaceBefore": 1,
+      "chapterHeadingSpaceAfter": 1.5,
+      "sceneBreakSpacing": 1.1,
+      "dropCap": true,
+      "page": {
+        "widthPt": 612,
+        "heightPt": 792,
+        "marginTopPt": 72,
+        "marginRightPt": 72,
+        "marginBottomPt": 72,
+        "marginLeftPt": 72
+      },
+      "wordsPerPage": 309,
+      "runningHeader": true,
+      "pageNumbers": true
+    },
+    {
+      "id": "custom-b",
+      "label": "Sans A5",
+      "description": "Custom style",
+      "detail": "10.5 pt · IBM Plex Sans · A5",
+      "cssFontFamily": "'IBM Plex Sans', Helvetica, Arial, sans-serif",
+      "docxFont": "Helvetica",
+      "pdfFont": "helvetica",
+      "bodySizePt": 10.5,
+      "lineHeight": 3,
+      "paragraphIndentEm": 0,
+      "paragraphSpacingEm": 0,
+      "justify": false,
+      "chapterHeadingSizePt": 18,
+      "chapterHeadingUppercase": false,
+      "chapterHeadingAlign": "left",
+      "chapterHeadingSpaceBefore": 1,
+      "chapterHeadingSpaceAfter": 1.5,
+      "sceneBreakSpacing": 2.25,
+      "dropCap": false,
+      "page": {
+        "widthPt": 419.53,
+        "heightPt": 595.28,
+        "marginTopPt": 43.2,
+        "marginRightPt": 54,
+        "marginBottomPt": 54,
+        "marginLeftPt": 54
+      },
+      "wordsPerPage": 138,
+      "runningHeader": false,
+      "pageNumbers": false
+    },
+    {
+      "id": "custom-c",
+      "label": "Clamped",
+      "description": "Custom style",
+      "detail": "11.5 pt · Georgia · 6 × 9 in",
+      "cssFontFamily": "Georgia, 'Times New Roman', serif",
+      "docxFont": "Georgia",
+      "pdfFont": "times",
+      "bodySizePt": 11.5,
+      "lineHeight": 1.5,
+      "paragraphIndentEm": 1.5,
+      "paragraphSpacingEm": 0,
+      "justify": false,
+      "chapterHeadingSizePt": 18,
+      "chapterHeadingUppercase": false,
+      "chapterHeadingAlign": "left",
+      "chapterHeadingSpaceBefore": 1,
+      "chapterHeadingSpaceAfter": 1.5,
+      "sceneBreakSpacing": 1.1,
+      "dropCap": false,
+      "page": {
+        "widthPt": 432,
+        "heightPt": 648,
+        "marginTopPt": 54,
+        "marginRightPt": 54,
+        "marginBottomPt": 54,
+        "marginLeftPt": 108
+      },
+      "wordsPerPage": 216,
+      "runningHeader": false,
+      "pageNumbers": true
+    },
+    {
+      "id": "custom-e",
+      "label": "A label that goes on and on, much longer than sixty characte",
+      "description": "Custom style",
+      "detail": "11.5 pt · Georgia · 6 × 9 in",
+      "cssFontFamily": "Georgia, 'Times New Roman', serif",
+      "docxFont": "Georgia",
+      "pdfFont": "times",
+      "bodySizePt": 11.5,
+      "lineHeight": 1.5,
+      "paragraphIndentEm": 1.5,
+      "paragraphSpacingEm": 0,
+      "justify": false,
+      "chapterHeadingSizePt": 18,
+      "chapterHeadingUppercase": false,
+      "chapterHeadingAlign": "left",
+      "chapterHeadingSpaceBefore": 1,
+      "chapterHeadingSpaceAfter": 1.5,
+      "sceneBreakSpacing": 1.1,
+      "dropCap": false,
+      "page": {
+        "widthPt": 432,
+        "heightPt": 648,
+        "marginTopPt": 54,
+        "marginRightPt": 54,
+        "marginBottomPt": 54,
+        "marginLeftPt": 54
+      },
+      "wordsPerPage": 259,
+      "runningHeader": false,
+      "pageNumbers": true
+    }
+  ],
+  "created": [
+    {
+      "source": "manuscript",
+      "style": {
+        "id": "custom-uuid-1",
+        "label": "Manuscript copy",
+        "fontId": "georgia",
+        "bodySizePt": 12,
+        "lineHeight": 2,
+        "paragraphIndentEm": 2,
+        "paragraphSpacingEm": 0,
+        "justify": false,
+        "chapterHeadingSizePt": 14,
+        "chapterHeadingUppercase": true,
+        "chapterHeadingAlign": "center",
+        "chapterHeadingSpaceBefore": 0,
+        "chapterHeadingSpaceAfter": 1.5,
+        "sceneBreakSpacing": 1,
+        "dropCap": false,
+        "trimId": "letter",
+        "marginTopIn": 1,
+        "marginRightIn": 1,
+        "marginBottomIn": 1,
+        "marginLeftIn": 1,
+        "runningHeader": true,
+        "pageNumbers": true
+      }
+    },
+    {
+      "source": "classic",
+      "style": {
+        "id": "custom-uuid-2",
+        "label": "Classic novel copy",
+        "fontId": "iowan",
+        "bodySizePt": 11.5,
+        "lineHeight": 1.5,
+        "paragraphIndentEm": 1.5,
+        "paragraphSpacingEm": 0,
+        "justify": true,
+        "chapterHeadingSizePt": 18,
+        "chapterHeadingUppercase": true,
+        "chapterHeadingAlign": "center",
+        "chapterHeadingSpaceBefore": 1.2,
+        "chapterHeadingSpaceAfter": 2,
+        "sceneBreakSpacing": 1.2,
+        "dropCap": true,
+        "trimId": "trade-6x9",
+        "marginTopIn": 0.75,
+        "marginRightIn": 0.75,
+        "marginBottomIn": 0.75,
+        "marginLeftIn": 0.75,
+        "runningHeader": true,
+        "pageNumbers": true
+      }
+    },
+    {
+      "source": "modern",
+      "style": {
+        "id": "custom-uuid-3",
+        "label": "Modern trade copy",
+        "fontId": "ibm-plex-serif",
+        "bodySizePt": 11,
+        "lineHeight": 1.45,
+        "paragraphIndentEm": 0,
+        "paragraphSpacingEm": 0.65,
+        "justify": false,
+        "chapterHeadingSizePt": 24,
+        "chapterHeadingUppercase": false,
+        "chapterHeadingAlign": "left",
+        "chapterHeadingSpaceBefore": 0.8,
+        "chapterHeadingSpaceAfter": 1.8,
+        "sceneBreakSpacing": 1.1,
+        "dropCap": false,
+        "trimId": "trade-6x9",
+        "marginTopIn": 0.83,
+        "marginRightIn": 0.75,
+        "marginBottomIn": 0.83,
+        "marginLeftIn": 0.75,
+        "runningHeader": false,
+        "pageNumbers": true
+      }
+    },
+    {
+      "source": "ebook",
+      "style": {
+        "id": "custom-uuid-4",
+        "label": "Ebook copy",
+        "fontId": "georgia",
+        "bodySizePt": 11.5,
+        "lineHeight": 1.6,
+        "paragraphIndentEm": 1.4,
+        "paragraphSpacingEm": 0,
+        "justify": false,
+        "chapterHeadingSizePt": 18,
+        "chapterHeadingUppercase": false,
+        "chapterHeadingAlign": "left",
+        "chapterHeadingSpaceBefore": 1,
+        "chapterHeadingSpaceAfter": 1.4,
+        "sceneBreakSpacing": 1.1,
+        "dropCap": false,
+        "trimId": "trade-6x9",
+        "marginTopIn": 0.58,
+        "marginRightIn": 0.58,
+        "marginBottomIn": 0.58,
+        "marginLeftIn": 0.58,
+        "runningHeader": false,
+        "pageNumbers": false
+      }
+    },
+    {
+      "source": "custom-a",
+      "style": {
+        "id": "custom-uuid-5",
+        "label": "Courier draft copy",
+        "fontId": "courier",
+        "bodySizePt": 12,
+        "lineHeight": 2,
+        "paragraphIndentEm": 1.5,
+        "paragraphSpacingEm": 0,
+        "justify": true,
+        "chapterHeadingSizePt": 18,
+        "chapterHeadingUppercase": true,
+        "chapterHeadingAlign": "center",
+        "chapterHeadingSpaceBefore": 1,
+        "chapterHeadingSpaceAfter": 1.5,
+        "sceneBreakSpacing": 1.1,
+        "dropCap": true,
+        "trimId": "letter",
+        "marginTopIn": 1,
+        "marginRightIn": 1,
+        "marginBottomIn": 1,
+        "marginLeftIn": 1,
+        "runningHeader": true,
+        "pageNumbers": true
+      }
+    },
+    {
+      "source": "missing",
+      "style": {
+        "id": "custom-uuid-6",
+        "label": "Manuscript copy",
+        "fontId": "georgia",
+        "bodySizePt": 12,
+        "lineHeight": 2,
+        "paragraphIndentEm": 2,
+        "paragraphSpacingEm": 0,
+        "justify": false,
+        "chapterHeadingSizePt": 14,
+        "chapterHeadingUppercase": true,
+        "chapterHeadingAlign": "center",
+        "chapterHeadingSpaceBefore": 0,
+        "chapterHeadingSpaceAfter": 1.5,
+        "sceneBreakSpacing": 1,
+        "dropCap": false,
+        "trimId": "letter",
+        "marginTopIn": 1,
+        "marginRightIn": 1,
+        "marginBottomIn": 1,
+        "marginLeftIn": 1,
+        "runningHeader": true,
+        "pageNumbers": true
+      }
+    }
+  ],
+  "project": {
+    "id": "project-1",
+    "name": "The Lighthouse 🌊 Keeper",
+    "author": "A. Writer",
+    "kind": "novel",
+    "activeDocumentId": "doc-1",
+    "projectGoal": 80000,
+    "chapterGoals": {
+      "2": 1.5,
+      "10": 3,
+      "chapter-1": 2500,
+      "-1": 4,
+      "01": 5
+    },
+    "activity": {
+      "2026-11-01": {
+        "edits": 12,
+        "wordsAdded": 345
+      },
+      "2026-11-02": {
+        "edits": 0.5,
+        "wordsAdded": -3
+      }
+    },
+    "chapters": [
+      {
+        "id": "chapter-1",
+        "title": "Chapter One",
+        "expanded": true,
+        "summary": "It begins.",
+        "labelId": "label-1"
+      },
+      {
+        "id": "chapter-2",
+        "title": "Chapitre deux — « voilà »",
+        "expanded": false,
+        "trashed": true
+      },
+      {
+        "id": "chapter-3",
+        "title": "Chapter 7",
+        "expanded": true,
+        "summary": ""
+      },
+      {
+        "id": "chapter-4",
+        "title": "Epilogue",
+        "expanded": true
+      }
+    ],
+    "documents": [
+      {
+        "id": "doc-1",
+        "title": "Opening Scene",
+        "chapterId": "chapter-1",
+        "content": "<p>It was <em>dark</em>.<sup class=\"footnote-ref\" data-footnote-id=\"fn-1\" contenteditable=\"false\"></sup></p><p>Then <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020&quot;}]\">(Smith 2020)</span>.</p>",
+        "footnotes": [
+          {
+            "id": "fn-1",
+            "html": "A note with <em>emphasis</em>."
+          }
+        ]
+      },
+      {
+        "id": "doc-2",
+        "title": "Mara",
+        "space": "Wiki",
+        "folderId": "folder-1",
+        "content": "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+        "character": {
+          "role": "Protagonist",
+          "age": "32",
+          "pronouns": "she/her"
+        }
+      },
+      {
+        "id": "doc-3",
+        "title": "INT. LIGHTHOUSE - NIGHT",
+        "chapterId": "chapter-1",
+        "format": "screenplay",
+        "content": "<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>",
+        "markdownSource": "INT. LIGHTHOUSE - NIGHT"
+      },
+      {
+        "id": "doc-4",
+        "title": "Morning",
+        "chapterId": "chapter-3",
+        "content": "<p>The sea was calm.<sup class=\"footnote-ref\" data-footnote-id=\"a\" contenteditable=\"false\"></sup></p><ul><li>bread</li><li>salt</li></ul><p>Then <strong>nothing</strong>.<sup class=\"footnote-ref\" data-footnote-id=\"b\" contenteditable=\"false\"></sup></p>",
+        "footnotes": [
+          {
+            "id": "a",
+            "html": "Calm, mostly."
+          },
+          {
+            "id": "b",
+            "html": "Truly <em>nothing</em>."
+          }
+        ]
+      },
+      {
+        "id": "doc-5",
+        "title": "Noon",
+        "chapterId": "chapter-3",
+        "content": "<p>Light.</p><p>More light.</p>"
+      },
+      {
+        "id": "doc-6",
+        "title": "Empty",
+        "chapterId": "chapter-3",
+        "content": "<p><br></p>"
+      },
+      {
+        "id": "doc-7",
+        "title": "Gone",
+        "chapterId": "chapter-3",
+        "content": "<p>Trashed text.</p>",
+        "trashed": true
+      },
+      {
+        "id": "doc-8",
+        "title": "",
+        "chapterId": "chapter-4",
+        "content": "<h2>After</h2><blockquote><p>A quote.</p></blockquote><p>Last line.<sup class=\"footnote-ref\" data-footnote-id=\"z\" contenteditable=\"false\"></sup></p>",
+        "footnotes": [
+          {
+            "id": "z",
+            "html": "The end."
+          }
+        ]
+      }
+    ],
+    "storyboardRows": [
+      {
+        "id": "row-1",
+        "title": "Act I"
+      }
+    ],
+    "storyboardCards": [
+      {
+        "id": "card-1",
+        "sourceId": "doc-1",
+        "rowId": "row-1",
+        "x": 12.5,
+        "y": 0.30000000000000004,
+        "kind": "scene",
+        "title": "Opening",
+        "note": ""
+      }
+    ],
+    "storyboardDrawings": [
+      {
+        "id": "draw-1",
+        "type": "arrow",
+        "x1": 0,
+        "y1": 1e+21,
+        "x2": 1e-7,
+        "y2": 123456789.125
+      }
+    ],
+    "timelineNodes": [
+      {
+        "id": "t-1",
+        "title": "Day One",
+        "date": "2026-01-01",
+        "time": "",
+        "description": "Start"
+      }
+    ],
+    "labels": [
+      {
+        "id": "label-1",
+        "name": "Draft",
+        "color": "#d69e2e"
+      }
+    ],
+    "comments": [
+      {
+        "id": "comment-1",
+        "documentId": "doc-1",
+        "quote": "dark",
+        "prefix": "It was \ud83c",
+        "suffix": ".",
+        "body": "Darker?",
+        "author": "Editor",
+        "createdAt": 1763370000000,
+        "resolved": false
+      }
+    ],
+    "snapshots": [
+      {
+        "id": "snap-1",
+        "documentId": "doc-1",
+        "createdAt": 1763360000000,
+        "title": "Opening Scene",
+        "content": "<p>It was dark.</p>",
+        "reason": "manual",
+        "note": "first"
+      }
+    ],
+    "citations": [
+      {
+        "id": "smith2020",
+        "type": "book",
+        "title": "Lighthouses",
+        "author": [
+          {
+            "family": "Smith",
+            "given": "Jo"
+          }
+        ],
+        "issued": {
+          "date-parts": [
+            [
+              2020
+            ]
+          ]
+        }
+      }
+    ],
+    "publishOptions": {
+      "futureOption": {
+        "nested": [
+          1,
+          2.25,
+          null,
+          true
+        ]
+      }
+    },
+    "futureField": {
+      "kept": "as is",
+      "n": 7
+    }
+  },
+  "html": {
+    "custom-a": "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>The Lighthouse 🌊 Keeper</title>\n  <style>\n    :root {\n      --body-font: 'Courier New', Courier, monospace;\n      --body-size: 12pt;\n      --line-height: 2;\n      --paragraph-indent: 1.5em;\n      --paragraph-spacing: 0em;\n      --chapter-size: 18pt;\n      --chapter-align: center;\n      --chapter-before: 1em;\n      --chapter-after: 1.5em;\n      --scene-break-space: 1.1em;\n      --page-width: 612pt;\n      --page-height: 792pt;\n      --page-margin-top: 72pt;\n      --page-margin-right: 72pt;\n      --page-margin-bottom: 72pt;\n      --page-margin-left: 72pt;\n      --ink: #1d211d;\n      --muted: #73776f;\n      --rule: #d9dbd4;\n      --preview-desk: #e8e8e2;\n      --page-bg: #ffffff;\n      --page-border: #d8d8d1;\n      --page-shadow: 0 14px 38px rgba(28, 32, 27, 0.12);\n      color-scheme: light;\n    }\n    * { box-sizing: border-box; }\n    html, body { margin: 0; padding: 0; }\n    body {\n      background: #ffffff;\n      color: var(--ink);\n      font-family: var(--body-font);\n      font-size: var(--body-size);\n      line-height: var(--line-height);\n      -webkit-font-smoothing: antialiased;\n    }\n    .book { max-width: 8.500in; margin: 0 auto; }\n    .cover-page {\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      min-height: 80vh;\n      padding: 0;\n      overflow: hidden;\n      page-break-after: always;\n    }\n    .cover-page img {\n      display: block;\n      width: auto;\n      height: auto;\n      max-width: 100%;\n      max-height: calc(var(--page-height) - var(--page-margin-top) - var(--page-margin-bottom));\n      object-fit: contain;\n    }\n    .title-page {\n      display: flex;\n      flex-direction: column;\n      justify-content: center;\n      min-height: 80vh;\n      padding: 1.5in 0.6in;\n      text-align: center;\n      page-break-after: always;\n    }\n    .title-page-main { flex: 1; display: flex; flex-direction: column; justify-content: center; }\n    .book-title {\n      margin: 0;\n      font-size: calc(var(--body-size) * 2.7);\n      font-weight: 500;\n      letter-spacing: -0.02em;\n      line-height: 1.16;\n    }\n    .book-subtitle { margin: 0.65em 0 0; font-size: 1.15em; font-style: italic; color: var(--muted); }\n    .book-author { margin: 2.2em 0 0; font-size: 1.05em; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }\n    .book-copyright { margin: 0; font-size: 0.72em; line-height: 1.6; color: var(--muted); }\n    .dedication {\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      min-height: 70vh;\n      padding: 1in;\n      text-align: center;\n      font-style: italic;\n      page-break-after: always;\n    }\n    .dedication p { margin: 0; max-width: 22em; }\n    .copyright-page {\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      min-height: 70vh;\n      padding: 1in;\n      text-align: center;\n      page-break-after: always;\n    }\n    .copyright-page p {\n      max-width: 26em;\n      margin: 0;\n      color: var(--muted);\n      font-size: 0.82em;\n      line-height: 1.65;\n    }\n    .matter-page {\n      min-height: 70vh;\n      padding: 0.9in 0.6in;\n      page-break-after: always;\n    }\n    .matter-title {\n      margin: 0 0 1.2em;\n      color: var(--ink);\n      font-size: 1.5em;\n      font-weight: 600;\n      line-height: 1.25;\n      text-align: center;\n      text-indent: 0;\n    }\n    .matter-page p {\n      margin: 0 0 var(--paragraph-spacing);\n      text-align: justify;\n      text-indent: 0;\n      hyphens: auto;\n    }\n    .back-matter { break-before: page; page-break-before: always; }\n    .bibliography p.bibliography-entry {\n      margin: 0 0 0.7em;\n      padding-left: 2em;\n      text-indent: -2em;\n      text-align: left;\n    }\n    .toc-entry { margin: 0 0 0.7em; text-indent: 0; }\n    .toc-entry a {\n      color: inherit;\n      text-decoration: none;\n      text-underline-offset: 2px;\n    }\n    .toc-entry a:hover { text-decoration: underline; }\n    .chapter { padding: 0; }\n    .chapter-break { break-before: page; page-break-before: always; }\n    .chapter-title {\n      margin: var(--chapter-before) 0 var(--chapter-after);\n      color: var(--ink);\n      font-size: var(--chapter-size);\n      font-weight: 600;\n      letter-spacing: 0.1em;\n      line-height: 1.25;\n      text-align: var(--chapter-align);\n      text-transform: uppercase;\n    }\n    .scene p, .scene div {\n      margin: 0 0 var(--paragraph-spacing);\n      text-align: justify;\n      text-indent: var(--paragraph-indent);\n      hyphens: auto;\n    }\n    .scene > :first-child { text-indent: 0; }\n    .scene > .continuation { text-indent: var(--paragraph-indent); }\n    .scene h1, .scene h2, .scene h3 {\n      margin: 1.2em 0 0.55em;\n      font-weight: 600;\n      line-height: 1.3;\n      text-indent: 0;\n      break-after: avoid;\n    }\n    .scene h1 { font-size: 1.45em; }\n    .scene h2 { font-size: 1.28em; }\n    .scene h3 { font-size: 1.12em; }\n    .scene blockquote {\n      margin: 1.1em 1.4em;\n      padding-left: 1em;\n      border-left: 2px solid var(--rule);\n      color: var(--muted);\n      font-style: italic;\n      text-indent: 0;\n    }\n    .scene ul, .scene ol { margin: 0 0 var(--paragraph-spacing); padding-left: 1.5em; }\n    .scene li { text-indent: 0; }\n    .scene a { color: inherit; text-decoration-color: var(--rule); text-underline-offset: 2px; }\n    .scene img {\n      display: block;\n      max-width: 100%;\n      max-height: min(4in, calc(var(--page-height) - var(--page-margin-top) - var(--page-margin-bottom) - 2em));\n      height: auto;\n      margin: 0.75em auto;\n      object-fit: contain;\n      text-indent: 0;\n    }\n    .scene .math-inline {\n      display: inline;\n      text-indent: 0;\n      white-space: nowrap;\n    }\n    .scene .math-inline svg, .scene .math-inline img {\n      display: inline-block;\n      max-width: none;\n      max-height: 1.6em;\n      width: auto;\n      height: auto;\n      margin: 0 0.08em;\n      vertical-align: middle;\n      text-indent: 0;\n    }\n    .scene .math-block, .scene .mermaid-diagram, .scene .calc-worksheet {\n      display: block;\n      max-width: 100%;\n      margin: 0.85em auto;\n      text-align: center;\n      text-indent: 0;\n    }\n    .scene .math-block svg, .scene .math-block img,\n    .scene .mermaid-diagram svg, .scene .mermaid-diagram img,\n    .scene .calc-worksheet svg, .scene .calc-worksheet img {\n      display: block;\n      max-width: 100%;\n      max-height: min(4.5in, calc(var(--page-height) - var(--page-margin-top) - var(--page-margin-bottom) - 2em));\n      width: auto;\n      height: auto;\n      margin: 0 auto;\n      object-fit: contain;\n    }\n    .scene .rich-render-error {\n      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;\n      font-size: 0.85em;\n      white-space: pre-wrap;\n    }\n    .scene .math-inline:empty::before { content: attr(data-tex); font-family: ui-monospace, monospace; }\n    .scene .math-block:empty::before { content: attr(data-tex); display: block; font-family: ui-monospace, monospace; white-space: pre-wrap; }\n    .scene .mermaid-diagram:empty::before, .scene .calc-worksheet:empty::before { content: attr(data-source); display: block; font-family: ui-monospace, monospace; white-space: pre-wrap; text-align: left; }\n    .scene .eyebrow {\n      margin: 0 0 0.6em;\n      color: var(--muted);\n      font-family: ui-sans-serif, sans-serif;\n      font-size: 0.62em;\n      font-weight: 700;\n      letter-spacing: 0.13em;\n      line-height: 1.5;\n      text-indent: 0;\n    }\n    .scene-title {\n      margin: 1em 0 0.6em;\n      font-size: 1em;\n      font-weight: 600;\n      font-style: italic;\n      letter-spacing: 0.01em;\n      text-indent: 0;\n    }\n    .scene-break {\n      margin: var(--scene-break-space) 0;\n      color: var(--muted);\n      font-size: 0.9em;\n      letter-spacing: 0.45em;\n      text-align: center;\n      text-indent: 0;\n    }\n    .scene-break-hash, .scene-break-asterisks { }\n    .scene-break-blank { height: var(--scene-break-space); margin: 0; }\n    .scene-break-line span {\n      display: block;\n      width: 3.2em;\n      margin: 0 auto;\n      border-top: 1px solid var(--rule);\n    }\n    .footnotes {\n      margin-top: 2em;\n      padding-top: 0.9em;\n      border-top: 1px solid var(--rule);\n      font-size: 0.88em;\n    }\n    .footnotes ol { margin: 0; padding-left: 1.4em; }\n    .footnotes li { margin: 0 0 0.45em; text-indent: 0; }\n    .footnote-ref a { color: inherit; text-decoration: none; }\n    .footnote-backref { color: var(--muted); text-decoration: none; margin-left: 0.3em; }\n    \n    .scene .drop-cap { text-indent: 0; }\n    .scene .drop-cap::first-letter {\n      float: left;\n      padding: 0.06em 0.09em 0 0;\n      font-size: 4.5em;\n      font-weight: 600;\n      line-height: 0.82;\n    }\n    \n    \n    @page {\n      size: 8.500in 11.000in;\n      margin: 1.000in 1.000in 1.000in 1.000in;\n    }\n    @media print {\n      body { background: #ffffff; }\n      .book { max-width: none; }\n      .chapter-break { break-before: page; }\n      .cover-page, .title-page, .dedication, .copyright-page, .matter-page { break-after: page; }\n      .back-matter { break-before: page; }\n    }\n  </style>\n</head>\n<body class=\"drop-caps\">\n<div class=\"book\">\n<section class=\"title-page\">\n  <div class=\"title-page-main\">\n    <h1 class=\"book-title\">The Lighthouse 🌊 Keeper</h1>\n    <p class=\"book-author\">by A. Writer</p>\n  </div>\n</section>\n<nav class=\"matter-page toc-page\" aria-label=\"Table of contents\">\n  <h2 class=\"matter-title\">Contents</h2>\n  <p class=\"toc-entry\"><a href=\"#chapter-chapter-1\">Chapter One</a></p>\n  <p class=\"toc-entry\"><a href=\"#chapter-chapter-3\">Chapter 1</a></p>\n  <p class=\"toc-entry\"><a href=\"#chapter-chapter-4\">Epilogue</a></p>\n</nav>\n<section class=\"chapter\" id=\"chapter-chapter-1\"><h2 class=\"chapter-title\">Chapter One</h2>\n<div class=\"scene\"><p class=\"drop-cap\">It was <em>dark</em>.<sup class=\"footnote-ref\" id=\"fnref-1\"><a href=\"#fn-1\">1</a></sup></p><p>Then [@smith2020].</p></div><div class=\"scene-break\" aria-hidden=\"true\">#</div>\n<div class=\"scene\"><p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p></div>\n<section class=\"footnotes\" aria-label=\"Footnotes\">\n  <ol>\n    <li id=\"fn-1\" value=\"1\">A note with <em>emphasis</em>. <a href=\"#fnref-1\" class=\"footnote-backref\" aria-label=\"Back to reference 1\">↩</a></li>\n  </ol>\n</section></section>\n<section class=\"chapter chapter-break\" id=\"chapter-chapter-3\"><h2 class=\"chapter-title\">Chapter 1</h2>\n<div class=\"scene\"><p class=\"drop-cap\">The sea was calm.<sup class=\"footnote-ref\" id=\"fnref-2\"><a href=\"#fn-2\">2</a></sup></p><ul><li>bread</li><li>salt</li></ul><p>Then <strong>nothing</strong>.<sup class=\"footnote-ref\" id=\"fnref-3\"><a href=\"#fn-3\">3</a></sup></p></div><div class=\"scene-break\" aria-hidden=\"true\">#</div>\n<div class=\"scene\"><p>Light.</p><p>More light.</p></div>\n<section class=\"footnotes\" aria-label=\"Footnotes\">\n  <ol>\n    <li id=\"fn-2\" value=\"2\">Calm, mostly. <a href=\"#fnref-2\" class=\"footnote-backref\" aria-label=\"Back to reference 2\">↩</a></li>\n    <li id=\"fn-3\" value=\"3\">Truly <em>nothing</em>. <a href=\"#fnref-3\" class=\"footnote-backref\" aria-label=\"Back to reference 3\">↩</a></li>\n  </ol>\n</section></section>\n<section class=\"chapter chapter-break\" id=\"chapter-chapter-4\"><h2 class=\"chapter-title\">Epilogue</h2>\n<div class=\"scene\"><h2>After</h2><blockquote><p>A quote.</p></blockquote><p class=\"drop-cap\">Last line.<sup class=\"footnote-ref\" id=\"fnref-4\"><a href=\"#fn-4\">4</a></sup></p></div>\n<section class=\"footnotes\" aria-label=\"Footnotes\">\n  <ol>\n    <li id=\"fn-4\" value=\"4\">The end. <a href=\"#fnref-4\" class=\"footnote-backref\" aria-label=\"Back to reference 4\">↩</a></li>\n  </ol>\n</section></section>\n</div>\n</body>\n</html>",
+    "custom-b": "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>The Lighthouse 🌊 Keeper</title>\n  <style>\n    :root {\n      --body-font: 'IBM Plex Sans', Helvetica, Arial, sans-serif;\n      --body-size: 10.5pt;\n      --line-height: 3;\n      --paragraph-indent: 0em;\n      --paragraph-spacing: 0em;\n      --chapter-size: 18pt;\n      --chapter-align: left;\n      --chapter-before: 1em;\n      --chapter-after: 1.5em;\n      --scene-break-space: 2.25em;\n      --page-width: 419.53pt;\n      --page-height: 595.28pt;\n      --page-margin-top: 43.2pt;\n      --page-margin-right: 54pt;\n      --page-margin-bottom: 54pt;\n      --page-margin-left: 54pt;\n      --ink: #1d211d;\n      --muted: #73776f;\n      --rule: #d9dbd4;\n      --preview-desk: #e8e8e2;\n      --page-bg: #ffffff;\n      --page-border: #d8d8d1;\n      --page-shadow: 0 14px 38px rgba(28, 32, 27, 0.12);\n      color-scheme: light;\n    }\n    * { box-sizing: border-box; }\n    html, body { margin: 0; padding: 0; }\n    body {\n      background: #ffffff;\n      color: var(--ink);\n      font-family: var(--body-font);\n      font-size: var(--body-size);\n      line-height: var(--line-height);\n      -webkit-font-smoothing: antialiased;\n    }\n    .book { max-width: 5.827in; margin: 0 auto; }\n    .cover-page {\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      min-height: 80vh;\n      padding: 0;\n      overflow: hidden;\n      page-break-after: always;\n    }\n    .cover-page img {\n      display: block;\n      width: auto;\n      height: auto;\n      max-width: 100%;\n      max-height: calc(var(--page-height) - var(--page-margin-top) - var(--page-margin-bottom));\n      object-fit: contain;\n    }\n    .title-page {\n      display: flex;\n      flex-direction: column;\n      justify-content: center;\n      min-height: 80vh;\n      padding: 1.5in 0.6in;\n      text-align: center;\n      page-break-after: always;\n    }\n    .title-page-main { flex: 1; display: flex; flex-direction: column; justify-content: center; }\n    .book-title {\n      margin: 0;\n      font-size: calc(var(--body-size) * 2.7);\n      font-weight: 500;\n      letter-spacing: -0.02em;\n      line-height: 1.16;\n    }\n    .book-subtitle { margin: 0.65em 0 0; font-size: 1.15em; font-style: italic; color: var(--muted); }\n    .book-author { margin: 2.2em 0 0; font-size: 1.05em; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }\n    .book-copyright { margin: 0; font-size: 0.72em; line-height: 1.6; color: var(--muted); }\n    .dedication {\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      min-height: 70vh;\n      padding: 1in;\n      text-align: center;\n      font-style: italic;\n      page-break-after: always;\n    }\n    .dedication p { margin: 0; max-width: 22em; }\n    .copyright-page {\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      min-height: 70vh;\n      padding: 1in;\n      text-align: center;\n      page-break-after: always;\n    }\n    .copyright-page p {\n      max-width: 26em;\n      margin: 0;\n      color: var(--muted);\n      font-size: 0.82em;\n      line-height: 1.65;\n    }\n    .matter-page {\n      min-height: 70vh;\n      padding: 0.9in 0.6in;\n      page-break-after: always;\n    }\n    .matter-title {\n      margin: 0 0 1.2em;\n      color: var(--ink);\n      font-size: 1.5em;\n      font-weight: 600;\n      line-height: 1.25;\n      text-align: center;\n      text-indent: 0;\n    }\n    .matter-page p {\n      margin: 0 0 var(--paragraph-spacing);\n      text-align: left;\n      text-indent: 0;\n      hyphens: auto;\n    }\n    .back-matter { break-before: page; page-break-before: always; }\n    .bibliography p.bibliography-entry {\n      margin: 0 0 0.7em;\n      padding-left: 2em;\n      text-indent: -2em;\n      text-align: left;\n    }\n    .toc-entry { margin: 0 0 0.7em; text-indent: 0; }\n    .toc-entry a {\n      color: inherit;\n      text-decoration: none;\n      text-underline-offset: 2px;\n    }\n    .toc-entry a:hover { text-decoration: underline; }\n    .chapter { padding: 0; }\n    .chapter-break { break-before: page; page-break-before: always; }\n    .chapter-title {\n      margin: var(--chapter-before) 0 var(--chapter-after);\n      color: var(--ink);\n      font-size: var(--chapter-size);\n      font-weight: 600;\n      letter-spacing: 0;\n      line-height: 1.25;\n      text-align: var(--chapter-align);\n      text-transform: none;\n    }\n    .scene p, .scene div {\n      margin: 0 0 var(--paragraph-spacing);\n      text-align: left;\n      text-indent: var(--paragraph-indent);\n      hyphens: auto;\n    }\n    .scene > :first-child { text-indent: 0; }\n    .scene > .continuation { text-indent: var(--paragraph-indent); }\n    .scene h1, .scene h2, .scene h3 {\n      margin: 1.2em 0 0.55em;\n      font-weight: 600;\n      line-height: 1.3;\n      text-indent: 0;\n      break-after: avoid;\n    }\n    .scene h1 { font-size: 1.45em; }\n    .scene h2 { font-size: 1.28em; }\n    .scene h3 { font-size: 1.12em; }\n    .scene blockquote {\n      margin: 1.1em 1.4em;\n      padding-left: 1em;\n      border-left: 2px solid var(--rule);\n      color: var(--muted);\n      font-style: italic;\n      text-indent: 0;\n    }\n    .scene ul, .scene ol { margin: 0 0 var(--paragraph-spacing); padding-left: 1.5em; }\n    .scene li { text-indent: 0; }\n    .scene a { color: inherit; text-decoration-color: var(--rule); text-underline-offset: 2px; }\n    .scene img {\n      display: block;\n      max-width: 100%;\n      max-height: min(4in, calc(var(--page-height) - var(--page-margin-top) - var(--page-margin-bottom) - 2em));\n      height: auto;\n      margin: 0.75em auto;\n      object-fit: contain;\n      text-indent: 0;\n    }\n    .scene .math-inline {\n      display: inline;\n      text-indent: 0;\n      white-space: nowrap;\n    }\n    .scene .math-inline svg, .scene .math-inline img {\n      display: inline-block;\n      max-width: none;\n      max-height: 1.6em;\n      width: auto;\n      height: auto;\n      margin: 0 0.08em;\n      vertical-align: middle;\n      text-indent: 0;\n    }\n    .scene .math-block, .scene .mermaid-diagram, .scene .calc-worksheet {\n      display: block;\n      max-width: 100%;\n      margin: 0.85em auto;\n      text-align: center;\n      text-indent: 0;\n    }\n    .scene .math-block svg, .scene .math-block img,\n    .scene .mermaid-diagram svg, .scene .mermaid-diagram img,\n    .scene .calc-worksheet svg, .scene .calc-worksheet img {\n      display: block;\n      max-width: 100%;\n      max-height: min(4.5in, calc(var(--page-height) - var(--page-margin-top) - var(--page-margin-bottom) - 2em));\n      width: auto;\n      height: auto;\n      margin: 0 auto;\n      object-fit: contain;\n    }\n    .scene .rich-render-error {\n      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;\n      font-size: 0.85em;\n      white-space: pre-wrap;\n    }\n    .scene .math-inline:empty::before { content: attr(data-tex); font-family: ui-monospace, monospace; }\n    .scene .math-block:empty::before { content: attr(data-tex); display: block; font-family: ui-monospace, monospace; white-space: pre-wrap; }\n    .scene .mermaid-diagram:empty::before, .scene .calc-worksheet:empty::before { content: attr(data-source); display: block; font-family: ui-monospace, monospace; white-space: pre-wrap; text-align: left; }\n    .scene .eyebrow {\n      margin: 0 0 0.6em;\n      color: var(--muted);\n      font-family: ui-sans-serif, sans-serif;\n      font-size: 0.62em;\n      font-weight: 700;\n      letter-spacing: 0.13em;\n      line-height: 1.5;\n      text-indent: 0;\n    }\n    .scene-title {\n      margin: 1em 0 0.6em;\n      font-size: 1em;\n      font-weight: 600;\n      font-style: italic;\n      letter-spacing: 0.01em;\n      text-indent: 0;\n    }\n    .scene-break {\n      margin: var(--scene-break-space) 0;\n      color: var(--muted);\n      font-size: 0.9em;\n      letter-spacing: 0.45em;\n      text-align: center;\n      text-indent: 0;\n    }\n    .scene-break-hash, .scene-break-asterisks { }\n    .scene-break-blank { height: var(--scene-break-space); margin: 0; }\n    .scene-break-line span {\n      display: block;\n      width: 3.2em;\n      margin: 0 auto;\n      border-top: 1px solid var(--rule);\n    }\n    .footnotes {\n      margin-top: 2em;\n      padding-top: 0.9em;\n      border-top: 1px solid var(--rule);\n      font-size: 0.88em;\n    }\n    .footnotes ol { margin: 0; padding-left: 1.4em; }\n    .footnotes li { margin: 0 0 0.45em; text-indent: 0; }\n    .footnote-ref a { color: inherit; text-decoration: none; }\n    .footnote-backref { color: var(--muted); text-decoration: none; margin-left: 0.3em; }\n    \n    \n    @page {\n      size: 5.827in 8.268in;\n      margin: 0.600in 0.750in 0.750in 0.750in;\n    }\n    @media print {\n      body { background: #ffffff; }\n      .book { max-width: none; }\n      .chapter-break { break-before: page; }\n      .cover-page, .title-page, .dedication, .copyright-page, .matter-page { break-after: page; }\n      .back-matter { break-before: page; }\n    }\n  </style>\n</head>\n<body class=\"\">\n<div class=\"book\">\n<section class=\"title-page\">\n  <div class=\"title-page-main\">\n    <h1 class=\"book-title\">The Lighthouse 🌊 Keeper</h1>\n    <p class=\"book-author\">by A. Writer</p>\n  </div>\n</section>\n<nav class=\"matter-page toc-page\" aria-label=\"Table of contents\">\n  <h2 class=\"matter-title\">Contents</h2>\n  <p class=\"toc-entry\"><a href=\"#chapter-chapter-1\">Chapter One</a></p>\n  <p class=\"toc-entry\"><a href=\"#chapter-chapter-3\">Chapter 1</a></p>\n  <p class=\"toc-entry\"><a href=\"#chapter-chapter-4\">Epilogue</a></p>\n</nav>\n<section class=\"chapter\" id=\"chapter-chapter-1\"><h2 class=\"chapter-title\">Chapter One</h2>\n<div class=\"scene\"><p>It was <em>dark</em>.<sup class=\"footnote-ref\" id=\"fnref-1\"><a href=\"#fn-1\">1</a></sup></p><p>Then [@smith2020].</p></div><div class=\"scene-break\" aria-hidden=\"true\">#</div>\n<div class=\"scene\"><p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p></div>\n<section class=\"footnotes\" aria-label=\"Footnotes\">\n  <ol>\n    <li id=\"fn-1\" value=\"1\">A note with <em>emphasis</em>. <a href=\"#fnref-1\" class=\"footnote-backref\" aria-label=\"Back to reference 1\">↩</a></li>\n  </ol>\n</section></section>\n<section class=\"chapter chapter-break\" id=\"chapter-chapter-3\"><h2 class=\"chapter-title\">Chapter 1</h2>\n<div class=\"scene\"><p>The sea was calm.<sup class=\"footnote-ref\" id=\"fnref-2\"><a href=\"#fn-2\">2</a></sup></p><ul><li>bread</li><li>salt</li></ul><p>Then <strong>nothing</strong>.<sup class=\"footnote-ref\" id=\"fnref-3\"><a href=\"#fn-3\">3</a></sup></p></div><div class=\"scene-break\" aria-hidden=\"true\">#</div>\n<div class=\"scene\"><p>Light.</p><p>More light.</p></div>\n<section class=\"footnotes\" aria-label=\"Footnotes\">\n  <ol>\n    <li id=\"fn-2\" value=\"2\">Calm, mostly. <a href=\"#fnref-2\" class=\"footnote-backref\" aria-label=\"Back to reference 2\">↩</a></li>\n    <li id=\"fn-3\" value=\"3\">Truly <em>nothing</em>. <a href=\"#fnref-3\" class=\"footnote-backref\" aria-label=\"Back to reference 3\">↩</a></li>\n  </ol>\n</section></section>\n<section class=\"chapter chapter-break\" id=\"chapter-chapter-4\"><h2 class=\"chapter-title\">Epilogue</h2>\n<div class=\"scene\"><h2>After</h2><blockquote><p>A quote.</p></blockquote><p>Last line.<sup class=\"footnote-ref\" id=\"fnref-4\"><a href=\"#fn-4\">4</a></sup></p></div>\n<section class=\"footnotes\" aria-label=\"Footnotes\">\n  <ol>\n    <li id=\"fn-4\" value=\"4\">The end. <a href=\"#fnref-4\" class=\"footnote-backref\" aria-label=\"Back to reference 4\">↩</a></li>\n  </ol>\n</section></section>\n</div>\n</body>\n</html>"
+  },
+  "pdf": {
+    "custom-a": "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ZSAvVHlwZTEKL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcKL0ZpcnN0Q2hhciAzMgovTGFzdENoYXIgMjU1Cj4+CmVuZG9iagoxNSAwIG9iago8PAovVHlwZSAvRm9udAovQmFzZUZvbnQgL0hlbHZldGljYS1PYmxpcXVlCi9TdWJ0eXBlIC9UeXBlMQovRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZwovRmlyc3RDaGFyIDMyCi9MYXN0Q2hhciAyNTUKPj4KZW5kb2JqCjE2IDAgb2JqCjw8Ci9UeXBlIC9Gb250Ci9CYXNlRm9udCAvSGVsdmV0aWNhLUJvbGRPYmxpcXVlCi9TdWJ0eXBlIC9UeXBlMQovRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZwovRmlyc3RDaGFyIDMyCi9MYXN0Q2hhciAyNTUKPj4KZW5kb2JqCjE3IDAgb2JqCjw8Ci9UeXBlIC9Gb250Ci9CYXNlRm9udCAvQ291cmllcgovU3VidHlwZSAvVHlwZTEKL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcKL0ZpcnN0Q2hhciAzMgovTGFzdENoYXIgMjU1Cj4+CmVuZG9iagoxOCAwIG9iago8PAovVHlwZSAvRm9udAovQmFzZUZvbnQgL0NvdXJpZXItQm9sZAovU3VidHlwZSAvVHlwZTEKL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcKL0ZpcnN0Q2hhciAzMgovTGFzdENoYXIgMjU1Cj4+CmVuZG9iagoxOSAwIG9iago8PAovVHlwZSAvRm9udAovQmFzZUZvbnQgL0NvdXJpZXItT2JsaXF1ZQovU3VidHlwZSAvVHlwZTEKL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcKL0ZpcnN0Q2hhciAzMgovTGFzdENoYXIgMjU1Cj4+CmVuZG9iagoyMCAwIG9iago8PAovVHlwZSAvRm9udAovQmFzZUZvbnQgL0NvdXJpZXItQm9sZE9ibGlxdWUKL1N1YnR5cGUgL1R5cGUxCi9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nCi9GaXJzdENoYXIgMzIKL0xhc3RDaGFyIDI1NQo+PgplbmRvYmoKMjEgMCBvYmoKPDwKL1R5cGUgL0ZvbnQKL0Jhc2VGb250IC9UaW1lcy1Sb21hbgovU3VidHlwZSAvVHlwZTEKL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcKL0ZpcnN0Q2hhciAzMgovTGFzdENoYXIgMjU1Cj4+CmVuZG9iagoyMiAwIG9iago8PAovVHlwZSAvRm9udAovQmFzZUZvbnQgL1RpbWVzLUJvbGQKL1N1YnR5cGUgL1R5cGUxCi9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nCi9GaXJzdENoYXIgMzIKL0xhc3RDaGFyIDI1NQo+PgplbmRvYmoKMjMgMCBvYmoKPDwKL1R5cGUgL0ZvbnQKL0Jhc2VGb250IC9UaW1lcy1JdGFsaWMKL1N1YnR5cGUgL1R5cGUxCi9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nCi9GaXJzdENoYXIgMzIKL0xhc3RDaGFyIDI1NQo+PgplbmRvYmoKMjQgMCBvYmoKPDwKL1R5cGUgL0ZvbnQKL0Jhc2VGb250IC9UaW1lcy1Cb2xkSXRhbGljCi9TdWJ0eXBlIC9UeXBlMQovRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZwovRmlyc3RDaGFyIDMyCi9MYXN0Q2hhciAyNTUKPj4KZW5kb2JqCjI1IDAgb2JqCjw8Ci9UeXBlIC9Gb250Ci9CYXNlRm9udCAvWmFwZkRpbmdiYXRzCi9TdWJ0eXBlIC9UeXBlMQovRmlyc3RDaGFyIDMyCi9MYXN0Q2hhciAyNTUKPj4KZW5kb2JqCjI2IDAgb2JqCjw8Ci9UeXBlIC9Gb250Ci9CYXNlRm9udCAvU3ltYm9sCi9TdWJ0eXBlIC9UeXBlMQovRmlyc3RDaGFyIDMyCi9MYXN0Q2hhciAyNTUKPj4KZW5kb2JqCjIgMCBvYmoKPDwKL1Byb2NTZXQgWy9QREYgL1RleHQgL0ltYWdlQiAvSW1hZ2VDIC9JbWFnZUldCi9Gb250IDw8Ci9GMSAxMyAwIFIKL0YyIDE0IDAgUgovRjMgMTUgMCBSCi9GNCAxNiAwIFIKL0Y1IDE3IDAgUgovRjYgMTggMCBSCi9GNyAxOSAwIFIKL0Y4IDIwIDAgUgovRjkgMjEgMCBSCi9GMTAgMjIgMCBSCi9GMTEgMjMgMCBSCi9GMTIgMjQgMCBSCi9GMTMgMjUgMCBSCi9GMTQgMjYgMCBSCj4+Ci9YT2JqZWN0IDw8Cj4+Cj4+CmVuZG9iagoyNyAwIG9iago8PAovUHJvZHVjZXIgKGpzUERGIDQuMi4xKQovVGl0bGUgKP7/AFQAaABlACAATABpAGcAaAB0AGgAbwB1AHMAZQAg2DzfCgAgAEsAZQBlAHAAZQByKQovQXV0aG9yIChBLiBXcml0ZXIpCi9DcmVhdG9yIChQcm9zZUNyYWZ0KQovQ3JlYXRpb25EYXRlIChEOjIwMjYxMTE4MTMwNTEyKzAxJzAwJykKPj4KZW5kb2JqCjI4IDAgb2JqCjw8Ci9UeXBlIC9DYXRhbG9nCi9QYWdlcyAxIDAgUgovT3BlbkFjdGlvbiBbMyAwIFIgL0ZpdEggbnVsbF0KL1BhZ2VMYXlvdXQgL09uZUNvbHVtbgo+PgplbmRvYmoKeHJlZgowIDI5CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMzMzNSAwMDAwMCBuIAowMDAwMDA1MTgyIDAwMDAwIG4gCjAwMDAwMDAwMTUgMDAwMDAgbiAKMDAwMDAwMDEyMCAwMDAwMCBuIAowMDAwMDAwMzc5IDAwMDAwIG4gCjAwMDAwMDA0ODQgMDAwMDAgbiAKMDAwMDAwMDc1MiAwMDAwMCBuIAowMDAwMDAwODU3IDAwMDAwIG4gCjAwMDAwMDE2NDggMDAwMDAgbiAKMDAwMDAwMTc1NCAwMDAwMCBuIAowMDAwMDAyNTg5IDAwMDAwIG4gCjAwMDAwMDI2OTYgMDAwMDAgbiAKMDAwMDAwMzQxNyAwMDAwMCBuIAowMDAwMDAzNTQzIDAwMDAwIG4gCjAwMDAwMDM2NzQgMDAwMDAgbiAKMDAwMDAwMzgwOCAwMDAwMCBuIAowMDAwMDAzOTQ2IDAwMDAwIG4gCjAwMDAwMDQwNzAgMDAwMDAgbiAKMDAwMDAwNDE5OSAwMDAwMCBuIAowMDAwMDA0MzMxIDAwMDAwIG4gCjAwMDAwMDQ0NjcgMDAwMDAgbiAKMDAwMDAwNDU5NSAwMDAwMCBuIAowMDAwMDA0NzIyIDAwMDAwIG4gCjAwMDAwMDQ4NTEgMDAwMDAgbiAKMDAwMDAwNDk4NCAwMDAwMCBuIAowMDAwMDA1MDg2IDAwMDAwIG4gCjAwMDAwMDU0MzUgMDAwMDAgbiAKMDAwMDAwNTYyMyAwMDAwMCBuIAp0cmFpbGVyCjw8Ci9TaXplIDI5Ci9Sb290IDI4IDAgUgovSW5mbyAyNyAwIFIKL0lEIFsgPDE0MDdGRjYwQ0NGRDQxNTBDQjI1MjVEM0Q0NjEyNUZCPiA8MTQwN0ZGNjBDQ0ZENDE1MENCMjUyNUQzRDQ2MTI1RkI+IF0KPj4Kc3RhcnR4cmVmCjU3MjcKJSVFT0Y=",
+    "custom-b": "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TGFzdENoYXIgMjU1Cj4+CmVuZG9iagoxNSAwIG9iago8PAovVHlwZSAvRm9udAovQmFzZUZvbnQgL0hlbHZldGljYS1PYmxpcXVlCi9TdWJ0eXBlIC9UeXBlMQovRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZwovRmlyc3RDaGFyIDMyCi9MYXN0Q2hhciAyNTUKPj4KZW5kb2JqCjE2IDAgb2JqCjw8Ci9UeXBlIC9Gb250Ci9CYXNlRm9udCAvSGVsdmV0aWNhLUJvbGRPYmxpcXVlCi9TdWJ0eXBlIC9UeXBlMQovRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZwovRmlyc3RDaGFyIDMyCi9MYXN0Q2hhciAyNTUKPj4KZW5kb2JqCjE3IDAgb2JqCjw8Ci9UeXBlIC9Gb250Ci9CYXNlRm9udCAvQ291cmllcgovU3VidHlwZSAvVHlwZTEKL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcKL0ZpcnN0Q2hhciAzMgovTGFzdENoYXIgMjU1Cj4+CmVuZG9iagoxOCAwIG9iago8PAovVHlwZSAvRm9udAovQmFzZUZvbnQgL0NvdXJpZXItQm9sZAovU3VidHlwZSAvVHlwZTEKL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcKL0ZpcnN0Q2hhciAzMgovTGFzdENoYXIgMjU1Cj4+CmVuZG9iagoxOSAwIG9iago8PAovVHlwZSAvRm9udAovQmFzZUZvbnQgL0NvdXJpZXItT2JsaXF1ZQovU3VidHlwZSAvVHlwZTEKL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcKL0ZpcnN0Q2hhciAzMgovTGFzdENoYXIgMjU1Cj4+CmVuZG9iagoyMCAwIG9iago8PAovVHlwZSAvRm9udAovQmFzZUZvbnQgL0NvdXJpZXItQm9sZE9ibGlxdWUKL1N1YnR5cGUgL1R5cGUxCi9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nCi9GaXJzdENoYXIgMzIKL0xhc3RDaGFyIDI1NQo+PgplbmRvYmoKMjEgMCBvYmoKPDwKL1R5cGUgL0ZvbnQKL0Jhc2VGb250IC9UaW1lcy1Sb21hbgovU3VidHlwZSAvVHlwZTEKL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcKL0ZpcnN0Q2hhciAzMgovTGFzdENoYXIgMjU1Cj4+CmVuZG9iagoyMiAwIG9iago8PAovVHlwZSAvRm9udAovQmFzZUZvbnQgL1RpbWVzLUJvbGQKL1N1YnR5cGUgL1R5cGUxCi9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nCi9GaXJzdENoYXIgMzIKL0xhc3RDaGFyIDI1NQo+PgplbmRvYmoKMjMgMCBvYmoKPDwKL1R5cGUgL0ZvbnQKL0Jhc2VGb250IC9UaW1lcy1JdGFsaWMKL1N1YnR5cGUgL1R5cGUxCi9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nCi9GaXJzdENoYXIgMzIKL0xhc3RDaGFyIDI1NQo+PgplbmRvYmoKMjQgMCBvYmoKPDwKL1R5cGUgL0ZvbnQKL0Jhc2VGb250IC9UaW1lcy1Cb2xkSXRhbGljCi9TdWJ0eXBlIC9UeXBlMQovRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZwovRmlyc3RDaGFyIDMyCi9MYXN0Q2hhciAyNTUKPj4KZW5kb2JqCjI1IDAgb2JqCjw8Ci9UeXBlIC9Gb250Ci9CYXNlRm9udCAvWmFwZkRpbmdiYXRzCi9TdWJ0eXBlIC9UeXBlMQovRmlyc3RDaGFyIDMyCi9MYXN0Q2hhciAyNTUKPj4KZW5kb2JqCjI2IDAgb2JqCjw8Ci9UeXBlIC9Gb250Ci9CYXNlRm9udCAvU3ltYm9sCi9TdWJ0eXBlIC9UeXBlMQovRmlyc3RDaGFyIDMyCi9MYXN0Q2hhciAyNTUKPj4KZW5kb2JqCjIgMCBvYmoKPDwKL1Byb2NTZXQgWy9QREYgL1RleHQgL0ltYWdlQiAvSW1hZ2VDIC9JbWFnZUldCi9Gb250IDw8Ci9GMSAxMyAwIFIKL0YyIDE0IDAgUgovRjMgMTUgMCBSCi9GNCAxNiAwIFIKL0Y1IDE3IDAgUgovRjYgMTggMCBSCi9GNyAxOSAwIFIKL0Y4IDIwIDAgUgovRjkgMjEgMCBSCi9GMTAgMjIgMCBSCi9GMTEgMjMgMCBSCi9GMTIgMjQgMCBSCi9GMTMgMjUgMCBSCi9GMTQgMjYgMCBSCj4+Ci9YT2JqZWN0IDw8Cj4+Cj4+CmVuZG9iagoyNyAwIG9iago8PAovUHJvZHVjZXIgKGpzUERGIDQuMi4xKQovVGl0bGUgKP7/AFQAaABlACAATABpAGcAaAB0AGgAbwB1AHMAZQAg2DzfCgAgAEsAZQBlAHAAZQByKQovQXV0aG9yIChBLiBXcml0ZXIpCi9DcmVhdG9yIChQcm9zZUNyYWZ0KQovQ3JlYXRpb25EYXRlIChEOjIwMjYxMTE4MTMwNTEyKzAxJzAwJykKPj4KZW5kb2JqCjI4IDAgb2JqCjw8Ci9UeXBlIC9DYXRhbG9nCi9QYWdlcyAxIDAgUgovT3BlbkFjdGlvbiBbMyAwIFIgL0ZpdEggbnVsbF0KL1BhZ2VMYXlvdXQgL09uZUNvbHVtbgo+PgplbmRvYmoKeHJlZgowIDI5CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMzI4NCAwMDAwMCBuIAowMDAwMDA1MTMxIDAwMDAwIG4gCjAwMDAwMDAwMTUgMDAwMDAgbiAKMDAwMDAwMDE1MiAwMDAwMCBuIAowMDAwMDAwNDM3IDAwMDAwIG4gCjAwMDAwMDA1NzQgMDAwMDAgbiAKMDAwMDAwMDg1MyAwMDAwMCBuIAowMDAwMDAwOTkwIDAwMDAwIG4gCjAwMDAwMDE3MTIgMDAwMDAgbiAKMDAwMDAwMTg1MCAwMDAwMCBuIAowMDAwMDAyNjMwIDAwMDAwIG4gCjAwMDAwMDI3NjkgMDAwMDAgbiAKMDAwMDAwMzM2NiAwMDAwMCBuIAowMDAwMDAzNDkyIDAwMDAwIG4gCjAwMDAwMDM2MjMgMDAwMDAgbiAKMDAwMDAwMzc1NyAwMDAwMCBuIAowMDAwMDAzODk1IDAwMDAwIG4gCjAwMDAwMDQwMTkgMDAwMDAgbiAKMDAwMDAwNDE0OCAwMDAwMCBuIAowMDAwMDA0MjgwIDAwMDAwIG4gCjAwMDAwMDQ0MTYgMDAwMDAgbiAKMDAwMDAwNDU0NCAwMDAwMCBuIAowMDAwMDA0NjcxIDAwMDAwIG4gCjAwMDAwMDQ4MDAgMDAwMDAgbiAKMDAwMDAwNDkzMyAwMDAwMCBuIAowMDAwMDA1MDM1IDAwMDAwIG4gCjAwMDAwMDUzODQgMDAwMDAgbiAKMDAwMDAwNTU3MiAwMDAwMCBuIAp0cmFpbGVyCjw8Ci9TaXplIDI5Ci9Sb290IDI4IDAgUgovSW5mbyAyNyAwIFIKL0lEIFsgPDE1QUU2NTQ1OEIxMkM1Q0VBNDBEQjg2RkIwMDFGOTJCPiA8MTVBRTY1NDU4QjEyQzVDRUE0MERCODZGQjAwMUY5MkI+IF0KPj4Kc3RhcnR4cmVmCjU2NzYKJSVFT0Y="
+  }
+}

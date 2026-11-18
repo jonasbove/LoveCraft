@@ -36,10 +36,12 @@ impl SceneSeparator {
 pub struct PublishOptions {
     /// A built-in style id or a custom style's id.
     pub style: String,
+    /// The project's own styles (`customStyles`).
+    pub custom_styles: Vec<super::styles::CustomStyle>,
     /// Whether the style sets chapter headings in capitals.
     pub chapter_heading_uppercase: bool,
-    /// The style's words per page for the page estimate (0: reflowable). `None` for a custom
-    /// style, whose estimate from its page size isn't ported yet.
+    /// The style's words per page for the page estimate (0: reflowable; a custom style's is
+    /// estimated from its page, `estimateWordsPerPage`).
     pub words_per_page: Option<u32>,
     /// The chosen format's id (`pdf`, `epub`, `text`…).
     pub format: String,
@@ -69,6 +71,7 @@ impl Default for PublishOptions {
     fn default() -> Self {
         Self {
             style: "manuscript".into(),
+            custom_styles: Vec::new(),
             chapter_heading_uppercase: true,
             words_per_page: Some(250),
             format: "pdf".into(),
@@ -173,19 +176,7 @@ impl PublishOptions {
         let Some(value) = value.filter(|v| v.as_object().is_some()) else {
             return defaults;
         };
-        let custom: Vec<(String, bool)> = value
-            .get("customStyles")
-            .and_then(JsValue::as_array)
-            .unwrap_or_default()
-            .iter()
-            .filter_map(|s| {
-                let id = s
-                    .get("id")
-                    .and_then(JsValue::as_js_string)?
-                    .to_string_lossy();
-                Some((id, flag(s.get("chapterHeadingUppercase"), false)))
-            })
-            .collect();
+        let custom_styles = super::styles::normalize_custom_styles(value.get("customStyles"));
         let requested = value
             .get("style")
             .and_then(JsValue::as_js_string)
@@ -195,10 +186,14 @@ impl PublishOptions {
             .and_then(|s| BUILTIN_STYLES.iter().find(|(id, ..)| *id == s));
         let custom_style = requested
             .as_deref()
-            .and_then(|s| custom.iter().find(|(id, _)| id == s));
+            .and_then(|s| custom_styles.iter().find(|c| c.id == s));
         let (style, uppercase, words_per_page) = match (builtin, custom_style) {
             (Some((id, upper, words)), _) => ((*id).to_owned(), *upper, Some(*words)),
-            (None, Some((id, upper))) => (id.clone(), *upper, None),
+            (None, Some(custom)) => (
+                custom.id.clone(),
+                custom.chapter_uppercase,
+                Some(super::styles::words_per_page(custom)),
+            ),
             _ => (
                 defaults.style.clone(),
                 defaults.chapter_heading_uppercase,
@@ -216,6 +211,7 @@ impl PublishOptions {
             .and_then(|s| SceneSeparator::read(&s.to_string_lossy()));
         Self {
             style,
+            custom_styles,
             chapter_heading_uppercase: uppercase,
             words_per_page,
             format: format.unwrap_or(defaults.format),

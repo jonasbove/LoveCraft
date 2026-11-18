@@ -601,6 +601,63 @@ pub fn add_matter_page(
     Ok(())
 }
 
+fn publish_options_mut(project: &mut JsValue) -> Result<&mut JsObject, EditError> {
+    let project = project.as_object_mut().ok_or(EditError::Shape)?;
+    if !matches!(project.get("publishOptions"), Some(JsValue::Object(_))) {
+        project.insert("publishOptions", JsValue::Object(JsObject::new()));
+    }
+    project
+        .get_mut("publishOptions")
+        .and_then(JsValue::as_object_mut)
+        .ok_or(EditError::Shape)
+}
+
+/// `saveStyleDraft`: a custom style saved (a new one, with `custom-` and `unique` as its id,
+/// while there are fewer than 24) and chosen.
+pub fn save_custom_style(
+    project: &mut JsValue,
+    style: &crate::publish::styles::CustomStyle,
+    unique: &str,
+) -> Result<(), EditError> {
+    use crate::publish::styles::{ID_PREFIX, MAX_STYLES, normalize_draft, to_value};
+    let mut saved = normalize_draft(style);
+    if saved.id.is_empty() {
+        saved.id = format!("{ID_PREFIX}{unique}");
+    }
+    let options = publish_options_mut(project)?;
+    let mut styles = options
+        .get("customStyles")
+        .and_then(JsValue::as_array)
+        .map(<[JsValue]>::to_vec)
+        .unwrap_or_default();
+    match styles.iter().position(|s| text(s.get("id")) == saved.id) {
+        Some(index) => styles[index] = to_value(&saved),
+        None if styles.len() < MAX_STYLES => styles.push(to_value(&saved)),
+        None => return Ok(()),
+    }
+    options.insert("customStyles", JsValue::Array(styles));
+    options.insert("style", JsValue::str(&saved.id));
+    Ok(())
+}
+
+/// `deleteStyleDraft`: a custom style gone; Manuscript chosen if it was.
+pub fn delete_custom_style(project: &mut JsValue, id: &str) -> Result<(), EditError> {
+    let options = publish_options_mut(project)?;
+    let styles: Vec<JsValue> = options
+        .get("customStyles")
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+        .iter()
+        .filter(|s| text(s.get("id")) != id)
+        .cloned()
+        .collect();
+    options.insert("customStyles", JsValue::Array(styles));
+    if text(options.get("style")) == id {
+        options.insert("style", JsValue::str("manuscript"));
+    }
+    Ok(())
+}
+
 fn escape(text: &str) -> String {
     text.replace('&', "&amp;")
         .replace('<', "&lt;")

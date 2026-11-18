@@ -714,12 +714,12 @@ fn a_scene_the_rich_editor_cannot_hold_opens_as_markdown() {
     );
     let mut harness = harness(app);
     harness.run();
-    // A nested list, which the rich editor can't hold yet.
+    // A loose list (paragraphs in its items), which the rich editor can't hold yet.
     harness.state_mut().import_markdown_folder(
         "Vault",
         vec![MarkdownFile {
             path: "Manuscript/one.md".into(),
-            text: "# One\n\n- a\n  - b".into(),
+            text: "# One\n\n- a\n\n- b".into(),
         }],
         0,
     );
@@ -743,7 +743,7 @@ fn a_scene_the_rich_editor_cannot_hold_opens_as_markdown() {
     let source = harness.get_by_label("Markdown source");
     assert_eq!(
         source.accesskit_node().value().as_deref(),
-        Some("-   a\n    -   b")
+        Some("-   a\n    \n-   b")
     );
     // The preference stays off; Rich text editor goes back.
     harness

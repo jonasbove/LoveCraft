@@ -16,4 +16,5 @@ pub mod html;
 pub mod js;
 pub mod library;
 pub mod project;
+pub mod richtext;
 pub mod storage;

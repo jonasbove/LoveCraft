@@ -27,7 +27,9 @@ pub enum Intent {
 pub struct Draft {
     pub document: String,
     pub title: String,
-    /// One paragraph per line.
+    /// The scene's text and formatting.
+    pub doc: prosecraft_core::richtext::RichDoc,
+    /// The editor's text buffer (the document's text).
     pub body: String,
     /// Changed since the last commit to the project.
     pub title_dirty: bool,
@@ -106,11 +108,7 @@ pub fn commit_draft(draft: &Draft, data: &mut JsValue) -> Result<(), EditError> 
         edit::set_document_title(data, &draft.document, &draft.title)?;
     }
     if draft.body_dirty {
-        edit::set_document_content(
-            data,
-            &draft.document,
-            &edit::paragraphs_to_html(&draft.body),
-        )?;
+        edit::set_document_content(data, &draft.document, &draft.doc.to_html())?;
     }
     Ok(())
 }

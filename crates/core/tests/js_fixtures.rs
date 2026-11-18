@@ -91,3 +91,25 @@ fn plain_text_and_word_counts_match_prosecraft() {
         assert_eq!(html_word_count(&clean) as f64, words, "words for {clean}");
     }
 }
+
+#[test]
+fn prosecraft_rich_html_round_trips_through_the_editor_model() {
+    use prosecraft_core::richtext::RichDoc;
+    let cases = fixture("rich-corpus.json");
+    let mut editable = 0;
+    for case in cases.as_array().unwrap_or_default() {
+        let html = text(case, "html");
+        match RichDoc::from_html(&html) {
+            Some(doc) => {
+                assert_eq!(doc.to_html(), html);
+                editable += 1;
+            }
+            None => println!("read-only: {html:?}"),
+        }
+    }
+    println!(
+        "{editable} of {} editable",
+        cases.as_array().map_or(0, <[JsValue]>::len)
+    );
+    assert!(editable >= 14, "only {editable} editable");
+}

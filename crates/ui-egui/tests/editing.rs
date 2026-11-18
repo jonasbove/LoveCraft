@@ -172,17 +172,77 @@ fn a_new_chapter_and_typed_scene_are_saved_as_prosecraft_writes_them() {
 }
 
 #[test]
-fn a_formatted_scene_stays_read_only_with_the_reason() {
+fn a_screenplay_scene_stays_read_only_with_the_reason() {
     let (mut harness, _memory) = app();
     harness
-        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .get_by_role_and_label(Role::TreeItem, "INT. LIGHTHOUSE - NIGHT")
         .click();
     harness.run();
     assert!(
         harness.query_by_label("Scene text").is_none(),
-        "no plain editor for a scene with formatting"
+        "no editor for content it can't write back"
     );
-    harness.get_by_label_contains("formatting the plain editor can't change yet");
+    harness.get_by_label_contains("content the editor can't change yet");
+}
+
+#[test]
+fn typing_into_a_formatted_scene_keeps_its_emphasis_footnote_and_citation() {
+    let (mut harness, memory) = app();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    let body = harness.get_by_label("Scene text");
+    body.focus();
+    harness.run();
+    // The caret starts at the end; add a sentence there.
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::End);
+    harness.get_by_label("Scene text").type_text(" It rained.");
+    harness.run_steps(12);
+    let saved = memory.last();
+    let scene = document(project(&saved, "project-1"), "doc-1").expect("scene");
+    let content = scene
+        .get("content")
+        .and_then(JsValue::as_js_string)
+        .map(|c| c.to_string_lossy())
+        .unwrap_or_default();
+    assert_eq!(
+        content,
+        r#"<p>It was <em>dark</em>.<sup class="footnote-ref" data-footnote-id="fn-1" contenteditable="false"></sup></p><p>Then <span class="cite-ref" data-cites="[{&quot;id&quot;:&quot;smith2020&quot;}]">(Smith 2020)</span>. It rained.</p>"#
+    );
+}
+
+#[test]
+fn bold_from_the_toolbar_wraps_the_selection() {
+    let (mut harness, memory) = app();
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("add")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Scene 1")
+        .click();
+    harness.run();
+    let body = harness.get_by_label("Scene text");
+    body.focus();
+    body.type_text("loud words");
+    harness.run();
+    // Select "loud" (Home, then Shift+Right four times) and press the Bold button.
+    harness.key_press_modifiers(egui::Modifiers::NONE, egui::Key::Home);
+    for _ in 0..4 {
+        harness.key_press_modifiers(egui::Modifiers::SHIFT, egui::Key::ArrowRight);
+    }
+    harness.run();
+    harness.get_by_role_and_label(Role::Button, "Bold").click();
+    harness.run_steps(12);
+    let saved = memory.last();
+    let scene = document(project(&saved, "project-1"), "new-1").expect("scene");
+    assert_eq!(
+        js::stringify(scene.get("content").expect("content")),
+        r#""<p><strong>loud</strong> words</p>""#
+    );
 }
 
 #[test]

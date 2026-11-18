@@ -7,7 +7,21 @@
 use egui::accesskit::Role;
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
-use prosecraft_ui_egui::ProseApp;
+use prosecraft_ui_egui::{LibraryStore, ProjectLibrary, ProseApp};
+
+/// Keeps nothing; the renders only look.
+struct Nowhere;
+impl LibraryStore for Nowhere {
+    fn save(&mut self, _text: &str) -> Result<(), String> {
+        Ok(())
+    }
+    fn now_ms(&self) -> f64 {
+        1_800_000_000_000.0
+    }
+    fn new_id(&mut self) -> String {
+        "new".into()
+    }
+}
 
 fn fixture(name: &str) -> String {
     let path = format!(
@@ -24,7 +38,7 @@ fn render_views() {
         return;
     };
     let dir = std::path::PathBuf::from(dir);
-    let mut app = ProseApp::new();
+    let mut app = ProseApp::with_library(ProjectLibrary::new("render".into()), Box::new(Nowhere));
     app.open_backup(
         "bundle-plain.prosecraft",
         &fixture("bundle-plain.prosecraft"),

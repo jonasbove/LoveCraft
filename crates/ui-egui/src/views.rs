@@ -1171,9 +1171,20 @@ pub(crate) enum AtomLabel {
 }
 
 /// The height of a kept block's row.
-fn block_height(preview: &prosecraft_core::richtext::BlockPreview) -> f32 {
+fn block_height(preview: &prosecraft_core::richtext::BlockPreview, wrap: f32) -> f32 {
     if preview.kind == prosecraft_core::richtext::BlockKind::Rule {
         return 28.0;
+    }
+    // A drawn equation or calculation: its height (shrunk to the column), with its margins.
+    if let Some(kind) = crate::rich_view::block_kind(preview)
+        && let Some(size) = crate::rich_view::size(kind, &preview.source)
+    {
+        let fit = if wrap.is_finite() && size.x > wrap {
+            wrap / size.x
+        } else {
+            1.0
+        };
+        return size.y * fit + 2.0 * crate::rich_view::BLOCK_MARGIN;
     }
     let lines = preview.lines.len().max(1) + usize::from(preview.more);
     8.0 + 18.0 + lines as f32 * BLOCK_LINE + 12.0
@@ -1317,9 +1328,23 @@ pub(crate) fn atom_sizes(
                 }
             }
             AtomLabel::Block(preview) => AtomBox {
-                row: Some(block_height(preview)),
+                row: Some(block_height(preview, wrap)),
                 ..AtomBox::default()
             },
+            // An equation in the line: as wide as its drawing.
+            AtomLabel::Math(tex) => {
+                let width =
+                    crate::rich_view::size(prosecraft_core::rich::RichKind::MathInline, tex)
+                        .map_or(14.0, |s| s.x + 4.0);
+                AtomBox {
+                    font: if glyph > 0.0 {
+                        (ATOM_FONT + 2.0) * width / glyph
+                    } else {
+                        0.0
+                    },
+                    ..AtomBox::default()
+                }
+            }
             // As wide as the column, so the picture has its row to itself.
             AtomLabel::Picture(picture) => AtomBox {
                 spacing: if wrap.is_finite() {
@@ -1331,7 +1356,7 @@ pub(crate) fn atom_sizes(
                 picture: true,
                 ..AtomBox::default()
             },
-            AtomLabel::Footnote(_) | AtomLabel::Math(_) | AtomLabel::Other => AtomBox::default(),
+            AtomLabel::Footnote(_) | AtomLabel::Other => AtomBox::default(),
         })
         .collect()
 }
@@ -2379,6 +2404,30 @@ fn paint_block(
 ) {
     let left = row.min.x;
     let right = right_edge.max(left + 40.0);
+    // An equation or calculation drawn, centred (`.scene .math-block { text-align: center }`).
+    if let Some(kind) = crate::rich_view::block_kind(preview)
+        && let Ok((size, pixels)) =
+            crate::rich_view::drawn(kind, &preview.source, palette.text_body)
+    {
+        let width = right - left;
+        let fit = if size.x > width { width / size.x } else { 1.0 };
+        let shown = size * fit;
+        let rect = egui::Rect::from_center_size(
+            egui::pos2(
+                (left + right) / 2.0,
+                row.min.y + crate::rich_view::BLOCK_MARGIN + shown.y / 2.0,
+            ),
+            shown,
+        );
+        let texture = crate::rich_view::texture(painter.ctx(), &pixels);
+        painter.image(
+            texture.id(),
+            rect,
+            egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+            egui::Color32::WHITE,
+        );
+        return;
+    }
     if preview.kind == prosecraft_core::richtext::BlockKind::Rule {
         let y = row.center().y;
         painter.line_segment(
@@ -2523,6 +2572,23 @@ pub(crate) fn paint_atoms(
                     number,
                     egui::FontId::proportional(ATOM_FONT - 2.0),
                     palette.link,
+                );
+            }
+            AtomLabel::Math(tex)
+                if let Ok((size, pixels)) = crate::rich_view::drawn(
+                    prosecraft_core::rich::RichKind::MathInline,
+                    tex,
+                    palette.text_body,
+                ) =>
+            {
+                let rect =
+                    egui::Rect::from_center_size(egui::pos2(center.x, before.center().y), size);
+                let texture = crate::rich_view::texture(painter.ctx(), &pixels);
+                painter.image(
+                    texture.id(),
+                    rect,
+                    egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+                    egui::Color32::WHITE,
                 );
             }
             AtomLabel::Math(_) => {

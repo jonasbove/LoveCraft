@@ -760,3 +760,268 @@ fn citations_are_formatted_as_prosecraft_formats_them() {
     }
     assert!(checked > 3000, "{checked}");
 }
+
+fn list(value: &JsValue, key: &str) -> Vec<JsValue> {
+    value
+        .get(key)
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+        .to_vec()
+}
+
+fn optional(value: &JsValue, key: &str) -> Option<String> {
+    value
+        .get(key)
+        .and_then(JsValue::as_js_string)
+        .map(|s| s.to_string_lossy())
+}
+
+fn want(value: &JsValue, key: &str) -> String {
+    value.get(key).map(js::stringify).unwrap_or_default()
+}
+
+fn strings(list: &[String]) -> JsValue {
+    JsValue::Array(list.iter().map(|w| JsValue::str(w)).collect())
+}
+
+/// `{ items, warnings }` as JSON, the shape of the parsers' results.
+fn items_and_warnings(items: Vec<JsValue>, warnings: &[String]) -> String {
+    let mut o = js::JsObject::new();
+    o.insert("items", JsValue::Array(items));
+    o.insert("warnings", strings(warnings));
+    js::stringify(&JsValue::Object(o))
+}
+
+/// The `imports`, `bibtex`, `ris` and `latex` parts; returns how many cases were checked.
+fn check_citation_parsers(fx: &JsValue) -> usize {
+    use prosecraft_core::citations::bibtex::{decode_latex, parse_bibtex};
+    use prosecraft_core::citations::import::import_citations;
+    use prosecraft_core::citations::ris::parse_ris;
+    let mut checked = 0;
+    for case in list(fx, "imports") {
+        let result = import_citations(&text(&case, "text"), &text(&case, "filename"));
+        let mut o = js::JsObject::new();
+        let format = result
+            .format
+            .map_or(JsValue::Null, |f| JsValue::str(f.as_str()));
+        o.insert("format", format);
+        o.insert("items", JsValue::Array(result.items));
+        o.insert("warnings", strings(&result.warnings));
+        let have = js::stringify(&JsValue::Object(o));
+        assert_eq!(
+            have,
+            want(&case, "result"),
+            "import {}",
+            js::stringify(&case)
+        );
+        checked += 1;
+    }
+    for case in list(fx, "bibtex") {
+        let result = parse_bibtex(&text(&case, "text"));
+        let have = items_and_warnings(result.items, &result.warnings);
+        assert_eq!(
+            have,
+            want(&case, "result"),
+            "bibtex {}",
+            text(&case, "text")
+        );
+        checked += 1;
+    }
+    for case in list(fx, "ris") {
+        let result = parse_ris(&text(&case, "text"));
+        let have = items_and_warnings(result.items, &result.warnings);
+        assert_eq!(have, want(&case, "result"), "ris {}", text(&case, "text"));
+        checked += 1;
+    }
+    for case in list(fx, "latex") {
+        let pages = matches!(case.get("pages"), Some(JsValue::Bool(true)));
+        let input = text(&case, "input");
+        let have = decode_latex(&input, pages);
+        assert_eq!(have, text(&case, "out"), "latex {input:?} {pages}");
+        checked += 1;
+    }
+    checked
+}
+
+/// The `names` and `parsedNames` parts and the library's items, years, contributors, types and
+/// manual kinds; returns how many cases were checked.
+fn check_citation_names_and_types(fx: &JsValue) -> usize {
+    use prosecraft_core::citations::library::{
+        ManualSourceKind, csl_type_to_manual_kind, format_author_list, format_item_contributors,
+        item_year_text, manual_kind_to_csl_type, parse_author_list, source_type_label,
+    };
+    use prosecraft_core::csl::normalize_csl_items;
+    let mut checked = 0;
+    for case in list(fx, "names") {
+        assert_eq!(
+            format_author_list(&list(&case, "names")),
+            text(&case, "list")
+        );
+        checked += 1;
+    }
+    for case in list(fx, "parsedNames") {
+        let have = parse_author_list(&text(&case, "raw")).map_or(JsValue::Null, JsValue::Array);
+        assert_eq!(
+            js::stringify(&have),
+            want(&case, "names"),
+            "{}",
+            text(&case, "raw")
+        );
+        checked += 1;
+    }
+    let library = fx.get("library").cloned().unwrap_or(JsValue::Null);
+    let items = list(&library, "items");
+    let input = js::parse(
+        r#"[
+        {"id":"mueller2020","citeKey":"mueller2020","type":"book","title":"Ü","author":[{"family":"Müller"}],"issued":{"date-parts":[[2020]]}},
+        {"id":"x","type":"article-journal","title":"Y","issued":{"literal":"Spring 1999"}},
+        {"id":"z","type":"webpage","title":"Z","editor":[{"family":"Ed"}],"issued":{"raw":"2001-02"}},
+        {"id":"n","type":"thesis","title":"N"}]"#,
+    )
+    .expect("library input");
+    let normalized = JsValue::Array(normalize_csl_items(&input));
+    assert_eq!(js::stringify(&normalized), want(&library, "items"));
+    let years: Vec<String> = items.iter().map(item_year_text).collect();
+    assert_eq!(js::stringify(&strings(&years)), want(&library, "years"));
+    let contributors: Vec<String> = items.iter().map(format_item_contributors).collect();
+    assert_eq!(
+        js::stringify(&strings(&contributors)),
+        want(&library, "contributors")
+    );
+    checked += 3;
+    for case in list(&library, "types") {
+        let ty = text(&case, "type");
+        assert_eq!(source_type_label(&ty), text(&case, "label"), "{ty}");
+        let manual = csl_type_to_manual_kind(&ty).map(|k| k.as_str().to_owned());
+        assert_eq!(manual, optional(&case, "manual"), "{ty}");
+        checked += 1;
+    }
+    for case in list(&library, "manual") {
+        let kind = ManualSourceKind::from_name(&text(&case, "kind")).expect("kind");
+        assert_eq!(manual_kind_to_csl_type(kind), text(&case, "type"));
+        checked += 1;
+    }
+    checked
+}
+
+/// The library's citation keys and merges; returns how many cases were checked.
+fn check_citation_keys_and_merges(library: &JsValue) -> usize {
+    use prosecraft_core::citations::library::{
+        CitationKeySource, generate_citation_key, merge_imported_citations,
+    };
+    let mut checked = 0;
+    for case in list(library, "keys") {
+        let params = case.get("params").cloned().unwrap_or(JsValue::Null);
+        let title = optional(&params, "title");
+        let year = optional(&params, "year");
+        let source = CitationKeySource {
+            author: params.get("author").and_then(JsValue::as_array),
+            editor: params.get("editor").and_then(JsValue::as_array),
+            title: title.as_deref(),
+            year: year.as_deref(),
+        };
+        let exclude = optional(&case, "exclude");
+        let key = generate_citation_key(&source, &list(&case, "existing"), exclude.as_deref());
+        assert_eq!(key, text(&case, "key"), "{}", js::stringify(&case));
+        checked += 1;
+    }
+    for case in list(library, "merges") {
+        let merged = merge_imported_citations(&list(&case, "existing"), &list(&case, "imported"));
+        let mut o = js::JsObject::new();
+        o.insert("items", JsValue::Array(merged.items));
+        o.insert("addedCount", JsValue::Number(merged.added_count as f64));
+        o.insert("warnings", strings(&merged.warnings));
+        assert_eq!(js::stringify(&JsValue::Object(o)), want(&case, "result"));
+        checked += 1;
+    }
+    checked
+}
+
+fn fixture_document(d: &JsValue) -> prosecraft_core::project::Document {
+    use prosecraft_core::project::{Document, Footnote};
+    Document {
+        id: text(d, "id"),
+        title: text(d, "title"),
+        chapter_id: None,
+        space: None,
+        folder_id: None,
+        trashed: false,
+        label_id: None,
+        screenplay: false,
+        content: text(d, "content"),
+        footnotes: list(d, "footnotes")
+            .iter()
+            .map(|f| Footnote {
+                id: text(f, "id"),
+                html: text(f, "html"),
+            })
+            .collect(),
+        markdown_source: None,
+    }
+}
+
+/// The library's citation counts and searches; returns how many cases were checked.
+fn check_citation_counts_and_queries(library: &JsValue) -> usize {
+    use prosecraft_core::citations::library::{count_source_citations, matches_library_query};
+    let mut checked = 0;
+    for case in list(library, "counts") {
+        let documents: Vec<_> = list(&case, "documents")
+            .iter()
+            .map(fixture_document)
+            .collect();
+        let item = case.get("item").cloned().unwrap_or(JsValue::Null);
+        let count = count_source_citations(&item, &documents);
+        let mut o = js::JsObject::new();
+        o.insert(
+            "documentCount",
+            JsValue::Number(count.document_count as f64),
+        );
+        o.insert("docIds", strings(&count.doc_ids));
+        let have = js::stringify(&JsValue::Object(o));
+        assert_eq!(have, want(&case, "count"), "{}", js::stringify(&item));
+        checked += 1;
+    }
+    let items = list(library, "items");
+    for case in list(library, "queries") {
+        let query = text(&case, "query");
+        let matches: Vec<JsValue> = items
+            .iter()
+            .map(|item| JsValue::Bool(matches_library_query(item, &query)))
+            .collect();
+        let have = js::stringify(&JsValue::Array(matches));
+        assert_eq!(have, want(&case, "matches"), "{query}");
+        checked += 1;
+    }
+    checked
+}
+
+/// `importCitations`, `parseBibtex`, `parseRis`, `decodeLatex` and the library helpers
+/// (`library.ts`) on ProseCraft's own output: its import test inputs and more (string macros,
+/// accents, malformed and unclosed entries, missing `ER`, CSL-JSON shapes and syntax errors),
+/// author lists, citation keys, merges, citation counts and the library search.
+#[test]
+fn citation_import_matches_prosecraft() {
+    let fx = fixture("citations-import.json");
+    let library = fx.get("library").cloned().unwrap_or(JsValue::Null);
+    let checked = check_citation_parsers(&fx)
+        + check_citation_names_and_types(&fx)
+        + check_citation_keys_and_merges(&library)
+        + check_citation_counts_and_queries(&library);
+    let count = |v: &JsValue, key: &str| list(v, key).len();
+    let top = ["imports", "bibtex", "ris", "latex", "names", "parsedNames"];
+    let lib = [
+        "items", "types", "manual", "keys", "merges", "counts", "queries",
+    ];
+    for part in top {
+        assert!(count(&fx, part) > 0, "{part}");
+    }
+    for part in lib {
+        assert!(count(&library, part) > 0, "library.{part}");
+    }
+    // Every case of every part, and the library's items, years and contributors (3).
+    let expected: usize = top.iter().map(|p| count(&fx, p)).sum::<usize>()
+        + lib[1..].iter().map(|p| count(&library, p)).sum::<usize>()
+        + 3;
+    assert_eq!(checked, expected);
+    assert!(checked > 100, "{checked}");
+}

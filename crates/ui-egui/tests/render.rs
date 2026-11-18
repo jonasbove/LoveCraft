@@ -206,6 +206,17 @@ fn render_views() {
         .click();
     save(&mut harness, "write-light");
     harness
+        .get_by_role_and_label(Role::Button, "Sources")
+        .click();
+    harness.run();
+    save(&mut harness, "sources");
+    harness
+        .get_by_role_and_label(Role::Button, "Add manually")
+        .click();
+    save(&mut harness, "sources-form");
+    harness.get_by_role_and_label(Role::Button, "Done").click();
+    harness.run();
+    harness
         .get_by_role_and_label(Role::Button, "Settings…")
         .click();
     harness.run();

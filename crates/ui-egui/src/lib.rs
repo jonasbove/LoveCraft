@@ -31,6 +31,7 @@ mod screenplay_editor;
 mod scrivener_import;
 mod settings;
 mod sidebar;
+mod sources;
 mod starter;
 mod storyboard;
 pub mod theme;
@@ -118,6 +119,8 @@ pub enum HostRequest {
     /// Ask for a folder of Markdown files, then call [`ProseApp::import_markdown_folder`] with
     /// them (or [`ProseApp::import_markdown_folder_failed`]).
     ImportMarkdownFolder,
+    /// Ask for a BibTeX, RIS or CSL-JSON file, then call [`ProseApp::import_citation_file`].
+    ImportCitations,
     /// Ask for a Fountain screenplay, then call [`ProseApp::import_fountain`].
     ImportFountain,
     /// Ask for a sync folder, then call [`ProseApp::set_sync_folder`].
@@ -298,6 +301,8 @@ pub struct AppState {
     custom_starters_save: Option<Vec<prosecraft_core::starters::custom::CustomStarter>>,
     /// The Labels dialog, while open.
     labels_dialog: Option<labels::LabelsDraft>,
+    /// The Sources dialog (the citation library), while open.
+    sources: Option<sources::SourcesDialog>,
     /// The Project Settings dialog, while open.
     project_settings: Option<project_settings::ProjectSettingsDraft>,
     /// The Settings dialog is open.
@@ -982,6 +987,7 @@ impl ProseApp {
         starter::show(ui, &mut self.state);
         project_settings::show(ui, &mut self.state);
         labels::show(ui, &mut self.state);
+        sources::show(ui, &mut self.state);
         footnote_editor::show(ui, &mut self.state);
         scrivener_import::show(ui, &mut self.state);
         if let Some(preview) = self.state.scrivener_done.take() {

@@ -171,6 +171,42 @@ pub fn normalize_cite_data_attr(raw: Option<&str>) -> Option<String> {
     (js_len(&json) <= MAX_CITE_ATTR_LENGTH).then_some(json)
 }
 
+/// The `data-cites` values of `CITE_REF_SELECTOR` (`span.cite-ref[data-cites]`) elements, in
+/// document order.
+fn collect_cite_data<'a>(nodes: &'a [crate::html::Node], out: &mut Vec<&'a str>) {
+    for node in nodes {
+        if let crate::html::Node::Element(e) = node {
+            if e.name == "span"
+                && e.has_class(CITE_REF_CLASS)
+                && let Some(data) = e.attr("data-cites")
+            {
+                out.push(data);
+            }
+            collect_cite_data(&e.children, out);
+        }
+    }
+}
+
+/// `citationIdsInHtml`: the citation ids the markers in `html` cite, each once, in order of
+/// first appearance (markers with invalid data skipped).
+pub fn citation_ids_in_html(html: &str) -> Vec<String> {
+    if html.is_empty() || !html.contains(CITE_REF_CLASS) {
+        return Vec::new();
+    }
+    let nodes = crate::html::parse_fragment(html);
+    let mut data = Vec::new();
+    collect_cite_data(&nodes, &mut data);
+    let mut ids: Vec<String> = Vec::new();
+    for cites in data.into_iter().filter_map(|d| parse_cite_data(Some(d))) {
+        for cite in cites {
+            if !ids.contains(&cite.id) {
+                ids.push(cite.id);
+            }
+        }
+    }
+    ids
+}
+
 fn escape_pandoc(text: &str) -> String {
     let mut out = String::new();
     for c in text.chars() {

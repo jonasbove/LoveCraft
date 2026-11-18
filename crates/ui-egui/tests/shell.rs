@@ -86,7 +86,9 @@ fn choosing_a_scene_by_keyboard_opens_it_in_the_write_view() {
         .get_by_role_and_label(Role::Tab, "Footnotes")
         .click();
     harness.run();
-    harness.get_by_label("1. A note with emphasis.");
+    // Numbered as ProseCraft numbers it, beside its text.
+    harness.get_by_label("A note with emphasis.");
+    harness.get_by_role_and_label(Role::Button, "Remove footnote 1");
 }
 
 #[test]

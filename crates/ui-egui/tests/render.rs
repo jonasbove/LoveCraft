@@ -75,6 +75,14 @@ fn render_views() {
         .click();
     save(&mut harness, "snapshots");
     harness
+        .get_by_role_and_label(Role::Tab, "Footnotes")
+        .click();
+    harness.run();
+    harness.get_by_role_and_label(Role::Button, "Edit").click();
+    save(&mut harness, "footnotes");
+    harness.get_by_role_and_label(Role::Button, "Done").click();
+    harness.run();
+    harness
         .get_by_role_and_label(Role::Tab, "Storyboard")
         .click();
     harness.run();

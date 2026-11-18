@@ -83,6 +83,8 @@ struct Edit<'a> {
     side_tab: &'a mut crate::SideTab,
     /// A passage to select ("Go to" in the Comments tab): document, editor start and end.
     comment_goto: &'a mut Option<(String, usize, usize)>,
+    /// A footnote to open in the footnote editor: document and id.
+    footnote_open: &'a mut Option<(String, String)>,
 }
 
 pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
@@ -128,6 +130,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         pending_comment,
         side_tab,
         comment_goto,
+        footnote_open,
         ..
     } = state;
     let entry = library.as_ref().and_then(|l| l.projects().get(*active));
@@ -164,6 +167,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         pending_comment,
         side_tab,
         comment_goto,
+        footnote_open,
     };
     let mut chosen = None;
     egui::ScrollArea::vertical()
@@ -511,13 +515,24 @@ const BLOCK_STYLES: [(LineKind, &str); 7] = [
 
 /// What an atom shows: a footnote its number, a citation its own text, an equation its TeX.
 fn atom_labels(doc: &RichDoc) -> Vec<(String, bool)> {
-    let mut footnote = 0;
+    // Footnotes are numbered by id in order (`footnoteNumbers`): a repeated marker keeps its number.
+    let mut numbered: Vec<String> = Vec::new();
     doc.atoms
         .iter()
         .map(|html| {
             if html.contains("footnote-ref") {
-                footnote += 1;
-                (footnote.to_string(), true)
+                let id = prosecraft_core::footnotes::extract_ids(html)
+                    .into_iter()
+                    .next()
+                    .unwrap_or_default();
+                let number = match numbered.iter().position(|i| *i == id) {
+                    Some(i) => i + 1,
+                    None => {
+                        numbered.push(id);
+                        numbered.len()
+                    }
+                };
+                (number.to_string(), true)
             } else if html.contains("math-inline") {
                 let nodes = prosecraft_core::html::parse_fragment(html);
                 let tex = nodes.first().and_then(|n| match n {
@@ -545,7 +560,12 @@ fn atom_labels(doc: &RichDoc) -> Vec<(String, bool)> {
 const ATOM_FONT: f32 = 12.0;
 
 /// The text formats the editor lays the scene out with.
-fn layout_doc(doc: &RichDoc, text: &str, palette: &Palette, wrap: f32) -> egui::text::LayoutJob {
+pub(crate) fn layout_doc(
+    doc: &RichDoc,
+    text: &str,
+    palette: &Palette,
+    wrap: f32,
+) -> egui::text::LayoutJob {
     let mut job = egui::text::LayoutJob::default();
     job.wrap.max_width = wrap;
     let mut line = 0;
@@ -751,6 +771,27 @@ fn editor(
                     *edit.side_tab = crate::SideTab::Comments;
                 }
             }
+            // ProseCraft's Insert footnote (Ctrl+Alt+F): a marker after the selection, or at
+            // the end of the text.
+            let footnote = ui
+                .button("Footnote")
+                .on_hover_text("Insert footnote (Ctrl+Alt+F)");
+            name_field(ui, &footnote, "Insert footnote");
+            let keyed = ui.input_mut(|i| {
+                i.consume_key(
+                    egui::Modifiers::COMMAND | egui::Modifiers::ALT,
+                    egui::Key::F,
+                )
+            });
+            if footnote.clicked() || keyed {
+                let at = selection
+                    .clone()
+                    .map_or(draft.doc.text.chars().count(), |r| r.end);
+                edit.intents.push(Intent::InsertFootnote {
+                    document: document.id.clone(),
+                    at,
+                });
+            }
         });
     });
     if changed_format {
@@ -811,7 +852,16 @@ fn editor(
         draft.words_added += (words as f64 - draft.words as f64).max(0.0);
         draft.words = words;
     }
-    paint_extras(ui, palette, &draft.doc, &output);
+    let markers = paint_extras(ui, palette, &draft.doc, &output);
+    // A click on a footnote marker opens its editor (`openFootnotePopoverForMarker`).
+    if output.response.clicked()
+        && let Some(pos) = output.response.interact_pointer_pos()
+        && let Some((_, id)) = markers
+            .iter()
+            .find(|(rect, _)| rect.expand(2.0).contains(pos))
+    {
+        *edit.footnote_open = Some((document.id.clone(), id.clone()));
+    }
     let count = draft.words;
     footer(ui, palette, count, &save_text(edit.save_state));
 }
@@ -824,7 +874,8 @@ fn paint_extras(
     palette: &Palette,
     doc: &RichDoc,
     output: &egui::text_edit::TextEditOutput,
-) {
+) -> Vec<(egui::Rect, String)> {
+    let mut markers = Vec::new();
     let painter = ui.painter_at(output.text_clip_rect.expand2(egui::vec2(30.0, 0.0)));
     let galley = &output.galley;
     let origin = output.galley_pos;
@@ -874,7 +925,7 @@ fn paint_extras(
         .enumerate()
         .filter(|(_, c)| *c == ATOM)
         .map(|(i, _)| i);
-    for (index, (label, footnote)) in atoms.zip(atom_labels(doc)) {
+    for ((index, (label, footnote)), html) in atoms.zip(atom_labels(doc)).zip(&doc.atoms) {
         let before = galley
             .pos_from_cursor(egui::text::CCursor::new(index))
             .translate(origin.to_vec2());
@@ -890,6 +941,18 @@ fn paint_extras(
         if footnote {
             // A superscript number, as ProseCraft shows footnote references.
             let at = egui::pos2(center.x, before.min.y + before.height() * 0.3);
+            if let Some(id) = prosecraft_core::footnotes::extract_ids(html)
+                .into_iter()
+                .next()
+            {
+                markers.push((
+                    egui::Rect::from_min_max(
+                        before.min,
+                        egui::pos2(right.max(before.min.x + 8.0), before.max.y),
+                    ),
+                    id,
+                ));
+            }
             painter.text(
                 at,
                 egui::Align2::CENTER_CENTER,
@@ -913,6 +976,7 @@ fn paint_extras(
             );
         }
     }
+    markers
 }
 
 /// A text field that saves when it is left (or Enter, for a single line), so typing isn't a

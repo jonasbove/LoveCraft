@@ -20,6 +20,7 @@ mod device_sync;
 mod editing;
 pub mod find;
 pub mod fonts;
+mod footnote_editor;
 mod labels;
 mod library;
 mod project_settings;
@@ -258,6 +259,9 @@ pub struct AppState {
     renaming_folder: Option<(String, String)>,
     /// The Find and replace dialog, while open.
     find: Option<find::FindState>,
+    /// A footnote to open in the footnote editor (document, id), and the one open.
+    footnote_open: Option<(String, String)>,
+    footnote_edit: Option<footnote_editor::FootnoteEdit>,
     /// The Labels dialog, while open.
     labels_dialog: Option<labels::LabelsDraft>,
     /// The Project Settings dialog, while open.
@@ -594,6 +598,78 @@ impl ProseApp {
         }
     }
 
+    /// `insertFootnoteAtCaret`: a marker at character `at` of the open scene, an empty
+    /// definition, and the footnote editor open on it.
+    fn insert_footnote(&mut self, document: &str, at: usize) {
+        let Some(home) = self.home.as_mut() else {
+            return;
+        };
+        let existing: Vec<String> = self
+            .state
+            .library
+            .as_ref()
+            .and_then(|l| l.projects().get(self.state.active))
+            .and_then(|p| p.view.document(document))
+            .map(|d| d.footnotes.iter().map(|f| f.id.clone()).collect())
+            .unwrap_or_default();
+        // `createFootnoteId`, from the store's randomness; a new id in this scene.
+        let id = (0..16)
+            .map(|_| {
+                let seed = home.store.new_id();
+                let hex: Vec<u8> = seed
+                    .bytes()
+                    .filter_map(|b| (b as char).to_digit(16).map(|d| d as u8))
+                    .collect();
+                let mut pairs = hex
+                    .chunks(2)
+                    .map(|p| f64::from(p.iter().fold(0u32, |a, d| a * 16 + u32::from(*d))) / 256.0);
+                prosecraft_core::footnotes::create_footnote_id(|| pairs.next().unwrap_or(0.0))
+            })
+            .find(|id| !existing.contains(id));
+        let Some(id) = id else { return };
+        let now = self.state.now;
+        let Some(draft) = self.state.draft.as_mut().filter(|d| d.document == document) else {
+            return;
+        };
+        draft.body = draft
+            .doc
+            .insert_atom(at, &prosecraft_core::footnotes::marker_html(&id));
+        draft.body_dirty = true;
+        draft.changed_at = now;
+        // The caret goes after the marker.
+        self.state.comment_goto = Some((document.to_owned(), at + 1, at + 1));
+        self.commit_draft();
+        self.change(|data, _| prosecraft_core::footnotes::add_definition(data, document, &id));
+        self.state.footnote_open = Some((document.to_owned(), id));
+    }
+
+    /// The markers of footnote `id` leave the open scene's draft (the caret where the first
+    /// was); the definition goes with the intent.
+    fn remove_footnote_marker(&mut self, document: &str, id: &str) {
+        let now = self.state.now;
+        if let Some(draft) = self.state.draft.as_mut().filter(|d| d.document == document) {
+            let (body, at) = draft.doc.remove_atoms(|html| {
+                prosecraft_core::footnotes::extract_ids(html)
+                    .first()
+                    .is_some_and(|i| i == id)
+            });
+            if let Some(at) = at {
+                draft.body = body;
+                draft.body_dirty = true;
+                draft.changed_at = now;
+                self.state.comment_goto = Some((document.to_owned(), at, at));
+            }
+        }
+        if self
+            .state
+            .footnote_edit
+            .as_ref()
+            .is_some_and(|e| e.id == id)
+        {
+            self.state.footnote_edit = None;
+        }
+    }
+
     /// Writes the library now if it has changes.
     fn save_now(&mut self) {
         let Some(home) = self.home.as_mut() else {
@@ -625,6 +701,16 @@ impl ProseApp {
     /// After each frame: the panes' changes, the draft after a pause, the library after a pause.
     fn after_frame(&mut self) {
         for intent in std::mem::take(&mut self.state.intents) {
+            match &intent {
+                editing::Intent::InsertFootnote { document, at } => {
+                    self.insert_footnote(document, *at);
+                    continue;
+                }
+                editing::Intent::RemoveFootnote { document, id } => {
+                    self.remove_footnote_marker(document, id)
+                }
+                _ => {}
+            }
             self.commit_draft();
             self.change(|data, new_id| editing::run(&intent, data, new_id));
             if let editing::Intent::AddComment { author, .. } = &intent
@@ -811,6 +897,7 @@ impl ProseApp {
         starter::show(ui, &mut self.state);
         project_settings::show(ui, &mut self.state);
         labels::show(ui, &mut self.state);
+        footnote_editor::show(ui, &mut self.state);
         // Ctrl+F opens Find and replace, as in ProseCraft.
         if self.state.find.is_none()
             && self.state.library.is_some()

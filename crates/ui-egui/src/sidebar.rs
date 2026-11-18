@@ -88,7 +88,19 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                 };
                 snapshots(ui, &palette, project, snapshot_scope, &mut edit);
             }
-            SideTab::Footnotes => footnotes(ui, &palette, project, document),
+            SideTab::Footnotes => {
+                let mut edit = FootnoteEdit {
+                    draft: state
+                        .draft
+                        .as_ref()
+                        .map(|d| (d.document.clone(), d.doc.clone())),
+                    intents: &mut state.intents,
+                    goto: &mut state.comment_goto,
+                    open: &mut state.footnote_open,
+                    editable,
+                };
+                footnotes(ui, &palette, project, document, &mut edit);
+            }
         });
     if let Some(document) = open {
         state.select(Selection::Document(document));
@@ -923,16 +935,174 @@ fn snapshots(
     }
 }
 
-fn footnotes(ui: &mut Ui, palette: &Palette, project: &Project, document: Option<&str>) {
-    heading(ui, palette, "This scene", "Footnotes");
+/// What the Footnotes tab changes.
+struct FootnoteEdit<'a> {
+    /// The open scene's draft: its document and text.
+    draft: Option<(String, prosecraft_core::richtext::RichDoc)>,
+    intents: &'a mut Vec<crate::editing::Intent>,
+    /// "Go to": select a passage of the open scene (document, start, end).
+    goto: &'a mut Option<(String, usize, usize)>,
+    /// "Edit": the footnote editor on one.
+    open: &'a mut Option<(String, String)>,
+    editable: bool,
+}
+
+/// ProseCraft's Footnotes panel: the scene's footnotes in order (Go to, Edit, Remove), and the
+/// definitions no marker uses any more (Clean up).
+fn footnotes(
+    ui: &mut Ui,
+    palette: &Palette,
+    project: &Project,
+    document: Option<&str>,
+    edit: &mut FootnoteEdit<'_>,
+) {
+    use prosecraft_core::footnotes::{numbered, orphans};
+    use prosecraft_core::richtext::ATOM;
+    heading(ui, palette, "Notes", "Footnotes");
     let Some(document) = document.and_then(|id| project.document(id)) else {
         return pick_document(ui, palette);
     };
-    if document.footnotes.is_empty() {
-        ui.label(RichText::new("No footnotes in this scene.").color(palette.text_muted));
+    // The text as it is in the editor (or as stored).
+    let draft = edit
+        .draft
+        .as_ref()
+        .filter(|(d, _)| *d == document.id)
+        .map(|(_, doc)| doc);
+    let html = draft.map_or_else(
+        || document.content.clone(),
+        prosecraft_core::richtext::RichDoc::to_html,
+    );
+    let notes = numbered(&html, &document.footnotes);
+    let unused = orphans(&html, &document.footnotes);
+    let count = |ui: &mut Ui, title: &str, n: usize| {
+        ui.horizontal(|ui| {
+            ui.label(RichText::new(title).strong().color(palette.text_heading));
+            ui.label(RichText::new(n.to_string()).color(palette.text_muted));
+        });
+    };
+    count(ui, "This document", notes.len());
+    if notes.is_empty() {
+        ui.add(egui::Label::new(RichText::new("No footnotes yet. Place the cursor in the text and use Insert footnote to add one.").color(palette.text_muted)).wrap());
     }
-    for (index, footnote) in document.footnotes.iter().enumerate() {
-        let text = html_to_plain_text(&footnote.html, &PlainTextOptions::default());
-        ui.label(RichText::new(format!("{}. {}", index + 1, text)).color(palette.text_body));
+    // Where each footnote's first marker is in the editor's text.
+    let marker_at = |id: &str| -> Option<usize> {
+        let doc = draft?;
+        let mut atom = 0;
+        for (i, c) in doc.text.chars().enumerate() {
+            if c == ATOM {
+                let html = doc.atoms.get(atom)?;
+                atom += 1;
+                if prosecraft_core::footnotes::extract_ids(html)
+                    .first()
+                    .is_some_and(|f| f == id)
+                {
+                    return Some(i);
+                }
+            }
+        }
+        None
+    };
+    for note in &notes {
+        card(palette).show(ui, |ui| {
+            ui.set_width(ui.available_width());
+            ui.horizontal(|ui| {
+                ui.label(
+                    RichText::new(note.number.to_string())
+                        .strong()
+                        .color(palette.link),
+                );
+                let preview = note.html.as_deref().map(|h| {
+                    html_to_plain_text(h, &PlainTextOptions::default())
+                        .trim()
+                        .to_owned()
+                });
+                match preview {
+                    None => ui.label(
+                        RichText::new("Missing definition")
+                            .italics()
+                            .color(palette.text_muted),
+                    ),
+                    Some(text) if text.is_empty() => ui.label(
+                        RichText::new("Empty footnote")
+                            .italics()
+                            .color(palette.text_muted),
+                    ),
+                    Some(text) => ui
+                        .add(egui::Label::new(RichText::new(text).color(palette.text_body)).wrap()),
+                };
+            });
+            ui.horizontal(|ui| {
+                let at = marker_at(&note.id);
+                if ui
+                    .add_enabled(at.is_some(), egui::Button::new("Go to"))
+                    .clicked()
+                    && let Some(at) = at
+                {
+                    *edit.goto = Some((document.id.clone(), at, at + 1));
+                }
+                if ui
+                    .add_enabled(edit.editable && draft.is_some(), egui::Button::new("Edit"))
+                    .clicked()
+                {
+                    *edit.open = Some((document.id.clone(), note.id.clone()));
+                }
+                let remove = ui.add_enabled(
+                    edit.editable && draft.is_some(),
+                    egui::Button::new(RichText::new("Remove").color(palette.danger)),
+                );
+                crate::views::name_field(ui, &remove, &format!("Remove footnote {}", note.number));
+                if remove.clicked() {
+                    edit.intents.push(crate::editing::Intent::RemoveFootnote {
+                        document: document.id.clone(),
+                        id: note.id.clone(),
+                    });
+                }
+            });
+        });
+        ui.add_space(6.0);
+    }
+    ui.add_space(10.0);
+    count(ui, "Unused definitions", unused.len());
+    if unused.is_empty() {
+        ui.label(
+            RichText::new("All footnote definitions are referenced in the text.")
+                .size(12.0)
+                .color(palette.text_muted),
+        );
+        ui.add_enabled(false, egui::Button::new("Clean up orphans"));
+    } else {
+        ui.add(
+            egui::Label::new(
+                RichText::new("These footnote definitions no longer have a marker in the text.")
+                    .size(12.0)
+                    .color(palette.text_muted),
+            )
+            .wrap(),
+        );
+        for orphan in &unused {
+            let text = html_to_plain_text(&orphan.html, &PlainTextOptions::default())
+                .trim()
+                .to_owned();
+            ui.label(
+                RichText::new(format!(
+                    "• {}",
+                    if text.is_empty() {
+                        "Empty footnote"
+                    } else {
+                        &text
+                    }
+                ))
+                .color(palette.text_secondary),
+            );
+        }
+        let n = unused.len();
+        let label = format!("Clean up {n} orphan{}", if n == 1 { "" } else { "s" });
+        if ui
+            .add_enabled(edit.editable, egui::Button::new(label))
+            .clicked()
+        {
+            edit.intents
+                .push(crate::editing::Intent::PruneFootnotes(document.id.clone()));
+        }
     }
 }

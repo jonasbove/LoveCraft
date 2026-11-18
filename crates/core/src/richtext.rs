@@ -31,6 +31,11 @@ pub enum LineKind {
     Bullet,
     /// A numbered list item; neighbours share one list.
     Numbered,
+    /// ProseCraft's small caption above a heading: `<p class="eyebrow">`.
+    Eyebrow,
+    /// A block the editor keeps whole, as one atom alone on its line: a rule, a code block, a
+    /// table, a block equation, a diagram or a calculation (see [`BlockPreview`]).
+    Block,
     /// A screenplay element: `<p data-sp="…">`. `bare` is an empty one written without the
     /// editor's `<br>` (as a new screenplay scene starts: `<p data-sp="scene-heading"></p>`).
     Screenplay {
@@ -102,7 +107,8 @@ impl LineKind {
             Self::Quote => ("p", Some("blockquote")),
             Self::Bullet => ("li", Some("ul")),
             Self::Numbered => ("li", Some("ol")),
-            Self::Screenplay { .. } => ("p", None),
+            Self::Eyebrow | Self::Screenplay { .. } => ("p", None),
+            Self::Block => ("", None),
         }
     }
 }
@@ -219,6 +225,128 @@ fn outer_html(element: &Element) -> String {
     out
 }
 
+/// The rich placeholders that stand as blocks (`src/lib/rich/model.ts`).
+const RICH_BLOCK_CLASSES: [&str; 3] = ["math-block", "mermaid-diagram", "calc-worksheet"];
+
+/// Whether an atom's HTML is a block (a [`LineKind::Block`] line's), not an inline marker.
+pub fn is_block_atom(html: &str) -> bool {
+    ["<hr", "<pre", "<table", "<div"]
+        .iter()
+        .any(|tag| html.starts_with(tag))
+}
+
+/// What a kept block is, and the lines the editor shows for it.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BlockPreview {
+    pub kind: BlockKind,
+    /// Its text: a code block's lines, a table's rows, an equation's or diagram's source.
+    pub lines: Vec<String>,
+    /// More lines than are shown.
+    pub more: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BlockKind {
+    Rule,
+    Code,
+    Table,
+    Equation,
+    Diagram,
+    Calculation,
+}
+
+impl BlockKind {
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Rule => "Rule",
+            Self::Code => "Code",
+            Self::Table => "Table",
+            Self::Equation => "Equation",
+            Self::Diagram => "Diagram",
+            Self::Calculation => "Calculation",
+        }
+    }
+}
+
+/// How many lines of a block the editor shows.
+const PREVIEW_LINES: usize = 12;
+
+/// A kept block's kind and text, from its HTML.
+pub fn block_preview(html: &str) -> Option<BlockPreview> {
+    let nodes = parse_fragment(html);
+    let Some(Node::Element(element)) = nodes.first() else {
+        return None;
+    };
+    fn text_of(nodes: &[Node], out: &mut String) {
+        for node in nodes {
+            match node {
+                Node::Text(t) => out.push_str(t),
+                Node::Element(e) => text_of(&e.children, out),
+            }
+        }
+    }
+    fn rows(nodes: &[Node], out: &mut Vec<String>) {
+        for node in nodes {
+            if let Node::Element(e) = node {
+                if e.name == "tr" {
+                    let cells: Vec<String> = e
+                        .children
+                        .iter()
+                        .filter_map(|c| match c {
+                            Node::Element(cell) if cell.name == "td" || cell.name == "th" => {
+                                let mut text = String::new();
+                                text_of(&cell.children, &mut text);
+                                Some(text.split_whitespace().collect::<Vec<_>>().join(" "))
+                            }
+                            _ => None,
+                        })
+                        .collect();
+                    out.push(cells.join("  │  "));
+                } else {
+                    rows(&e.children, out);
+                }
+            }
+        }
+    }
+    let (kind, lines): (BlockKind, Vec<String>) = match element.name.as_str() {
+        "hr" => (BlockKind::Rule, Vec::new()),
+        "pre" => {
+            let mut text = String::new();
+            text_of(&element.children, &mut text);
+            let text = text.strip_suffix('\n').unwrap_or(&text);
+            (
+                BlockKind::Code,
+                text.split('\n').map(str::to_owned).collect(),
+            )
+        }
+        "table" => {
+            let mut out = Vec::new();
+            rows(&element.children, &mut out);
+            (BlockKind::Table, out)
+        }
+        "div" => {
+            let (kind, attr) = if element.has_class("math-block") {
+                (BlockKind::Equation, "data-tex")
+            } else if element.has_class("mermaid-diagram") {
+                (BlockKind::Diagram, "data-source")
+            } else if element.has_class("calc-worksheet") {
+                (BlockKind::Calculation, "data-source")
+            } else {
+                return None;
+            };
+            let source = element.attr(attr).unwrap_or_default();
+            (kind, source.lines().map(str::to_owned).collect())
+        }
+        _ => return None,
+    };
+    let more = lines.len() > PREVIEW_LINES;
+    Some(BlockPreview {
+        kind,
+        lines: lines.into_iter().take(PREVIEW_LINES).collect(),
+        more,
+    })
+}
+
 fn is_atom(element: &Element) -> bool {
     (element.name == "sup" && element.has_class("footnote-ref"))
         || (element.name == "span"
@@ -283,6 +411,17 @@ impl Reader {
         self.block(&plain, LineKind::Screenplay { kind, bare })
     }
 
+    /// A block kept whole: one atom alone on its line.
+    fn block_atom(&mut self, element: &Element) {
+        if !self.doc.lines.is_empty() {
+            self.doc.text.push('\n');
+            self.doc.marks.push(Vec::new());
+        }
+        self.doc.lines.push(LineKind::Block);
+        self.doc.atoms.push(outer_html(element));
+        self.push_char(ATOM, &[]);
+    }
+
     /// One block: its children are inline content; ProseCraft's empty block is `<br>` alone.
     fn block(&mut self, element: &Element, kind: LineKind) -> Option<()> {
         if !element.attrs.is_empty() {
@@ -335,6 +474,15 @@ impl RichDoc {
             };
             match element.name.as_str() {
                 "p" if element.attr("data-sp").is_some() => reader.screenplay(element)?,
+                "p" if element.attrs == [("class".to_owned(), "eyebrow".to_owned())] => {
+                    let mut plain = element.clone();
+                    plain.attrs.clear();
+                    reader.block(&plain, LineKind::Eyebrow)?;
+                }
+                "hr" | "pre" | "table" => reader.block_atom(element),
+                "div" if RICH_BLOCK_CLASSES.iter().any(|c| element.has_class(c)) => {
+                    reader.block_atom(element)
+                }
                 "p" => reader.block(element, LineKind::Paragraph)?,
                 "h1" => reader.block(element, LineKind::Heading1)?,
                 "h2" => reader.block(element, LineKind::Heading2)?,
@@ -398,7 +546,22 @@ impl RichDoc {
                 }
                 container = wanted;
             }
+            if kind == LineKind::Block {
+                for i in start..end {
+                    if chars.get(i) == Some(&ATOM) {
+                        out.push_str(atoms.next().map(String::as_str).unwrap_or_default());
+                    }
+                }
+                out.push_str(nl);
+                continue;
+            }
             match kind {
+                LineKind::Eyebrow => {
+                    out.push_str(r#"<p class="eyebrow">"#);
+                    if start == end {
+                        out.push_str("<br>");
+                    }
+                }
                 LineKind::Screenplay { kind, bare } => {
                     out.push_str(&format!(r#"<p data-sp="{}">"#, kind.as_str()));
                     if start == end && !bare {
@@ -549,7 +712,11 @@ impl RichDoc {
         let end = (line + 1 + breaks_removed).min(self.lines.len());
         self.lines.drain((line + 1).min(end)..end);
         let follow = match kind {
-            LineKind::Heading1 | LineKind::Heading2 | LineKind::Heading3 => LineKind::Paragraph,
+            LineKind::Heading1
+            | LineKind::Heading2
+            | LineKind::Heading3
+            | LineKind::Eyebrow
+            | LineKind::Block => LineKind::Paragraph,
             // A new screenplay element is written as the editor writes it (with its `<br>`).
             LineKind::Screenplay { kind, .. } => LineKind::Screenplay { kind, bare: false },
             other => other,
@@ -583,7 +750,78 @@ impl RichDoc {
         if self.lines.is_empty() {
             self.lines.push(LineKind::Paragraph);
         }
+        self.keep_blocks_alone();
         self.text.clone()
+    }
+
+    /// Every kept block alone on a [`LineKind::Block`] line, and no such line without one: text
+    /// typed beside a block, or a line joined to it, becomes a line of its own; a block's line
+    /// whose block was deleted becomes a paragraph.
+    fn keep_blocks_alone(&mut self) {
+        let chars: Vec<char> = self.text.chars().collect();
+        let mut atom = 0;
+        let block: Vec<bool> = chars
+            .iter()
+            .map(|c| {
+                if *c != ATOM {
+                    return false;
+                }
+                atom += 1;
+                self.atoms.get(atom - 1).is_some_and(|h| is_block_atom(h))
+            })
+            .collect();
+        let ranges = self.line_ranges();
+        let settled = ranges.iter().enumerate().all(|(line, (start, end))| {
+            let blocks = (*start..*end).filter(|i| block[*i]).count();
+            match self.lines.get(line) {
+                Some(LineKind::Block) => blocks == 1 && end - start == 1,
+                _ => blocks == 0,
+            }
+        });
+        if settled {
+            return;
+        }
+        let mut text = String::new();
+        let mut marks = Vec::new();
+        let mut lines = Vec::new();
+        let mut push = |kind: LineKind, range: std::ops::Range<usize>, lines: &mut Vec<_>| {
+            if !lines.is_empty() {
+                text.push('\n');
+                marks.push(Vec::new());
+            }
+            lines.push(kind);
+            for i in range {
+                text.push(chars[i]);
+                marks.push(if block[i] {
+                    Vec::new()
+                } else {
+                    self.marks.get(i).cloned().unwrap_or_default()
+                });
+            }
+        };
+        for (line, (start, end)) in ranges.into_iter().enumerate() {
+            let kind = match self.lines.get(line).copied() {
+                Some(LineKind::Block) | None => LineKind::Paragraph,
+                Some(kind) => kind,
+            };
+            let mut from = start;
+            let mut pieces = 0;
+            for i in (start..end).filter(|i| block[*i]) {
+                if i > from {
+                    push(kind, from..i, &mut lines);
+                    pieces += 1;
+                }
+                push(LineKind::Block, i..i + 1, &mut lines);
+                pieces += 1;
+                from = i + 1;
+            }
+            if end > from || pieces == 0 {
+                push(kind, from..end, &mut lines);
+            }
+        }
+        self.text = text;
+        self.marks = marks;
+        self.lines = lines;
     }
 
     /// Puts an atom (its exact HTML, such as a footnote marker) at character `index`, formatted
@@ -688,8 +926,16 @@ impl RichDoc {
     /// Toggles `mark` over characters `range`: removed where every character has it, else added.
     pub fn toggle_mark(&mut self, range: std::ops::Range<usize>, mark: Mark) {
         let chars: Vec<char> = self.text.chars().collect();
+        let ranges = self.line_ranges();
+        let in_block = |i: usize| {
+            ranges
+                .iter()
+                .position(|(s, e)| (*s..=*e).contains(&i))
+                .and_then(|line| self.lines.get(line))
+                == Some(&LineKind::Block)
+        };
         let targets: Vec<usize> = range
-            .filter(|i| chars.get(*i).is_some_and(|c| *c != '\n'))
+            .filter(|i| chars.get(*i).is_some_and(|c| *c != '\n') && !in_block(*i))
             .collect();
         if targets.is_empty() {
             return;
@@ -709,12 +955,15 @@ impl RichDoc {
         }
     }
 
-    /// Sets the kind of every line touched by characters `range`.
+    /// Sets the kind of every line touched by characters `range`; a kept block stays one.
     pub fn set_line_kind(&mut self, range: std::ops::Range<usize>, kind: LineKind) {
+        if kind == LineKind::Block {
+            return;
+        }
         let first = self.line_of(range.start);
         let last = self.line_of(range.end.max(range.start));
         for line in first..=last {
-            if let Some(slot) = self.lines.get_mut(line) {
+            if let Some(slot) = self.lines.get_mut(line).filter(|k| **k != LineKind::Block) {
                 *slot = kind;
             }
         }
@@ -813,6 +1062,13 @@ mod tests {
             r#"<p>A note<sup class="footnote-ref" data-footnote-id="n1" contenteditable="false"></sup>.</p>"#,
             "<p>a<br>b</p><p><em>c<br></em><br>d<br><br></p>",
             "<ul><li>one<br>two</li></ul>",
+            "<p>a</p><hr><p>b</p>",
+            "<p>a</p>\n<hr>\n<pre><code class=\"language-rust\">let a = 1 &lt; 2;\n</code></pre>\n<p>b</p>\n",
+            "<table>\n<thead>\n<tr>\n<th>a</th>\n<th>b</th>\n</tr>\n</thead>\n<tbody><tr>\n<td>1</td>\n<td><em>2</em></td>\n</tr>\n</tbody></table>\n",
+            r#"<ul><li>x</li></ul><div class="math-block" data-tex="E = mc^2"></div><ol><li>y</li></ol>"#,
+            r#"<div class="mermaid-diagram" data-source="graph TD; A-->B"></div><div class="calc-worksheet" data-source="x = 2"></div>"#,
+            r#"<p class="eyebrow">Part one</p><h1>Arrival</h1>"#,
+            "<hr><hr>",
         ] {
             let doc = RichDoc::from_html(html).unwrap_or_else(|| panic!("not read: {html}"));
             assert_eq!(doc.to_html(), html);
@@ -838,10 +1094,12 @@ mod tests {
         for html in [
             r#"<p data-sp="action" class="x">x</p>"#,
             r#"<p data-sp="unknown">x</p>"#,
-            "<table><tr><td>x</td></tr></table>",
             "<p><img src=\"data:image/png;base64,AA==\"></p>",
             "<div>x</div>",
-            "<pre>code</pre>",
+            "<ul><li><pre>code</pre></li></ul>",
+            "<blockquote><hr></blockquote>",
+            r#"<div class="other">x</div>"#,
+            r#"<p class="eyebrow big">x</p>"#,
             "<p>a</p>\n<p>b</p><p>c</p>",
             r#"<p>a<br class="x">b</p>"#,
             "<p>a\u{2029}b</p>",
@@ -865,6 +1123,70 @@ mod tests {
         );
     }
 
+    #[test]
+    fn kept_blocks_stay_alone_on_their_line() {
+        let mut doc = RichDoc::from_html("<p>a</p><hr><p>b</p>").expect("doc");
+        assert_eq!(doc.text, format!("a\n{ATOM}\nb"));
+        assert_eq!(doc.lines[1], LineKind::Block);
+        // Typing right after the rule starts a paragraph of its own.
+        doc.apply_text_at(&format!("a\n{ATOM}x\nb"), Some(4));
+        assert_eq!(doc.to_html(), "<p>a</p><hr><p>x</p><p>b</p>");
+        // Joining the line before into it (Backspace at the rule) keeps both.
+        doc.apply_text_at(&format!("a{ATOM}\nx\nb"), Some(1));
+        assert_eq!(doc.to_html(), "<p>a</p><hr><p>x</p><p>b</p>");
+        // Enter after the rule gives a paragraph, not another rule.
+        let at = doc
+            .text
+            .find(ATOM)
+            .map(|b| doc.text[..b].chars().count() + 1);
+        let at = at.expect("rule");
+        let chars: Vec<char> = doc.text.chars().collect();
+        let text: String = chars[..at]
+            .iter()
+            .chain(&['\n'])
+            .chain(&chars[at..])
+            .collect();
+        doc.apply_text_at(&text, Some(at + 1));
+        assert_eq!(doc.to_html(), "<p>a</p><hr><p><br></p><p>x</p><p>b</p>");
+        // Deleting the rule's character deletes the rule; its line is a paragraph.
+        doc.apply_text(&doc.text.replace(ATOM, ""));
+        assert_eq!(
+            doc.to_html(),
+            "<p>a</p><p><br></p><p><br></p><p>x</p><p>b</p>"
+        );
+        // Formatting and block kinds leave a kept block as it is.
+        let mut doc = RichDoc::from_html("<p>a</p><pre><code>x</code></pre>").expect("doc");
+        doc.toggle_mark(0..3, Mark::Bold);
+        doc.set_line_kind(0..3, LineKind::Bullet);
+        assert_eq!(
+            doc.to_html(),
+            "<ul><li><strong>a</strong></li></ul><pre><code>x</code></pre>"
+        );
+    }
+
+    #[test]
+    fn previews_kept_blocks() {
+        use super::{BlockKind, block_preview};
+        let table = block_preview(
+            "<table><thead><tr><th>a</th><th>b c</th></tr></thead><tbody><tr><td>1</td><td>2</td></tr></tbody></table>",
+        )
+        .expect("table");
+        assert_eq!(table.kind, BlockKind::Table);
+        assert_eq!(table.lines, ["a  │  b c", "1  │  2"]);
+        let code = block_preview("<pre><code>one\ntwo\n</code></pre>").expect("code");
+        assert_eq!(
+            (code.kind, code.lines),
+            (BlockKind::Code, vec!["one".into(), "two".into()])
+        );
+        let math = block_preview(r#"<div class="math-block" data-tex="x^2"></div>"#).expect("math");
+        assert_eq!(
+            (math.kind, math.lines),
+            (BlockKind::Equation, vec!["x^2".into()])
+        );
+        assert_eq!(block_preview("<hr>").map(|p| p.kind), Some(BlockKind::Rule));
+        assert_eq!(block_preview("<p>x</p>"), None);
+    }
+
     /// Whatever is typed, what the editor writes can be read back into the same document: a
     /// scene never turns read-only after a save.
     #[test]
@@ -875,6 +1197,7 @@ mod tests {
             format!("<p>One <em>two</em>{note}</p><ul><li>a<br>b</li></ul><h2>H</h2>"),
             "<blockquote><p>q<br></p></blockquote><ol><li>x</li></ol>".to_owned(),
             "<p><br></p>".to_owned(),
+            "<p>a</p><hr><table><tr><td>x</td></tr></table><p class=\"eyebrow\">e</p><pre><code>c\n</code></pre>".to_owned(),
         ];
         let mut seed: u64 = 0x2545_f491_4f6c_dd1d;
         let mut next = |n: usize| {
@@ -889,6 +1212,7 @@ mod tests {
             LineKind::Quote,
             LineKind::Bullet,
             LineKind::Numbered,
+            LineKind::Eyebrow,
         ];
         for start in &starts {
             let mut doc = RichDoc::from_html(start).expect("start");

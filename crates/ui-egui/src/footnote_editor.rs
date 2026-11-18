@@ -281,6 +281,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                         &labels,
                         &output.galley,
                         output.galley_pos,
+                        output.text_clip_rect.max.x,
                     );
                     if editable
                         && output.response.clicked()

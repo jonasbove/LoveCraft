@@ -617,10 +617,18 @@ impl RichDoc {
 
     /// The document as ProseCraft's HTML.
     pub fn to_html(&self) -> String {
+        self.write_html(&mut Vec::new())
+    }
+
+    /// The document as ProseCraft's HTML, and where in it each character was written (byte
+    /// ranges; empty for the `\n` between lines, which is written as tags).
+    fn write_html(&self, spans: &mut Vec<std::ops::Range<usize>>) -> String {
+        let chars: Vec<char> = self.text.chars().collect();
+        spans.clear();
+        spans.resize(chars.len(), 0..0);
         if self.empty_source && self.text.is_empty() {
             return String::new();
         }
-        let chars: Vec<char> = self.text.chars().collect();
         let nl = if self.newline_blocks { "\n" } else { "" };
         let mut out = String::new();
         let mut container: Option<&str> = None;
@@ -657,7 +665,11 @@ impl RichDoc {
             if kind == LineKind::Block {
                 for i in start..end {
                     if chars.get(i) == Some(&ATOM) {
+                        let from = out.len();
                         out.push_str(atoms.next().map(String::as_str).unwrap_or_default());
+                        if let Some(span) = spans.get_mut(i) {
+                            *span = from..out.len();
+                        }
                     }
                 }
                 out.push_str(nl);
@@ -722,6 +734,7 @@ impl RichDoc {
                     out.push_str(&open_tag(&tag.name, &tag.attrs));
                     open.push(tag);
                 }
+                let from = out.len();
                 match chars.get(i) {
                     Some(&ATOM) => {
                         out.push_str(atoms.next().map(String::as_str).unwrap_or_default())
@@ -729,6 +742,9 @@ impl RichDoc {
                     Some(&HARD_BREAK) => out.push_str("<br>"),
                     Some(c) => out.push_str(&escape_text(&c.to_string())),
                     None => {}
+                }
+                if let Some(span) = spans.get_mut(i) {
+                    *span = from..out.len();
                 }
             }
             while let Some(tag) = open.pop() {
@@ -747,7 +763,100 @@ impl RichDoc {
     }
 }
 
+/// Where the editor's characters are in ProseCraft's comment text (`commentText`: the text of
+/// every text node of the scene's HTML, widgets left out). A scene written from Markdown has
+/// newlines between its blocks, which the text holds and the editor doesn't show.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CommentMap {
+    /// The comment text, in UTF-16 units.
+    pub text: Vec<u16>,
+    /// For each editor character (and the end), the comment-text offset where it starts.
+    offsets: Vec<usize>,
+}
+
+impl CommentMap {
+    /// The comment-text offset of editor character `index`.
+    pub fn to_comment(&self, index: usize) -> usize {
+        self.offsets
+            .get(index)
+            .or(self.offsets.last())
+            .copied()
+            .unwrap_or(0)
+    }
+
+    /// The editor character at comment-text offset `offset` (the first one at or after it).
+    pub fn to_editor(&self, offset: usize) -> usize {
+        self.offsets
+            .iter()
+            .position(|o| *o >= offset)
+            .unwrap_or(self.offsets.len().saturating_sub(1))
+    }
+}
+
+/// The newlines outside tags in HTML that holds only tags and structural newlines.
+fn structural_newlines(html: &str) -> usize {
+    let mut in_tag = false;
+    let mut count = 0;
+    for c in html.chars() {
+        match c {
+            '<' => in_tag = true,
+            '>' => in_tag = false,
+            '\n' if !in_tag => count += 1,
+            _ => {}
+        }
+    }
+    count
+}
+
 impl RichDoc {
+    /// The comment text of the document as ProseCraft's editor holds it, and where each
+    /// character is in it. The editor holds a footnote marker, a citation or an inline
+    /// equation as an empty widget (the sanitizer rebuilds them), so their stored text isn't
+    /// in it; a kept block's text (a table's, a code block's) is.
+    pub fn comment_map(&self) -> CommentMap {
+        let mut spans = Vec::new();
+        let html = self.write_html(&mut spans);
+        let chars: Vec<char> = self.text.chars().collect();
+        let mut offsets = Vec::with_capacity(chars.len() + 1);
+        let mut text: Vec<u16> = Vec::new();
+        let mut written = 0;
+        let mut atom = 0;
+        let newlines = |text: &mut Vec<u16>, html: &str| {
+            text.extend(std::iter::repeat_n(
+                u16::from(b'\n'),
+                structural_newlines(html),
+            ));
+        };
+        for (i, c) in chars.iter().enumerate() {
+            let span = spans.get(i).cloned().unwrap_or(0..0);
+            if *c == '\n' || span.is_empty() {
+                offsets.push(text.len());
+                continue;
+            }
+            newlines(&mut text, html.get(written..span.start).unwrap_or_default());
+            offsets.push(text.len());
+            match *c {
+                ATOM => {
+                    let html = self.atoms.get(atom).map(String::as_str).unwrap_or_default();
+                    if is_block_atom(html) {
+                        text.extend(crate::comments::comment_text(html));
+                    }
+                    atom += 1;
+                }
+                HARD_BREAK => {}
+                SOFT_BREAK => text.push(u16::from(b'\n')),
+                c => {
+                    let mut buf = [0u16; 2];
+                    text.extend_from_slice(c.encode_utf16(&mut buf));
+                }
+            }
+            written = span.end;
+        }
+        offsets.push(text.len());
+        newlines(&mut text, html.get(written..).unwrap_or_default());
+        CommentMap { text, offsets }
+    }
+
     fn line_of(&self, char_index: usize) -> usize {
         self.text
             .chars()
@@ -1454,8 +1563,56 @@ mod tests {
                 let again = RichDoc::from_html(&html)
                     .unwrap_or_else(|| panic!("step {step}: not read back: {html}"));
                 assert_eq!(again.to_html(), html, "step {step}");
+                // The comment text is ProseCraft's for the HTML, and each character's own
+                // text is where the map puts it.
+                let map = doc.comment_map();
+                assert_eq!(
+                    map.text,
+                    crate::comments::comment_text(&html),
+                    "step {step}"
+                );
+                for (i, c) in doc.text.chars().enumerate() {
+                    if !matches!(c, '\n' | ATOM | HARD_BREAK) {
+                        let at = map.to_comment(i);
+                        let unit = if c == super::SOFT_BREAK { '\n' } else { c };
+                        let mut buf = [0u16; 2];
+                        let want = unit.encode_utf16(&mut buf);
+                        assert_eq!(
+                            map.text.get(at..at + want.len()),
+                            Some(&*want),
+                            "step {step}: char {i} {c:?} in {html}"
+                        );
+                    }
+                }
             }
         }
+    }
+
+    #[test]
+    fn comment_text_has_the_newlines_between_markdown_blocks() {
+        // ProseCraft's `commentText` for these (checked in its own code).
+        let doc = RichDoc::from_html("<p>a</p>\n<p>b</p>\n").expect("doc");
+        let map = doc.comment_map();
+        assert_eq!(String::from_utf16_lossy(&map.text), "a\nb\n");
+        assert_eq!(
+            (map.to_comment(0), map.to_comment(2), map.to_comment(3)),
+            (0, 2, 3)
+        );
+        assert_eq!(map.to_editor(2), 2);
+        let doc =
+            RichDoc::from_html("<ul>\n<li>x</li>\n<li>y</li>\n</ul>\n<p>z\nw</p>\n").expect("doc");
+        let map = doc.comment_map();
+        assert_eq!(String::from_utf16_lossy(&map.text), "\nx\ny\n\nz\nw\n");
+        assert_eq!(map.to_comment(0), 1);
+        assert_eq!(map.to_comment(4), 6);
+        // A citation stored with its text: the editor holds it as an empty widget.
+        let doc = RichDoc::from_html(
+            r#"<p>a<br>b<sup class="footnote-ref" data-footnote-id="n" contenteditable="false"></sup>c<span class="cite-ref" data-cites="[]">(Smith 2020)</span></p><table><tr><td>t</td></tr></table>"#,
+        )
+        .expect("doc");
+        let map = doc.comment_map();
+        assert_eq!(String::from_utf16_lossy(&map.text), "abct");
+        assert_eq!(map.to_comment(4), 2);
     }
 
     #[test]

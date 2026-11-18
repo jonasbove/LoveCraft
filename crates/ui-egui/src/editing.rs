@@ -185,8 +185,8 @@ pub struct Draft {
     pub words: usize,
     pub edits: u32,
     pub words_added: f64,
-    /// In the Markdown editor: the scene's Markdown source (written back as Markdown), and the
-    /// content it was read from (a change underneath an untouched draft reloads it).
+    /// In the Markdown editor: the scene's Markdown source (written back as Markdown), and what
+    /// it was read from (a change underneath an untouched draft reloads it).
     pub markdown: Option<String>,
     pub markdown_base: String,
 }

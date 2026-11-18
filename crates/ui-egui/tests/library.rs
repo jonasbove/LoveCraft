@@ -558,6 +558,18 @@ fn a_composed_starter_is_saved_as_my_template_and_deleted() {
     assert_eq!(saved(&memory), "[]");
 }
 
+/// Waits for a Markdown import's background build to finish.
+fn settle_import(harness: &mut Harness<'_, ProseApp>) {
+    for _ in 0..500 {
+        harness.step();
+        if harness.query_by_label("Importing…").is_none() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    harness.run();
+}
+
 #[test]
 fn a_markdown_folder_is_sorted_into_manuscript_and_wiki_then_imported() {
     use prosecraft_core::import::markdown_folder::MarkdownFile;
@@ -602,7 +614,8 @@ fn a_markdown_folder_is_sorted_into_manuscript_and_wiki_then_imported() {
     harness
         .get_by_role_and_label(Role::Button, "Import")
         .click();
-    harness.run_steps(3);
+    harness.run();
+    settle_import(&mut harness);
     harness.get_by_label_contains(
         "Imported “Vault”: 2 chapter(s), 2 scene(s), 0 wiki page(s), 1 link(s) without a target page.",
     );
@@ -624,4 +637,54 @@ fn a_markdown_folder_is_sorted_into_manuscript_and_wiki_then_imported() {
         .import_markdown_folder("Empty", Vec::new(), 4);
     harness.run();
     harness.get_by_label_contains("No Markdown files found in that folder.");
+}
+
+#[test]
+fn a_scene_the_rich_editor_cannot_hold_opens_as_markdown() {
+    use prosecraft_core::import::markdown_folder::MarkdownFile;
+    let memory = Memory::default();
+    let app = ProseApp::with_library(
+        ProjectLibrary::new("this-device".into()),
+        Box::new(memory.clone()),
+    );
+    let mut harness = harness(app);
+    harness.run();
+    // A hard line break: `<br>` in a paragraph, which the rich editor can't hold yet.
+    harness.state_mut().import_markdown_folder(
+        "Vault",
+        vec![MarkdownFile {
+            path: "Manuscript/one.md".into(),
+            text: "# One\n\nFirst line  \nsecond line.".into(),
+        }],
+        0,
+    );
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Import")
+        .click();
+    harness.run();
+    settle_import(&mut harness);
+    harness
+        .get_all_by_role_and_label(Role::TreeItem, "One")
+        .last()
+        .expect("the scene")
+        .click();
+    harness.run();
+    assert!(harness.query_by_label("Scene text").is_none());
+    harness
+        .get_by_role_and_label(Role::Button, "Edit as Markdown")
+        .click();
+    harness.run_steps(2);
+    let source = harness.get_by_label("Markdown source");
+    assert_eq!(
+        source.accesskit_node().value().as_deref(),
+        Some("First line  \nsecond line.")
+    );
+    // The preference stays off; Rich text editor goes back.
+    harness
+        .get_by_role_and_label(Role::Button, "Rich text editor")
+        .click();
+    harness.run_steps(2);
+    assert!(harness.query_by_label("Markdown source").is_none());
+    harness.get_by_role_and_label(Role::Button, "Edit as Markdown");
 }

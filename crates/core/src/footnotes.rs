@@ -150,7 +150,15 @@ fn definitions(doc: &JsObject) -> Vec<JsValue> {
 }
 
 /// Sets the definitions, leaving no empty list behind (as ProseCraft drops the key).
+///
+/// The Markdown editor's source holds the definitions (and the markers) as Markdown, and the
+/// open sync folder writes that source and reads definitions back from it. A footnote edited
+/// here would come back as it was on the next sync, so the source is dropped with every change
+/// to a document's footnotes; the next time the Markdown editor opens, it starts from the
+/// content. (ProseCraft keeps the source here, and loses such edits on its next open-folder
+/// sync.)
 fn set_definitions(doc: &mut JsObject, list: Vec<JsValue>) {
+    doc.remove("markdownSource");
     if list.is_empty() {
         doc.remove("footnotes");
     } else {
@@ -197,6 +205,8 @@ pub fn update_definition(
             o.insert("html", JsValue::str(&clean));
         }
     }
+    // As ProseCraft writes it (an empty list stays); the source goes, as in `set_definitions`.
+    doc.remove("markdownSource");
     doc.insert("footnotes", JsValue::Array(list));
     Ok(())
 }
@@ -212,6 +222,7 @@ pub fn remove(project: &mut JsValue, document: &str, id: &str) -> Result<(), Edi
         let next = remove_refs(&content, id);
         if next != content {
             doc.insert("content", JsValue::str(&next));
+            doc.remove("markdownSource");
         }
     }
     let list = definitions(doc);
@@ -246,6 +257,72 @@ pub fn prune_orphans(project: &mut JsValue, document: &str) -> Result<(), EditEr
             .collect(),
     );
     Ok(())
+}
+
+#[cfg(test)]
+mod markdown_source_tests {
+    use super::{add_definition, prune_orphans, remove, update_definition};
+    use crate::js::{self, JsObject, JsValue};
+    use crate::sync::open_layout::normalize_document;
+
+    /// A scene last written in the Markdown editor (or read from an open sync folder).
+    fn project() -> JsValue {
+        let mut project =
+            js::parse(r#"{"documents":[{"id":"d","title":"T","content":"","chapterId":"c"}]}"#)
+                .unwrap_or(JsValue::Null);
+        let source = "One[^a] two[^b].\n\n[^a]: First.\n[^b]: Second.";
+        assert!(crate::edit::set_document_markdown(&mut project, "d", source).is_ok());
+        project
+    }
+
+    fn document(project: &JsValue) -> JsObject {
+        project
+            .get("documents")
+            .and_then(JsValue::as_array)
+            .and_then(|d| d.first())
+            .and_then(JsValue::as_object)
+            .cloned()
+            .unwrap_or_default()
+    }
+
+    /// What the open sync folder keeps of the scene: its round trip through Markdown.
+    fn round_trip(project: &JsValue) -> (String, String) {
+        let normalized = normalize_document(&document(project));
+        let field = |k: &str| normalized.get(k).map(js::stringify).unwrap_or_default();
+        (field("content"), field("footnotes"))
+    }
+
+    /// Every footnote change drops the Markdown source, so the open folder's round trip
+    /// (`normalizeDocument`) keeps the change instead of bringing the old footnotes back.
+    #[test]
+    fn a_footnote_change_survives_the_open_folder_round_trip() {
+        let mut p = project();
+        assert!(document(&p).get("markdownSource").is_some());
+        assert!(update_definition(&mut p, "d", "a", "Edited <em>first</em>.").is_ok());
+        assert!(document(&p).get("markdownSource").is_none());
+        assert!(round_trip(&p).1.contains("Edited <em>first</em>."));
+
+        let mut p = project();
+        assert!(remove(&mut p, "d", "b").is_ok());
+        let (content, notes) = round_trip(&p);
+        assert!(!content.contains(r#"data-footnote-id=\"b\""#) && !notes.contains("Second"));
+
+        let mut p = project();
+        assert!(add_definition(&mut p, "d", "c").is_ok());
+        assert!(document(&p).get("markdownSource").is_none());
+
+        // An orphan pruned: `b`'s marker gone from the content by a rich edit first.
+        let mut p = project();
+        let content = document(&p)
+            .get("content")
+            .and_then(JsValue::as_js_string)
+            .map(|c| c.to_string_lossy())
+            .unwrap_or_default();
+        let without_b = super::remove_refs(&content, "b");
+        assert!(crate::edit::set_document_content(&mut p, "d", &without_b).is_ok());
+        assert!(prune_orphans(&mut p, "d").is_ok());
+        assert!(!round_trip(&p).1.contains("Second"));
+    }
 }
 
 #[cfg(test)]

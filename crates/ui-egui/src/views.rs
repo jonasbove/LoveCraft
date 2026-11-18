@@ -109,6 +109,8 @@ struct Edit<'a> {
     separator: prosecraft_core::publish::SceneSeparator,
     /// Another scene of the chapter clicked into: open it in the editor.
     open: Option<Selection>,
+    /// The open scene's proofreading.
+    proofing: &'a mut crate::proofreading::Proofing,
 }
 
 pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
@@ -172,6 +174,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         undo_page,
         writing,
         editor_rect,
+        proofing,
         ..
     } = state;
     let entry = library.as_ref().and_then(|l| l.projects().get(*active));
@@ -237,6 +240,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
             cache: cite_labels,
         },
         separator: options.scene_separator,
+        proofing,
         open: None,
     };
     let mut chosen = None;
@@ -693,6 +697,71 @@ fn scene_divider(
         }
     }
     ui.add_space(14.0);
+}
+
+/// Proofreading over the editor: the underlines, a click on one opening its suggestions
+/// (`openHarperPopover`), and a suggestion replacing the passage (`applyHarperSuggestion`).
+fn proofreading_marks(
+    ui: &mut Ui,
+    palette: &Palette,
+    (proofing, editable, now): (&mut crate::proofreading::Proofing, bool, f64),
+    draft: &mut Draft,
+    output: &egui::text_edit::TextEditOutput,
+) {
+    let lints = proofing.current(draft).to_vec();
+    if lints.is_empty() {
+        proofing.popover = None;
+        return;
+    }
+    crate::proofreading::paint(
+        ui,
+        &lints,
+        &output.galley,
+        output.galley_pos,
+        output.text_clip_rect,
+    );
+    if output.response.clicked()
+        && let Some(caret) = output.cursor_range.map(|r| r.primary.index.0)
+    {
+        proofing.popover = lints
+            .iter()
+            .position(|l| l.range.start <= caret && caret <= l.range.end);
+    }
+    let Some(index) = proofing.popover else {
+        return;
+    };
+    let Some(shown) = lints.get(index) else {
+        proofing.popover = None;
+        return;
+    };
+    let at = output
+        .galley
+        .pos_from_cursor(egui::text::CCursor::new(shown.range.start))
+        .translate(output.galley_pos.to_vec2())
+        .left_bottom()
+        + egui::vec2(0.0, 8.0);
+    match crate::proofreading::popover(ui.ctx(), palette, index, shown, at) {
+        crate::proofreading::PopoverAction::None => {}
+        crate::proofreading::PopoverAction::Close => proofing.popover = None,
+        crate::proofreading::PopoverAction::Ignore(i) => proofing.ignore(i),
+        crate::proofreading::PopoverAction::Apply(suggestion) => {
+            proofing.popover = None;
+            if !editable {
+                return;
+            }
+            let chars: Vec<char> = draft.body.chars().collect();
+            let range = shown.range.start.min(chars.len())..shown.range.end.min(chars.len());
+            let mut text: String = chars[..range.start].iter().collect();
+            text.push_str(&suggestion);
+            text.extend(&chars[range.end..]);
+            let after = range.start + suggestion.chars().count();
+            draft.body = draft.doc.apply_text_at(&text, Some(after));
+            draft.body_dirty = true;
+            draft.changed_at = now;
+            draft.caret = Some(after);
+            draft.words = prosecraft_core::html::html_word_count(&draft.doc.to_html());
+        }
+    }
 }
 
 /// HTML shown read-only as the editor draws text (a Wiki Markdown file's preview), or as its
@@ -1969,6 +2038,13 @@ fn editor(
             }
         }
     }
+    proofreading_marks(
+        ui,
+        palette,
+        (edit.proofing, edit.editable, edit.now),
+        draft,
+        &output,
+    );
     // A new citation's picker opens beside the caret.
     if let Some(picker) = edit
         .citation_picker

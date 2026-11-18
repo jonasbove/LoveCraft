@@ -1538,6 +1538,81 @@ fn wiki_links_and_files_are_added_opened_and_removed() {
 }
 
 #[test]
+fn proofreading_underlines_and_fixes_a_misspelling() {
+    let (mut harness, memory) = app();
+    // Settings → Proofreading: on.
+    harness
+        .get_by_role_and_label(Role::Button, "Settings…")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Tab, "Proofreading")
+        .click();
+    harness.run();
+    harness.get_by_label("Check spelling and grammar").click();
+    harness.run();
+    assert!(harness.get_all_by_label("English dialect").count() >= 1);
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    let body = harness.get_by_label("Scene text");
+    body.focus();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    harness
+        .get_by_label("Scene text")
+        .type_text("Teh lamp went out.");
+    harness.run();
+    // The pause after typing, then the check on its thread.
+    for _ in 0..400 {
+        harness.step();
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+    harness.run();
+    // Settings says what was found.
+    harness
+        .get_by_role_and_label(Role::Button, "Settings…")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Tab, "Proofreading")
+        .click();
+    harness.run();
+    assert!(harness.get_all_by_role(Role::Status).any(
+        |n| n.accesskit_node().value().as_deref() == Some("1 suggestion in the current scene.")
+    ));
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    // A click on the misspelled word opens its suggestions.
+    let text = harness.get_by_label("Scene text").rect();
+    let at = text.left_top() + egui::vec2(8.0, 12.0);
+    harness.event(egui::Event::PointerMoved(at));
+    for pressed in [true, false] {
+        harness.event(egui::Event::PointerButton {
+            pos: at,
+            button: egui::PointerButton::Primary,
+            pressed,
+            modifiers: egui::Modifiers::NONE,
+        });
+        harness.step();
+    }
+    harness.run();
+    harness.get_by_label("Proofreading suggestion");
+    harness.get_by_label_contains("Did you mean");
+    harness.get_by_role_and_label(Role::Button, "The").click();
+    harness.run_steps(12);
+    assert!(harness.query_by_label("Proofreading suggestion").is_none());
+    let saved = memory.last();
+    let scene = document(project(&saved, "project-1"), "doc-1").expect("scene");
+    assert_eq!(
+        js::stringify(scene.get("content").expect("content")),
+        r#""<p>The lamp went out.</p>""#
+    );
+}
+
+#[test]
 fn html_exports_from_the_publish_view() {
     let (mut harness, _memory) = app();
     harness.get_by_role_and_label(Role::Tab, "Publish").click();

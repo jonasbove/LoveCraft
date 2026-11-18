@@ -746,6 +746,98 @@ fn front_and_back_matter_pages_are_added_written_moved_and_removed() {
 }
 
 #[test]
+fn custom_styles_are_created_edited_and_deleted() {
+    let (mut harness, memory) = app();
+    let options = |memory: &Memory| -> JsValue {
+        project(&memory.last(), "project-1")
+            .get("project")
+            .and_then(|p| p.get("publishOptions"))
+            .cloned()
+            .unwrap_or(JsValue::Null)
+    };
+    let text = |v: Option<&JsValue>| {
+        v.and_then(JsValue::as_js_string)
+            .map(|s| s.to_string_lossy())
+            .unwrap_or_default()
+    };
+    harness.get_by_role_and_label(Role::Tab, "Publish").click();
+    harness.run();
+    harness.get_by_label("+ New style").scroll_to_me();
+    harness.run();
+    harness.get_by_label("+ New style").click();
+    harness.run();
+    harness.get_by_label("New style");
+    harness.get_by_label("Font").click_accesskit();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Courier")
+        .click_accesskit();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Create style")
+        .click_accesskit();
+    harness.run_steps(12);
+    let saved = options(&memory);
+    let style = saved
+        .get("customStyles")
+        .and_then(JsValue::as_array)
+        .and_then(|s| s.first())
+        .cloned()
+        .expect("a custom style");
+    assert_eq!(text(style.get("label")), "Manuscript copy");
+    assert_eq!(text(style.get("fontId")), "courier");
+    assert_eq!(text(saved.get("style")), text(style.get("id")));
+    assert!(text(style.get("id")).starts_with("custom-"));
+    // Renamed to a built-in style's name: refused; then to its own.
+    harness
+        .get_by_role_and_label(Role::Button, "Edit Manuscript copy")
+        .click_accesskit();
+    harness.run();
+    harness.get_by_label("Style name").focus();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    harness
+        .get_by_label("Style name")
+        .type_text("classic NOVEL");
+    harness.run();
+    harness.get_by_label("Another style already uses that name.");
+    harness.get_by_label("Style name").focus();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    harness.get_by_label("Style name").type_text("Draft");
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Save changes")
+        .click_accesskit();
+    harness.run_steps(12);
+    let saved = options(&memory);
+    assert_eq!(
+        saved
+            .get("customStyles")
+            .and_then(JsValue::as_array)
+            .map(|s| s.iter().map(|x| text(x.get("label"))).collect::<Vec<_>>()),
+        Some(vec!["Draft".to_owned()])
+    );
+    // Deleted (asked first): Manuscript is chosen again.
+    harness
+        .get_by_role_and_label(Role::Button, "Delete Draft")
+        .click_accesskit();
+    harness.run();
+    harness.get_by_label("Delete this style?");
+    harness
+        .get_by_role_and_label(Role::Button, "Delete")
+        .click_accesskit();
+    harness.run_steps(12);
+    let saved = options(&memory);
+    assert_eq!(text(saved.get("style")), "manuscript");
+    assert_eq!(
+        saved
+            .get("customStyles")
+            .and_then(JsValue::as_array)
+            .map(<[JsValue]>::len),
+        Some(0)
+    );
+}
+
+#[test]
 fn undo_takes_back_formatting() {
     let (mut harness, memory) = app();
     harness

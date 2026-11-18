@@ -13,7 +13,7 @@ use super::epub_css::{CSS, DROP_CAPS};
 use super::footnotes::{BookFootnotes, resolve_book_footnotes};
 use super::html::{
     escape_xml, escape_xml_attribute, mark_drop_cap_paragraph, matter_paragraphs, separator_markup,
-    style_tokens, with_breaks,
+    with_breaks,
 };
 use super::{CompiledBook, Export, MatterPage, PublishOptions, slugify_filename};
 use crate::html::sanitize::{FOOTNOTE_REF_CLASS, is_valid_footnote_id};
@@ -316,7 +316,8 @@ fn chapter_page(
     } else {
         String::new()
     };
-    let drop_caps = options.drop_caps && style_tokens(&options.style).drop_cap;
+    let drop_caps = options.drop_caps
+        && super::styles::resolve_style_tokens(&options.style, &options.custom_styles).drop_cap;
     let image = |src: &str| images.get(src).cloned().unwrap_or_else(|| src.to_owned());
     let mut seen: Vec<String> = Vec::new();
     let count = chapter.scenes.len();
@@ -399,7 +400,7 @@ fn chapter_page(
 }
 
 fn stylesheet(options: &PublishOptions) -> String {
-    let t = style_tokens(&options.style);
+    let t = &super::styles::resolve_style_tokens(&options.style, &options.custom_styles);
     let n = number_to_string;
     let pairs = [
         ("{{BODY_FONT}}", t.font.to_owned()),

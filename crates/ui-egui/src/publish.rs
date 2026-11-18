@@ -347,6 +347,251 @@ fn matter_editor(
     }
 }
 
+fn style_editor_id() -> egui::Id {
+    egui::Id::unique("style-editor")
+}
+
+/// The Style editor's draft (`StyleEditorDialog`): the style as edited, what it opened on (for
+/// Reset), whether it is new, and whether Delete is being confirmed.
+#[derive(Clone, Debug)]
+struct StyleDraft {
+    draft: prosecraft_core::publish::styles::CustomStyle,
+    original: prosecraft_core::publish::styles::CustomStyle,
+    new: bool,
+    deleting: bool,
+}
+
+impl StyleDraft {
+    fn new(
+        style: prosecraft_core::publish::styles::CustomStyle,
+        new: bool,
+        deleting: bool,
+    ) -> Self {
+        Self {
+            original: style.clone(),
+            draft: style,
+            new,
+            deleting,
+        }
+    }
+}
+
+/// A number field with ProseCraft's bounds and step.
+fn number(
+    ui: &mut Ui,
+    label: &str,
+    value: &mut f64,
+    range: std::ops::RangeInclusive<f64>,
+    step: f64,
+) {
+    ui.horizontal(|ui| {
+        ui.label(RichText::new(label).size(12.0));
+        let field = ui.add(
+            egui::DragValue::new(value)
+                .range(range)
+                .speed(step)
+                .max_decimals(2),
+        );
+        crate::views::name_field(ui, &field, label);
+    });
+}
+
+/// `StyleEditorDialog`.
+fn style_editor(
+    ui: &mut Ui,
+    palette: &Palette,
+    edit: &mut PublishEdit<'_>,
+    entries: &[(String, String, String, bool)],
+) {
+    use prosecraft_core::publish::styles::{FONTS, TRIMS};
+    let Some(mut state) = ui.data(|d| d.get_temp::<StyleDraft>(style_editor_id())) else {
+        return;
+    };
+    // `styleExistingLabels`: every other style's name.
+    let label = state.draft.label.trim().to_lowercase();
+    let name_error = if label.is_empty() {
+        Some("Give this style a name.")
+    } else if entries
+        .iter()
+        .any(|(id, l, ..)| *id != state.draft.id && l.trim().to_lowercase() == label)
+    {
+        Some("Another style already uses that name.")
+    } else {
+        None
+    };
+    let mut open = true;
+    let mut close = false;
+    let d = &mut state.draft;
+    egui::Window::new(if state.new { "New style" } else { "Edit style" })
+        .open(&mut open)
+        .collapsible(false)
+        .resizable(false)
+        .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+        .show(ui.ctx(), |ui| {
+            egui::ScrollArea::vertical()
+                .max_height(520.0)
+                .show(ui, |ui| {
+                    ui.label(
+                        RichText::new("EXPORT STYLE")
+                            .size(10.0)
+                            .color(palette.text_muted),
+                    );
+                    ui.label(RichText::new("Name").strong());
+                    help(ui, palette, "Shown in the style picker for this project.");
+                    let name = ui.add(egui::TextEdit::singleline(&mut d.label).char_limit(60));
+                    crate::views::name_field(ui, &name, "Style name");
+                    if let Some(error) = name_error {
+                        ui.label(RichText::new(error).color(palette.danger));
+                    }
+                    ui.add_space(8.0);
+                    ui.label(RichText::new("Body typography").strong());
+                    help(ui, palette, "How the manuscript text is set.");
+                    let font = craft_ui::ComboBox::from_id_salt("style-font")
+                        .selected_text(FONTS.iter().find(|f| f.0 == d.font_id).map_or("", |f| f.1))
+                        .show_ui(ui, |ui| {
+                            for f in FONTS {
+                                ui.selectable_value(&mut d.font_id, f.0, f.1);
+                            }
+                        });
+                    ui.ctx()
+                        .accesskit_node_builder(font.response.id, |n| n.set_label("Font"));
+                    number(ui, "Body size (pt)", &mut d.body_size, 6.0..=36.0, 0.5);
+                    number(ui, "Line height", &mut d.line_height, 1.0..=3.0, 0.05);
+                    number(ui, "First-line indent (em)", &mut d.indent, 0.0..=4.0, 0.1);
+                    number(
+                        ui,
+                        "Paragraph spacing (em)",
+                        &mut d.spacing,
+                        0.0..=3.0,
+                        0.05,
+                    );
+                    ui.checkbox(&mut d.justify, "Justify body text");
+                    ui.add_space(8.0);
+                    ui.label(RichText::new("Chapter headings").strong());
+                    help(ui, palette, "Size and placement of chapter titles.");
+                    number(
+                        ui,
+                        "Heading size (pt)",
+                        &mut d.chapter_size,
+                        8.0..=48.0,
+                        0.5,
+                    );
+                    let align = craft_ui::ComboBox::from_id_salt("style-align")
+                        .selected_text(if d.chapter_align == "center" {
+                            "Centered"
+                        } else {
+                            "Left"
+                        })
+                        .show_ui(ui, |ui| {
+                            ui.selectable_value(&mut d.chapter_align, "left", "Left");
+                            ui.selectable_value(&mut d.chapter_align, "center", "Centered");
+                        });
+                    ui.ctx()
+                        .accesskit_node_builder(align.response.id, |n| n.set_label("Alignment"));
+                    number(
+                        ui,
+                        "Space before (em)",
+                        &mut d.chapter_before,
+                        0.0..=6.0,
+                        0.1,
+                    );
+                    number(ui, "Space after (em)", &mut d.chapter_after, 0.0..=6.0, 0.1);
+                    ui.checkbox(&mut d.chapter_uppercase, "Uppercase chapter headings");
+                    ui.add_space(8.0);
+                    ui.label(RichText::new("Page layout").strong());
+                    help(
+                        ui,
+                        palette,
+                        "Trim size and margins for print and paginated previews.",
+                    );
+                    let trim = craft_ui::ComboBox::from_id_salt("style-trim")
+                        .selected_text(TRIMS.iter().find(|t| t.0 == d.trim_id).map_or("", |t| t.1))
+                        .show_ui(ui, |ui| {
+                            for t in TRIMS {
+                                ui.selectable_value(&mut d.trim_id, t.0, t.1);
+                            }
+                        });
+                    ui.ctx()
+                        .accesskit_node_builder(trim.response.id, |n| n.set_label("Trim size"));
+                    for (index, label) in [
+                        "Top margin (in)",
+                        "Right margin (in)",
+                        "Bottom margin (in)",
+                        "Left margin (in)",
+                    ]
+                    .into_iter()
+                    .enumerate()
+                    {
+                        number(ui, label, &mut d.margins[index], 0.25..=1.5, 0.01);
+                    }
+                    ui.checkbox(&mut d.running_header, "Running header on body pages");
+                    ui.checkbox(&mut d.page_numbers, "Page numbers");
+                    ui.add_space(8.0);
+                    ui.label(RichText::new("Details").strong());
+                    help(ui, palette, "Scene breaks and decorative touches.");
+                    number(
+                        ui,
+                        "Scene break spacing (em)",
+                        &mut d.scene_break,
+                        0.0..=3.0,
+                        0.05,
+                    );
+                    ui.checkbox(&mut d.drop_cap, "Use a drop cap when Drop caps is enabled");
+                });
+            ui.separator();
+            ui.horizontal(|ui| {
+                if !state.new {
+                    if state.deleting {
+                        ui.label("Delete this style?");
+                        if ui
+                            .button(RichText::new("Delete").color(palette.danger))
+                            .clicked()
+                        {
+                            edit.intents.push(Intent::DeleteCustomStyle(d.id.clone()));
+                            close = true;
+                        }
+                        if ui.button("Keep").clicked() {
+                            state.deleting = false;
+                        }
+                    } else if ui
+                        .button(RichText::new("Delete style").color(palette.danger))
+                        .clicked()
+                    {
+                        state.deleting = true;
+                    }
+                }
+                if ui.button("Reset").clicked() {
+                    *d = state.original.clone();
+                    state.deleting = false;
+                }
+                if ui.button("Cancel").clicked() {
+                    close = true;
+                }
+                let save = if state.new {
+                    "Create style"
+                } else {
+                    "Save changes"
+                };
+                if ui
+                    .add_enabled(
+                        name_error.is_none(),
+                        egui::Button::new(RichText::new(save).strong()),
+                    )
+                    .clicked()
+                {
+                    edit.intents
+                        .push(Intent::SaveCustomStyle(Box::new(d.clone())));
+                    close = true;
+                }
+            });
+        });
+    if close || !open {
+        ui.data_mut(|data| data.remove::<StyleDraft>(style_editor_id()));
+    } else {
+        ui.data_mut(|data| data.insert_temp(style_editor_id(), state));
+    }
+}
+
 fn set(edit: &mut PublishEdit<'_>, key: &str, value: JsValue) {
     edit.intents.push(Intent::SetPublishOption {
         key: key.to_owned(),
@@ -640,21 +885,102 @@ fn controls(
     });
     ui.separator();
 
-    // Style.
-    let style_label = STYLES
-        .iter()
-        .find(|s| s.0 == options.style)
-        .map_or("Custom", |s| s.1);
-    section_heading(ui, palette, "Style", style_label);
+    // Style: the built-in ones and the project's own (`styleSummaries`).
+    let style_label =
+        prosecraft_core::publish::styles::label_of(&options.style, &options.custom_styles);
+    section_heading(ui, palette, "Style", &style_label);
     ui.add_space(4.0);
-    grid(ui, &STYLES, |ui, (id, label, detail), width| {
-        if choice_card(ui, palette, options.style == id, label, "", detail, width)
-            && editable
-            && options.style != id
-        {
-            set(edit, "style", JsValue::str(id));
-        }
-    });
+    let entries: Vec<(String, String, String, bool)> = STYLES
+        .iter()
+        .map(|(id, label, detail)| {
+            (
+                (*id).to_owned(),
+                (*label).to_owned(),
+                (*detail).to_owned(),
+                false,
+            )
+        })
+        .chain(options.custom_styles.iter().map(|s| {
+            (
+                s.id.clone(),
+                s.label.clone(),
+                prosecraft_core::publish::styles::detail(s),
+                true,
+            )
+        }))
+        .collect();
+    let mut editing: Option<(String, bool)> = None;
+    grid(
+        ui,
+        &entries.iter().collect::<Vec<_>>(),
+        |ui, (id, label, detail, custom), width| {
+            ui.vertical(|ui| {
+                let tag = if *custom { "Custom" } else { "" };
+                if choice_card(ui, palette, options.style == *id, label, tag, detail, width)
+                    && editable
+                    && options.style != *id
+                {
+                    set(edit, "style", JsValue::str(id));
+                }
+                if *custom && editable {
+                    ui.horizontal(|ui| {
+                        let e = ui.small_button("Edit").on_hover_text("Edit style");
+                        crate::views::name_field(ui, &e, &format!("Edit {label}"));
+                        if e.clicked() {
+                            editing = Some((id.clone(), false));
+                        }
+                        let d = ui
+                            .small_button(RichText::new("Delete").color(palette.danger))
+                            .on_hover_text("Delete style");
+                        crate::views::name_field(ui, &d, &format!("Delete {label}"));
+                        if d.clicked() {
+                            editing = Some((id.clone(), true));
+                        }
+                    });
+                }
+            });
+        },
+    );
+    let room = options.custom_styles.len() < prosecraft_core::publish::styles::MAX_STYLES;
+    if ui
+        .add_enabled(editable && room, egui::Button::new("+ New style"))
+        .clicked()
+    {
+        // `startNewStyle`: a copy of the chosen style; its id comes when it is saved.
+        let draft = prosecraft_core::publish::styles::create_custom_style(
+            &options.style,
+            &options.custom_styles,
+            "",
+        );
+        let draft = prosecraft_core::publish::styles::CustomStyle {
+            id: String::new(),
+            ..draft
+        };
+        ui.data_mut(|d| d.insert_temp(style_editor_id(), StyleDraft::new(draft, true, false)));
+    }
+    help(
+        ui,
+        palette,
+        &if room {
+            "Custom styles are saved with this project.".to_owned()
+        } else {
+            format!(
+                "You’ve reached the limit of {} custom styles.",
+                prosecraft_core::publish::styles::MAX_STYLES
+            )
+        },
+    );
+    if let Some((id, delete)) = editing
+        && let Some(style) = options.custom_styles.iter().find(|s| s.id == id)
+    {
+        ui.data_mut(|d| {
+            d.insert_temp(
+                style_editor_id(),
+                StyleDraft::new(style.clone(), false, delete),
+            );
+        });
+    }
+    style_editor(ui, palette, edit, &entries);
     ui.separator();
 
     // Manuscript.

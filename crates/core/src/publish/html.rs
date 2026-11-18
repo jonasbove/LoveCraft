@@ -15,7 +15,8 @@ use crate::html::sanitize::{FOOTNOTE_REF_CLASS, RICH};
 use crate::html::{Element, Node, is_js_whitespace, parse_fragment, serialize};
 use crate::js::number_to_string;
 
-/// The values of a built-in style the stylesheet uses (`PRESETS`).
+/// The values of a style the exporters use (`PresetTokens`).
+#[derive(Clone, Debug, PartialEq)]
 pub struct StyleTokens {
     pub font: &'static str,
     pub body_size: f64,
@@ -35,6 +36,8 @@ pub struct StyleTokens {
     /// The font DOCX names (`docxFont`), and whether print layouts carry a running header
     /// (author / title) and page numbers.
     pub docx_font: &'static str,
+    /// The PDF standard font family (`pdfFont`): `times`, `helvetica` or `courier`.
+    pub pdf_font: &'static str,
     pub running_header: bool,
     pub page_numbers: bool,
 }
@@ -55,6 +58,7 @@ const MANUSCRIPT: StyleTokens = StyleTokens {
     drop_cap: false,
     page: [612.0, 792.0, 72.0, 72.0, 72.0, 72.0],
     docx_font: "Times New Roman",
+    pdf_font: "times",
     running_header: true,
     page_numbers: true,
 };
@@ -75,6 +79,7 @@ const CLASSIC: StyleTokens = StyleTokens {
     drop_cap: true,
     page: [432.0, 648.0, 54.0, 54.0, 54.0, 54.0],
     docx_font: "Georgia",
+    pdf_font: "times",
     running_header: true,
     page_numbers: true,
 };
@@ -95,6 +100,7 @@ const MODERN: StyleTokens = StyleTokens {
     drop_cap: false,
     page: [432.0, 648.0, 60.0, 54.0, 60.0, 54.0],
     docx_font: "Georgia",
+    pdf_font: "times",
     running_header: false,
     page_numbers: true,
 };
@@ -115,12 +121,13 @@ const EBOOK: StyleTokens = StyleTokens {
     drop_cap: false,
     page: [432.0, 648.0, 42.0, 42.0, 42.0, 42.0],
     docx_font: "Georgia",
+    pdf_font: "times",
     running_header: false,
     page_numbers: false,
 };
 
-/// `resolveStyleTokens` for the built-in styles. Custom styles aren't ported yet and use the
-/// Manuscript style, as ProseCraft does for a style it can't find.
+/// `resolveStyleTokens` for the built-in styles: Manuscript for any other id (custom styles:
+/// [`super::styles::resolve_style_tokens`]).
 pub fn style_tokens(style: &str) -> &'static StyleTokens {
     match style {
         "classic" => &CLASSIC,
@@ -599,7 +606,7 @@ fn manuscript_body(
 pub fn export_html(book: &CompiledBook, options: &PublishOptions) -> Export {
     let (book, bibliography) = resolve_book_citations(book, options);
     let book = &book;
-    let tokens = style_tokens(&options.style);
+    let tokens = &super::styles::resolve_style_tokens(&options.style, &options.custom_styles);
     let drop_caps = options.drop_caps && tokens.drop_cap;
     let body = manuscript_body(book, options, drop_caps, bibliography.as_ref());
     let html = format!(

@@ -6,7 +6,7 @@ use prosecraft_core::html::{
     PlainTextOptions, RichText as RichMode, count_words, html_to_plain_text,
 };
 use prosecraft_core::project::Project;
-use prosecraft_core::richtext::{ATOM, LineKind, Mark, RichDoc};
+use prosecraft_core::richtext::{ATOM, HARD_BREAK, LineKind, Mark, RichDoc};
 
 use crate::editing::{Draft, Intent};
 use crate::theme::Palette;
@@ -1023,6 +1023,14 @@ pub(crate) fn layout_doc(
             format.color = egui::Color32::TRANSPARENT;
             atom += 1;
         }
+        if matches!(
+            c,
+            prosecraft_core::richtext::SOFT_BREAK | prosecraft_core::richtext::HARD_BREAK
+        ) {
+            // A line break: it ends the row (see `RowBreaks`) and shows nothing.
+            format.color = egui::Color32::TRANSPARENT;
+            format.font_id.size = 1.0;
+        }
         if c == '\n' {
             // ProseCraft's gap between paragraphs.
             format.line_height = Some(size * 1.85 + 10.0);
@@ -1127,6 +1135,32 @@ fn editor(
         cursor = egui::TextEdit::load_state(ui.ctx(), body_id)
             .and_then(|s| s.cursor.char_range())
             .map_or(cursor, |r| r.primary.index.0);
+    }
+    // Shift+Enter: a line break inside the block, the `<br>` ProseCraft's editor writes.
+    if ui.memory(|m| m.has_focus(body_id))
+        && let Some(range) =
+            egui::TextEdit::load_state(ui.ctx(), body_id).and_then(|s| s.cursor.char_range())
+        && ui.input_mut(|i| i.consume_key(egui::Modifiers::SHIFT, egui::Key::Enter))
+    {
+        let (a, b) = (range.primary.index.0, range.secondary.index.0);
+        let chars: Vec<char> = draft.body.chars().collect();
+        let (start, end) = (a.min(b).min(chars.len()), a.max(b).min(chars.len()));
+        let text: String = chars[..start]
+            .iter()
+            .chain(&[HARD_BREAK])
+            .chain(&chars[end..])
+            .collect();
+        draft.body = draft.doc.apply_text_at(&text, Some(start + 1));
+        let mut state = egui::TextEdit::load_state(ui.ctx(), body_id).unwrap_or_default();
+        state
+            .cursor
+            .set_char_range(Some(egui::text::CCursorRange::one(
+                egui::text::CCursor::new(start + 1),
+            )));
+        state.store(ui.ctx(), body_id);
+        draft.body_dirty = true;
+        draft.changed_at = now;
+        cursor = start + 1;
     }
     // ProseCraft's Screenplay bar, above the formatting toolbar; for a prose scene of a
     // screenplay project, with "Convert this scene to screenplay" (asked first).

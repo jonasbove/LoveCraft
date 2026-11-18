@@ -14,6 +14,9 @@ use crate::html::{Element, Node, parse_fragment};
 pub const ATOM: char = '\u{FFFC}';
 /// A line break inside a block (a newline in a text node, as ProseCraft's Markdown writes).
 pub const SOFT_BREAK: char = '\u{2028}';
+/// A `<br>` inside a block (Shift+Enter in ProseCraft's editor). Like [`SOFT_BREAK`] it ends
+/// the row; unlike it, it isn't text (it adds nothing to the block's `textContent`).
+pub const HARD_BREAK: char = '\u{2029}';
 
 /// What a line (block) is.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -127,7 +130,8 @@ const INLINE: &[&str] = &[
 /// A scene for editing.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RichDoc {
-    /// The text: one `\n` between blocks, [`ATOM`] for each atom, [`SOFT_BREAK`] for a break.
+    /// The text: one `\n` between blocks, [`ATOM`] for each atom, [`SOFT_BREAK`] for a newline
+    /// in the text and [`HARD_BREAK`] for a `<br>`.
     pub text: String,
     /// One kind per line.
     pub lines: Vec<LineKind>,
@@ -238,7 +242,7 @@ impl Reader {
                 Node::Text(text) => {
                     for c in text.chars() {
                         let c = if c == '\n' { SOFT_BREAK } else { c };
-                        if c == ATOM || c == '\r' {
+                        if c == ATOM || c == HARD_BREAK || c == '\r' {
                             return None;
                         }
                         self.push_char(c, stack);
@@ -247,6 +251,9 @@ impl Reader {
                 Node::Element(e) if is_atom(e) => {
                     self.doc.atoms.push(outer_html(e));
                     self.push_char(ATOM, stack);
+                }
+                Node::Element(e) if e.name == "br" && e.attrs.is_empty() => {
+                    self.push_char(HARD_BREAK, stack);
                 }
                 Node::Element(e) if INLINE.contains(&e.name.as_str()) => {
                     stack.push(Tag {
@@ -426,6 +433,7 @@ impl RichDoc {
                     Some(&ATOM) => {
                         out.push_str(atoms.next().map(String::as_str).unwrap_or_default())
                     }
+                    Some(&HARD_BREAK) => out.push_str("<br>"),
                     Some(c) => out.push_str(&escape_text(&c.to_string())),
                     None => {}
                 }
@@ -723,7 +731,7 @@ impl RichDoc {
 
 #[cfg(test)]
 mod tests {
-    use super::{ATOM, LineKind, Mark, RichDoc};
+    use super::{ATOM, HARD_BREAK, LineKind, Mark, RichDoc};
 
     #[test]
     fn typing_keeps_formatting_and_atoms_follow_their_characters() {
@@ -803,6 +811,8 @@ mod tests {
             "<p><em><strong>both</strong></em> and <strong>bold <em>italic</em></strong></p>",
             r#"<p>See <a href="https://example.com/?a=1&amp;b=2">here</a>.</p>"#,
             r#"<p>A note<sup class="footnote-ref" data-footnote-id="n1" contenteditable="false"></sup>.</p>"#,
+            "<p>a<br>b</p><p><em>c<br></em><br>d<br><br></p>",
+            "<ul><li>one<br>two</li></ul>",
         ] {
             let doc = RichDoc::from_html(html).unwrap_or_else(|| panic!("not read: {html}"));
             assert_eq!(doc.to_html(), html);
@@ -828,14 +838,83 @@ mod tests {
         for html in [
             r#"<p data-sp="action" class="x">x</p>"#,
             r#"<p data-sp="unknown">x</p>"#,
-            "<p>a<br>b</p>",
             "<table><tr><td>x</td></tr></table>",
             "<p><img src=\"data:image/png;base64,AA==\"></p>",
             "<div>x</div>",
             "<pre>code</pre>",
             "<p>a</p>\n<p>b</p><p>c</p>",
+            r#"<p>a<br class="x">b</p>"#,
+            "<p>a\u{2029}b</p>",
         ] {
             assert!(RichDoc::from_html(html).is_none(), "{html}");
+        }
+    }
+
+    #[test]
+    fn shift_enter_is_a_br() {
+        let mut doc = RichDoc::from_html("<p>one two</p>").unwrap_or_default();
+        doc.apply_text_at(&format!("one{HARD_BREAK}two"), Some(4));
+        assert_eq!(doc.to_html(), "<p>one<br>two</p>");
+        // Deleting it joins the words again.
+        doc.apply_text("onetwo");
+        assert_eq!(doc.to_html(), "<p>onetwo</p>");
+        // A block holding only a break is ProseCraft's empty block.
+        assert_eq!(
+            RichDoc::from_html("<p><br></p>").map(|d| d.text),
+            Some(String::new())
+        );
+    }
+
+    /// Whatever is typed, what the editor writes can be read back into the same document: a
+    /// scene never turns read-only after a save.
+    #[test]
+    fn edits_always_write_html_that_reads_back() {
+        let note =
+            r#"<sup class="footnote-ref" data-footnote-id="n1" contenteditable="false"></sup>"#;
+        let starts = [
+            format!("<p>One <em>two</em>{note}</p><ul><li>a<br>b</li></ul><h2>H</h2>"),
+            "<blockquote><p>q<br></p></blockquote><ol><li>x</li></ol>".to_owned(),
+            "<p><br></p>".to_owned(),
+        ];
+        let mut seed: u64 = 0x2545_f491_4f6c_dd1d;
+        let mut next = |n: usize| {
+            seed ^= seed << 13;
+            seed ^= seed >> 7;
+            seed ^= seed << 17;
+            (seed % n.max(1) as u64) as usize
+        };
+        let kinds = [
+            LineKind::Paragraph,
+            LineKind::Heading2,
+            LineKind::Quote,
+            LineKind::Bullet,
+            LineKind::Numbered,
+        ];
+        for start in &starts {
+            let mut doc = RichDoc::from_html(start).expect("start");
+            for step in 0..400 {
+                let chars: Vec<char> = doc.text.chars().collect();
+                let at = next(chars.len() + 1);
+                match next(5) {
+                    0 | 1 => {
+                        let c = ['a', ' ', '\n', HARD_BREAK, '&'][next(5)];
+                        let text: String =
+                            chars[..at].iter().chain(&[c]).chain(&chars[at..]).collect();
+                        doc.apply_text_at(&text, Some(at + 1));
+                    }
+                    2 => {
+                        let end = (at + next(4)).min(chars.len());
+                        let text: String = chars[..at].iter().chain(&chars[end..]).collect();
+                        doc.apply_text_at(&text, Some(at));
+                    }
+                    3 => doc.toggle_mark(at..(at + next(6)), Mark::Italic),
+                    _ => doc.set_line_kind(at..at, kinds[next(kinds.len())]),
+                }
+                let html = doc.to_html();
+                let again = RichDoc::from_html(&html)
+                    .unwrap_or_else(|| panic!("step {step}: not read back: {html}"));
+                assert_eq!(again.to_html(), html, "step {step}");
+            }
         }
     }
 

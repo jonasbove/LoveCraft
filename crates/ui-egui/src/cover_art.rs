@@ -47,7 +47,7 @@ fn face_name(font: &Font) -> (&'static str, &'static str) {
 }
 
 /// egui's own faces, for when the app's aren't built in.
-fn egui_face(name: &str) -> Option<&'static [u8]> {
+pub(crate) fn egui_face(name: &str) -> Option<&'static [u8]> {
     type Faces = HashMap<String, std::sync::Arc<dyn AsRef<[u8]> + Send + Sync>>;
     static FACES: OnceLock<Faces> = OnceLock::new();
     FACES

@@ -16,6 +16,8 @@ craft-html = { workspace = true }
 craft-image-codecs = { workspace = true }
 craft-zip = { workspace = true }
 craft-xml = { workspace = true }
+# Names sorted as `localeCompare` sorts them (ICU collation, numbers by value).
+craft-i18n = { workspace = true, features = ["collate"] }
 encoding_rs = { workspace = true }
 regress = { workspace = true }
 url = { workspace = true }

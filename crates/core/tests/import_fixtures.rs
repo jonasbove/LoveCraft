@@ -527,3 +527,204 @@ fn prose_converts_to_a_screenplay_as_prosecraft_converts_it() {
         js::stringify(all.get("converted").unwrap_or(&JsValue::Null))
     );
 }
+
+mod markdown_folder {
+    use super::{fixture, s};
+    use prosecraft_core::import::markdown_folder::{
+        ChapterMode, FolderRole, FrontValue, MarkdownFile, MarkdownImportPlan,
+        build_markdown_project, estimate_stored_chars, humanize_name, is_importable_markdown_path,
+        list_import_folders, parse_frontmatter, role_of, suggest_role,
+    };
+    use prosecraft_core::js::{self, JsObject, JsValue};
+    use std::collections::HashMap;
+
+    fn files(v: &JsValue) -> Vec<MarkdownFile> {
+        v.as_array()
+            .unwrap_or_default()
+            .iter()
+            .map(|f| MarkdownFile {
+                path: s(f, "path"),
+                text: s(f, "text"),
+            })
+            .collect()
+    }
+
+    fn roles(v: Option<&JsValue>) -> HashMap<String, FolderRole> {
+        v.and_then(JsValue::as_object)
+            .map(|o| {
+                o.iter()
+                    .filter_map(|(k, v)| {
+                        let role = v.as_js_string()?.as_string()?;
+                        Some((k.to_string_lossy(), FolderRole::from_name(&role)?))
+                    })
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    /// ProseCraft's own `markdown-folder.ts` on its test inputs and edge cases: front matter,
+    /// names, the folders the dialog offers, roles, the storage estimate, and whole projects.
+    #[test]
+    fn markdown_folder_import_matches_prosecraft() {
+        let fx = fixture("markdown-folder.json");
+        let list = |key: &str| {
+            fx.get(key)
+                .and_then(JsValue::as_array)
+                .unwrap_or_default()
+                .to_vec()
+        };
+
+        for case in list("frontmatter") {
+            let parsed = parse_frontmatter(&s(&case, "text"));
+            let mut data = JsObject::new();
+            for (k, v) in &parsed.data {
+                let value = match v {
+                    FrontValue::Text(t) => JsValue::str(t),
+                    FrontValue::List(items) => {
+                        JsValue::Array(items.iter().map(|i| JsValue::str(i)).collect())
+                    }
+                };
+                data.insert(k.as_str(), value);
+            }
+            let want = case.get("data").map(js::stringify).unwrap_or_default();
+            assert_eq!(
+                js::stringify(&JsValue::Object(data)),
+                want,
+                "{:?}",
+                s(&case, "text")
+            );
+            assert_eq!(parsed.body, s(&case, "body"), "{:?}", s(&case, "text"));
+        }
+        for case in list("names") {
+            assert_eq!(
+                humanize_name(&s(&case, "name")),
+                s(&case, "human"),
+                "{}",
+                s(&case, "name")
+            );
+        }
+        for case in list("paths") {
+            let want = case.get("importable") == Some(&JsValue::Bool(true));
+            assert_eq!(
+                is_importable_markdown_path(&s(&case, "path")),
+                want,
+                "{}",
+                s(&case, "path")
+            );
+        }
+        for case in list("suggest") {
+            assert_eq!(
+                suggest_role(&s(&case, "name")).as_str(),
+                s(&case, "role"),
+                "{}",
+                s(&case, "name")
+            );
+        }
+        for case in list("folderSets") {
+            let have: Vec<String> =
+                list_import_folders(&files(case.get("files").unwrap_or(&JsValue::Null)))
+                    .iter()
+                    .map(|f| {
+                        format!(
+                            "{}|{}|{}|{}|{}",
+                            f.path,
+                            f.name,
+                            f.depth,
+                            f.files,
+                            f.suggested.as_str()
+                        )
+                    })
+                    .collect();
+            let want: Vec<String> = case
+                .get("folders")
+                .and_then(JsValue::as_array)
+                .unwrap_or_default()
+                .iter()
+                .map(|f| {
+                    let n = |k: &str| f.get(k).and_then(JsValue::as_number).unwrap_or(-1.0);
+                    format!(
+                        "{}|{}|{}|{}|{}",
+                        s(f, "path"),
+                        s(f, "name"),
+                        n("depth"),
+                        n("files"),
+                        s(f, "suggested")
+                    )
+                })
+                .collect();
+            assert_eq!(have, want);
+        }
+        for case in list("roleCases") {
+            let role = role_of(&s(&case, "path"), &roles(case.get("roles")));
+            assert_eq!(role.as_str(), s(&case, "role"), "{}", s(&case, "path"));
+        }
+        let estimates = fx.get("estimates").unwrap_or(&JsValue::Null);
+        let estimate_files = files(estimates.get("files").unwrap_or(&JsValue::Null));
+        for case in estimates
+            .get("cases")
+            .and_then(JsValue::as_array)
+            .unwrap_or_default()
+        {
+            let want = case
+                .get("chars")
+                .and_then(JsValue::as_number)
+                .unwrap_or(-1.0);
+            assert_eq!(
+                estimate_stored_chars(&estimate_files, &roles(case.get("roles"))) as f64,
+                want
+            );
+        }
+        for case in list("builds") {
+            let plan = MarkdownImportPlan {
+                roles: roles(case.get("roles")),
+                chapter_mode: if s(&case, "mode") == "files" {
+                    ChapterMode::Files
+                } else {
+                    ChapterMode::Folders
+                },
+            };
+            let mut n = 0;
+            let mut create_id = || {
+                n += 1;
+                format!("id-{n}")
+            };
+            let name = case
+                .get("projectName")
+                .and_then(JsValue::as_js_string)
+                .map(|t| t.to_string_lossy());
+            let (project, report) = build_markdown_project(
+                &files(case.get("files").unwrap_or(&JsValue::Null)),
+                &plan,
+                &mut create_id,
+                name.as_deref(),
+            );
+            let label = format!("{} ({})", s(&case, "name"), s(&case, "mode"));
+            assert_eq!(
+                js::stringify(&project),
+                case.get("project").map(js::stringify).unwrap_or_default(),
+                "{label}"
+            );
+            let want = case.get("report").unwrap_or(&JsValue::Null);
+            let n = |k: &str| want.get(k).and_then(JsValue::as_number).unwrap_or(-1.0) as usize;
+            assert_eq!(
+                [
+                    report.chapters,
+                    report.scenes,
+                    report.wiki_pages,
+                    report.wiki_folders,
+                    report.links_resolved,
+                    report.links_unresolved
+                ],
+                [
+                    n("chapters"),
+                    n("scenes"),
+                    n("wikiPages"),
+                    n("wikiFolders"),
+                    n("linksResolved"),
+                    n("linksUnresolved")
+                ],
+                "{label}"
+            );
+        }
+    }
+}

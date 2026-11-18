@@ -120,8 +120,7 @@ fn mode_option(
     ui.add_space(4.0);
 }
 
-/// ProseCraft's "Import a manuscript" group (the EPUB importer; Scrivener, Markdown folders and
-/// Fountain come later).
+/// ProseCraft's "Import a manuscript" group: EPUB, Scrivener, Markdown folders and Fountain.
 fn import_manuscript(ui: &mut Ui, state: &mut AppState) {
     use crate::HostRequest;
     let palette = state.palette;
@@ -139,6 +138,7 @@ fn import_manuscript(ui: &mut Ui, state: &mut AppState) {
                 "Import Scrivener folder…",
                 HostRequest::ImportScrivenerFolder,
             ),
+            ("Import Markdown folder…", HostRequest::ImportMarkdownFolder),
             ("Import Fountain screenplay…", HostRequest::ImportFountain),
         ] {
             // A screenplay joins the open project, so it needs one.
@@ -158,6 +158,11 @@ fn import_manuscript(ui: &mut Ui, state: &mut AppState) {
         ui,
         &palette,
         "Creates a new project from a Scrivener project (.scriv), as a zip or as a folder. Manuscript chapters and scenes become chapters and scenes, the research folder becomes wiki pages. Labels, status, keywords, notes and snapshots are not imported.",
+    );
+    help(
+        ui,
+        &palette,
+        "Creates a new project from a folder of Markdown files (for example an Obsidian vault). You choose which folders are the manuscript and which become wiki pages.",
     );
     help(
         ui,

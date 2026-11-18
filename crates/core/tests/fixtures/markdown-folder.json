@@ -1,0 +1,2102 @@
+{
+  "frontmatter": [
+    {
+      "text": "---\ntitle: T\ntags: [a, \"b\", 'c', ]\naliases:\n  - One\n  - \"Two\"\nposition: 3\n---\nBody",
+      "data": {
+        "title": "T",
+        "tags": [
+          "a",
+          "b",
+          "c"
+        ],
+        "aliases": [
+          "One",
+          "Two"
+        ],
+        "position": "3"
+      },
+      "body": "Body"
+    },
+    {
+      "text": "---\ntitle: Unclosed\nBody",
+      "data": {},
+      "body": "---\ntitle: Unclosed\nBody"
+    },
+    {
+      "text": "No header",
+      "data": {},
+      "body": "No header"
+    },
+    {
+      "text": "﻿---\r\ntitle: 'Quoted'\r\n---\r\nWindows\r\nlines\rold mac",
+      "data": {
+        "title": "Quoted"
+      },
+      "body": "Windows\nlines\nold mac"
+    },
+    {
+      "text": "---\nlist:\n- a\nnot: pair here\n  - b\nkey:value\nk-e_y: v\n---\n",
+      "data": {
+        "list": [
+          "a"
+        ],
+        "not": "pair here",
+        "key": "value",
+        "k-e_y": "v"
+      },
+      "body": ""
+    },
+    {
+      "text": "---\n---\nempty header",
+      "data": {},
+      "body": "---\n---\nempty header"
+    },
+    {
+      "text": "---\ntitle:\n  - In a list\n---\nx",
+      "data": {
+        "title": [
+          "In a list"
+        ]
+      },
+      "body": "x"
+    },
+    {
+      "text": "--- \ntitle: space after dashes\n---\nx",
+      "data": {},
+      "body": "--- \ntitle: space after dashes\n---\nx"
+    },
+    {
+      "text": "---\na: 1\n---",
+      "data": {
+        "a": "1"
+      },
+      "body": ""
+    },
+    {
+      "text": "---\nx: [a,b\n---\nrest\n---\nmore",
+      "data": {
+        "x": "[a,b"
+      },
+      "body": "rest\n---\nmore"
+    }
+  ],
+  "names": [
+    {
+      "name": "03_CHARACTERS",
+      "human": "Characters"
+    },
+    {
+      "name": "entwurf_v4_master",
+      "human": "Entwurf v4 master"
+    },
+    {
+      "name": "03_C02_die_treppe.md",
+      "human": "C02 die treppe"
+    },
+    {
+      "name": "README.md",
+      "human": "Readme"
+    },
+    {
+      "name": "12.Draft",
+      "human": "Draft"
+    },
+    {
+      "name": "1 - One",
+      "human": "One"
+    },
+    {
+      "name": "__init__",
+      "human": "Init"
+    },
+    {
+      "name": "007",
+      "human": "007"
+    },
+    {
+      "name": "ÉCOLE",
+      "human": "École"
+    },
+    {
+      "name": "ünder_score",
+      "human": "Ünder score"
+    },
+    {
+      "name": "x.markdown",
+      "human": "X"
+    },
+    {
+      "name": "CHAPTER.MD",
+      "human": "Chapter"
+    },
+    {
+      "name": "a__b",
+      "human": "A b"
+    },
+    {
+      "name": "99_",
+      "human": "99_"
+    },
+    {
+      "name": "🌊_wave",
+      "human": "🌊 wave"
+    },
+    {
+      "name": "  spaced  ",
+      "human": "Spaced"
+    },
+    {
+      "name": "ß_test",
+      "human": "SS test"
+    },
+    {
+      "name": "MiXeD_Case",
+      "human": "MiXeD Case"
+    }
+  ],
+  "paths": [
+    {
+      "path": "a/b.md",
+      "importable": true
+    },
+    {
+      "path": "a/.obsidian/x.md",
+      "importable": false
+    },
+    {
+      "path": "a/_archiv/x.md",
+      "importable": false
+    },
+    {
+      "path": "a/b.md~",
+      "importable": false
+    },
+    {
+      "path": "a/b.json",
+      "importable": false
+    },
+    {
+      "path": "B.MARKDOWN",
+      "importable": true
+    },
+    {
+      "path": ".hidden.md",
+      "importable": false
+    },
+    {
+      "path": "x/y/z.Md",
+      "importable": true
+    },
+    {
+      "path": "_x.md",
+      "importable": false
+    },
+    {
+      "path": "a/b.mdx",
+      "importable": false
+    }
+  ],
+  "suggest": [
+    {
+      "name": "Manuscript",
+      "role": "manuscript"
+    },
+    {
+      "name": "my-drafts",
+      "role": "manuscript"
+    },
+    {
+      "name": "Kapitel 3",
+      "role": "manuscript"
+    },
+    {
+      "name": "TEXTE",
+      "role": "manuscript"
+    },
+    {
+      "name": "World",
+      "role": "wiki"
+    },
+    {
+      "name": "notes",
+      "role": "wiki"
+    },
+    {
+      "name": "bookends",
+      "role": "manuscript"
+    },
+    {
+      "name": "Roman",
+      "role": "manuscript"
+    },
+    {
+      "name": "Characters",
+      "role": "wiki"
+    },
+    {
+      "name": "chapter",
+      "role": "manuscript"
+    }
+  ],
+  "folderSets": [
+    {
+      "files": [
+        {
+          "path": "02_WORLD/a.md",
+          "text": ""
+        },
+        {
+          "path": "12_MANUSKRIPT/b.md",
+          "text": ""
+        },
+        {
+          "path": "13_ENTWURF/c.md",
+          "text": ""
+        },
+        {
+          "path": "README.md",
+          "text": ""
+        }
+      ],
+      "folders": [
+        {
+          "path": "(loose files)",
+          "name": "(loose files)",
+          "depth": 0,
+          "files": 1,
+          "suggested": "wiki"
+        },
+        {
+          "path": "02_WORLD",
+          "name": "02_WORLD",
+          "depth": 0,
+          "files": 1,
+          "suggested": "wiki"
+        },
+        {
+          "path": "12_MANUSKRIPT",
+          "name": "12_MANUSKRIPT",
+          "depth": 0,
+          "files": 1,
+          "suggested": "manuscript"
+        },
+        {
+          "path": "13_ENTWURF",
+          "name": "13_ENTWURF",
+          "depth": 0,
+          "files": 1,
+          "suggested": "wiki"
+        }
+      ]
+    },
+    {
+      "files": [
+        {
+          "path": "MANUSCRIPT/draft_v1/a.md",
+          "text": ""
+        },
+        {
+          "path": "MANUSCRIPT/draft_v2/a.md",
+          "text": ""
+        },
+        {
+          "path": "MANUSCRIPT/draft_v10_master/a.md",
+          "text": ""
+        },
+        {
+          "path": "WORLD/x/a.md",
+          "text": ""
+        },
+        {
+          "path": "WORLD/x/b.md",
+          "text": ""
+        },
+        {
+          "path": "WORLD/y/c.md",
+          "text": ""
+        }
+      ],
+      "folders": [
+        {
+          "path": "MANUSCRIPT",
+          "name": "MANUSCRIPT",
+          "depth": 0,
+          "files": 3,
+          "suggested": "wiki"
+        },
+        {
+          "path": "MANUSCRIPT/draft_v1",
+          "name": "draft_v1",
+          "depth": 1,
+          "files": 1,
+          "suggested": "skip"
+        },
+        {
+          "path": "MANUSCRIPT/draft_v2",
+          "name": "draft_v2",
+          "depth": 1,
+          "files": 1,
+          "suggested": "skip"
+        },
+        {
+          "path": "MANUSCRIPT/draft_v10_master",
+          "name": "draft_v10_master",
+          "depth": 1,
+          "files": 1,
+          "suggested": "manuscript"
+        },
+        {
+          "path": "WORLD",
+          "name": "WORLD",
+          "depth": 0,
+          "files": 3,
+          "suggested": "wiki"
+        },
+        {
+          "path": "WORLD/x",
+          "name": "x",
+          "depth": 1,
+          "files": 2,
+          "suggested": "wiki"
+        },
+        {
+          "path": "WORLD/y",
+          "name": "y",
+          "depth": 1,
+          "files": 1,
+          "suggested": "wiki"
+        }
+      ]
+    },
+    {
+      "files": [
+        {
+          "path": "Book/ch2.md",
+          "text": ""
+        },
+        {
+          "path": "Book/ch10.md",
+          "text": ""
+        },
+        {
+          "path": "Book/ch1.md",
+          "text": ""
+        },
+        {
+          "path": "Book/intro.md",
+          "text": ""
+        },
+        {
+          "path": "notes.md",
+          "text": ""
+        },
+        {
+          "path": ".git/x.md",
+          "text": ""
+        },
+        {
+          "path": "Book/_old/y.md",
+          "text": ""
+        },
+        {
+          "path": "a.txt",
+          "text": ""
+        }
+      ],
+      "folders": [
+        {
+          "path": "(loose files)",
+          "name": "(loose files)",
+          "depth": 0,
+          "files": 1,
+          "suggested": "wiki"
+        },
+        {
+          "path": "Book",
+          "name": "Book",
+          "depth": 0,
+          "files": 4,
+          "suggested": "manuscript"
+        }
+      ]
+    },
+    {
+      "files": [
+        {
+          "path": "Draft/a/b/c.md",
+          "text": ""
+        },
+        {
+          "path": "Draft/a/d.md",
+          "text": ""
+        },
+        {
+          "path": "Draft/e/f.md",
+          "text": ""
+        },
+        {
+          "path": "Text 2/x.md",
+          "text": ""
+        },
+        {
+          "path": "Text 10/x.md",
+          "text": ""
+        }
+      ],
+      "folders": [
+        {
+          "path": "Draft",
+          "name": "Draft",
+          "depth": 0,
+          "files": 3,
+          "suggested": "wiki"
+        },
+        {
+          "path": "Draft/a",
+          "name": "a",
+          "depth": 1,
+          "files": 2,
+          "suggested": "skip"
+        },
+        {
+          "path": "Draft/e",
+          "name": "e",
+          "depth": 1,
+          "files": 1,
+          "suggested": "manuscript"
+        },
+        {
+          "path": "Text 2",
+          "name": "Text 2",
+          "depth": 0,
+          "files": 1,
+          "suggested": "wiki"
+        },
+        {
+          "path": "Text 10",
+          "name": "Text 10",
+          "depth": 0,
+          "files": 1,
+          "suggested": "wiki"
+        }
+      ]
+    },
+    {
+      "files": [],
+      "folders": []
+    }
+  ],
+  "roleCases": [
+    {
+      "path": "MS/new/a.md",
+      "roles": {
+        "MS": "manuscript",
+        "MS/old": "skip",
+        "(loose files)": "wiki"
+      },
+      "role": "manuscript"
+    },
+    {
+      "path": "MS/old/a.md",
+      "roles": {
+        "MS": "manuscript",
+        "MS/old": "skip"
+      },
+      "role": "skip"
+    },
+    {
+      "path": "MS/old/deeper/a.md",
+      "roles": {
+        "MS": "manuscript",
+        "MS/old": "skip"
+      },
+      "role": "skip"
+    },
+    {
+      "path": "README.md",
+      "roles": {
+        "(loose files)": "wiki"
+      },
+      "role": "wiki"
+    },
+    {
+      "path": "README.md",
+      "roles": {},
+      "role": "skip"
+    },
+    {
+      "path": "OTHER/a.md",
+      "roles": {
+        "MS": "wiki"
+      },
+      "role": "skip"
+    }
+  ],
+  "estimates": {
+    "files": [
+      {
+        "path": "A/a.md",
+        "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      {
+        "path": "B/b.md",
+        "text": "y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊y🌊"
+      },
+      {
+        "path": "A/_old/c.md",
+        "text": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+      },
+      {
+        "path": "A/d.json",
+        "text": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"
+      },
+      {
+        "path": "top.md",
+        "text": "abc"
+      }
+    ],
+    "cases": [
+      {
+        "roles": {
+          "A": "wiki",
+          "B": "skip"
+        },
+        "chars": 3600
+      },
+      {
+        "roles": {
+          "A": "wiki",
+          "B": "wiki",
+          "(loose files)": "manuscript"
+        },
+        "chars": 4151
+      },
+      {
+        "roles": {},
+        "chars": 0
+      }
+    ]
+  },
+  "builds": [
+    {
+      "name": "prosecraft-test",
+      "mode": "folders",
+      "files": [
+        {
+          "path": "12_MS/v1/02_b.md",
+          "text": "---\ntitle: Second\nposition: 2\n---\n# Second\n\nBeta text [[CHR_a]]."
+        },
+        {
+          "path": "12_MS/v1/01_a.md",
+          "text": "---\ntitle: First\nposition: 1\n---\n# First\n\nAlpha text."
+        },
+        {
+          "path": "12_MS/v2/x.md",
+          "text": "# Other draft\n\nOther."
+        },
+        {
+          "path": "03_CHARS/CHR_a.md",
+          "text": "---\ntitle: Anna\naliases:\n  - A\n---\nAnna is [[nobody|someone]] and [[missing]]."
+        },
+        {
+          "path": "03_CHARS/sub/CHR_b.md",
+          "text": "No heading here."
+        },
+        {
+          "path": "03_CHARS/_old/hidden.md",
+          "text": "hidden"
+        },
+        {
+          "path": "notes.json",
+          "text": "{}"
+        }
+      ],
+      "roles": {
+        "12_MS": "manuscript",
+        "03_CHARS": "wiki"
+      },
+      "projectName": "My Book",
+      "project": {
+        "id": "id-10",
+        "name": "My Book",
+        "author": "",
+        "documents": [
+          {
+            "id": "id-2",
+            "title": "First",
+            "content": "<p>Alpha text.</p>\n",
+            "chapterId": "id-1"
+          },
+          {
+            "id": "id-3",
+            "title": "Second",
+            "content": "<p>Beta text Anna.</p>\n",
+            "chapterId": "id-1"
+          },
+          {
+            "id": "id-5",
+            "title": "Other draft",
+            "content": "<p>Other.</p>\n",
+            "chapterId": "id-4"
+          },
+          {
+            "id": "id-6",
+            "title": "Anna",
+            "content": "<p>Anna is someone and missing.</p>\n",
+            "space": "Wiki",
+            "folderId": "id-7"
+          },
+          {
+            "id": "id-8",
+            "title": "CHR b",
+            "content": "<p>No heading here.</p>\n",
+            "space": "Wiki",
+            "folderId": "id-9"
+          }
+        ],
+        "chapters": [
+          {
+            "id": "id-1",
+            "title": "V1",
+            "expanded": true,
+            "summary": ""
+          },
+          {
+            "id": "id-4",
+            "title": "V2",
+            "expanded": true,
+            "summary": ""
+          }
+        ],
+        "activeDocumentId": "id-2",
+        "projectGoal": 50000,
+        "chapterGoals": {},
+        "activity": {},
+        "storyboardCards": [],
+        "storyboardRows": [
+          {
+            "id": "id-11",
+            "title": "Timeline"
+          }
+        ],
+        "timelineNodes": [],
+        "noteFolders": [],
+        "researchFolderName": "",
+        "researchFolders": [
+          {
+            "id": "id-7",
+            "title": "Chars",
+            "parentId": null
+          },
+          {
+            "id": "id-9",
+            "title": "Sub",
+            "parentId": "id-7"
+          }
+        ],
+        "researchItems": [],
+        "publishOptions": {
+          "format": "pdf",
+          "style": "manuscript",
+          "customStyles": [],
+          "cover": {
+            "mode": "none",
+            "image": "",
+            "design": "classic",
+            "palette": "ink"
+          },
+          "includeTitlePage": true,
+          "includeCopyrightPage": false,
+          "includeTableOfContents": false,
+          "includeChapterTitles": true,
+          "includeSceneTitles": false,
+          "pageBreakBeforeChapters": true,
+          "sceneSeparator": "hash",
+          "dropCaps": true,
+          "footnotesRestartPerChapter": false,
+          "citationStyle": "apa7",
+          "citationLocale": "en",
+          "includeBibliography": true,
+          "subtitle": "",
+          "copyright": "",
+          "dedication": "",
+          "frontMatter": [],
+          "backMatter": []
+        }
+      },
+      "report": {
+        "chapters": 2,
+        "scenes": 3,
+        "wikiPages": 2,
+        "wikiFolders": 2,
+        "linksResolved": 1,
+        "linksUnresolved": 2
+      }
+    },
+    {
+      "name": "prosecraft-test",
+      "mode": "files",
+      "files": [
+        {
+          "path": "12_MS/v1/02_b.md",
+          "text": "---\ntitle: Second\nposition: 2\n---\n# Second\n\nBeta text [[CHR_a]]."
+        },
+        {
+          "path": "12_MS/v1/01_a.md",
+          "text": "---\ntitle: First\nposition: 1\n---\n# First\n\nAlpha text."
+        },
+        {
+          "path": "12_MS/v2/x.md",
+          "text": "# Other draft\n\nOther."
+        },
+        {
+          "path": "03_CHARS/CHR_a.md",
+          "text": "---\ntitle: Anna\naliases:\n  - A\n---\nAnna is [[nobody|someone]] and [[missing]]."
+        },
+        {
+          "path": "03_CHARS/sub/CHR_b.md",
+          "text": "No heading here."
+        },
+        {
+          "path": "03_CHARS/_old/hidden.md",
+          "text": "hidden"
+        },
+        {
+          "path": "notes.json",
+          "text": "{}"
+        }
+      ],
+      "roles": {
+        "12_MS": "manuscript",
+        "03_CHARS": "wiki"
+      },
+      "projectName": "My Book",
+      "project": {
+        "id": "id-11",
+        "name": "My Book",
+        "author": "",
+        "documents": [
+          {
+            "id": "id-2",
+            "title": "First",
+            "content": "<p>Alpha text.</p>\n",
+            "chapterId": "id-1"
+          },
+          {
+            "id": "id-4",
+            "title": "Second",
+            "content": "<p>Beta text Anna.</p>\n",
+            "chapterId": "id-3"
+          },
+          {
+            "id": "id-6",
+            "title": "Other draft",
+            "content": "<p>Other.</p>\n",
+            "chapterId": "id-5"
+          },
+          {
+            "id": "id-7",
+            "title": "Anna",
+            "content": "<p>Anna is someone and missing.</p>\n",
+            "space": "Wiki",
+            "folderId": "id-8"
+          },
+          {
+            "id": "id-9",
+            "title": "CHR b",
+            "content": "<p>No heading here.</p>\n",
+            "space": "Wiki",
+            "folderId": "id-10"
+          }
+        ],
+        "chapters": [
+          {
+            "id": "id-1",
+            "title": "First",
+            "expanded": true,
+            "summary": ""
+          },
+          {
+            "id": "id-3",
+            "title": "Second",
+            "expanded": true,
+            "summary": ""
+          },
+          {
+            "id": "id-5",
+            "title": "Other draft",
+            "expanded": true,
+            "summary": ""
+          }
+        ],
+        "activeDocumentId": "id-2",
+        "projectGoal": 50000,
+        "chapterGoals": {},
+        "activity": {},
+        "storyboardCards": [],
+        "storyboardRows": [
+          {
+            "id": "id-12",
+            "title": "Timeline"
+          }
+        ],
+        "timelineNodes": [],
+        "noteFolders": [],
+        "researchFolderName": "",
+        "researchFolders": [
+          {
+            "id": "id-8",
+            "title": "Chars",
+            "parentId": null
+          },
+          {
+            "id": "id-10",
+            "title": "Sub",
+            "parentId": "id-8"
+          }
+        ],
+        "researchItems": [],
+        "publishOptions": {
+          "format": "pdf",
+          "style": "manuscript",
+          "customStyles": [],
+          "cover": {
+            "mode": "none",
+            "image": "",
+            "design": "classic",
+            "palette": "ink"
+          },
+          "includeTitlePage": true,
+          "includeCopyrightPage": false,
+          "includeTableOfContents": false,
+          "includeChapterTitles": true,
+          "includeSceneTitles": false,
+          "pageBreakBeforeChapters": true,
+          "sceneSeparator": "hash",
+          "dropCaps": true,
+          "footnotesRestartPerChapter": false,
+          "citationStyle": "apa7",
+          "citationLocale": "en",
+          "includeBibliography": true,
+          "subtitle": "",
+          "copyright": "",
+          "dedication": "",
+          "frontMatter": [],
+          "backMatter": []
+        }
+      },
+      "report": {
+        "chapters": 3,
+        "scenes": 3,
+        "wikiPages": 2,
+        "wikiFolders": 2,
+        "linksResolved": 1,
+        "linksUnresolved": 2
+      }
+    },
+    {
+      "name": "positions-and-links",
+      "mode": "folders",
+      "files": [
+        {
+          "path": "Book/c.md",
+          "text": "---\nposition: 1e1\n---\nTen [[a#Heading]] and ![[img.png]] and [[A|alias|extra]] and [[ b ]]."
+        },
+        {
+          "path": "Book/a.md",
+          "text": "---\nposition: 0x2\n---\n# A\n\nTwo **bold** <span style=\"x\">s</span><font>f</font><b onclick=\"y\">ok</b>"
+        },
+        {
+          "path": "Book/b.md",
+          "text": "---\nposition:  3 \n---\n## Not a title\n\nThree $x^2$ and [^n]\n\n[^n]: A note."
+        },
+        {
+          "path": "Book/d.md",
+          "text": "---\nposition: x\n---\nNo number so everything sorts by path"
+        },
+        {
+          "path": "Wiki/Deep/Deeper/Deepest/page.md",
+          "text": "# page\n\n- list\n- items"
+        },
+        {
+          "path": "Wiki/A very long folder name that goes on and on past sixty characters for sure/p.md",
+          "text": ""
+        },
+        {
+          "path": "Wiki/🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊/p.md",
+          "text": "x"
+        },
+        {
+          "path": "loose.md",
+          "text": "# Loose\n\n```mermaid\ngraph TD; A-->B;\n```"
+        }
+      ],
+      "roles": {
+        "Book": "manuscript",
+        "Wiki": "wiki",
+        "(loose files)": "wiki"
+      },
+      "projectName": "  ",
+      "project": {
+        "id": "id-16",
+        "name": "Imported Markdown",
+        "author": "",
+        "documents": [
+          {
+            "id": "id-2",
+            "title": "A",
+            "content": "<p>Two <strong>bold</strong> sf<b>ok</b></p>\n",
+            "chapterId": "id-1"
+          },
+          {
+            "id": "id-3",
+            "title": "B",
+            "content": "<h2>Not a title</h2>\n<p>Three <span class=\"math-inline\" data-tex=\"x^2\"></span> and <sup class=\"footnote-ref\" data-footnote-id=\"n\" contenteditable=\"false\"></sup></p>\n",
+            "chapterId": "id-1"
+          },
+          {
+            "id": "id-4",
+            "title": "C",
+            "content": "<p>Ten A and ![[img.png]] and alias and B.</p>\n",
+            "chapterId": "id-1"
+          },
+          {
+            "id": "id-5",
+            "title": "D",
+            "content": "<p>No number so everything sorts by path</p>\n",
+            "chapterId": "id-1"
+          },
+          {
+            "id": "id-6",
+            "title": "Loose",
+            "content": "<div class=\"mermaid-diagram\" data-source=\"graph TD; A-->B;\"></div>\n",
+            "space": "Wiki"
+          },
+          {
+            "id": "id-7",
+            "title": "P",
+            "content": "<p>x</p>\n",
+            "space": "Wiki",
+            "folderId": "id-8"
+          },
+          {
+            "id": "id-10",
+            "title": "P",
+            "content": "<p><br></p>",
+            "space": "Wiki",
+            "folderId": "id-11"
+          },
+          {
+            "id": "id-12",
+            "title": "page",
+            "content": "<ul>\n<li>list</li>\n<li>items</li>\n</ul>\n",
+            "space": "Wiki",
+            "folderId": "id-13"
+          }
+        ],
+        "chapters": [
+          {
+            "id": "id-1",
+            "title": "Book",
+            "expanded": true,
+            "summary": ""
+          }
+        ],
+        "activeDocumentId": "id-2",
+        "projectGoal": 50000,
+        "chapterGoals": {},
+        "activity": {},
+        "storyboardCards": [],
+        "storyboardRows": [
+          {
+            "id": "id-17",
+            "title": "Timeline"
+          }
+        ],
+        "timelineNodes": [],
+        "noteFolders": [],
+        "researchFolderName": "",
+        "researchFolders": [
+          {
+            "id": "id-9",
+            "title": "Wiki",
+            "parentId": null
+          },
+          {
+            "id": "id-8",
+            "title": "🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊",
+            "parentId": "id-9"
+          },
+          {
+            "id": "id-11",
+            "title": "A very long folder name that goes on and on past sixty chara",
+            "parentId": "id-9"
+          },
+          {
+            "id": "id-15",
+            "title": "Deep",
+            "parentId": "id-9"
+          },
+          {
+            "id": "id-14",
+            "title": "Deeper",
+            "parentId": "id-15"
+          },
+          {
+            "id": "id-13",
+            "title": "Deepest",
+            "parentId": "id-14"
+          }
+        ],
+        "researchItems": [],
+        "publishOptions": {
+          "format": "pdf",
+          "style": "manuscript",
+          "customStyles": [],
+          "cover": {
+            "mode": "none",
+            "image": "",
+            "design": "classic",
+            "palette": "ink"
+          },
+          "includeTitlePage": true,
+          "includeCopyrightPage": false,
+          "includeTableOfContents": false,
+          "includeChapterTitles": true,
+          "includeSceneTitles": false,
+          "pageBreakBeforeChapters": true,
+          "sceneSeparator": "hash",
+          "dropCaps": true,
+          "footnotesRestartPerChapter": false,
+          "citationStyle": "apa7",
+          "citationLocale": "en",
+          "includeBibliography": true,
+          "subtitle": "",
+          "copyright": "",
+          "dedication": "",
+          "frontMatter": [],
+          "backMatter": []
+        }
+      },
+      "report": {
+        "chapters": 1,
+        "scenes": 4,
+        "wikiPages": 4,
+        "wikiFolders": 6,
+        "linksResolved": 3,
+        "linksUnresolved": 0
+      }
+    },
+    {
+      "name": "positions-and-links",
+      "mode": "files",
+      "files": [
+        {
+          "path": "Book/c.md",
+          "text": "---\nposition: 1e1\n---\nTen [[a#Heading]] and ![[img.png]] and [[A|alias|extra]] and [[ b ]]."
+        },
+        {
+          "path": "Book/a.md",
+          "text": "---\nposition: 0x2\n---\n# A\n\nTwo **bold** <span style=\"x\">s</span><font>f</font><b onclick=\"y\">ok</b>"
+        },
+        {
+          "path": "Book/b.md",
+          "text": "---\nposition:  3 \n---\n## Not a title\n\nThree $x^2$ and [^n]\n\n[^n]: A note."
+        },
+        {
+          "path": "Book/d.md",
+          "text": "---\nposition: x\n---\nNo number so everything sorts by path"
+        },
+        {
+          "path": "Wiki/Deep/Deeper/Deepest/page.md",
+          "text": "# page\n\n- list\n- items"
+        },
+        {
+          "path": "Wiki/A very long folder name that goes on and on past sixty characters for sure/p.md",
+          "text": ""
+        },
+        {
+          "path": "Wiki/🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊/p.md",
+          "text": "x"
+        },
+        {
+          "path": "loose.md",
+          "text": "# Loose\n\n```mermaid\ngraph TD; A-->B;\n```"
+        }
+      ],
+      "roles": {
+        "Book": "manuscript",
+        "Wiki": "wiki",
+        "(loose files)": "wiki"
+      },
+      "projectName": "  ",
+      "project": {
+        "id": "id-19",
+        "name": "Imported Markdown",
+        "author": "",
+        "documents": [
+          {
+            "id": "id-2",
+            "title": "A",
+            "content": "<p>Two <strong>bold</strong> sf<b>ok</b></p>\n",
+            "chapterId": "id-1"
+          },
+          {
+            "id": "id-4",
+            "title": "B",
+            "content": "<h2>Not a title</h2>\n<p>Three <span class=\"math-inline\" data-tex=\"x^2\"></span> and <sup class=\"footnote-ref\" data-footnote-id=\"n\" contenteditable=\"false\"></sup></p>\n",
+            "chapterId": "id-3"
+          },
+          {
+            "id": "id-6",
+            "title": "C",
+            "content": "<p>Ten A and ![[img.png]] and alias and B.</p>\n",
+            "chapterId": "id-5"
+          },
+          {
+            "id": "id-8",
+            "title": "D",
+            "content": "<p>No number so everything sorts by path</p>\n",
+            "chapterId": "id-7"
+          },
+          {
+            "id": "id-9",
+            "title": "Loose",
+            "content": "<div class=\"mermaid-diagram\" data-source=\"graph TD; A-->B;\"></div>\n",
+            "space": "Wiki"
+          },
+          {
+            "id": "id-10",
+            "title": "P",
+            "content": "<p>x</p>\n",
+            "space": "Wiki",
+            "folderId": "id-11"
+          },
+          {
+            "id": "id-13",
+            "title": "P",
+            "content": "<p><br></p>",
+            "space": "Wiki",
+            "folderId": "id-14"
+          },
+          {
+            "id": "id-15",
+            "title": "page",
+            "content": "<ul>\n<li>list</li>\n<li>items</li>\n</ul>\n",
+            "space": "Wiki",
+            "folderId": "id-16"
+          }
+        ],
+        "chapters": [
+          {
+            "id": "id-1",
+            "title": "A",
+            "expanded": true,
+            "summary": ""
+          },
+          {
+            "id": "id-3",
+            "title": "B",
+            "expanded": true,
+            "summary": ""
+          },
+          {
+            "id": "id-5",
+            "title": "C",
+            "expanded": true,
+            "summary": ""
+          },
+          {
+            "id": "id-7",
+            "title": "D",
+            "expanded": true,
+            "summary": ""
+          }
+        ],
+        "activeDocumentId": "id-2",
+        "projectGoal": 50000,
+        "chapterGoals": {},
+        "activity": {},
+        "storyboardCards": [],
+        "storyboardRows": [
+          {
+            "id": "id-20",
+            "title": "Timeline"
+          }
+        ],
+        "timelineNodes": [],
+        "noteFolders": [],
+        "researchFolderName": "",
+        "researchFolders": [
+          {
+            "id": "id-12",
+            "title": "Wiki",
+            "parentId": null
+          },
+          {
+            "id": "id-11",
+            "title": "🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊",
+            "parentId": "id-12"
+          },
+          {
+            "id": "id-14",
+            "title": "A very long folder name that goes on and on past sixty chara",
+            "parentId": "id-12"
+          },
+          {
+            "id": "id-18",
+            "title": "Deep",
+            "parentId": "id-12"
+          },
+          {
+            "id": "id-17",
+            "title": "Deeper",
+            "parentId": "id-18"
+          },
+          {
+            "id": "id-16",
+            "title": "Deepest",
+            "parentId": "id-17"
+          }
+        ],
+        "researchItems": [],
+        "publishOptions": {
+          "format": "pdf",
+          "style": "manuscript",
+          "customStyles": [],
+          "cover": {
+            "mode": "none",
+            "image": "",
+            "design": "classic",
+            "palette": "ink"
+          },
+          "includeTitlePage": true,
+          "includeCopyrightPage": false,
+          "includeTableOfContents": false,
+          "includeChapterTitles": true,
+          "includeSceneTitles": false,
+          "pageBreakBeforeChapters": true,
+          "sceneSeparator": "hash",
+          "dropCaps": true,
+          "footnotesRestartPerChapter": false,
+          "citationStyle": "apa7",
+          "citationLocale": "en",
+          "includeBibliography": true,
+          "subtitle": "",
+          "copyright": "",
+          "dedication": "",
+          "frontMatter": [],
+          "backMatter": []
+        }
+      },
+      "report": {
+        "chapters": 4,
+        "scenes": 4,
+        "wikiPages": 4,
+        "wikiFolders": 6,
+        "linksResolved": 3,
+        "linksUnresolved": 0
+      }
+    },
+    {
+      "name": "all-positioned-ties-and-natural-order",
+      "mode": "folders",
+      "files": [
+        {
+          "path": "Ch/s10.md",
+          "text": "---\nposition: 1\n---\nten"
+        },
+        {
+          "path": "Ch/s2.md",
+          "text": "---\nposition: 1\n---\ntwo"
+        },
+        {
+          "path": "Ch/s1.md",
+          "text": "---\nposition: -1.5\n---\none"
+        },
+        {
+          "path": "Ch 10/a.md",
+          "text": "x"
+        },
+        {
+          "path": "Ch 2/a.md",
+          "text": "y"
+        },
+        {
+          "path": "Ch 2/sub/a.md",
+          "text": "z"
+        }
+      ],
+      "roles": {
+        "Ch": "manuscript",
+        "Ch 10": "manuscript",
+        "Ch 2": "manuscript",
+        "Ch 2/sub": "wiki"
+      },
+      "projectName": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "project": {
+        "id": "id-12",
+        "name": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "author": "",
+        "documents": [
+          {
+            "id": "id-2",
+            "title": "S1",
+            "content": "<p>one</p>\n",
+            "chapterId": "id-1"
+          },
+          {
+            "id": "id-3",
+            "title": "S2",
+            "content": "<p>two</p>\n",
+            "chapterId": "id-1"
+          },
+          {
+            "id": "id-4",
+            "title": "S10",
+            "content": "<p>ten</p>\n",
+            "chapterId": "id-1"
+          },
+          {
+            "id": "id-6",
+            "title": "A",
+            "content": "<p>y</p>\n",
+            "chapterId": "id-5"
+          },
+          {
+            "id": "id-8",
+            "title": "A",
+            "content": "<p>x</p>\n",
+            "chapterId": "id-7"
+          },
+          {
+            "id": "id-9",
+            "title": "A",
+            "content": "<p>z</p>\n",
+            "space": "Wiki",
+            "folderId": "id-10"
+          }
+        ],
+        "chapters": [
+          {
+            "id": "id-1",
+            "title": "Ch",
+            "expanded": true,
+            "summary": ""
+          },
+          {
+            "id": "id-5",
+            "title": "Ch 2",
+            "expanded": true,
+            "summary": ""
+          },
+          {
+            "id": "id-7",
+            "title": "Ch 10",
+            "expanded": true,
+            "summary": ""
+          }
+        ],
+        "activeDocumentId": "id-2",
+        "projectGoal": 50000,
+        "chapterGoals": {},
+        "activity": {},
+        "storyboardCards": [],
+        "storyboardRows": [
+          {
+            "id": "id-13",
+            "title": "Timeline"
+          }
+        ],
+        "timelineNodes": [],
+        "noteFolders": [],
+        "researchFolderName": "",
+        "researchFolders": [
+          {
+            "id": "id-11",
+            "title": "Ch 2",
+            "parentId": null
+          },
+          {
+            "id": "id-10",
+            "title": "Sub",
+            "parentId": "id-11"
+          }
+        ],
+        "researchItems": [],
+        "publishOptions": {
+          "format": "pdf",
+          "style": "manuscript",
+          "customStyles": [],
+          "cover": {
+            "mode": "none",
+            "image": "",
+            "design": "classic",
+            "palette": "ink"
+          },
+          "includeTitlePage": true,
+          "includeCopyrightPage": false,
+          "includeTableOfContents": false,
+          "includeChapterTitles": true,
+          "includeSceneTitles": false,
+          "pageBreakBeforeChapters": true,
+          "sceneSeparator": "hash",
+          "dropCaps": true,
+          "footnotesRestartPerChapter": false,
+          "citationStyle": "apa7",
+          "citationLocale": "en",
+          "includeBibliography": true,
+          "subtitle": "",
+          "copyright": "",
+          "dedication": "",
+          "frontMatter": [],
+          "backMatter": []
+        }
+      },
+      "report": {
+        "chapters": 3,
+        "scenes": 5,
+        "wikiPages": 1,
+        "wikiFolders": 2,
+        "linksResolved": 0,
+        "linksUnresolved": 0
+      }
+    },
+    {
+      "name": "all-positioned-ties-and-natural-order",
+      "mode": "files",
+      "files": [
+        {
+          "path": "Ch/s10.md",
+          "text": "---\nposition: 1\n---\nten"
+        },
+        {
+          "path": "Ch/s2.md",
+          "text": "---\nposition: 1\n---\ntwo"
+        },
+        {
+          "path": "Ch/s1.md",
+          "text": "---\nposition: -1.5\n---\none"
+        },
+        {
+          "path": "Ch 10/a.md",
+          "text": "x"
+        },
+        {
+          "path": "Ch 2/a.md",
+          "text": "y"
+        },
+        {
+          "path": "Ch 2/sub/a.md",
+          "text": "z"
+        }
+      ],
+      "roles": {
+        "Ch": "manuscript",
+        "Ch 10": "manuscript",
+        "Ch 2": "manuscript",
+        "Ch 2/sub": "wiki"
+      },
+      "projectName": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "project": {
+        "id": "id-14",
+        "name": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "author": "",
+        "documents": [
+          {
+            "id": "id-2",
+            "title": "A",
+            "content": "<p>y</p>\n",
+            "chapterId": "id-1"
+          },
+          {
+            "id": "id-4",
+            "title": "A",
+            "content": "<p>x</p>\n",
+            "chapterId": "id-3"
+          },
+          {
+            "id": "id-6",
+            "title": "S1",
+            "content": "<p>one</p>\n",
+            "chapterId": "id-5"
+          },
+          {
+            "id": "id-8",
+            "title": "S2",
+            "content": "<p>two</p>\n",
+            "chapterId": "id-7"
+          },
+          {
+            "id": "id-10",
+            "title": "S10",
+            "content": "<p>ten</p>\n",
+            "chapterId": "id-9"
+          },
+          {
+            "id": "id-11",
+            "title": "A",
+            "content": "<p>z</p>\n",
+            "space": "Wiki",
+            "folderId": "id-12"
+          }
+        ],
+        "chapters": [
+          {
+            "id": "id-1",
+            "title": "A",
+            "expanded": true,
+            "summary": ""
+          },
+          {
+            "id": "id-3",
+            "title": "A",
+            "expanded": true,
+            "summary": ""
+          },
+          {
+            "id": "id-5",
+            "title": "S1",
+            "expanded": true,
+            "summary": ""
+          },
+          {
+            "id": "id-7",
+            "title": "S2",
+            "expanded": true,
+            "summary": ""
+          },
+          {
+            "id": "id-9",
+            "title": "S10",
+            "expanded": true,
+            "summary": ""
+          }
+        ],
+        "activeDocumentId": "id-2",
+        "projectGoal": 50000,
+        "chapterGoals": {},
+        "activity": {},
+        "storyboardCards": [],
+        "storyboardRows": [
+          {
+            "id": "id-15",
+            "title": "Timeline"
+          }
+        ],
+        "timelineNodes": [],
+        "noteFolders": [],
+        "researchFolderName": "",
+        "researchFolders": [
+          {
+            "id": "id-13",
+            "title": "Ch 2",
+            "parentId": null
+          },
+          {
+            "id": "id-12",
+            "title": "Sub",
+            "parentId": "id-13"
+          }
+        ],
+        "researchItems": [],
+        "publishOptions": {
+          "format": "pdf",
+          "style": "manuscript",
+          "customStyles": [],
+          "cover": {
+            "mode": "none",
+            "image": "",
+            "design": "classic",
+            "palette": "ink"
+          },
+          "includeTitlePage": true,
+          "includeCopyrightPage": false,
+          "includeTableOfContents": false,
+          "includeChapterTitles": true,
+          "includeSceneTitles": false,
+          "pageBreakBeforeChapters": true,
+          "sceneSeparator": "hash",
+          "dropCaps": true,
+          "footnotesRestartPerChapter": false,
+          "citationStyle": "apa7",
+          "citationLocale": "en",
+          "includeBibliography": true,
+          "subtitle": "",
+          "copyright": "",
+          "dedication": "",
+          "frontMatter": [],
+          "backMatter": []
+        }
+      },
+      "report": {
+        "chapters": 5,
+        "scenes": 5,
+        "wikiPages": 1,
+        "wikiFolders": 2,
+        "linksResolved": 0,
+        "linksUnresolved": 0
+      }
+    },
+    {
+      "name": "wiki-only-and-empty",
+      "mode": "folders",
+      "files": [
+        {
+          "path": "W/a.md",
+          "text": "---\ntitle: \"\"\n---\n# Heading Title\n\nbody"
+        },
+        {
+          "path": "W/b.md",
+          "text": "# Same\n# Same\n"
+        },
+        {
+          "path": "W/c.md",
+          "text": "   # Spaced heading ###   \nrest"
+        },
+        {
+          "path": "W/d.md",
+          "text": ""
+        }
+      ],
+      "roles": {
+        "W": "wiki"
+      },
+      "projectName": null,
+      "project": {
+        "id": "id-8",
+        "name": "Imported Markdown",
+        "author": "",
+        "documents": [
+          {
+            "id": "id-7",
+            "title": "Scene 1",
+            "content": "<p><br></p>",
+            "chapterId": "id-6"
+          },
+          {
+            "id": "id-1",
+            "title": "Heading Title",
+            "content": "<p>body</p>\n",
+            "space": "Wiki",
+            "folderId": "id-2"
+          },
+          {
+            "id": "id-3",
+            "title": "Same",
+            "content": "<h1>Same</h1>\n",
+            "space": "Wiki",
+            "folderId": "id-2"
+          },
+          {
+            "id": "id-4",
+            "title": "Spaced heading",
+            "content": "<p>rest</p>\n",
+            "space": "Wiki",
+            "folderId": "id-2"
+          },
+          {
+            "id": "id-5",
+            "title": "D",
+            "content": "<p><br></p>",
+            "space": "Wiki",
+            "folderId": "id-2"
+          }
+        ],
+        "chapters": [
+          {
+            "id": "id-6",
+            "title": "Chapter 1",
+            "expanded": true,
+            "summary": ""
+          }
+        ],
+        "activeDocumentId": "id-7",
+        "projectGoal": 50000,
+        "chapterGoals": {},
+        "activity": {},
+        "storyboardCards": [],
+        "storyboardRows": [
+          {
+            "id": "id-9",
+            "title": "Timeline"
+          }
+        ],
+        "timelineNodes": [],
+        "noteFolders": [],
+        "researchFolderName": "",
+        "researchFolders": [
+          {
+            "id": "id-2",
+            "title": "W",
+            "parentId": null
+          }
+        ],
+        "researchItems": [],
+        "publishOptions": {
+          "format": "pdf",
+          "style": "manuscript",
+          "customStyles": [],
+          "cover": {
+            "mode": "none",
+            "image": "",
+            "design": "classic",
+            "palette": "ink"
+          },
+          "includeTitlePage": true,
+          "includeCopyrightPage": false,
+          "includeTableOfContents": false,
+          "includeChapterTitles": true,
+          "includeSceneTitles": false,
+          "pageBreakBeforeChapters": true,
+          "sceneSeparator": "hash",
+          "dropCaps": true,
+          "footnotesRestartPerChapter": false,
+          "citationStyle": "apa7",
+          "citationLocale": "en",
+          "includeBibliography": true,
+          "subtitle": "",
+          "copyright": "",
+          "dedication": "",
+          "frontMatter": [],
+          "backMatter": []
+        }
+      },
+      "report": {
+        "chapters": 1,
+        "scenes": 1,
+        "wikiPages": 4,
+        "wikiFolders": 1,
+        "linksResolved": 0,
+        "linksUnresolved": 0
+      }
+    },
+    {
+      "name": "nothing",
+      "mode": "folders",
+      "files": [
+        {
+          "path": "a.txt",
+          "text": "x"
+        }
+      ],
+      "roles": {},
+      "projectName": null,
+      "project": {
+        "id": "id-3",
+        "name": "Imported Markdown",
+        "author": "",
+        "documents": [
+          {
+            "id": "id-2",
+            "title": "Scene 1",
+            "content": "<p><br></p>",
+            "chapterId": "id-1"
+          }
+        ],
+        "chapters": [
+          {
+            "id": "id-1",
+            "title": "Chapter 1",
+            "expanded": true,
+            "summary": ""
+          }
+        ],
+        "activeDocumentId": "id-2",
+        "projectGoal": 50000,
+        "chapterGoals": {},
+        "activity": {},
+        "storyboardCards": [],
+        "storyboardRows": [
+          {
+            "id": "id-4",
+            "title": "Timeline"
+          }
+        ],
+        "timelineNodes": [],
+        "noteFolders": [],
+        "researchFolderName": "",
+        "researchFolders": [],
+        "researchItems": [],
+        "publishOptions": {
+          "format": "pdf",
+          "style": "manuscript",
+          "customStyles": [],
+          "cover": {
+            "mode": "none",
+            "image": "",
+            "design": "classic",
+            "palette": "ink"
+          },
+          "includeTitlePage": true,
+          "includeCopyrightPage": false,
+          "includeTableOfContents": false,
+          "includeChapterTitles": true,
+          "includeSceneTitles": false,
+          "pageBreakBeforeChapters": true,
+          "sceneSeparator": "hash",
+          "dropCaps": true,
+          "footnotesRestartPerChapter": false,
+          "citationStyle": "apa7",
+          "citationLocale": "en",
+          "includeBibliography": true,
+          "subtitle": "",
+          "copyright": "",
+          "dedication": "",
+          "frontMatter": [],
+          "backMatter": []
+        }
+      },
+      "report": {
+        "chapters": 1,
+        "scenes": 1,
+        "wikiPages": 0,
+        "wikiFolders": 0,
+        "linksResolved": 0,
+        "linksUnresolved": 0
+      }
+    },
+    {
+      "name": "loose-manuscript",
+      "mode": "folders",
+      "files": [
+        {
+          "path": "one.md",
+          "text": "# One\n\nfirst"
+        },
+        {
+          "path": "two.md",
+          "text": "second"
+        },
+        {
+          "path": "Notes/n.md",
+          "text": "[[one]] [[TWO]] [[three]]"
+        }
+      ],
+      "roles": {
+        "(loose files)": "manuscript",
+        "Notes": "wiki"
+      },
+      "projectName": null,
+      "project": {
+        "id": "id-7",
+        "name": "Imported Markdown",
+        "author": "",
+        "documents": [
+          {
+            "id": "id-2",
+            "title": "One",
+            "content": "<p>first</p>\n",
+            "chapterId": "id-1"
+          },
+          {
+            "id": "id-4",
+            "title": "Two",
+            "content": "<p>second</p>\n",
+            "chapterId": "id-3"
+          },
+          {
+            "id": "id-5",
+            "title": "N",
+            "content": "<p>One Two three</p>\n",
+            "space": "Wiki",
+            "folderId": "id-6"
+          }
+        ],
+        "chapters": [
+          {
+            "id": "id-1",
+            "title": "One",
+            "expanded": true,
+            "summary": ""
+          },
+          {
+            "id": "id-3",
+            "title": "Two",
+            "expanded": true,
+            "summary": ""
+          }
+        ],
+        "activeDocumentId": "id-2",
+        "projectGoal": 50000,
+        "chapterGoals": {},
+        "activity": {},
+        "storyboardCards": [],
+        "storyboardRows": [
+          {
+            "id": "id-8",
+            "title": "Timeline"
+          }
+        ],
+        "timelineNodes": [],
+        "noteFolders": [],
+        "researchFolderName": "",
+        "researchFolders": [
+          {
+            "id": "id-6",
+            "title": "Notes",
+            "parentId": null
+          }
+        ],
+        "researchItems": [],
+        "publishOptions": {
+          "format": "pdf",
+          "style": "manuscript",
+          "customStyles": [],
+          "cover": {
+            "mode": "none",
+            "image": "",
+            "design": "classic",
+            "palette": "ink"
+          },
+          "includeTitlePage": true,
+          "includeCopyrightPage": false,
+          "includeTableOfContents": false,
+          "includeChapterTitles": true,
+          "includeSceneTitles": false,
+          "pageBreakBeforeChapters": true,
+          "sceneSeparator": "hash",
+          "dropCaps": true,
+          "footnotesRestartPerChapter": false,
+          "citationStyle": "apa7",
+          "citationLocale": "en",
+          "includeBibliography": true,
+          "subtitle": "",
+          "copyright": "",
+          "dedication": "",
+          "frontMatter": [],
+          "backMatter": []
+        }
+      },
+      "report": {
+        "chapters": 2,
+        "scenes": 2,
+        "wikiPages": 1,
+        "wikiFolders": 1,
+        "linksResolved": 2,
+        "linksUnresolved": 1
+      }
+    },
+    {
+      "name": "loose-manuscript",
+      "mode": "files",
+      "files": [
+        {
+          "path": "one.md",
+          "text": "# One\n\nfirst"
+        },
+        {
+          "path": "two.md",
+          "text": "second"
+        },
+        {
+          "path": "Notes/n.md",
+          "text": "[[one]] [[TWO]] [[three]]"
+        }
+      ],
+      "roles": {
+        "(loose files)": "manuscript",
+        "Notes": "wiki"
+      },
+      "projectName": null,
+      "project": {
+        "id": "id-7",
+        "name": "Imported Markdown",
+        "author": "",
+        "documents": [
+          {
+            "id": "id-2",
+            "title": "One",
+            "content": "<p>first</p>\n",
+            "chapterId": "id-1"
+          },
+          {
+            "id": "id-4",
+            "title": "Two",
+            "content": "<p>second</p>\n",
+            "chapterId": "id-3"
+          },
+          {
+            "id": "id-5",
+            "title": "N",
+            "content": "<p>One Two three</p>\n",
+            "space": "Wiki",
+            "folderId": "id-6"
+          }
+        ],
+        "chapters": [
+          {
+            "id": "id-1",
+            "title": "One",
+            "expanded": true,
+            "summary": ""
+          },
+          {
+            "id": "id-3",
+            "title": "Two",
+            "expanded": true,
+            "summary": ""
+          }
+        ],
+        "activeDocumentId": "id-2",
+        "projectGoal": 50000,
+        "chapterGoals": {},
+        "activity": {},
+        "storyboardCards": [],
+        "storyboardRows": [
+          {
+            "id": "id-8",
+            "title": "Timeline"
+          }
+        ],
+        "timelineNodes": [],
+        "noteFolders": [],
+        "researchFolderName": "",
+        "researchFolders": [
+          {
+            "id": "id-6",
+            "title": "Notes",
+            "parentId": null
+          }
+        ],
+        "researchItems": [],
+        "publishOptions": {
+          "format": "pdf",
+          "style": "manuscript",
+          "customStyles": [],
+          "cover": {
+            "mode": "none",
+            "image": "",
+            "design": "classic",
+            "palette": "ink"
+          },
+          "includeTitlePage": true,
+          "includeCopyrightPage": false,
+          "includeTableOfContents": false,
+          "includeChapterTitles": true,
+          "includeSceneTitles": false,
+          "pageBreakBeforeChapters": true,
+          "sceneSeparator": "hash",
+          "dropCaps": true,
+          "footnotesRestartPerChapter": false,
+          "citationStyle": "apa7",
+          "citationLocale": "en",
+          "includeBibliography": true,
+          "subtitle": "",
+          "copyright": "",
+          "dedication": "",
+          "frontMatter": [],
+          "backMatter": []
+        }
+      },
+      "report": {
+        "chapters": 2,
+        "scenes": 2,
+        "wikiPages": 1,
+        "wikiFolders": 1,
+        "linksResolved": 2,
+        "linksUnresolved": 1
+      }
+    }
+  ]
+}

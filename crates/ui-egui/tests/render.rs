@@ -237,4 +237,26 @@ fn render_views() {
         .get_by_role_and_label(Role::Button, "Delete label Final")
         .click();
     save(&mut harness, "labels");
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+
+    // A Markdown folder, sorted into manuscript and wiki before it is imported.
+    let file = |path: &str| prosecraft_core::import::markdown_folder::MarkdownFile {
+        path: path.into(),
+        text: String::new(),
+    };
+    harness.state_mut().import_markdown_folder(
+        "Lighthouse vault",
+        vec![
+            file("01_Manuscript/draft_v1/a.md"),
+            file("01_Manuscript/draft_v2/a.md"),
+            file("01_Manuscript/draft_v2/b.md"),
+            file("02_Characters/mara.md"),
+            file("02_Characters/tom.md"),
+            file("03_Places/lighthouse.md"),
+            file("README.md"),
+        ],
+        12,
+    );
+    save(&mut harness, "markdown-import");
 }

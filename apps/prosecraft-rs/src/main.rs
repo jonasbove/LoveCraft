@@ -14,6 +14,9 @@ use std::sync::Arc;
 
 use craft_dialogs::{Answer, Dialogs, FileDialog};
 use prosecraft_core::about;
+use prosecraft_core::import::markdown_folder::{
+    MAX_MARKDOWN_FILE_BYTES, MAX_MARKDOWN_FILES, MarkdownFile, is_importable_markdown_path,
+};
 use prosecraft_core::library::{Library, new_device_id};
 use prosecraft_native::{LibraryFile, OsRandom};
 use prosecraft_ui_egui::{HostRequest, LibraryStore, ProseApp, window_title};
@@ -29,6 +32,8 @@ enum Then {
     /// Read this zipped Scrivener project, or this `.scriv` folder.
     ScrivenerZip,
     ScrivenerFolder,
+    /// Read this folder's Markdown files for the Markdown import.
+    MarkdownFolder,
     /// Add this screenplay to the open project.
     Fountain,
     /// Write these bytes where the person chose (a backup or an exported manuscript).
@@ -237,6 +242,20 @@ impl eframe::App for DesktopApp {
                             .import_scrivener_folder(&name, read_scrivener_folder(path));
                     }
                 }
+                (Then::MarkdownFolder, Answer::Paths(paths)) => {
+                    if let Some(path) = paths.first() {
+                        let name = path
+                            .file_name()
+                            .map(|n| n.to_string_lossy().into_owned())
+                            .unwrap_or_default();
+                        match read_markdown_folder(path) {
+                            Ok((files, ignored)) => {
+                                self.app.import_markdown_folder(&name, files, ignored);
+                            }
+                            Err(message) => self.app.import_markdown_folder_failed(&message),
+                        }
+                    }
+                }
                 (Then::Export(text), Answer::Paths(paths)) => {
                     if let Some(path) = paths.first()
                         && let Err(e) = craft_atomic::atomic_write(path, &text)
@@ -283,6 +302,10 @@ impl eframe::App for DesktopApp {
                     let dialog =
                         FileDialog::folder().title("Import a Scrivener project folder (.scriv)");
                     self.dialogs.ask(dialog, Then::ScrivenerFolder);
+                }
+                HostRequest::ImportMarkdownFolder => {
+                    let dialog = FileDialog::folder().title("Import a Markdown folder");
+                    self.dialogs.ask(dialog, Then::MarkdownFolder);
                 }
                 HostRequest::ImportEpub => {
                     let dialog = FileDialog::open()
@@ -378,6 +401,59 @@ fn read_scrivener_folder(root: &std::path::Path) -> Vec<(String, Vec<u8>)> {
         }
     }
     entries
+}
+
+/// A folder's Markdown files by their paths inside it, as ProseCraft reads a picked folder: any
+/// other file, or a Markdown file over 2 MB, is counted as ignored; more Markdown files than
+/// ProseCraft takes is an error. Text is decoded as the browser's `File.text()` does.
+fn read_markdown_folder(root: &std::path::Path) -> Result<(Vec<MarkdownFile>, usize), String> {
+    let mut files = Vec::new();
+    let mut ignored = 0;
+    let mut pending = vec![root.to_path_buf()];
+    while let Some(dir) = pending.pop() {
+        let Ok(read) = std::fs::read_dir(&dir) else {
+            continue;
+        };
+        let mut children: Vec<_> = read.filter_map(Result::ok).map(|e| e.path()).collect();
+        children.sort();
+        for path in children.into_iter().rev() {
+            if path.is_symlink() {
+                continue;
+            }
+            if path.is_dir() {
+                pending.push(path);
+                continue;
+            }
+            let Ok(relative) = path.strip_prefix(root) else {
+                continue;
+            };
+            let relative = relative
+                .components()
+                .map(|c| c.as_os_str().to_string_lossy())
+                .collect::<Vec<_>>()
+                .join("/");
+            let size = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
+            if !is_importable_markdown_path(&relative) || size > MAX_MARKDOWN_FILE_BYTES as u64 {
+                ignored += 1;
+                continue;
+            }
+            if files.len() >= MAX_MARKDOWN_FILES {
+                return Err(format!(
+                    "That folder has more than {MAX_MARKDOWN_FILES} Markdown files."
+                ));
+            }
+            let Ok(bytes) = std::fs::read(&path) else {
+                ignored += 1;
+                continue;
+            };
+            let text = String::from_utf8_lossy(&bytes);
+            files.push(MarkdownFile {
+                path: relative,
+                text: text.strip_prefix('\u{feff}').unwrap_or(&text).to_owned(),
+            });
+        }
+    }
+    Ok((files, ignored))
 }
 
 fn main() -> ExitCode {

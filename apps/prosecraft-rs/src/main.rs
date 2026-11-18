@@ -40,6 +40,8 @@ enum Then {
     Citations,
     /// Put this picture into the open scene.
     Picture,
+    /// Make this image the book's cover.
+    Cover,
     /// Write these bytes where the person chose (a backup or an exported manuscript).
     Export(Vec<u8>),
     /// The folder to sync through.
@@ -209,6 +211,19 @@ impl eframe::App for DesktopApp {
                         }
                     }
                 }
+                (Then::Cover, Answer::Paths(paths)) => {
+                    if let Some(path) = paths.first() {
+                        let name = path
+                            .file_name()
+                            .map(|n| n.to_string_lossy().into_owned())
+                            .unwrap_or_default();
+                        let limit = prosecraft_core::publish::cover::MAX_FILE_BYTES as u64;
+                        match read_capped(path, limit) {
+                            Ok(bytes) => self.app.set_cover_image(&name, &bytes),
+                            Err(e) => eprintln!("{}: {e}", path.display()),
+                        }
+                    }
+                }
                 (Then::Picture, Answer::Paths(paths)) => {
                     if let Some(path) = paths.first() {
                         let name = path
@@ -324,6 +339,12 @@ impl eframe::App for DesktopApp {
                         &["bib", "bibtex", "ris", "json", "csljson"],
                     );
                     self.dialogs.ask(dialog, Then::Citations);
+                }
+                HostRequest::ChooseCover => {
+                    let dialog = FileDialog::open()
+                        .title("Choose a cover image")
+                        .filter("Images", &prosecraft_core::publish::cover::EXTENSIONS);
+                    self.dialogs.ask(dialog, Then::Cover);
                 }
                 HostRequest::InsertPicture => {
                     let dialog = FileDialog::open()

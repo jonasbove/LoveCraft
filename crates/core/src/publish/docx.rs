@@ -1288,7 +1288,7 @@ fn docx_document(book: &CompiledBook, options: &PublishOptions) -> Result<Docume
     let page = page_section(tokens);
     let mut sections: Vec<(Vec<Paragraph>, SectionProps)> = Vec::new();
     if let Some(cover) = &book.cover {
-        sections.push(cover_section(&mut doc, cover, tokens)?);
+        sections.push(cover_section(&mut doc, &cover.data_url, tokens)?);
     }
     if !title_matter.is_empty() {
         let section = SectionProps {

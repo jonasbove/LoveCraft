@@ -105,6 +105,44 @@ pub(crate) fn info(html: &str) -> Option<PictureInfo> {
     read
 }
 
+/// An image's pixels for a texture, scaled down (by averaging) when a side is longer than the
+/// graphics card takes: a picture or cover is up to 2400 pixels tall, more than some allow.
+pub(crate) fn color_image(
+    ctx: &egui::Context,
+    image: &craft_image_codecs::Image,
+) -> egui::ColorImage {
+    let (w, h) = image.dimensions();
+    let (w, h) = (w as usize, h as usize);
+    let rgba = image.to_rgba8();
+    let max = ctx.input(|i| i.max_texture_side).max(1);
+    let factor = w.max(h).div_ceil(max).max(1);
+    if factor == 1 {
+        return egui::ColorImage::from_rgba_unmultiplied([w, h], &rgba);
+    }
+    let (tw, th) = (w.div_ceil(factor), h.div_ceil(factor));
+    let mut out = vec![0u8; tw * th * 4];
+    for ty in 0..th {
+        for tx in 0..tw {
+            let mut sum = [0u32; 4];
+            let mut count = 0;
+            for y in ty * factor..((ty + 1) * factor).min(h) {
+                for x in tx * factor..((tx + 1) * factor).min(w) {
+                    let p = (y * w + x) * 4;
+                    for c in 0..4 {
+                        sum[c] += u32::from(rgba[p + c]);
+                    }
+                    count += 1;
+                }
+            }
+            let q = (ty * tw + tx) * 4;
+            for c in 0..4 {
+                out[q + c] = (sum[c] / count.max(1)) as u8;
+            }
+        }
+    }
+    egui::ColorImage::from_rgba_unmultiplied([tw, th], &out)
+}
+
 /// The picture's texture, decoded the first time it is drawn.
 pub(crate) fn texture(
     ctx: &egui::Context,
@@ -119,17 +157,39 @@ pub(crate) fn texture(
         .and_then(|image| image_bytes(image.attr("src")?))
         .and_then(|bytes| craft_image_codecs::decode(&bytes).ok())
         .map(|image| {
-            let (w, h) = image.dimensions();
-            let pixels = egui::ColorImage::from_rgba_unmultiplied(
-                [w as usize, h as usize],
-                &image.to_rgba8(),
-            );
             ctx.load_texture(
                 format!("picture-{:x}", info.key),
-                pixels,
+                color_image(ctx, &image),
                 egui::TextureOptions::LINEAR,
             )
         });
     ctx.data_mut(|d| d.insert_temp(id, texture.clone()));
     texture
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn a_tall_picture_fits_the_largest_texture() {
+        let ctx = egui::Context::default();
+        let max = ctx.input(|i| i.max_texture_side);
+        let image = craft_image_codecs::Image::from_u8(
+            10,
+            2400,
+            craft_image_codecs::ChannelLayout::Rgba,
+            vec![120; 10 * 2400 * 4],
+        )
+        .expect("image");
+        let pixels = super::color_image(&ctx, &image);
+        assert!(
+            pixels.size[0] <= max && pixels.size[1] <= max,
+            "{:?} > {max}",
+            pixels.size
+        );
+        assert_eq!(pixels.size, [5, 1200]);
+        assert_eq!(
+            pixels.pixels[0],
+            egui::Color32::from_rgba_unmultiplied(120, 120, 120, 120)
+        );
+    }
 }

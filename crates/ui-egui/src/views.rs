@@ -155,6 +155,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         now,
         now_ms,
         book_id,
+        cover_error,
         requests,
         pending_comment,
         side_tab,
@@ -194,6 +195,9 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
             book_id,
             intents,
             requests,
+            cover_error,
+            cover_mode: "none",
+            generated_cover: None,
         };
         crate::publish::show(ui, &palette, &entry.stored, project, &mut edit);
         return;

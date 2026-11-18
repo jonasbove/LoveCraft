@@ -119,6 +119,13 @@ pub(crate) struct PublishEdit<'a> {
     pub book_id: &'a mut Option<String>,
     pub intents: &'a mut Vec<Intent>,
     pub requests: &'a mut Vec<HostRequest>,
+    /// Why the last cover image couldn't be used.
+    pub cover_error: &'a mut Option<String>,
+    /// The cover tab as stored: ProseCraft keeps "image" chosen before there is an image, which
+    /// the options as read (`normalizeCover`) turn into "none".
+    pub cover_mode: &'static str,
+    /// The generated cover's picture, once drawn.
+    pub generated_cover: Option<String>,
 }
 
 /// `FRONT_MATTER_PRESETS` and `BACK_MATTER_PRESETS`: label, title, blank.
@@ -344,6 +351,215 @@ fn matter_editor(
     }
     if let Some(pages) = next {
         set(edit, key, matter_value(&pages));
+    }
+}
+
+/// The cover's picture, decoded once per image.
+fn cover_texture(ctx: &egui::Context, data_url: &str) -> Option<egui::TextureHandle> {
+    use std::hash::{Hash, Hasher};
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    data_url.hash(&mut hasher);
+    let id = egui::Id::unique(("cover-texture", hasher.finish()));
+    if let Some(found) = ctx.data(|d| d.get_temp::<Option<egui::TextureHandle>>(id)) {
+        return found;
+    }
+    use base64::Engine;
+    let texture = data_url
+        .split_once(";base64,")
+        .and_then(|(_, data)| base64::engine::general_purpose::STANDARD.decode(data).ok())
+        .and_then(|bytes| craft_image_codecs::decode(&bytes).ok())
+        .map(|image| {
+            ctx.load_texture(
+                "cover",
+                crate::pictures::color_image(ctx, &image),
+                egui::TextureOptions::LINEAR,
+            )
+        });
+    ctx.data_mut(|d| d.insert_temp(id, texture.clone()));
+    texture
+}
+
+/// The cover thumbnail (`cover-thumb`): the picture at 2:3, or a word on an empty frame.
+fn cover_thumb(ui: &mut Ui, palette: &Palette, picture: Option<&str>, empty: &str, alt: &str) {
+    let size = egui::vec2(72.0, 108.0);
+    let (rect, response) = ui.allocate_exact_size(size, egui::Sense::hover());
+    let texture = picture.and_then(|p| cover_texture(ui.ctx(), p));
+    let painter = ui.painter();
+    match &texture {
+        Some(texture) => {
+            painter.image(
+                texture.id(),
+                rect,
+                egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+                egui::Color32::WHITE,
+            );
+            painter.rect_stroke(
+                rect,
+                3.0,
+                Stroke::new(1.0, palette.border_control),
+                egui::StrokeKind::Inside,
+            );
+        }
+        None => {
+            painter.rect(
+                rect,
+                3.0,
+                palette.control_bg,
+                Stroke::new(1.0, palette.border_control),
+                egui::StrokeKind::Inside,
+            );
+            painter.text(
+                rect.center(),
+                egui::Align2::CENTER_CENTER,
+                empty,
+                egui::FontId::proportional(10.0),
+                palette.text_muted,
+            );
+        }
+    }
+    let label = if texture.is_some() { alt } else { empty };
+    ui.ctx().accesskit_node_builder(response.id, |n| {
+        n.set_role(egui::accesskit::Role::Image);
+        n.set_label(label);
+    });
+}
+
+/// The Cover section: none, an uploaded image, or a generated design and palette.
+fn cover_section(
+    ui: &mut Ui,
+    palette: &Palette,
+    options: &PublishOptions,
+    edit: &mut PublishEdit<'_>,
+) {
+    use prosecraft_core::publish::cover::{DESIGNS, PALETTES, design_for};
+    let editable = edit.editable;
+    let cover = &options.cover;
+    let mode = edit.cover_mode;
+    // `coverSummary`.
+    let summary = match mode {
+        "none" => "None",
+        "image" => "Image",
+        _ => design_for(cover.design).1,
+    };
+    section_heading(ui, palette, "Cover", summary);
+    ui.add_space(4.0);
+    // `updateCover`: the stored cover with some fields changed.
+    let update =
+        |edit: &mut PublishEdit<'_>, mode: &str, image: &str, design: &str, palette_id: &str| {
+            let mut value = cover.to_value();
+            if let Some(o) = value.as_object_mut() {
+                o.insert("mode", JsValue::str(mode));
+                o.insert("image", JsValue::str(image));
+                o.insert("design", JsValue::str(design));
+                o.insert("palette", JsValue::str(palette_id));
+            }
+            set(edit, "cover", value);
+        };
+    ui.horizontal(|ui| {
+        for (id, label) in [
+            ("none", "None"),
+            ("image", "Image"),
+            ("generated", "Generated"),
+        ] {
+            let tab = ui.add_enabled(editable, egui::Button::selectable(mode == id, label));
+            ui.ctx().accesskit_node_builder(tab.id, |n| {
+                n.set_label(format!("Cover: {label}"));
+            });
+            if tab.clicked() && mode != id {
+                // `setCoverMode`: the image is kept only for the Image tab.
+                *edit.cover_error = None;
+                let image = if id == "image" {
+                    cover.image.clone()
+                } else {
+                    String::new()
+                };
+                update(edit, id, &image, cover.design, cover.palette);
+            }
+        }
+    });
+    ui.add_space(6.0);
+    match mode {
+        "image" => {
+            ui.horizontal_top(|ui| {
+                let picture = (!cover.image.is_empty()).then_some(cover.image.as_str());
+                cover_thumb(ui, palette, picture, "No image", "Cover preview");
+                ui.vertical(|ui| {
+                    ui.horizontal(|ui| {
+                        let choose = if cover.image.is_empty() {
+                            "Choose image"
+                        } else {
+                            "Replace"
+                        };
+                        if ui
+                            .add_enabled(editable, egui::Button::new(choose))
+                            .clicked()
+                        {
+                            edit.intents.push(Intent::ChooseCover);
+                        }
+                        if !cover.image.is_empty()
+                            && ui
+                                .add_enabled(editable, egui::Button::new("Remove"))
+                                .clicked()
+                        {
+                            // `removeCoverImage`.
+                            *edit.cover_error = None;
+                            update(edit, "none", "", cover.design, cover.palette);
+                        }
+                    });
+                    help(ui, palette, "PNG, JPG, or WebP. Cropped to a 2:3 cover.");
+                });
+            });
+        }
+        "generated" => {
+            ui.horizontal_top(|ui| {
+                let art = edit.generated_cover.as_deref();
+                cover_thumb(ui, palette, art, "No preview", "Generated cover preview");
+                ui.vertical(|ui| {
+                    let width = ui.available_width();
+                    for (id, label, detail) in DESIGNS {
+                        let chosen = cover.design == id;
+                        if choice_card(ui, palette, chosen, label, "", detail, width)
+                            && editable
+                            && !chosen
+                        {
+                            update(edit, mode, "", id, cover.palette);
+                        }
+                        ui.add_space(4.0);
+                    }
+                    ui.horizontal(|ui| {
+                        for p in PALETTES {
+                            let (rect, swatch) = ui
+                                .allocate_exact_size(egui::vec2(22.0, 22.0), egui::Sense::click());
+                            let chosen = cover.palette == p.id;
+                            let color = |hex: &str| {
+                                egui::Color32::from_hex(hex).unwrap_or(egui::Color32::GRAY)
+                            };
+                            ui.painter().circle(
+                                rect.center(),
+                                10.0,
+                                color(p.background),
+                                Stroke::new(
+                                    if chosen { 2.5 } else { 1.0 },
+                                    if chosen { palette.accent } else { color(p.ink) },
+                                ),
+                            );
+                            let swatch = swatch.on_hover_text(p.label);
+                            ui.ctx().accesskit_node_builder(swatch.id, |n| {
+                                n.set_role(egui::accesskit::Role::Button);
+                                n.set_label(format!("{} palette", p.label));
+                            });
+                            if editable && swatch.clicked() && !chosen {
+                                update(edit, mode, "", cover.design, p.id);
+                            }
+                        }
+                    });
+                });
+            });
+        }
+        _ => {}
+    }
+    if let Some(error) = edit.cover_error.as_deref() {
+        ui.label(RichText::new(error).size(11.0).color(palette.danger));
     }
 }
 
@@ -723,6 +939,19 @@ pub(crate) fn show(
     edit: &mut PublishEdit<'_>,
 ) {
     let options = PublishOptions::read(stored.get("project").and_then(|p| p.get("publishOptions")));
+    edit.cover_mode = stored
+        .get("project")
+        .and_then(|p| p.get("publishOptions"))
+        .and_then(|o| o.get("cover"))
+        .and_then(|c| c.get("mode"))
+        .and_then(JsValue::as_js_string)
+        .map(|m| m.to_string_lossy())
+        .and_then(|m| {
+            prosecraft_core::publish::cover::MODES
+                .into_iter()
+                .find(|x| *x == m)
+        })
+        .unwrap_or(options.cover.mode);
     let book = compile_book(project, &options);
     let preview = String::from_utf8_lossy(&export_text(&book, &options).bytes).into_owned();
     ui.add_space(18.0);
@@ -983,6 +1212,9 @@ fn controls(
     style_editor(ui, palette, edit, &entries);
     ui.separator();
 
+    cover_section(ui, palette, options, edit);
+    ui.separator();
+
     // Manuscript.
     section_heading(ui, palette, "Manuscript", "");
     ui.add_space(4.0);
@@ -1227,6 +1459,15 @@ fn controls(
     .fill(palette.accent_strong)
     .min_size(egui::vec2(ui.available_width(), 34.0));
     if ui.add_enabled(can_export, button).clicked() {
+        // `resolveCoverImage`: the cover joins the book for the export.
+        let mut with_cover;
+        let book = if options.cover.mode == "image" {
+            with_cover = book.clone();
+            with_cover.cover = prosecraft_core::publish::cover::resolve_image(&options.cover);
+            &with_cover
+        } else {
+            book
+        };
         let export = match format.0 {
             "epub" => {
                 // Without a library store there is no id source: a fixed id, so the export works.

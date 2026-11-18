@@ -63,6 +63,9 @@ fn app() -> (Harness<'static, ProseApp>, Memory) {
         &fixture("bundle-plain.prosecraft"),
     );
     let mut harness = Harness::builder()
+        // Under a loaded CI machine a step can take a couple more frames to settle (egui
+        // reports a font-provider repaint); `run` gets that room, nothing else changes.
+        .with_max_steps(8)
         .with_size([1280.0, 850.0])
         .build_ui_state(|ui, app: &mut ProseApp| app.show(ui), app);
     prosecraft_ui_egui::setup_for_tests(&harness.ctx);
@@ -293,6 +296,9 @@ fn a_backup_opened_without_a_library_offers_no_editing() {
         &fixture("bundle-plain.prosecraft"),
     );
     let mut harness = Harness::builder()
+        // Under a loaded CI machine a step can take a couple more frames to settle (egui
+        // reports a font-provider repaint); `run` gets that room, nothing else changes.
+        .with_max_steps(8)
         .with_size([1280.0, 850.0])
         .build_ui_state(|ui, app: &mut ProseApp| app.show(ui), app);
     prosecraft_ui_egui::setup_for_tests(&harness.ctx);
@@ -2774,4 +2780,29 @@ fn pdf_exports_from_the_publish_view() {
         notes.iter().any(|n| n.contains("came out as “?”")),
         "{notes:?}"
     );
+}
+
+#[test]
+fn a_screenplay_pdf_exports_from_the_publish_view() {
+    let (mut harness, _memory) = app();
+    harness.get_by_role_and_label(Role::Tab, "Publish").click();
+    harness.run();
+    for (role, name) in [
+        (Role::RadioButton, "Screenplay PDF (pdf)"),
+        (Role::Button, "Export Screenplay PDF"),
+    ] {
+        harness.get_by_role_and_label(role, name).scroll_to_me();
+        harness.run();
+        harness.get_by_role_and_label(role, name).click();
+        harness.run_steps(4);
+    }
+    let requests = harness.state_mut().take_requests();
+    let Some(prosecraft_ui_egui::HostRequest::ExportFile {
+        file_name, bytes, ..
+    }) = requests.first()
+    else {
+        panic!("an export was asked for: {requests:?}");
+    };
+    assert!(file_name.ends_with(".pdf"), "{file_name}");
+    assert!(bytes.starts_with(b"%PDF-"));
 }

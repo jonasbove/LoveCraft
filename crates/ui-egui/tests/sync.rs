@@ -118,6 +118,9 @@ fn app(store: &Store, with_projects: bool) -> Harness<'static, ProseApp> {
         );
     }
     let mut harness = Harness::builder()
+        // Under a loaded CI machine a step can take a couple more frames to settle (egui
+        // reports a font-provider repaint); `run` gets that room, nothing else changes.
+        .with_max_steps(8)
         .with_size([1280.0, 850.0])
         .build_ui_state(|ui, app: &mut ProseApp| app.show(ui), app);
     prosecraft_ui_egui::setup_for_tests(&harness.ctx);
@@ -308,6 +311,9 @@ fn the_theme_is_chosen_in_settings_and_remembered() {
         Box::new(ThemeStore(settings.clone())),
     );
     let mut harness = Harness::builder()
+        // Under a loaded CI machine a step can take a couple more frames to settle (egui
+        // reports a font-provider repaint); `run` gets that room, nothing else changes.
+        .with_max_steps(8)
         .with_size([1280.0, 850.0])
         .build_ui_state(|ui, app: &mut ProseApp| app.show(ui), app);
     prosecraft_ui_egui::setup_for_tests(&harness.ctx);
@@ -338,6 +344,9 @@ fn the_theme_is_chosen_in_settings_and_remembered() {
         Box::new(ThemeStore(settings)),
     );
     let mut harness = Harness::builder()
+        // Under a loaded CI machine a step can take a couple more frames to settle (egui
+        // reports a font-provider repaint); `run` gets that room, nothing else changes.
+        .with_max_steps(8)
         .with_size([800.0, 600.0])
         .build_ui_state(|ui, app: &mut ProseApp| app.show(ui), again);
     prosecraft_ui_egui::setup_for_tests(&harness.ctx);

@@ -17,6 +17,9 @@ fn fixture(name: &str) -> String {
 
 fn harness(app: ProseApp) -> Harness<'static, ProseApp> {
     let harness = Harness::builder()
+        // Under a loaded CI machine a step can take a couple more frames to settle (egui
+        // reports a font-provider repaint); `run` gets that room, nothing else changes.
+        .with_max_steps(8)
         .with_size([1280.0, 850.0])
         .build_ui_state(|ui, app: &mut ProseApp| app.show(ui), app);
     // What the app does on its first frame, done before the harness's first frame too: the

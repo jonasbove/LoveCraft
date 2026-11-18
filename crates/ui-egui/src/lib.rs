@@ -252,6 +252,8 @@ pub struct AppState {
     /// The "Start from" dialog for a new project, while open, and a project to create.
     starter: Option<starter::StarterDraft>,
     create_project: Option<(bool, prosecraft_core::starters::Blueprint)>,
+    /// A Wiki folder being renamed: its id and the name being typed.
+    renaming_folder: Option<(String, String)>,
     /// The Find and replace dialog, while open.
     find: Option<find::FindState>,
     /// The Project Settings dialog, while open.
@@ -549,6 +551,45 @@ impl ProseApp {
         }
     }
 
+    /// After a Wiki page or folder was added: open the page, or start renaming the folder (the
+    /// newest one, as each is added last).
+    fn after_wiki_add(&mut self, page: bool) {
+        let Some(project) = self
+            .state
+            .library
+            .as_ref()
+            .and_then(|l| l.projects().get(self.state.active))
+        else {
+            return;
+        };
+        let data = project.stored.get("project");
+        if page {
+            let last = data
+                .and_then(|d| d.get("documents"))
+                .and_then(|d| d.as_array())
+                .and_then(|d| d.last())
+                .and_then(|d| d.get("id"))
+                .and_then(|i| i.as_js_string())
+                .map(|s| s.to_string_lossy());
+            if let Some(id) = last {
+                self.state.draft = None;
+                self.state.select(Selection::Document(id));
+            }
+        } else {
+            let last = data
+                .and_then(|d| d.get("researchFolders"))
+                .and_then(|d| d.as_array())
+                .and_then(|d| d.last())
+                .and_then(|f| f.get("id"))
+                .and_then(|i| i.as_js_string())
+                .map(|s| s.to_string_lossy());
+            if let Some(id) = last {
+                self.state.renaming_folder =
+                    Some((id, prosecraft_core::wiki::FOLDER_TITLE.to_owned()));
+            }
+        }
+    }
+
     /// Writes the library now if it has changes.
     fn save_now(&mut self) {
         let Some(home) = self.home.as_mut() else {
@@ -587,6 +628,13 @@ impl ProseApp {
             {
                 // The author is remembered for the next comment, as ProseCraft does.
                 let _ = home.store.save_setting(COMMENT_AUTHOR_KEY, Some(author));
+            }
+            // A new page opens; a new folder starts its rename (as ProseCraft does).
+            if matches!(
+                intent,
+                editing::Intent::AddWikiPage { .. } | editing::Intent::AddWikiFolder { .. }
+            ) {
+                self.after_wiki_add(matches!(intent, editing::Intent::AddWikiPage { .. }));
             }
             if matches!(intent, editing::Intent::RestoreSnapshot { .. }) {
                 // The editor reloads the restored text (its draft held the replaced one).

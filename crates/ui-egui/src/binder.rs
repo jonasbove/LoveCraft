@@ -13,6 +13,16 @@ use crate::{AppState, Selection, fonts};
 /// A row of the binder tree: a selectable label exposed as a tree item with its level and
 /// selection, so a screen reader hears "Opening, level 2, selected".
 fn tree_row(ui: &mut Ui, palette: &Palette, label: &str, level: usize, selected: bool) -> bool {
+    tree_row_response(ui, palette, label, level, selected).clicked()
+}
+
+fn tree_row_response(
+    ui: &mut Ui,
+    palette: &Palette,
+    label: &str,
+    level: usize,
+    selected: bool,
+) -> egui::Response {
     let color = if selected {
         palette.selected_text
     } else {
@@ -24,7 +34,19 @@ fn tree_row(ui: &mut Ui, palette: &Palette, label: &str, level: usize, selected:
         node.set_level(level);
         node.set_selected(selected);
     });
-    response.clicked()
+    response
+}
+
+/// A row's menu, both on right-click (ProseCraft's context menu) and from a quiet "⋯" button
+/// that the keyboard reaches (always there, so it can take the focus and keep its menu open).
+fn row_menu(ui: &mut Ui, row: &egui::Response, name: &str, mut add: impl FnMut(&mut Ui)) {
+    row.context_menu(|ui| add(ui));
+    let muted = ui.visuals().weak_text_color();
+    let button = egui::Button::new(RichText::new("⋯").color(muted)).frame(false);
+    let response = egui::containers::menu::MenuButton::from_button(button)
+        .ui(ui, |ui| add(ui))
+        .0;
+    crate::views::name_field(ui, &response, name);
 }
 
 fn indent(ui: &mut Ui, depth: usize, add: impl FnOnce(&mut Ui)) {
@@ -169,7 +191,16 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
             ui.add_space(14.0);
             ui.separator();
             ui.add_space(8.0);
-            chosen = wiki(ui, &palette, project, state.selection.as_ref()).or(chosen.take());
+            chosen = wiki(
+                ui,
+                &palette,
+                project,
+                state.selection.as_ref(),
+                state.editable,
+                &mut state.intents,
+                &mut state.renaming_folder,
+            )
+            .or(chosen.take());
             ui.add_space(14.0);
             ui.separator();
             ui.add_space(8.0);
@@ -237,15 +268,44 @@ fn wiki(
     palette: &Palette,
     project: &Project,
     selection: Option<&Selection>,
+    editable: bool,
+    intents: &mut Vec<crate::editing::Intent>,
+    renaming: &mut Option<(String, String)>,
 ) -> Option<Selection> {
+    use crate::editing::Intent;
     let mut chosen = None;
-    eyebrow(ui, palette, "Wiki");
+    ui.horizontal(|ui| {
+        eyebrow(ui, palette, "Wiki");
+        if editable {
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                // ProseCraft's "+": Add page, Add folder (files and web links come later).
+                let add = ui
+                    .menu_button("+", |ui| {
+                        if ui.button("Add page").clicked() {
+                            intents.push(Intent::AddWikiPage { folder: None });
+                            ui.close();
+                        }
+                        if ui.button("Add folder").clicked() {
+                            intents.push(Intent::AddWikiFolder { parent: None });
+                            ui.close();
+                        }
+                    })
+                    .response;
+                crate::views::name_field(ui, &add, "Add to Wiki");
+            });
+        }
+    });
     ui.add_space(4.0);
     let items = project.wiki_tree();
     if items.is_empty() {
         ui.label(RichText::new("Nothing here yet").color(palette.text_muted));
     }
-    for item in items {
+    let folders: Vec<(String, String, usize)> = items
+        .iter()
+        .filter(|i| i.kind == WikiItemKind::Folder)
+        .map(|i| (i.id.clone(), i.title.clone(), i.depth))
+        .collect();
+    for item in &items {
         indent(ui, item.depth, |ui| match item.kind {
             WikiItemKind::Page => {
                 let selected = selection == Some(&Selection::Document(item.id.clone()));
@@ -254,17 +314,122 @@ fn wiki(
                 } else {
                     item.title.as_str()
                 };
-                if tree_row(ui, palette, title, item.depth + 1, selected) {
+                let row = tree_row_response(ui, palette, title, item.depth + 1, selected);
+                if row.clicked() {
                     chosen = Some(Selection::Document(item.id.clone()));
+                }
+                if editable {
+                    row_menu(ui, &row, &format!("Actions for {title}"), |ui| {
+                        if ui.button("Open page").clicked() {
+                            chosen = Some(Selection::Document(item.id.clone()));
+                            ui.close();
+                        }
+                        ui.menu_button("Move to folder…", |ui| {
+                            if ui.button("Unfiled").clicked() {
+                                intents.push(Intent::MoveWikiPage {
+                                    document: item.id.clone(),
+                                    folder: None,
+                                });
+                                ui.close();
+                            }
+                            for (id, name, depth) in &folders {
+                                if ui
+                                    .button(format!("{}{name}", "  ".repeat(*depth)))
+                                    .clicked()
+                                {
+                                    intents.push(Intent::MoveWikiPage {
+                                        document: item.id.clone(),
+                                        folder: Some(id.clone()),
+                                    });
+                                    ui.close();
+                                }
+                            }
+                        });
+                        if ui
+                            .button(RichText::new("Move to Trash").color(palette.danger))
+                            .clicked()
+                        {
+                            intents.push(Intent::TrashDocument(item.id.clone()));
+                            ui.close();
+                        }
+                    });
                 }
             }
             WikiItemKind::Folder => {
-                ui.label(
-                    RichText::new(item.title.as_str())
-                        .size(13.5)
-                        .color(palette.text_secondary)
-                        .strong(),
+                if let Some((id, draft)) = renaming.as_mut().filter(|(id, _)| *id == item.id) {
+                    // Renaming in place: Enter or leaving saves, Escape cancels.
+                    let field = ui.add(
+                        egui::TextEdit::singleline(draft)
+                            .char_limit(60)
+                            .desired_width(160.0),
+                    );
+                    crate::views::name_field(ui, &field, "Folder name");
+                    if !field.has_focus() && !field.lost_focus() {
+                        field.request_focus();
+                    }
+                    if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+                        *renaming = None;
+                    } else if field.lost_focus() {
+                        intents.push(Intent::RenameWikiFolder {
+                            id: id.clone(),
+                            title: draft.clone(),
+                        });
+                        *renaming = None;
+                    }
+                    return;
+                }
+                let row = ui.add(
+                    egui::Label::new(
+                        RichText::new(item.title.as_str())
+                            .size(13.5)
+                            .color(palette.text_secondary)
+                            .strong(),
+                    )
+                    .sense(egui::Sense::click()),
                 );
+                let name = item.title.clone();
+                ui.ctx().accesskit_node_builder(row.id, move |node| {
+                    node.set_role(Role::TreeItem);
+                    node.set_label(name);
+                });
+                if editable {
+                    let parent_title = folders
+                        .iter()
+                        .rev()
+                        .skip_while(|(id, ..)| *id != item.id)
+                        .find(|(_, _, d)| *d + 1 == item.depth)
+                        .map_or("the Wiki root".to_owned(), |(_, t, _)| t.clone());
+                    row_menu(
+                        ui,
+                        &row,
+                        &format!("Actions for folder {}", item.title),
+                        |ui| {
+                            if ui.button("Add page").clicked() {
+                                intents.push(Intent::AddWikiPage {
+                                    folder: Some(item.id.clone()),
+                                });
+                                ui.close();
+                            }
+                            if ui.button("Add subfolder").clicked() {
+                                intents.push(Intent::AddWikiFolder {
+                                    parent: Some(item.id.clone()),
+                                });
+                                ui.close();
+                            }
+                            if ui.button("Rename folder").clicked() {
+                                *renaming = Some((item.id.clone(), item.title.clone()));
+                                ui.close();
+                            }
+                            ui.menu_button(RichText::new("Remove folder").color(palette.danger), |ui| {
+                            ui.label(format!("Remove “{}”? Its folders, pages, files, and links will move to {parent_title}.", item.title));
+                            if ui.button(RichText::new("Remove").color(palette.danger)).clicked() {
+                                intents.push(Intent::RemoveWikiFolder(item.id.clone()));
+                                ui.close();
+                            }
+                        });
+                        },
+                    );
+                }
             }
             WikiItemKind::File => {
                 ui.label(

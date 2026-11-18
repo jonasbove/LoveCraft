@@ -66,6 +66,23 @@ pub enum Intent {
         only: Vec<String>,
         now: f64,
     },
+    /// The Wiki: a new page (in a folder, or unfiled), a new folder, renaming and removing one,
+    /// and moving a page to a folder (or unfiled).
+    AddWikiPage {
+        folder: Option<String>,
+    },
+    AddWikiFolder {
+        parent: Option<String>,
+    },
+    RenameWikiFolder {
+        id: String,
+        title: String,
+    },
+    RemoveWikiFolder(String),
+    MoveWikiPage {
+        document: String,
+        folder: Option<String>,
+    },
     /// The timeline: a new moment, one field of a moment, removing and moving one.
     AddMoment,
     SetMoment {
@@ -198,6 +215,19 @@ pub fn run(
             author,
             screenplay,
         } => edit::set_project_details(data, name, author, *screenplay),
+        Intent::AddWikiPage { folder } => {
+            prosecraft_core::wiki::add_page(data, &new_id(), folder.as_deref())
+        }
+        Intent::AddWikiFolder { parent } => {
+            prosecraft_core::wiki::add_folder(data, &new_id(), parent.as_deref())
+        }
+        Intent::RenameWikiFolder { id, title } => {
+            prosecraft_core::wiki::rename_folder(data, id, title)
+        }
+        Intent::RemoveWikiFolder(id) => prosecraft_core::wiki::remove_folder(data, id),
+        Intent::MoveWikiPage { document, folder } => {
+            prosecraft_core::wiki::move_page(data, document, folder.as_deref())
+        }
         Intent::AddMoment => prosecraft_core::timeline::add_node(data, &new_id()),
         Intent::SetMoment { id, field, value } => {
             prosecraft_core::timeline::set_field(data, id, *field, value)

@@ -488,6 +488,8 @@ fn main() -> ExitCode {
         return ExitCode::SUCCESS;
     }
     let (mut app, problem) = start();
+    // Zotero on this computer, through its local HTTP server.
+    app.set_zotero(Arc::new(prosecraft_core::citations::zotero::request));
     if let Some(problem) = problem {
         eprintln!("{problem}");
     }

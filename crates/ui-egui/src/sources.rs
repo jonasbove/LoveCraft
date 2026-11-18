@@ -49,6 +49,8 @@ pub(crate) struct SourcesDialog {
     /// Which documents cite which sources, and a hash of the documents it was read from (read
     /// again only when they change, not every frame).
     cited: Option<(u64, CitedIndex)>,
+    /// The Zotero section, on the desktop.
+    zotero: crate::zotero::ZoteroPanel,
 }
 
 /// A hash of the documents' text and footnotes, to tell when [`CitedIndex`] is out of date.
@@ -410,6 +412,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         .filter(|(h, _)| *h == hash)
         .unwrap_or_else(|| (hash, CitedIndex::new(&project.documents)));
     let items = &project.citations;
+    let zotero = state.zotero.clone();
     let dialog = &mut owned;
     let mut open = true;
     let mut done = false;
@@ -507,6 +510,12 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                     }
                     for item in shown {
                         source_row(ui, &palette, editable, &cited.1, items, item, dialog, &mut change);
+                    }
+                    if let Some(transport) = &zotero {
+                        let added = crate::zotero::show(ui, &palette, &mut dialog.zotero, transport, items, editable);
+                        if added.is_some() {
+                            change = added;
+                        }
                     }
                 });
             ui.separator();

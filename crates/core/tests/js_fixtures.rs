@@ -1110,3 +1110,126 @@ fn editor_citation_labels_match_prosecraft() {
         );
     }
 }
+
+/// A value without its `false` and `undefined` fields: ProseCraft sets a style key only when it
+/// applies, and a few only sometimes write `false`.
+fn without_false(value: &JsValue) -> JsValue {
+    match value {
+        JsValue::Object(o) => {
+            let mut out = js::JsObject::new();
+            for (k, v) in o.iter() {
+                if !matches!(v, JsValue::Bool(false)) {
+                    out.insert(k.clone(), without_false(v));
+                }
+            }
+            JsValue::Object(out)
+        }
+        JsValue::Array(items) => JsValue::Array(items.iter().map(without_false).collect()),
+        other => other.clone(),
+    }
+}
+
+fn rich_image(image: &prosecraft_core::publish::rich_text::InlineImage) -> JsValue {
+    let mut o = js::JsObject::new();
+    o.insert("src", JsValue::str(&image.src));
+    o.insert("alt", JsValue::str(&image.alt));
+    if let Some(w) = image.width {
+        o.insert("width", JsValue::Number(w));
+    }
+    if let Some(h) = image.height {
+        o.insert("height", JsValue::Number(h));
+    }
+    JsValue::Object(o)
+}
+
+fn rich_run(run: &prosecraft_core::publish::rich_text::InlineRun) -> JsValue {
+    let mut o = js::JsObject::new();
+    o.insert("text", JsValue::str(&run.text));
+    for (key, on) in [
+        ("bold", run.bold),
+        ("italic", run.italic),
+        ("underline", run.underline),
+        ("strike", run.strike),
+        ("lineBreak", run.line_break),
+    ] {
+        if on {
+            o.insert(key, JsValue::Bool(true));
+        }
+    }
+    if let Some(link) = &run.link {
+        o.insert("link", JsValue::str(link));
+    }
+    if let Some(image) = &run.image {
+        o.insert("image", rich_image(image));
+    }
+    if let Some(id) = &run.footnote_id {
+        o.insert("footnoteId", JsValue::str(id));
+    }
+    JsValue::Object(o)
+}
+
+fn rich_block(block: &prosecraft_core::publish::rich_text::Block) -> JsValue {
+    use prosecraft_core::publish::rich_text::BlockKind;
+    let mut o = js::JsObject::new();
+    let kind = match block.kind {
+        BlockKind::Paragraph => "paragraph",
+        BlockKind::Heading => "heading",
+        BlockKind::Quote => "quote",
+        BlockKind::List => "list",
+        BlockKind::Image => "image",
+    };
+    o.insert("kind", JsValue::str(kind));
+    o.insert(
+        "runs",
+        JsValue::Array(block.runs.iter().map(rich_run).collect()),
+    );
+    if let Some(image) = &block.image {
+        o.insert("image", rich_image(image));
+    }
+    if let Some(level) = block.level {
+        o.insert("level", JsValue::Number(f64::from(level)));
+    }
+    if let Some(marker) = &block.marker {
+        o.insert("marker", JsValue::str(marker));
+    }
+    if block.eyebrow {
+        o.insert("eyebrow", JsValue::Bool(true));
+    }
+    JsValue::Object(o)
+}
+
+#[test]
+fn publish_rich_text_matches_prosecraft() {
+    use prosecraft_core::publish::rich_text::{blocks_from_html, inline_runs_from_html};
+    let cases = fixture("publish-rich-text.json");
+    let mut failures = Vec::new();
+    for case in cases
+        .get("blocks")
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+    {
+        let input = text(case, "input");
+        let want = js::stable_stringify(&without_false(case.get("blocks").expect("blocks")));
+        let have = js::stable_stringify(&JsValue::Array(
+            blocks_from_html(&input).iter().map(rich_block).collect(),
+        ));
+        if have != want {
+            failures.push(format!("{input:?}\n  want {want}\n  have {have}"));
+        }
+    }
+    for case in cases
+        .get("inline")
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+    {
+        let input = text(case, "input");
+        let want = js::stable_stringify(&without_false(case.get("runs").expect("runs")));
+        let have = js::stable_stringify(&JsValue::Array(
+            inline_runs_from_html(&input).iter().map(rich_run).collect(),
+        ));
+        if have != want {
+            failures.push(format!("inline {input:?}\n  want {want}\n  have {have}"));
+        }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}

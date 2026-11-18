@@ -1,0 +1,1004 @@
+{
+  "blocks": [
+    {
+      "input": "",
+      "blocks": []
+    },
+    {
+      "input": "<p></p>",
+      "blocks": []
+    },
+    {
+      "input": "<p><br></p>",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "",
+              "lineBreak": true
+            }
+          ],
+          "eyebrow": false
+        }
+      ]
+    },
+    {
+      "input": "plain text at the top",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "plain text at the top"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "input": "  spaced \n text  ",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "spaced text"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "input": "<p>One</p><p>Two</p>",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "One"
+            }
+          ],
+          "eyebrow": false
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Two"
+            }
+          ],
+          "eyebrow": false
+        }
+      ]
+    },
+    {
+      "input": "<p>A <strong>bold</strong>, <b>b</b>, <em>em</em>, <i>i</i>, <u>u</u>, <s>s</s>, <strike>k</strike> and <del>del</del>.</p>",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "A "
+            },
+            {
+              "text": "bold",
+              "bold": true
+            },
+            {
+              "text": ", "
+            },
+            {
+              "text": "b",
+              "bold": true
+            },
+            {
+              "text": ", "
+            },
+            {
+              "text": "em",
+              "italic": true
+            },
+            {
+              "text": ", "
+            },
+            {
+              "text": "i",
+              "italic": true
+            },
+            {
+              "text": ", "
+            },
+            {
+              "text": "u",
+              "underline": true
+            },
+            {
+              "text": ", "
+            },
+            {
+              "text": "s",
+              "strike": true
+            },
+            {
+              "text": ", "
+            },
+            {
+              "text": "k",
+              "strike": true
+            },
+            {
+              "text": " and "
+            },
+            {
+              "text": "del"
+            },
+            {
+              "text": "."
+            }
+          ],
+          "eyebrow": false
+        }
+      ]
+    },
+    {
+      "input": "<p><strong>Bold <em>and italic <u>and under</u></em></strong> plain</p>",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Bold ",
+              "bold": true
+            },
+            {
+              "text": "and italic ",
+              "bold": true,
+              "italic": true
+            },
+            {
+              "text": "and under",
+              "bold": true,
+              "italic": true,
+              "underline": true
+            },
+            {
+              "text": " plain"
+            }
+          ],
+          "eyebrow": false
+        }
+      ]
+    },
+    {
+      "input": "<p>Link <a href=\"https://example.org\">here</a>, <a href=\"\">empty</a>, <a>none</a>.</p>",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Link "
+            },
+            {
+              "text": "here",
+              "link": "https://example.org"
+            },
+            {
+              "text": ", "
+            },
+            {
+              "text": "empty"
+            },
+            {
+              "text": ", "
+            },
+            {
+              "text": "none"
+            },
+            {
+              "text": "."
+            }
+          ],
+          "eyebrow": false
+        }
+      ]
+    },
+    {
+      "input": "<p>Line<br>break<br><br>twice</p>",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Line"
+            },
+            {
+              "text": "",
+              "lineBreak": true
+            },
+            {
+              "text": "break"
+            },
+            {
+              "text": "",
+              "lineBreak": true
+            },
+            {
+              "text": "",
+              "lineBreak": true
+            },
+            {
+              "text": "twice"
+            }
+          ],
+          "eyebrow": false
+        }
+      ]
+    },
+    {
+      "input": "<p><br>Leading break</p>",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "",
+              "lineBreak": true
+            },
+            {
+              "text": "Leading break"
+            }
+          ],
+          "eyebrow": false
+        }
+      ]
+    },
+    {
+      "input": "<p>  Trim  me </p>",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Trim me"
+            }
+          ],
+          "eyebrow": false
+        }
+      ]
+    },
+    {
+      "input": "<p> </p>",
+      "blocks": []
+    },
+    {
+      "input": "<p>Note<sup class=\"footnote-ref\" data-footnote-id=\"fn-1\" contenteditable=\"false\"></sup> here<sup class=\"footnote-ref\" data-footnote-id=\"bad id!\" contenteditable=\"false\"></sup>.</p>",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Note"
+            },
+            {
+              "text": "",
+              "footnoteId": "fn-1"
+            },
+            {
+              "text": " here"
+            },
+            {
+              "text": "."
+            }
+          ],
+          "eyebrow": false
+        }
+      ]
+    },
+    {
+      "input": "<p><sup class=\"footnote-ref\" data-footnote-id=\"fn-2\" contenteditable=\"false\"></sup></p>",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "",
+              "footnoteId": "fn-2"
+            }
+          ],
+          "eyebrow": false
+        }
+      ]
+    },
+    {
+      "input": "<h1>Title</h1><h2>Sub <em>head</em></h2><h3>Third</h3><h4>Fourth</h4>",
+      "blocks": [
+        {
+          "kind": "heading",
+          "runs": [
+            {
+              "text": "Title"
+            }
+          ],
+          "level": 1
+        },
+        {
+          "kind": "heading",
+          "runs": [
+            {
+              "text": "Sub "
+            },
+            {
+              "text": "head",
+              "italic": true
+            }
+          ],
+          "level": 2
+        },
+        {
+          "kind": "heading",
+          "runs": [
+            {
+              "text": "Third"
+            }
+          ],
+          "level": 3
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Fourth"
+            }
+          ],
+          "eyebrow": false
+        }
+      ]
+    },
+    {
+      "input": "<blockquote><p>Quoted one</p><p>Quoted two</p></blockquote>",
+      "blocks": [
+        {
+          "kind": "quote",
+          "runs": [
+            {
+              "text": "Quoted one"
+            }
+          ]
+        },
+        {
+          "kind": "quote",
+          "runs": [
+            {
+              "text": "Quoted two"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "input": "<blockquote>Bare quote <b>bold</b></blockquote>",
+      "blocks": [
+        {
+          "kind": "quote",
+          "runs": [
+            {
+              "text": "Bare quote "
+            },
+            {
+              "text": "bold",
+              "bold": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "input": "<blockquote><div>In div</div></blockquote>",
+      "blocks": [
+        {
+          "kind": "quote",
+          "runs": [
+            {
+              "text": "In div"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "input": "<ul><li>One</li><li>Two <em>em</em></li><li></li></ul>",
+      "blocks": [
+        {
+          "kind": "list",
+          "runs": [
+            {
+              "text": "One"
+            }
+          ],
+          "marker": "•"
+        },
+        {
+          "kind": "list",
+          "runs": [
+            {
+              "text": "Two "
+            },
+            {
+              "text": "em",
+              "italic": true
+            }
+          ],
+          "marker": "•"
+        }
+      ]
+    },
+    {
+      "input": "<ol><li>First</li><li>Second</li><p>stray</p><li>Third</li></ol>",
+      "blocks": [
+        {
+          "kind": "list",
+          "runs": [
+            {
+              "text": "First"
+            }
+          ],
+          "marker": "1."
+        },
+        {
+          "kind": "list",
+          "runs": [
+            {
+              "text": "Second"
+            }
+          ],
+          "marker": "2."
+        },
+        {
+          "kind": "list",
+          "runs": [
+            {
+              "text": "Third"
+            }
+          ],
+          "marker": "3."
+        }
+      ]
+    },
+    {
+      "input": "<ul><li>Outer<ul><li>Inner</li></ul></li></ul>",
+      "blocks": [
+        {
+          "kind": "list",
+          "runs": [
+            {
+              "text": "Outer"
+            },
+            {
+              "text": "Inner"
+            }
+          ],
+          "marker": "•"
+        }
+      ]
+    },
+    {
+      "input": "<li>Lone item</li>",
+      "blocks": [
+        {
+          "kind": "list",
+          "runs": [
+            {
+              "text": "Lone item"
+            }
+          ],
+          "marker": "•"
+        }
+      ]
+    },
+    {
+      "input": "<p class=\"eyebrow\">A NOTE</p><div class=\"eyebrow\">Not one</div>",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "A NOTE"
+            }
+          ],
+          "eyebrow": true
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Not one"
+            }
+          ],
+          "eyebrow": false
+        }
+      ]
+    },
+    {
+      "input": "<div>Plain div</div><div><p>Nested one</p><p>Nested two</p></div><p>Before<div>split</div>after</p>",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Plain div"
+            }
+          ],
+          "eyebrow": false
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Nested one"
+            }
+          ],
+          "eyebrow": false
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Nested two"
+            }
+          ],
+          "eyebrow": false
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Before"
+            }
+          ],
+          "eyebrow": false
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "split"
+            }
+          ],
+          "eyebrow": false
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "after"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "input": "<section>Section text</section><span>Span text</span><strong>Top bold</strong>",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Section text"
+            }
+          ],
+          "eyebrow": false
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Span text"
+            }
+          ],
+          "eyebrow": false
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Top bold",
+              "bold": true
+            }
+          ],
+          "eyebrow": false
+        }
+      ]
+    },
+    {
+      "input": "<p>Before<img src=\"data:image/png;base64,iVBORw0KGgo=\" alt=\"Pic\">after</p>",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Before"
+            }
+          ],
+          "eyebrow": false
+        },
+        {
+          "kind": "image",
+          "runs": [],
+          "image": {
+            "src": "data:image/png;base64,iVBORw0KGgo=",
+            "alt": "Pic"
+          }
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "after"
+            }
+          ],
+          "eyebrow": false
+        }
+      ]
+    },
+    {
+      "input": "<p><img src=\"data:image/png;base64,iVBORw0KGgo=\" width=\"120\" height=\"80\" alt=\"Sized\"></p>",
+      "blocks": [
+        {
+          "kind": "image",
+          "runs": [],
+          "image": {
+            "src": "data:image/png;base64,iVBORw0KGgo=",
+            "alt": "Sized",
+            "width": 120,
+            "height": 80
+          }
+        }
+      ]
+    },
+    {
+      "input": "<img src=\"data:image/jpeg;base64,/9j/4AAQ\" alt=\"Top level\" width=\"10\">",
+      "blocks": [
+        {
+          "kind": "image",
+          "runs": [],
+          "image": {
+            "src": "data:image/jpeg;base64,/9j/4AAQ",
+            "alt": "Top level"
+          }
+        }
+      ]
+    },
+    {
+      "input": "<p>Inline <img src=\"data:image/png;base64,iVBORw0KGgo=\" data-inline=\"true\" alt=\"eq\" width=\"12px\" data-display-height=\"9\"> math</p>",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Inline "
+            },
+            {
+              "text": "",
+              "image": {
+                "src": "data:image/png;base64,iVBORw0KGgo=",
+                "alt": "eq",
+                "height": 9
+              }
+            },
+            {
+              "text": " math"
+            }
+          ],
+          "eyebrow": false
+        }
+      ]
+    },
+    {
+      "input": "<p><img src=\"https://example.org/x.png\" alt=\"Remote\"></p>",
+      "blocks": []
+    },
+    {
+      "input": "<p><img src=\"data:image/gif;base64,R0lGOD\" alt=\"Gif\"></p>",
+      "blocks": []
+    },
+    {
+      "input": "<p><em>Em <img src=\"data:image/png;base64,iVBORw0KGgo=\" alt=\"In em\"> tail</em></p>",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Em",
+              "italic": true
+            }
+          ],
+          "eyebrow": false
+        },
+        {
+          "kind": "image",
+          "runs": [],
+          "image": {
+            "src": "data:image/png;base64,iVBORw0KGgo=",
+            "alt": "In em"
+          }
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "tail",
+              "italic": true
+            }
+          ],
+          "eyebrow": false
+        }
+      ]
+    },
+    {
+      "input": "<div><p>A</p><img src=\"data:image/png;base64,iVBORw0KGgo=\" alt=\"B\"><p>C</p></div>",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "A"
+            }
+          ],
+          "eyebrow": false
+        },
+        {
+          "kind": "image",
+          "runs": [],
+          "image": {
+            "src": "data:image/png;base64,iVBORw0KGgo=",
+            "alt": "B"
+          }
+        },
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "C"
+            }
+          ],
+          "eyebrow": false
+        }
+      ]
+    },
+    {
+      "input": "<p><img src=\"data:image/png;base64,iVBORw0KGgo=\" width=\"-3\" height=\"abc\"></p>",
+      "blocks": [
+        {
+          "kind": "image",
+          "runs": [],
+          "image": {
+            "src": "data:image/png;base64,iVBORw0KGgo=",
+            "alt": ""
+          }
+        }
+      ]
+    },
+    {
+      "input": "<p>Sized inline <img src=\"data:image/png;base64,iVBORw0KGgo=\" data-inline=\"true\" data-display-width=\"30\" alt=\"w\"></p>",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Sized inline "
+            },
+            {
+              "text": "",
+              "image": {
+                "src": "data:image/png;base64,iVBORw0KGgo=",
+                "alt": "w",
+                "width": 30
+              }
+            }
+          ],
+          "eyebrow": false
+        }
+      ]
+    },
+    {
+      "input": "<!-- comment --><p>After comment</p>",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "After comment"
+            }
+          ],
+          "eyebrow": false
+        }
+      ]
+    },
+    {
+      "input": "<table><tr><td>Cell</td></tr></table>",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Cell"
+            }
+          ],
+          "eyebrow": false
+        }
+      ]
+    },
+    {
+      "input": "<pre>pre  formatted\ntext</pre>",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "pre formatted text"
+            }
+          ],
+          "eyebrow": false
+        }
+      ]
+    },
+    {
+      "input": "<p>Tab\tand\nnewline</p>",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "Tab and newline"
+            }
+          ],
+          "eyebrow": false
+        }
+      ]
+    },
+    {
+      "input": "<p><span class=\"cite-ref\" data-cites=\"x\">(Smith)</span> cited</p>",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "(Smith)"
+            },
+            {
+              "text": " cited"
+            }
+          ],
+          "eyebrow": false
+        }
+      ]
+    },
+    {
+      "input": "<p><code>code</code> and <sup>sup</sup> and <sub>sub</sub></p>",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "runs": [
+            {
+              "text": "code"
+            },
+            {
+              "text": " and "
+            },
+            {
+              "text": "sup"
+            },
+            {
+              "text": " and "
+            },
+            {
+              "text": "sub"
+            }
+          ],
+          "eyebrow": false
+        }
+      ]
+    }
+  ],
+  "inline": [
+    {
+      "input": "",
+      "runs": []
+    },
+    {
+      "input": "Plain note.",
+      "runs": [
+        {
+          "text": "Plain note."
+        }
+      ]
+    },
+    {
+      "input": "A <em>styled</em> <a href=\"https://x.y\">note</a>.",
+      "runs": [
+        {
+          "text": "A "
+        },
+        {
+          "text": "styled",
+          "italic": true
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "note",
+          "link": "https://x.y"
+        },
+        {
+          "text": "."
+        }
+      ]
+    },
+    {
+      "input": "  spaced  ",
+      "runs": [
+        {
+          "text": "spaced"
+        }
+      ]
+    },
+    {
+      "input": "<p>In a paragraph</p><p>and another</p>",
+      "runs": [
+        {
+          "text": "In a paragraph"
+        },
+        {
+          "text": "and another"
+        }
+      ]
+    },
+    {
+      "input": "Line<br>break",
+      "runs": [
+        {
+          "text": "Line"
+        },
+        {
+          "text": "",
+          "lineBreak": true
+        },
+        {
+          "text": "break"
+        }
+      ]
+    },
+    {
+      "input": "With image <img src=\"data:image/png;base64,iVBORw0KGgo=\" alt=\"i\"> inline",
+      "runs": [
+        {
+          "text": "With image "
+        },
+        {
+          "text": "",
+          "image": {
+            "src": "data:image/png;base64,iVBORw0KGgo=",
+            "alt": "i"
+          }
+        },
+        {
+          "text": " inline"
+        }
+      ]
+    },
+    {
+      "input": "Ref <sup class=\"footnote-ref\" data-footnote-id=\"fn-9\" contenteditable=\"false\"></sup>",
+      "runs": [
+        {
+          "text": "Ref "
+        },
+        {
+          "text": "",
+          "footnoteId": "fn-9"
+        }
+      ]
+    }
+  ]
+}

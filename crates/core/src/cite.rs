@@ -3,7 +3,9 @@
 //! Pandoc syntax it is written as in Markdown.
 
 use crate::html::is_js_whitespace;
+use crate::js::regexp::Re;
 use crate::js::{JsObject, JsString, JsValue};
+use std::sync::OnceLock;
 
 pub const CITE_REF_CLASS: &str = "cite-ref";
 pub const MAX_CITE_ITEMS: usize = 32;
@@ -79,7 +81,7 @@ fn text_field(object: &JsObject, key: &str, limit: usize) -> Result<Option<Strin
     }
 }
 
-fn item(raw: &JsValue) -> Option<CiteRefItem> {
+pub(crate) fn item(raw: &JsValue) -> Option<CiteRefItem> {
     let object = raw.as_object()?;
     if object
         .iter()
@@ -138,7 +140,7 @@ pub fn parse_cite_data(raw: Option<&str>) -> Option<Vec<CiteRefItem>> {
 }
 
 /// The JSON of normalized items, keys in ProseCraft's order.
-fn cite_json(items: &[CiteRefItem]) -> String {
+pub(crate) fn cite_json(items: &[CiteRefItem]) -> String {
     let values = items
         .iter()
         .map(|item| {
@@ -233,6 +235,176 @@ pub fn format_pandoc_citations(items: &[CiteRefItem]) -> String {
         })
         .collect();
     format!("[{}]", parts.join("; "))
+}
+
+macro_rules! pandoc_rule {
+    ($name:ident, $source:expr, $flags:expr) => {
+        fn $name() -> &'static Re {
+            static RULE: OnceLock<Re> = OnceLock::new();
+            RULE.get_or_init(|| Re::new($source, $flags))
+        }
+    };
+}
+
+pandoc_rule!(
+    pandoc_segment,
+    r"^((?:[\s\S]*?\s)?)(-?)@([A-Za-z0-9_](?:[A-Za-z0-9_.:/-]{0,126}[A-Za-z0-9_])?)(?=$|[\s,;.)\]!?])([\s\S]*)$",
+    ""
+);
+pandoc_rule!(
+    explicit_locator,
+    r"^(pp?\.|pages?|ch\.|chap\.|chapters?|sec\.|sect\.|sections?|§|S\.|Kap\.|Abschn\.)\s*(.+)$",
+    "i"
+);
+pandoc_rule!(
+    locator_value,
+    r"^([0-9]+(?:[.:][0-9]+)*(?:[A-Za-z]{1,2})?(?:\s*[-–—]\s*[0-9]+(?:[.:][0-9]+)*(?:[A-Za-z]{1,2})?)*(?:,\s*[0-9]+(?:[.:][0-9]+)*(?:[A-Za-z]{1,2})?(?:\s*[-–—]\s*[0-9]+(?:[.:][0-9]+)*(?:[A-Za-z]{1,2})?)*)*|[ivxlcdm]+(?:\s*[-–—]\s*[ivxlcdm]+)*)(?=$|[\s,;.\-–—])([\s\S]*)$",
+    "i"
+);
+pandoc_rule!(
+    bare_numeric_locator,
+    r"^([0-9]+(?:\s*[-–—]\s*[0-9]+)?)(?=$|[\s,;.)\]!?])([\s\S]*)$",
+    ""
+);
+pandoc_rule!(leading_comma, r"^\s*,\s*", "");
+
+/// `unescapePandocText`: `\\`, `\[`, `\]` and `\;` unescaped.
+fn unescape_pandoc(text: &str) -> String {
+    let mut out = String::new();
+    let mut chars = text.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '\\'
+            && let Some(&next) = chars.peek()
+            && matches!(next, '\\' | '[' | ']' | ';')
+        {
+            out.push(next);
+            chars.next();
+            continue;
+        }
+        out.push(c);
+    }
+    out
+}
+
+/// `splitPandocSegments`: the cluster split at unescaped `;`, escapes kept.
+fn split_pandoc_segments(raw: &str) -> Vec<String> {
+    let mut segments = Vec::new();
+    let mut current = String::new();
+    let mut escaped = false;
+    for c in raw.chars() {
+        if escaped {
+            current.push('\\');
+            current.push(c);
+            escaped = false;
+        } else if c == '\\' {
+            escaped = true;
+        } else if c == ';' {
+            segments.push(std::mem::take(&mut current));
+        } else {
+            current.push(c);
+        }
+    }
+    if escaped {
+        current.push('\\');
+    }
+    segments.push(current);
+    segments
+}
+
+/// `mapLocatorPrefix`.
+fn locator_label(prefix: &str) -> &'static str {
+    let lower = prefix.to_lowercase();
+    if lower.starts_with("ch") || lower.starts_with("kap") {
+        "chapter"
+    } else if lower.starts_with("sec") || lower == "§" || lower.starts_with("abschn") {
+        "section"
+    } else {
+        "page"
+    }
+}
+
+/// `parsePandocAfter`: the locator, its label and the suffix after a cited key.
+fn parse_pandoc_after(raw: &str) -> (Option<String>, Option<&'static str>, Option<String>) {
+    let suffix_only = |text: &str| {
+        let suffix = js_trim(&unescape_pandoc(text)).to_owned();
+        (None, None, (!suffix.is_empty()).then_some(suffix))
+    };
+    if js_trim(raw).is_empty() {
+        return (None, None, None);
+    }
+    if !raw.trim_start_matches(is_js_whitespace).starts_with(',') {
+        return suffix_only(raw);
+    }
+    let after_comma = leading_comma().replace(raw, false, "");
+    if let Some(explicit) = explicit_locator().exec(&after_comma) {
+        let label = locator_label(explicit.at(1));
+        let body = js_trim(explicit.at(2));
+        if let Some(split) = locator_value().exec(body) {
+            let locator = unescape_pandoc(js_trim(split.at(1)));
+            let suffix = js_trim(&unescape_pandoc(split.at(2))).to_owned();
+            return (
+                Some(locator),
+                Some(label),
+                (!suffix.is_empty()).then_some(suffix),
+            );
+        }
+        if let Some(comma) = body.find(',').filter(|&i| i > 0) {
+            return (
+                Some(unescape_pandoc(js_trim(&body[..comma]))),
+                Some(label),
+                Some(js_trim(&unescape_pandoc(&body[comma..])).to_owned()),
+            );
+        }
+        return (Some(unescape_pandoc(body)), Some(label), None);
+    }
+    if let Some(bare) = bare_numeric_locator().exec(&after_comma) {
+        let suffix = js_trim(&unescape_pandoc(bare.at(2))).to_owned();
+        return (
+            Some(unescape_pandoc(js_trim(bare.at(1)))),
+            Some("page"),
+            (!suffix.is_empty()).then_some(suffix),
+        );
+    }
+    suffix_only(raw)
+}
+
+/// `parsePandocSegment`: one cited source, validated as `data-cites` items are.
+fn parse_pandoc_segment(segment: &str) -> Option<CiteRefItem> {
+    let trimmed = segment.trim_start_matches(is_js_whitespace);
+    let found = pandoc_segment().exec(trimmed)?;
+    let prefix = unescape_pandoc(found.at(1));
+    let (locator, label, suffix) = parse_pandoc_after(found.at(4));
+    let mut candidate = JsObject::new();
+    candidate.insert("id", JsValue::str(found.at(3)));
+    if let Some(locator) = locator.filter(|l| !l.is_empty()) {
+        candidate.insert("locator", JsValue::str(&locator));
+    }
+    if let Some(label) = label {
+        candidate.insert("label", JsValue::str(label));
+    }
+    if !js_trim(&prefix).is_empty() {
+        candidate.insert("prefix", JsValue::str(&prefix));
+    }
+    if let Some(suffix) = suffix.filter(|s| !s.is_empty()) {
+        candidate.insert("suffix", JsValue::str(&suffix));
+    }
+    if found.at(2) == "-" {
+        candidate.insert("suppressAuthor", JsValue::Bool(true));
+    }
+    item(&JsValue::Object(candidate))
+}
+
+/// `parsePandocCitationCluster`: the sources of `[see @key, p. 4; -@other]`, without its
+/// brackets, or `None` when any part is not a citation.
+pub fn parse_pandoc_citation_cluster(raw: &str) -> Option<Vec<CiteRefItem>> {
+    if raw.is_empty() || !raw.contains('@') || js_len(raw) > MAX_CITE_ATTR_LENGTH {
+        return None;
+    }
+    let segments = split_pandoc_segments(raw);
+    if segments.is_empty() || segments.len() > MAX_CITE_ITEMS {
+        return None;
+    }
+    segments.iter().map(|s| parse_pandoc_segment(s)).collect()
 }
 
 #[cfg(test)]

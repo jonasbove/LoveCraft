@@ -298,6 +298,9 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                 &mut state.renaming_folder,
             )
             .or(chosen.take());
+            if let Some(status) = &state.wiki_status {
+                ui.label(RichText::new(status).size(11.0).color(palette.text_muted));
+            }
             ui.add_space(14.0);
             ui.separator();
             ui.add_space(8.0);
@@ -609,7 +612,7 @@ fn wiki(
         eyebrow(ui, palette, "Wiki");
         if editable {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                // ProseCraft's "+": Add page, Add folder (files and web links come later).
+                // ProseCraft's "+": Add page, Add folder, Add file, Add web link.
                 let add = ui
                     .menu_button("+", |ui| {
                         if ui.button("Add page").clicked() {
@@ -618,6 +621,14 @@ fn wiki(
                         }
                         if ui.button("Add folder").clicked() {
                             intents.push(Intent::AddWikiFolder { parent: None });
+                            ui.close();
+                        }
+                        if ui.button("Add file").clicked() {
+                            intents.push(Intent::AddWikiFiles(None));
+                            ui.close();
+                        }
+                        if ui.button("Add web link").clicked() {
+                            intents.push(Intent::AddWikiLink(None));
                             ui.close();
                         }
                     })
@@ -629,7 +640,7 @@ fn wiki(
     ui.add_space(4.0);
     let items = project.wiki_tree();
     if items.is_empty() {
-        ui.label(RichText::new("Nothing here yet").color(palette.text_muted));
+        ui.label(RichText::new("Add a page, file, or link").color(palette.text_muted));
     }
     let folders: Vec<(String, String, usize)> = items
         .iter()
@@ -747,6 +758,14 @@ fn wiki(
                                 });
                                 ui.close();
                             }
+                            if ui.button("Add file").clicked() {
+                                intents.push(Intent::AddWikiFiles(Some(item.id.clone())));
+                                ui.close();
+                            }
+                            if ui.button("Add web link").clicked() {
+                                intents.push(Intent::AddWikiLink(Some(item.id.clone())));
+                                ui.close();
+                            }
                             if ui.button("Rename folder").clicked() {
                                 *renaming = Some((item.id.clone(), item.title.clone()));
                                 ui.close();
@@ -762,23 +781,124 @@ fn wiki(
                     );
                 }
             }
-            WikiItemKind::File => {
-                ui.label(
-                    RichText::new(format!("File: {}", item.title))
-                        .size(13.0)
-                        .color(palette.text_secondary),
-                );
-            }
-            WikiItemKind::Link => {
-                ui.label(
-                    RichText::new(format!("Link: {}", item.title))
-                        .size(13.0)
-                        .color(palette.text_secondary),
+            WikiItemKind::File | WikiItemKind::Link => {
+                let Some(found) = project.research_items.iter().find(|r| r.id == item.id) else {
+                    return;
+                };
+                research_row(
+                    ui,
+                    palette,
+                    &found.item,
+                    item.depth,
+                    editable,
+                    &folders,
+                    intents,
                 );
             }
         });
     }
     chosen
+}
+
+/// A Wiki file or link: its mark and title (the size and type, or the address, on hover);
+/// a click opens it, and its menu opens, reveals, moves or removes it.
+fn research_row(
+    ui: &mut Ui,
+    palette: &Palette,
+    item: &prosecraft_core::research::Item,
+    depth: usize,
+    editable: bool,
+    folders: &[(String, String, usize)],
+    intents: &mut Vec<Intent>,
+) {
+    use prosecraft_core::research::Item;
+    let (id, mark, file) = match item {
+        Item::File { id, mime_type, .. } if mime_type == "application/pdf" => (id, "PDF", true),
+        Item::File { id, mime_type, .. } if mime_type.starts_with("image/") => (id, "IMG", true),
+        Item::File { id, .. } => (id, "FILE", true),
+        Item::Link { id, .. } => (id, "LINK", false),
+    };
+    let title = item.title();
+    let row = ui
+        .horizontal(|ui| {
+            ui.label(
+                RichText::new(mark)
+                    .size(9.0)
+                    .monospace()
+                    .color(palette.text_muted),
+            );
+            tree_row(ui, palette, title, depth + 1, false)
+        })
+        .inner;
+    let hover = if file {
+        format!("{title} — {}", item.meta())
+    } else {
+        item.meta()
+    };
+    let row = row.on_hover_text(hover);
+    if row.clicked() {
+        intents.push(Intent::OpenWikiItem(id.clone()));
+    }
+    if !editable {
+        return;
+    }
+    row_menu(ui, &row, &format!("Actions for {title}"), |ui| {
+        if ui
+            .button(if file { "Open file" } else { "Open link" })
+            .clicked()
+        {
+            intents.push(Intent::OpenWikiItem(id.clone()));
+            ui.close();
+        }
+        if file && ui.button("Reveal in folder").clicked() {
+            intents.push(Intent::RevealWikiFile(id.clone()));
+            ui.close();
+        }
+        if !folders.is_empty() {
+            ui.menu_button("Move to folder…", |ui| {
+                if ui.button("Unfiled").clicked() {
+                    intents.push(Intent::MoveWikiItem {
+                        id: id.clone(),
+                        folder: None,
+                    });
+                    ui.close();
+                }
+                for (folder, name, depth) in folders {
+                    if ui
+                        .button(format!("{}{name}", "  ".repeat(*depth)))
+                        .clicked()
+                    {
+                        intents.push(Intent::MoveWikiItem {
+                            id: id.clone(),
+                            folder: Some(folder.clone()),
+                        });
+                        ui.close();
+                    }
+                }
+            });
+        }
+        // `confirmDestructiveAction`.
+        let remove = if file {
+            "Remove and delete file"
+        } else {
+            "Remove link"
+        };
+        ui.menu_button(RichText::new(remove).color(palette.danger), |ui| {
+            let deleted = if file {
+                " The file will be deleted from the project folder."
+            } else {
+                ""
+            };
+            ui.label(format!("Remove “{title}” from the Wiki?{deleted}"));
+            if ui
+                .button(RichText::new("Remove").color(palette.danger))
+                .clicked()
+            {
+                intents.push(Intent::RemoveWikiItem(id.clone()));
+                ui.close();
+            }
+        });
+    });
 }
 
 /// "Restore", named for its item so each button in the Trash can be told apart.

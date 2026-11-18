@@ -41,6 +41,8 @@ mod storyboard;
 pub mod theme;
 mod views;
 mod widgets;
+mod wiki_files;
+pub use wiki_files::WikiFileStore;
 
 use std::collections::HashMap;
 
@@ -133,6 +135,13 @@ pub enum HostRequest {
     /// Ask for a cover image (PNG, JPEG or WebP; see
     /// [`prosecraft_core::publish::cover::EXTENSIONS`]), then call [`ProseApp::set_cover_image`].
     ChooseCover,
+    /// Ask for a folder for wiki files, then call [`ProseApp::set_wiki_root`]. `add_to`: files
+    /// were being added (to that Wiki folder, or the top level), so ask for them next.
+    ChooseWikiRoot { add_to: Option<Option<String>> },
+    /// Ask for files to add to the Wiki, then call [`ProseApp::add_wiki_files`].
+    PickWikiFiles { folder: Option<String> },
+    /// Open this web address in the browser.
+    OpenUrl(String),
     /// Ask for a sync folder, then call [`ProseApp::set_sync_folder`].
     ChooseSyncFolder,
     /// Ask where to save an exported manuscript, then write it there. `kind` names the format
@@ -257,6 +266,14 @@ pub struct AppState {
     picture_target: Option<(String, usize)>,
     /// Why the last cover image couldn't be used (`coverError`).
     cover_error: Option<String>,
+    /// Wiki files (`researchStatus`, `researchSettingsStatus`, the link dialog, the Markdown
+    /// preview); `wiki_root` is read from the device's settings once.
+    wiki_available: bool,
+    wiki_root: Option<String>,
+    wiki_status: Option<String>,
+    wiki_settings_status: Option<String>,
+    wiki_link: Option<wiki_files::LinkDraft>,
+    wiki_markdown: Option<(String, String)>,
     /// Undo and redo (ProseCraft's `UndoManager`), by text field and by page; selections are
     /// character ranges.
     undo: prosecraft_core::undo::UndoManager<(usize, usize)>,
@@ -619,6 +636,8 @@ pub struct ProseApp {
             prosecraft_core::import::markdown_folder::MarkdownImportReport,
         )>,
     >,
+    /// Where wiki files live on this device (the desktop host's).
+    wiki_files: Option<Box<dyn WikiFileStore>>,
 }
 
 impl Default for ProseApp {
@@ -639,6 +658,7 @@ impl ProseApp {
             unsaved_since: None,
             sync_job: None,
             markdown_job: None,
+            wiki_files: None,
         }
     }
 
@@ -1401,6 +1421,336 @@ impl ProseApp {
     /// A picture from the host (`insertImageFiles`): made into an embedded image as ProseCraft
     /// makes it and put into the open scene where it was asked for, or at the caret; ProseCraft's
     /// message in the status line when it can't be.
+    /// The "Add web link" dialog and a Markdown file's preview.
+    fn wiki_windows(&mut self, ctx: &egui::Context) {
+        let palette = self.state.palette;
+        if let Some(mut draft) = self.state.wiki_link.take() {
+            match wiki_files::link_dialog(ctx, &palette, &mut draft) {
+                wiki_files::LinkAction::Save => {
+                    // `saveResearchLink`.
+                    if prosecraft_core::research::normalize_url(&draft.url).is_none() {
+                        draft.error = "Enter a valid http or https address.".to_owned();
+                        self.state.wiki_link = Some(draft);
+                    } else {
+                        let now = self.state.now_ms;
+                        self.change(move |data, new_id| {
+                            let link = prosecraft_core::research::new_link(
+                                &new_id(),
+                                draft.folder.as_deref(),
+                                &draft.url,
+                                &draft.title,
+                                &draft.description,
+                                now,
+                            )
+                            .map_err(|_| prosecraft_core::edit::EditError::Shape)?;
+                            prosecraft_core::research::add_link(data, link)
+                        });
+                        self.state.wiki_status = Some("Link added.".to_owned());
+                    }
+                }
+                wiki_files::LinkAction::Close => {}
+                wiki_files::LinkAction::None => self.state.wiki_link = Some(draft),
+            }
+        }
+        if let Some((title, html)) = &self.state.wiki_markdown
+            && !wiki_files::markdown_window(ctx, &palette, title, html)
+        {
+            self.state.wiki_markdown = None;
+        }
+    }
+
+    /// Gives the app the device's wiki file store (the desktop host's).
+    pub fn set_wiki_files(&mut self, store: Box<dyn WikiFileStore>) {
+        self.wiki_files = Some(store);
+        self.state.wiki_available = true;
+        let _ = self.wiki_root();
+    }
+
+    /// The wiki files folder for this device (`researchRoot`), read once from the settings.
+    fn wiki_root(&mut self) -> Option<String> {
+        if self.state.wiki_root.is_none() {
+            let saved = self
+                .home
+                .as_mut()
+                .and_then(|h| h.store.load_setting(wiki_files::ROOT_KEY))
+                .unwrap_or_default();
+            self.state.wiki_root = Some(saved);
+        }
+        self.state.wiki_root.clone().filter(|r| !r.is_empty())
+    }
+
+    /// The project's wiki folder name (`ensureResearchFolderName`), stored with the project the
+    /// first time it is needed.
+    fn wiki_folder_name(&mut self) -> Option<String> {
+        let id = self.active_project_id()?;
+        let stored = self
+            .home
+            .as_ref()
+            .and_then(|h| h.library.project(&id))
+            .cloned()?;
+        let project = stored.get("project")?;
+        let current =
+            prosecraft_core::research::normalize_folder_name(project.get("researchFolderName"));
+        if !current.is_empty() {
+            return Some(current);
+        }
+        let name = project
+            .get("name")
+            .and_then(prosecraft_core::js::JsValue::as_js_string)
+            .map(|s| s.to_string_lossy())
+            .unwrap_or_default();
+        let folder = prosecraft_core::research::create_folder_name(&name, &id);
+        let stored_name = folder.clone();
+        self.change(move |data, _| {
+            data.as_object_mut()
+                .ok_or(prosecraft_core::edit::EditError::Shape)?
+                .insert(
+                    "researchFolderName",
+                    prosecraft_core::js::JsValue::str(&stored_name),
+                );
+            Ok(())
+        });
+        Some(folder)
+    }
+
+    /// `chooseResearchRoot` / `ensureResearchRoot`: the folder the host's picker gave.
+    pub fn set_wiki_root(&mut self, path: &str, add_to: Option<Option<String>>) {
+        self.state.wiki_root = Some(path.to_owned());
+        let saved = self
+            .home
+            .as_mut()
+            .map(|h| h.store.save_setting(wiki_files::ROOT_KEY, Some(path)));
+        if let Some(Err(e)) = saved {
+            self.state.wiki_settings_status = Some(e);
+            return;
+        }
+        match add_to {
+            Some(folder) => {
+                self.state.wiki_status =
+                    Some("Wiki files folder saved for this device.".to_owned());
+                self.state
+                    .requests
+                    .push(HostRequest::PickWikiFiles { folder });
+            }
+            None => {
+                self.state.wiki_settings_status = Some(
+                    "Wiki files folder saved. Existing files remain in the previous folder."
+                        .to_owned(),
+                );
+            }
+        }
+    }
+
+    /// `addResearchFiles`: asks for the folder first if there is none.
+    fn start_adding_wiki_files(&mut self, folder: Option<String>) {
+        self.state.wiki_status = None;
+        if self.wiki_files.is_none() {
+            self.state.wiki_status = Some("Wiki files can be added in the desktop app.".to_owned());
+            return;
+        }
+        let request = match self.wiki_root() {
+            Some(_) => HostRequest::PickWikiFiles { folder },
+            None => HostRequest::ChooseWikiRoot {
+                add_to: Some(folder),
+            },
+        };
+        self.state.requests.push(request);
+    }
+
+    /// `addResearchFiles` after the picker: each file copied into the project's folder and
+    /// added to the Wiki, and what happened said (`researchImportStatus`).
+    pub fn add_wiki_files(&mut self, folder: Option<String>, paths: &[String]) {
+        if paths.is_empty() || !self.state.editable {
+            return;
+        }
+        let (Some(root), Some(project_folder)) = (self.wiki_root(), self.wiki_folder_name()) else {
+            return;
+        };
+        let Some(store) = self.wiki_files.as_ref() else {
+            return;
+        };
+        let Some(home) = self.home.as_mut() else {
+            return;
+        };
+        let mut added = Vec::new();
+        let mut failures = Vec::new();
+        for path in paths {
+            let id = home.store.new_id();
+            let now = home.store.now_ms();
+            let file_name = prosecraft_core::research::file_name_from_path(path, now);
+            let file = prosecraft_core::research::NewFile {
+                id,
+                folder_id: folder.clone(),
+                file_name,
+                size: 0,
+                added_at: now,
+            };
+            match store.import(&root, &project_folder, &file.storage_key(), path) {
+                Ok(size) => added.push(prosecraft_core::research::NewFile { size, ..file }),
+                Err(e) => failures.push(e),
+            }
+        }
+        let count = added.len();
+        if count > 0 {
+            self.change(move |data, _| prosecraft_core::research::add_files(data, &added));
+        }
+        let noun = if count == 1 { "file" } else { "files" };
+        self.state.wiki_status = Some(match failures.first() {
+            Some(first) if count == 0 => format!("Could not add files. {first}"),
+            Some(first) => format!("Added {count} {noun}. {first}"),
+            None => format!("Added {count} {noun}."),
+        });
+    }
+
+    fn wiki_item(&self, id: &str) -> Option<prosecraft_core::research::Item> {
+        let index = self.state.active;
+        let project = self.state.library.as_ref()?.projects().get(index)?;
+        project
+            .view
+            .research_items
+            .iter()
+            .find(|i| i.id == id)
+            .map(|i| i.item.clone())
+    }
+
+    /// `openResearchFile` and `openResearchLink`.
+    fn open_wiki_item(&mut self, id: &str) {
+        use prosecraft_core::research::Item;
+        self.state.wiki_status = None;
+        match self.wiki_item(id) {
+            Some(Item::Link { url, .. }) => match prosecraft_core::research::normalize_url(&url) {
+                Some(url) => self.state.requests.push(HostRequest::OpenUrl(url)),
+                None => {
+                    self.state.wiki_status =
+                        Some("That wiki link is not a valid web address.".to_owned());
+                }
+            },
+            Some(item @ Item::File { .. }) => self.open_wiki_file(&item),
+            None => {}
+        }
+    }
+
+    fn open_wiki_file(&mut self, item: &prosecraft_core::research::Item) {
+        let prosecraft_core::research::Item::File {
+            file_name,
+            storage_key,
+            ..
+        } = item
+        else {
+            return;
+        };
+        if self.wiki_files.is_none() {
+            self.state.wiki_status = Some("Wiki files open in the desktop app.".to_owned());
+            return;
+        }
+        let Some(root) = self.wiki_root() else {
+            self.state
+                .requests
+                .push(HostRequest::ChooseWikiRoot { add_to: None });
+            return;
+        };
+        let Some(folder) = self.wiki_folder_name() else {
+            return;
+        };
+        let Some(store) = self.wiki_files.as_ref() else {
+            return;
+        };
+        let lower = file_name.to_lowercase();
+        // `/\.(?:md|markdown)$/i`: previewed here (the host reads only `.md`, as ProseCraft's does).
+        let result = if lower.ends_with(".md") || lower.ends_with(".markdown") {
+            store
+                .read_markdown(&root, &folder, storage_key)
+                .map(|text| {
+                    let html = prosecraft_core::markdown::markdown_to_html(&text);
+                    self.state.wiki_markdown = Some((item.title().to_owned(), html));
+                })
+        } else {
+            store
+                .file_path(&root, &folder, storage_key)
+                .and_then(|path| store.open(&path))
+        };
+        if let Err(e) = result {
+            self.state.wiki_status = Some(e);
+        }
+    }
+
+    /// `revealResearchFile`.
+    fn reveal_wiki_file(&mut self, id: &str) {
+        let Some(prosecraft_core::research::Item::File { storage_key, .. }) = self.wiki_item(id)
+        else {
+            return;
+        };
+        self.state.wiki_status = None;
+        let (Some(root), Some(folder)) = (self.wiki_root(), self.wiki_folder_name()) else {
+            return;
+        };
+        let Some(store) = self.wiki_files.as_ref() else {
+            self.state.wiki_status = Some(
+                "Revealing files in a folder is only available in the desktop app.".to_owned(),
+            );
+            return;
+        };
+        if let Err(e) = store
+            .file_path(&root, &folder, &storage_key)
+            .and_then(|path| store.reveal(&path))
+        {
+            self.state.wiki_status = Some(e);
+        }
+    }
+
+    /// `revealResearchProjectFolder`.
+    fn reveal_wiki_project_folder(&mut self) {
+        self.state.wiki_settings_status = None;
+        let Some(root) = self.wiki_root() else {
+            self.state
+                .requests
+                .push(HostRequest::ChooseWikiRoot { add_to: None });
+            return;
+        };
+        let Some(folder) = self.wiki_folder_name() else {
+            return;
+        };
+        let Some(store) = self.wiki_files.as_ref() else {
+            return;
+        };
+        if let Err(e) = store
+            .prepare_folder(&root, &folder)
+            .and_then(|path| store.reveal(&path))
+        {
+            self.state.wiki_settings_status = Some(e);
+        }
+    }
+
+    /// `removeResearchItem` (asked first in the binder): gone from the Wiki, and a file deleted
+    /// from the project folder.
+    fn remove_wiki_item(&mut self, id: &str) {
+        let item = self.wiki_item(id);
+        let owned = id.to_owned();
+        self.change(move |data, _| prosecraft_core::research::remove_item(data, &owned));
+        self.state.wiki_status = None;
+        let Some(prosecraft_core::research::Item::File { storage_key, .. }) = item else {
+            return;
+        };
+        let root = self.wiki_root();
+        let folder = self
+            .active_project_id()
+            .and_then(|pid| self.home.as_ref()?.library.project(&pid).cloned())
+            .map(|stored| {
+                prosecraft_core::research::normalize_folder_name(
+                    stored
+                        .get("project")
+                        .and_then(|p| p.get("researchFolderName")),
+                )
+            })
+            .filter(|f| !f.is_empty());
+        if let (Some(root), Some(folder), Some(store)) = (root, folder, self.wiki_files.as_ref())
+            && store.delete(&root, &folder, &storage_key).is_err()
+        {
+            self.state.wiki_status =
+                Some("The item was removed, but its file could not be deleted.".to_owned());
+        }
+    }
+
     /// `handleCoverFile`: the chosen image made into the project's cover, or why it can't be.
     pub fn set_cover_image(&mut self, name: &str, bytes: &[u8]) {
         if !self.state.editable {
@@ -1681,6 +2031,40 @@ impl ProseApp {
                     self.insert_footnote(document, *at);
                     continue;
                 }
+                editing::Intent::AddWikiFiles(folder) => {
+                    self.start_adding_wiki_files(folder.clone());
+                    continue;
+                }
+                editing::Intent::AddWikiLink(folder) => {
+                    self.state.wiki_link = Some(wiki_files::LinkDraft {
+                        folder: folder.clone(),
+                        ..Default::default()
+                    });
+                    continue;
+                }
+                editing::Intent::OpenWikiItem(id) => {
+                    self.open_wiki_item(id);
+                    continue;
+                }
+                editing::Intent::RevealWikiFile(id) => {
+                    self.reveal_wiki_file(id);
+                    continue;
+                }
+                editing::Intent::RemoveWikiItem(id) => {
+                    self.remove_wiki_item(id);
+                    continue;
+                }
+                editing::Intent::ChooseWikiRoot => {
+                    self.state.wiki_settings_status = None;
+                    self.state
+                        .requests
+                        .push(HostRequest::ChooseWikiRoot { add_to: None });
+                    continue;
+                }
+                editing::Intent::RevealWikiProjectFolder => {
+                    self.reveal_wiki_project_folder();
+                    continue;
+                }
                 editing::Intent::ChooseCover => {
                     self.state.requests.push(HostRequest::ChooseCover);
                     continue;
@@ -1950,6 +2334,7 @@ impl ProseApp {
         self.apply_theme(ui.ctx());
         egui::CentralPanel::default().show(ui, |ui| views::show(ui, &mut self.state));
         settings::show(ui, &mut self.state);
+        self.wiki_windows(ui.ctx());
         starter::show(ui, &mut self.state);
         project_settings::show(ui, &mut self.state);
         labels::show(ui, &mut self.state);

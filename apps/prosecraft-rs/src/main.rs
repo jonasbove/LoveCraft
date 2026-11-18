@@ -42,6 +42,10 @@ enum Then {
     Picture,
     /// Make this image the book's cover.
     Cover,
+    /// The wiki files folder; then add files (to this Wiki folder) when some were being added.
+    WikiRoot(Option<Option<String>>),
+    /// Add these files to the Wiki (in this folder).
+    WikiFiles(Option<String>),
     /// Write these bytes where the person chose (a backup or an exported manuscript).
     Export(Vec<u8>),
     /// The folder to sync through.
@@ -150,6 +154,35 @@ fn start() -> (ProseApp, Option<String>) {
         ),
         None,
     )
+}
+
+/// Wiki files in a folder on this computer (`prosecraft_native::wiki_files`).
+struct WikiFiles;
+
+impl prosecraft_ui_egui::WikiFileStore for WikiFiles {
+    fn import(&self, root: &str, folder: &str, key: &str, source: &str) -> Result<u64, String> {
+        prosecraft_native::wiki_files::import(root, folder, key, Path::new(source))
+    }
+    fn read_markdown(&self, root: &str, folder: &str, key: &str) -> Result<String, String> {
+        prosecraft_native::wiki_files::read_markdown(root, folder, key)
+    }
+    fn file_path(&self, root: &str, folder: &str, key: &str) -> Result<String, String> {
+        prosecraft_native::wiki_files::file_path(root, folder, key)
+            .map(|p| p.to_string_lossy().into_owned())
+    }
+    fn delete(&self, root: &str, folder: &str, key: &str) -> Result<(), String> {
+        prosecraft_native::wiki_files::delete(root, folder, key)
+    }
+    fn prepare_folder(&self, root: &str, folder: &str) -> Result<String, String> {
+        prosecraft_native::wiki_files::prepare_project_folder(root, folder)
+            .map(|p| p.to_string_lossy().into_owned())
+    }
+    fn open(&self, target: &str) -> Result<(), String> {
+        prosecraft_native::wiki_files::open(target.as_ref())
+    }
+    fn reveal(&self, path: &str) -> Result<(), String> {
+        prosecraft_native::wiki_files::reveal(Path::new(path))
+    }
 }
 
 struct DesktopApp {
@@ -310,6 +343,18 @@ impl eframe::App for DesktopApp {
                         eprintln!("{}: {e}", path.display());
                     }
                 }
+                (Then::WikiRoot(add_to), Answer::Paths(paths)) => {
+                    if let Some(path) = paths.first() {
+                        self.app.set_wiki_root(&path.to_string_lossy(), add_to);
+                    }
+                }
+                (Then::WikiFiles(folder), Answer::Paths(paths)) => {
+                    let paths: Vec<String> = paths
+                        .iter()
+                        .map(|p| p.to_string_lossy().into_owned())
+                        .collect();
+                    self.app.add_wiki_files(folder, &paths);
+                }
                 (Then::SyncFolder, Answer::Paths(paths)) => {
                     if let Some(path) = paths.first() {
                         self.app
@@ -323,6 +368,19 @@ impl eframe::App for DesktopApp {
         self.app.show(ui);
         for request in self.app.take_requests() {
             match request {
+                HostRequest::ChooseWikiRoot { add_to } => {
+                    let dialog = FileDialog::folder().title("Choose a folder for wiki files");
+                    self.dialogs.ask(dialog, Then::WikiRoot(add_to));
+                }
+                HostRequest::PickWikiFiles { folder } => {
+                    let dialog = FileDialog::open_many().title("Add wiki files");
+                    self.dialogs.ask(dialog, Then::WikiFiles(folder));
+                }
+                HostRequest::OpenUrl(url) => {
+                    if let Err(e) = prosecraft_native::wiki_files::open(url.as_ref()) {
+                        eprintln!("{url}: {e}");
+                    }
+                }
                 HostRequest::ChooseSyncFolder => {
                     let dialog = FileDialog::folder().title("Choose a sync folder");
                     self.dialogs.ask(dialog, Then::SyncFolder);
@@ -531,6 +589,7 @@ fn main() -> ExitCode {
         return ExitCode::SUCCESS;
     }
     let (mut app, problem) = start();
+    app.set_wiki_files(Box::new(WikiFiles));
     if let Some(problem) = problem {
         eprintln!("{problem}");
     }

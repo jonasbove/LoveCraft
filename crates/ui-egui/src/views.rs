@@ -695,6 +695,44 @@ fn scene_divider(
     ui.add_space(14.0);
 }
 
+/// HTML shown read-only as the editor draws text (a Wiki Markdown file's preview), or as its
+/// plain text when the editor can't hold it.
+pub(crate) fn read_only_html(ui: &mut Ui, palette: &Palette, html: &str, name: &str) {
+    let cleaned = prosecraft_core::html::sanitize::sanitize_html(html);
+    let Some(doc) = RichDoc::from_html(&cleaned) else {
+        let response = ui
+            .scope(|ui| manuscript(ui, palette, &plain(&cleaned)))
+            .response;
+        name_field(ui, &response, name);
+        return;
+    };
+    let cache = std::cell::RefCell::new(Default::default());
+    let cites = CiteStyle {
+        items: &[],
+        style: String::new(),
+        locale: "en".into(),
+        cache: &cache,
+    };
+    let labels = atom_labels(&doc, &cites);
+    let wrap = ui.available_width().max(1.0);
+    let look = Look::default();
+    let galley = ui.fonts_mut(|f| {
+        let spacing = atom_sizes(f, &labels, wrap);
+        f.layout_job(layout_doc(&doc, &doc.text, palette, wrap, &spacing, &look))
+    });
+    let (rect, response) = ui.allocate_exact_size(
+        galley.size().max(egui::vec2(wrap, 24.0)),
+        egui::Sense::hover(),
+    );
+    ui.painter().galley(rect.min, galley, palette.text_body);
+    let text = plain(&cleaned);
+    ui.ctx().accesskit_node_builder(response.id, |n| {
+        n.set_role(egui::accesskit::Role::Document);
+        n.set_label(name.to_owned());
+        n.set_value(text);
+    });
+}
+
 /// Another scene of the open chapter, drawn as the editor draws it. A click opens it in the
 /// editor with the caret where the click was.
 fn chapter_scene(

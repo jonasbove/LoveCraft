@@ -18,6 +18,23 @@ pub enum Intent {
     },
     TrashDocument(String),
     TrashChapter(String),
+    /// Binder order: a chapter or scene a place up (`-1`) or down (`1`), a scene to the end of
+    /// another chapter ("Move to chapter…").
+    MoveChapter {
+        id: String,
+        offset: isize,
+    },
+    MoveScene {
+        id: String,
+        offset: isize,
+    },
+    MoveSceneToChapter {
+        scene: String,
+        chapter: String,
+    },
+    /// From the Trash, gone for good (`permanentlyDelete`, `permanentlyDeleteChapter`).
+    DeleteDocument(String),
+    DeleteChapter(String),
     RestoreDocument(String),
     RestoreChapter(String),
     SetChapterSummary {
@@ -303,6 +320,13 @@ pub fn run(
         }
         Intent::TrashDocument(id) => edit::trash_document(data, id),
         Intent::TrashChapter(id) => edit::trash_chapter(data, id),
+        Intent::MoveChapter { id, offset } => edit::move_chapter(data, id, *offset),
+        Intent::MoveScene { id, offset } => edit::move_scene(data, id, *offset),
+        Intent::MoveSceneToChapter { scene, chapter } => {
+            edit::move_scene_to_chapter_end(data, scene, chapter)
+        }
+        Intent::DeleteDocument(id) => edit::delete_document(data, id),
+        Intent::DeleteChapter(id) => edit::delete_chapter(data, id),
         Intent::RestoreDocument(id) => edit::restore_document(data, id),
         Intent::RestoreChapter(id) => edit::restore_chapter(data, id, None),
         Intent::SetChapterSummary { chapter, summary } => {

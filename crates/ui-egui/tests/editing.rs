@@ -453,6 +453,121 @@ fn app_shortcuts_and_the_shortcuts_sheet() {
 }
 
 #[test]
+fn chapters_and_scenes_move_rename_and_leave_the_trash_for_good() {
+    let (mut harness, memory) = app();
+    let field = |memory: &Memory, key: &str, what: &str| -> Vec<String> {
+        project(&memory.last(), "project-1")
+            .get("project")
+            .and_then(|p| p.get(key))
+            .and_then(JsValue::as_array)
+            .unwrap_or_default()
+            .iter()
+            .filter(|d| {
+                !d.get("trashed")
+                    .is_some_and(|t| matches!(t, JsValue::Bool(true)))
+            })
+            .map(|d| {
+                d.get(what)
+                    .and_then(JsValue::as_js_string)
+                    .map(|s| s.to_string_lossy())
+                    .unwrap_or_default()
+            })
+            .collect()
+    };
+    let menu = |harness: &mut Harness<'static, ProseApp>, row: &str, item: &str| {
+        harness
+            .get_by_role_and_label(Role::Button, &format!("Actions for {row}"))
+            .click();
+        harness.run();
+        harness.get_by_role_and_label(Role::Button, item).click();
+        harness.run();
+    };
+    harness.run_steps(12);
+    let scenes_before = field(&memory, "documents", "title");
+    menu(&mut harness, "INT. LIGHTHOUSE - NIGHT", "Move up");
+    harness.run_steps(12);
+    let scenes = field(&memory, "documents", "title");
+    let at = |list: &[String], t: &str| list.iter().position(|x| x == t);
+    assert!(
+        at(&scenes, "INT. LIGHTHOUSE - NIGHT") < at(&scenes, "Opening Scene"),
+        "{scenes:?} from {scenes_before:?}"
+    );
+    // A new chapter; the opening scene moves into it.
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("an add button")
+        .click();
+    harness.run();
+    menu(&mut harness, "Opening Scene", "Move to chapter…");
+    harness
+        .get_by_role_and_label(Role::RadioButton, "Chapter 1")
+        .click();
+    harness.run_steps(12);
+    let saved = memory.last();
+    let opening = document(project(&saved, "project-1"), "doc-1").expect("opening scene");
+    let chapters = field(&memory, "chapters", "id");
+    assert_eq!(
+        opening
+            .get("chapterId")
+            .and_then(JsValue::as_js_string)
+            .map(|s| s.to_string_lossy()),
+        chapters.last().cloned()
+    );
+    // Rename the new chapter, move it up, then to the Trash (it asks first).
+    menu(&mut harness, "Chapter 1", "Rename chapter");
+    harness.get_by_label("Rename Chapter 1").focus();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    harness
+        .get_by_label("Rename Chapter 1")
+        .type_text("Part Two");
+    harness.key_press(egui::Key::Enter);
+    harness.run();
+    menu(&mut harness, "Part Two", "Move up");
+    harness.run_steps(12);
+    assert_eq!(
+        field(&memory, "chapters", "title")
+            .first()
+            .map(String::as_str),
+        Some("Part Two")
+    );
+    menu(&mut harness, "Part Two", "Move to Trash");
+    // Its own first scene and the opening scene.
+    harness.get_by_label_contains("Move “Part Two” and its 2 scenes to Trash?");
+    harness
+        .get_all_by_role_and_label(Role::Button, "Move to Trash")
+        .last()
+        .expect("the confirm button")
+        .click();
+    harness.run_steps(12);
+    assert!(!field(&memory, "chapters", "title").contains(&"Part Two".to_owned()));
+    // From the Trash, for good.
+    harness.get_by_label_contains("Trash (").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Permanently delete Part Two and its scenes")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Delete")
+        .click();
+    harness.run_steps(12);
+    let saved = memory.last();
+    assert!(document(project(&saved, "project-1"), "doc-1").is_none());
+    let titles: Vec<String> = project(&saved, "project-1")
+        .get("project")
+        .and_then(|p| p.get("chapters"))
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|c| c.get("title").and_then(JsValue::as_js_string))
+        .map(|t| t.to_string_lossy())
+        .collect();
+    assert!(!titles.contains(&"Part Two".to_owned()), "{titles:?}");
+    assert_eq!(chapters.len(), 2);
+}
+
+#[test]
 fn undo_takes_back_formatting() {
     let (mut harness, memory) = app();
     harness

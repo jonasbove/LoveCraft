@@ -306,6 +306,31 @@ fn chapters(
         any = true;
         let selected = selection == Some(&Selection::Chapter(chapter.id.clone()));
         let title = crate::views::label_of(project, &chapter.id);
+        if let Some((id, draft)) = renaming.as_mut().filter(|(id, _)| *id == chapter.id) {
+            // `saveChapterRename`: Enter or leaving saves a title that isn't blank.
+            let field = ui.add(
+                egui::TextEdit::singleline(draft)
+                    .char_limit(120)
+                    .desired_width(180.0),
+            );
+            crate::views::name_field(ui, &field, &format!("Rename {title}"));
+            if !field.has_focus() && !field.lost_focus() {
+                field.request_focus();
+            }
+            if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+                *renaming = None;
+            } else if field.lost_focus() {
+                let next = draft.trim();
+                if !next.is_empty() {
+                    intents.push(Intent::SetChapterTitle {
+                        chapter: id.clone(),
+                        title: next.to_owned(),
+                    });
+                }
+                *renaming = None;
+            }
+            continue;
+        }
         let row = ui
             .horizontal(|ui| {
                 let row = tree_row(ui, palette, &title, 1, selected);
@@ -328,19 +353,40 @@ fn chapters(
                     chapter.label_id.as_deref(),
                 );
                 ui.separator();
+                if ui.button("Rename chapter").clicked() {
+                    *renaming = Some((chapter.id.clone(), title.clone()));
+                    ui.close();
+                }
+                for (label, offset) in [("Move up", -1), ("Move down", 1)] {
+                    if ui.button(label).clicked() {
+                        intents.push(Intent::MoveChapter {
+                            id: chapter.id.clone(),
+                            offset,
+                        });
+                        ui.close();
+                    }
+                }
                 if ui.button("Add scene").clicked() {
                     intents.push(Intent::AddScene {
                         chapter: chapter.id.clone(),
                     });
                     ui.close();
                 }
-                if ui
-                    .button(RichText::new("Move to Trash").color(palette.danger))
-                    .clicked()
-                {
-                    intents.push(Intent::TrashChapter(chapter.id.clone()));
-                    ui.close();
-                }
+                // `trashChapter` asks first.
+                ui.menu_button(RichText::new("Move to Trash").color(palette.danger), |ui| {
+                    let count = project.scenes_in_chapter(&chapter.id).count();
+                    let scenes = if count == 1 { "scene" } else { "scenes" };
+                    ui.label(format!(
+                        "Move “{title}” and its {count} {scenes} to Trash? You can restore them later."
+                    ));
+                    if ui
+                        .button(RichText::new("Move to Trash").color(palette.danger))
+                        .clicked()
+                    {
+                        intents.push(Intent::TrashChapter(chapter.id.clone()));
+                        ui.close();
+                    }
+                });
                 ui.separator();
                 if ui.button("Manage labels…").clicked() {
                     *manage_labels = true;
@@ -393,6 +439,28 @@ fn chapters(
                             *renaming = Some((scene.id.clone(), title.to_owned()));
                             ui.close();
                         }
+                        for (label, offset) in [("Move up", -1), ("Move down", 1)] {
+                            if ui.button(label).clicked() {
+                                intents.push(Intent::MoveScene {
+                                    id: scene.id.clone(),
+                                    offset,
+                                });
+                                ui.close();
+                            }
+                        }
+                        ui.menu_button("Move to chapter…", |ui| {
+                            for target in project.live_chapters() {
+                                let here = scene.chapter_id.as_deref() == Some(&target.id);
+                                let name = crate::views::label_of(project, &target.id);
+                                if ui.radio(here, name).clicked() {
+                                    intents.push(Intent::MoveSceneToChapter {
+                                        scene: scene.id.clone(),
+                                        chapter: target.id.clone(),
+                                    });
+                                    ui.close();
+                                }
+                            }
+                        });
                         ui.separator();
                         label_choices(
                             ui,
@@ -652,6 +720,27 @@ fn trash(
                 if editable && restore_button(ui, &chapter.title).clicked() {
                     intents.push(Intent::RestoreChapter(chapter.id.clone()));
                 }
+                if editable {
+                    // `permanentlyDeleteChapter` asks first.
+                    let count = project
+                        .documents
+                        .iter()
+                        .filter(|d| d.chapter_id.as_deref() == Some(&chapter.id))
+                        .count();
+                    let delete = ui.menu_button(RichText::new("Delete").color(palette.danger), |ui| {
+                        ui.label(format!(
+                            "Permanently delete “{}” and its {count} scene(s)? This cannot be undone.",
+                            chapter.title
+                        ));
+                        if ui.button(RichText::new("Delete").color(palette.danger)).clicked() {
+                            intents.push(Intent::DeleteChapter(chapter.id.clone()));
+                            ui.close();
+                        }
+                    });
+                    let name = format!("Permanently delete {} and its scenes", chapter.title);
+                    ui.ctx()
+                        .accesskit_node_builder(delete.response.id, |node| node.set_label(name));
+                }
             });
         }
         for document in documents {
@@ -659,6 +748,16 @@ fn trash(
                 ui.label(RichText::new(document.title.as_str()).color(palette.text_secondary));
                 if editable && restore_button(ui, &document.title).clicked() {
                     intents.push(Intent::RestoreDocument(document.id.clone()));
+                }
+                // `permanentlyDelete`: at once, as ProseCraft does.
+                if editable {
+                    let delete = ui.small_button(RichText::new("Delete").color(palette.danger));
+                    let name = format!("Permanently delete {}", document.title);
+                    ui.ctx()
+                        .accesskit_node_builder(delete.id, |node| node.set_label(name));
+                    if delete.clicked() {
+                        intents.push(Intent::DeleteDocument(document.id.clone()));
+                    }
                 }
             });
         }

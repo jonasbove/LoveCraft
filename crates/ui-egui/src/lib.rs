@@ -257,6 +257,9 @@ pub struct AppState {
     undo_page: String,
     /// An undo or redo being applied: the project change it makes isn't a new step.
     applying_undo: bool,
+    /// Something being deleted for good: no undo step, and every step forgets it
+    /// (`forgetPermanentlyDeleted`).
+    deleting_forever: bool,
     /// The Writing settings: text size, typewriter, fade and Zen modes, the Timeline view.
     writing: WritingPrefs,
     writing_choice: Option<WritingPrefs>,
@@ -745,13 +748,21 @@ impl ProseApp {
         let mut new_id = || store.new_id();
         // `commitPageState`: what the change did to the page's state, as an undo step.
         let mut step = None;
+        let mut removed = Vec::new();
         let result = editing::apply(&mut home.library, &project_id, now_ms, |data| {
             let before = undo_state(data);
             change(data, &mut new_id)?;
-            step =
-                prosecraft_core::undo::diff_state(&before, &undo_state(data), UNDO_IGNORED, now_ms);
+            let after = undo_state(data);
+            removed = prosecraft_core::undo::removed_ids(&before, &after);
+            step = prosecraft_core::undo::diff_state(&before, &after, UNDO_IGNORED, now_ms);
             Ok(())
         });
+        if self.state.deleting_forever {
+            for (collection, id) in &removed {
+                self.state.undo.forget(collection, id);
+            }
+            step = None;
+        }
         match result {
             Ok(()) => {
                 self.unsaved_since = Some(self.state.now);
@@ -1533,6 +1544,13 @@ impl ProseApp {
             match &intent {
                 editing::Intent::BodyHistory { document, undo } => {
                     self.run_history(Some(document), *undo);
+                    continue;
+                }
+                editing::Intent::DeleteDocument(_) | editing::Intent::DeleteChapter(_) => {
+                    self.commit_draft();
+                    self.state.deleting_forever = true;
+                    self.change(|data, new_id| editing::run(&intent, data, new_id));
+                    self.state.deleting_forever = false;
                     continue;
                 }
                 editing::Intent::HideInterface => {

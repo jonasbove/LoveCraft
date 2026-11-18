@@ -63,10 +63,9 @@ pub struct CompiledBook {
     /// options want one).
     pub citations: Vec<crate::js::JsValue>,
     pub bibliography: Option<crate::citations::bibliography::BookBibliography>,
-    /// The cover image as an embedded-image data URL (ProseCraft's `CompiledCover.dataUrl`),
-    /// attached at export time. Resolving the cover from the publish options isn't ported yet,
-    /// so `compile_book` leaves it unset.
-    pub cover: Option<String>,
+    /// The cover, attached at export time (`resolveCoverImage`): `compile_book` leaves it
+    /// unset.
+    pub cover: Option<super::cover::CompiledCover>,
 }
 
 fn js_trim(text: &str) -> &str {

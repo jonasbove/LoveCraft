@@ -204,6 +204,26 @@ pub fn write_pdf(layout: &Layout) -> Result<Vec<u8>, PdfError> {
                         .as_bytes(),
                     );
                 }
+                Op::Rect {
+                    x,
+                    y,
+                    width,
+                    height,
+                    color: c,
+                } => {
+                    body.extend_from_slice(
+                        format!(
+                            "{} rg\n{} {} {} {} re\nf\n",
+                            // `setFillColor` writes two decimals.
+                            color(*c, 2),
+                            num(*x),
+                            num(layout.height - y),
+                            num(*width),
+                            num(-height)
+                        )
+                        .as_bytes(),
+                    );
+                }
                 Op::Image {
                     src,
                     x,

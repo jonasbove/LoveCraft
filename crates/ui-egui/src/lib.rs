@@ -128,6 +128,9 @@ pub enum HostRequest {
     /// Ask for a picture (a PNG, JPEG, WebP, GIF, BMP or AVIF file; see
     /// [`prosecraft_core::picture::EXTENSIONS`]), then call [`ProseApp::insert_picture`].
     InsertPicture,
+    /// Ask for a cover image (PNG, JPEG or WebP; see
+    /// [`prosecraft_core::publish::cover::EXTENSIONS`]), then call [`ProseApp::set_cover_image`].
+    ChooseCover,
     /// Ask for a sync folder, then call [`ProseApp::set_sync_folder`].
     ChooseSyncFolder,
     /// Ask where to save an exported manuscript, then write it there. `kind` names the format
@@ -250,6 +253,8 @@ pub struct AppState {
     requests: Vec<HostRequest>,
     /// Where a picture asked for goes: the scene and a character.
     picture_target: Option<(String, usize)>,
+    /// Why the last cover image couldn't be used (`coverError`).
+    cover_error: Option<String>,
     /// Undo and redo (ProseCraft's `UndoManager`), by text field and by page; selections are
     /// character ranges.
     undo: prosecraft_core::undo::UndoManager<(usize, usize)>,
@@ -1394,6 +1399,37 @@ impl ProseApp {
     /// A picture from the host (`insertImageFiles`): made into an embedded image as ProseCraft
     /// makes it and put into the open scene where it was asked for, or at the caret; ProseCraft's
     /// message in the status line when it can't be.
+    /// `handleCoverFile`: the chosen image made into the project's cover, or why it can't be.
+    pub fn set_cover_image(&mut self, name: &str, bytes: &[u8]) {
+        if !self.state.editable {
+            return;
+        }
+        match prosecraft_core::publish::cover::prepare_image(name, bytes) {
+            Ok(image) => {
+                self.state.cover_error = None;
+                self.change(|data, new_id| {
+                    let mut cover = data
+                        .get("publishOptions")
+                        .and_then(|o| o.get("cover"))
+                        .and_then(prosecraft_core::js::JsValue::as_object)
+                        .cloned()
+                        .unwrap_or_default();
+                    cover.insert("mode", prosecraft_core::js::JsValue::str("image"));
+                    cover.insert("image", prosecraft_core::js::JsValue::str(&image));
+                    editing::run(
+                        &editing::Intent::SetPublishOption {
+                            key: "cover".to_owned(),
+                            value: prosecraft_core::js::JsValue::Object(cover),
+                        },
+                        data,
+                        new_id,
+                    )
+                });
+            }
+            Err(message) => self.state.cover_error = Some(message),
+        }
+    }
+
     pub fn insert_picture(&mut self, name: &str, bytes: &[u8]) {
         let target = self.state.picture_target.take();
         let Some(draft) = self
@@ -1641,6 +1677,10 @@ impl ProseApp {
                 }
                 editing::Intent::InsertFootnote { document, at } => {
                     self.insert_footnote(document, *at);
+                    continue;
+                }
+                editing::Intent::ChooseCover => {
+                    self.state.requests.push(HostRequest::ChooseCover);
                     continue;
                 }
                 editing::Intent::InsertPicture { document, at } => {

@@ -746,6 +746,102 @@ fn front_and_back_matter_pages_are_added_written_moved_and_removed() {
 }
 
 #[test]
+fn a_cover_is_chosen_replaced_and_removed() {
+    let (mut harness, memory) = app();
+    let cover = |memory: &Memory| -> JsValue {
+        project(&memory.last(), "project-1")
+            .get("project")
+            .and_then(|p| p.get("publishOptions"))
+            .and_then(|o| o.get("cover"))
+            .cloned()
+            .unwrap_or(JsValue::Null)
+    };
+    let text = |v: &JsValue, k: &str| {
+        v.get(k)
+            .and_then(JsValue::as_js_string)
+            .map(|s| s.to_string_lossy())
+            .unwrap_or_default()
+    };
+    harness.get_by_role_and_label(Role::Tab, "Publish").click();
+    harness.run();
+    harness.get_by_label("Cover: Image").scroll_to_me();
+    harness.run();
+    harness.get_by_label("Cover: Image").click_accesskit();
+    harness.run_steps(12);
+    // The Image tab stays chosen before there is an image, as in ProseCraft.
+    assert_eq!(text(&cover(&memory), "mode"), "image");
+    harness.get_by_label("No image");
+    harness.get_by_label("Choose image").click_accesskit();
+    harness.run();
+    assert!(
+        harness
+            .state_mut()
+            .take_requests()
+            .contains(&prosecraft_ui_egui::HostRequest::ChooseCover)
+    );
+    // A file it can't use: ProseCraft's message, and nothing stored.
+    harness.state_mut().set_cover_image("cover.gif", b"GIF89a");
+    harness.run();
+    harness.get_by_label("Use a PNG, JPG, or WebP image.");
+    // A wide picture: cropped to a 1600 × 2400 cover.
+    let mut rgba = Vec::new();
+    for _ in 0..30 {
+        for x in 0..60u8 {
+            rgba.extend([x * 4, 90, 160, 255]);
+        }
+    }
+    let image =
+        craft_image_codecs::Image::from_u8(60, 30, craft_image_codecs::ChannelLayout::Rgba, rgba)
+            .expect("image");
+    let png =
+        craft_image_codecs::encode(&image, craft_image_codecs::Format::Png, &Default::default())
+            .expect("png");
+    harness.state_mut().set_cover_image("Sea.png", &png);
+    harness.run_steps(12);
+    let stored = cover(&memory);
+    assert_eq!(text(&stored, "mode"), "image");
+    let image = text(&stored, "image");
+    assert!(
+        image.starts_with("data:image/webp;base64,"),
+        "{}",
+        &image[..30.min(image.len())]
+    );
+    assert!(
+        harness
+            .query_by_label("Use a PNG, JPG, or WebP image.")
+            .is_none()
+    );
+    harness.get_by_label("Cover preview");
+    harness.get_by_label("Replace");
+    // Removed: no cover.
+    harness.get_by_label("Remove").click_accesskit();
+    harness.run_steps(12);
+    let stored = cover(&memory);
+    assert_eq!(
+        (text(&stored, "mode"), text(&stored, "image")),
+        ("none".to_owned(), String::new())
+    );
+    // Generated: a design and a palette.
+    harness.get_by_label("Cover: Generated").click_accesskit();
+    harness.run_steps(12);
+    harness
+        .get_by_role_and_label(Role::RadioButton, "Bold")
+        .click_accesskit();
+    harness.run_steps(12);
+    harness.get_by_label("Plum palette").click_accesskit();
+    harness.run_steps(12);
+    let stored = cover(&memory);
+    assert_eq!(
+        (
+            text(&stored, "mode"),
+            text(&stored, "design"),
+            text(&stored, "palette")
+        ),
+        ("generated".to_owned(), "bold".to_owned(), "plum".to_owned())
+    );
+}
+
+#[test]
 fn custom_styles_are_created_edited_and_deleted() {
     let (mut harness, memory) = app();
     let options = |memory: &Memory| -> JsValue {

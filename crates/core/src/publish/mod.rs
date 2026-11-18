@@ -9,6 +9,7 @@
 
 mod citations;
 mod compile;
+pub mod cover;
 mod docx;
 mod embedded_image;
 mod epub;

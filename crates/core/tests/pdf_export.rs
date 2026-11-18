@@ -38,6 +38,10 @@ enum Draw {
     Image {
         at: [f64; 4],
     },
+    Rect {
+        at: [f64; 4],
+        color: [f64; 3],
+    },
 }
 
 /// WinAnsi bytes as text; or, as jsPDF writes a string the font can't encode, UTF-16 with what
@@ -179,6 +183,10 @@ fn draws(bytes: &[u8]) -> Vec<Vec<Draw>> {
                     color: stroke,
                 }),
                 b"cm" => matrix = [n(0), n(1), n(2), n(3), n(4), n(5)],
+                b"re" => draws.push(Draw::Rect {
+                    at: [n(0), n(1), n(2), n(3)],
+                    color: fill,
+                }),
                 b"Do" => draws.push(Draw::Image {
                     at: [matrix[4], matrix[5], matrix[0], matrix[3]],
                 }),
@@ -255,6 +263,11 @@ fn differ(want: &Draw, have: &Draw) -> Option<String> {
         (Draw::Image { at: w }, Draw::Image { at: h }) => {
             let same = w.iter().zip(h).all(|(a, b)| close(*a, *b, 0.01));
             (!same).then(|| format!("want image {w:?}\n    have image {h:?}"))
+        }
+        (Draw::Rect { at: w, color: wc }, Draw::Rect { at: h, color: hc }) => {
+            let same = w.iter().zip(h).all(|(a, b)| close(*a, *b, 0.01))
+                && wc.iter().zip(hc).all(|(a, b)| close(*a, *b, 0.003));
+            (!same).then(|| format!("want rect {w:?} {wc:?}\n    have rect {h:?} {hc:?}"))
         }
         _ => Some(format!("want {want:?}\n    have {have:?}")),
     }
@@ -378,6 +391,64 @@ fn compare(
                 }
             }
         }
+    }
+}
+
+/// A cover page (`cover.json`): the page filled with the cover's colour and the image fitted
+/// inside, before the title page.
+#[test]
+fn pdf_cover_page_draws_what_prosecraft_draws() {
+    let fixture = fixture("cover.json");
+    let mut stored = js::JsObject::new();
+    stored.insert("project", fixture.get("project").cloned().expect("project"));
+    let mut project = Project::from_stored(&JsValue::Object(stored)).expect("project view");
+    project.citations.clear();
+    let mut report = Vec::new();
+    let mut compared = 0;
+    for (name, case) in fixture
+        .get("exports")
+        .and_then(JsValue::as_object)
+        .expect("exports")
+        .iter()
+    {
+        let options = PublishOptions::read(case.get("options"));
+        let mut book = compile_book(&project, &options);
+        book.cover = Some(cover_of(case.get("cover").expect("cover")));
+        let layout = layout_pdf(&book, &options, &DataUrlSizes::default());
+        let ours = write_pdf(&layout).expect("written");
+        compare(
+            &name.to_string_lossy(),
+            &ours,
+            case.get("pdf"),
+            &mut report,
+            &mut compared,
+        );
+    }
+    eprintln!("compared {compared} draws");
+    assert!(report.is_empty(), "{}", report.join("\n"));
+}
+
+fn cover_of(value: &JsValue) -> prosecraft_core::publish::cover::CompiledCover {
+    let text = |k: &str| {
+        value
+            .get(k)
+            .and_then(JsValue::as_js_string)
+            .map(|s| s.to_string_lossy())
+            .unwrap_or_default()
+    };
+    let number = |k: &str| {
+        value
+            .get(k)
+            .and_then(JsValue::as_number)
+            .unwrap_or_default() as u32
+    };
+    let data_url = text("dataUrl");
+    prosecraft_core::publish::cover::CompiledCover {
+        media_type: prosecraft_core::publish::cover::media_type(&data_url),
+        data_url,
+        width: number("width"),
+        height: number("height"),
+        background: text("background"),
     }
 }
 

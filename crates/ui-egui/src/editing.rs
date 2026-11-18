@@ -35,6 +35,8 @@ pub enum Intent {
     /// The open project to the Trash, a project back from it, or gone for good
     /// (`trashActiveProject`, `restoreProject`, `permanentlyDeleteProject`).
     TrashProject,
+    /// Ask the host for a cover image (`coverImageInput.click()`).
+    ChooseCover,
     /// A custom export style saved (a new one gets its id) and chosen, or deleted.
     SaveCustomStyle(Box<prosecraft_core::publish::styles::CustomStyle>),
     DeleteCustomStyle(String),
@@ -490,6 +492,7 @@ pub fn run(
         | Intent::RestoreProject(_)
         | Intent::DeleteProject(_)
         | Intent::InsertPicture { .. }
+        | Intent::ChooseCover
         | Intent::PlaceCitation { .. }
         | Intent::RemoveCitation { .. } => Ok(()),
         Intent::SetFootnote { document, id, html } => {

@@ -516,6 +516,13 @@ pub fn epub_entries(
     let bibliography = bibliography.filter(|b| !b.entries.is_empty());
     let mut files: Vec<(String, Vec<u8>)> =
         vec![("mimetype".into(), b"application/epub+zip".to_vec())];
+    let cover = match &book.cover {
+        Some(cover) => Some(
+            super::embedded_image::decode_embedded_image(&cover.data_url)
+                .map_err(EpubError::Image)?,
+        ),
+        None => None,
+    };
     let mut images: HashMap<String, String> = HashMap::new();
     let mut image_files = Vec::new();
     let mut image_manifest = Vec::new();
@@ -553,6 +560,12 @@ pub fn epub_entries(
         "    <item id=\"css\" href=\"styles.css\" media-type=\"text/css\" />".to_owned(),
     ];
     manifest.extend(image_manifest);
+    if let Some(cover) = &cover {
+        manifest.push(format!(
+            "    <item id=\"cover-image\" href=\"images/cover.{}\" media-type=\"{}\" properties=\"cover-image\" />",
+            cover.extension, cover.media_type
+        ));
+    }
     let mut spine = Vec::new();
     let mut add = |id: String, manifest: &mut Vec<String>| {
         manifest.push(format!(
@@ -562,6 +575,9 @@ pub fn epub_entries(
     };
     let copyright_page = options.include_copyright_page && !book.copyright.is_empty();
     let contents = options.include_table_of_contents && !book.chapters.is_empty();
+    if cover.is_some() {
+        add("cover".into(), &mut manifest);
+    }
     if options.include_title_page {
         add("titlepage".into(), &mut manifest);
     }
@@ -591,8 +607,13 @@ pub fn epub_entries(
     } else {
         format!("<dc:creator>{}</dc:creator>", escape_xml(&book.author))
     };
+    let cover_meta = if cover.is_some() {
+        "<meta name=\"cover\" content=\"cover-image\" />"
+    } else {
+        ""
+    };
     let opf = format!(
-        "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\" unique-identifier=\"book-id\" xml:lang=\"en\">\n  <metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\">\n    <dc:identifier id=\"book-id\">{}</dc:identifier>\n    <dc:title>{}</dc:title>\n    {creator}\n    <dc:language>en</dc:language>\n    \n    <meta property=\"dcterms:modified\">{modified}</meta>\n  </metadata>\n  <manifest>\n{}\n  </manifest>\n  <spine toc=\"ncx\">\n{}\n  </spine>\n</package>\n",
+        "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\" unique-identifier=\"book-id\" xml:lang=\"en\">\n  <metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\">\n    <dc:identifier id=\"book-id\">{}</dc:identifier>\n    <dc:title>{}</dc:title>\n    {creator}\n    <dc:language>en</dc:language>\n    {cover_meta}\n    <meta property=\"dcterms:modified\">{modified}</meta>\n  </metadata>\n  <manifest>\n{}\n  </manifest>\n  <spine toc=\"ncx\">\n{}\n  </spine>\n</package>\n",
         escape_xml(identifier),
         escape_xml(&book.title),
         manifest.join("\n"),
@@ -605,6 +626,24 @@ pub fn epub_entries(
     text("OEBPS/nav.xhtml", nav(&items));
     text("OEBPS/toc.ncx", ncx(book, identifier, &items));
     text("OEBPS/styles.css", stylesheet(options));
+    if let Some(cover) = cover {
+        let image = format!("images/cover.{}", cover.extension);
+        files.push((format!("OEBPS/{image}"), cover.bytes));
+        files.push((
+            "OEBPS/text/cover.xhtml".to_owned(),
+            page(
+                "Cover",
+                &format!(
+                    "<div class=\"cover\"><img src=\"../{}\" alt=\"Cover of {}\" /></div>",
+                    escape_xml_attribute(&image),
+                    escape_xml_attribute(&book.title)
+                ),
+                "cover-page-body",
+            )
+            .into_bytes(),
+        ));
+    }
+    let mut text = |name: &str, body: String| files.push((name.to_owned(), body.into_bytes()));
     if options.include_title_page {
         text(
             "OEBPS/text/titlepage.xhtml",

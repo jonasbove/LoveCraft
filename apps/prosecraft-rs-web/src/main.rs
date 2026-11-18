@@ -32,6 +32,8 @@ mod web {
         Citations,
         /// A picture for the open scene.
         Picture,
+        /// The book's cover image.
+        Cover,
         /// A file dropped on the page: a picture goes into the open scene, an EPUB is imported,
         /// anything else opened as a backup.
         Dropped,
@@ -75,6 +77,7 @@ mod web {
                     Then::Fountain => self.app.import_fountain(&file.name, &text()),
                     Then::Citations => self.app.import_citation_file(&file.name, &text()),
                     Then::Picture => self.app.insert_picture(&file.name, &file.bytes),
+                    Then::Cover => self.app.set_cover_image(&file.name, &file.bytes),
                     Then::Dropped
                         if prosecraft_core::picture::is_supported(&file.name)
                             && self.app.picture_wanted() =>
@@ -107,6 +110,7 @@ mod web {
                     HostRequest::ImportCitations => {
                         choose(".bib,.bibtex,.ris,.json,.csljson", Then::Citations)
                     }
+                    HostRequest::ChooseCover => choose(".png,.jpg,.jpeg,.webp", Then::Cover),
                     HostRequest::ImportScrivenerFolder
                     | HostRequest::ImportMarkdownFolder
                     | HostRequest::ChooseSyncFolder => {

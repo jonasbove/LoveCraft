@@ -565,6 +565,15 @@ fn manuscript_body(
 ) -> String {
     let notes = resolve_book_footnotes(book, options.footnotes_restart_per_chapter);
     let mut sections = Vec::new();
+    // `listManuscriptSections`: the cover comes first when there is one.
+    if let Some(cover) = book.cover.as_ref().filter(|_| options.cover.mode != "none") {
+        sections.push(format!(
+            "<section class=\"cover-page\" style=\"background:{}\" aria-label=\"Cover\"><img src=\"{}\" alt=\"Cover of {}\" /></section>",
+            escape_xml_attribute(&cover.background),
+            escape_xml_attribute(&cover.data_url),
+            escape_xml_attribute(&book.title)
+        ));
+    }
     if options.include_title_page {
         sections.push(title_page(book, !options.include_copyright_page));
     }

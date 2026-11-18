@@ -38,6 +38,7 @@ pub struct PublishOptions {
     pub style: String,
     /// The project's own styles (`customStyles`).
     pub custom_styles: Vec<super::styles::CustomStyle>,
+    pub cover: super::cover::CoverOptions,
     /// Whether the style sets chapter headings in capitals.
     pub chapter_heading_uppercase: bool,
     /// The style's words per page for the page estimate (0: reflowable; a custom style's is
@@ -72,6 +73,7 @@ impl Default for PublishOptions {
         Self {
             style: "manuscript".into(),
             custom_styles: Vec::new(),
+            cover: super::cover::CoverOptions::default(),
             chapter_heading_uppercase: true,
             words_per_page: Some(250),
             format: "pdf".into(),
@@ -212,6 +214,7 @@ impl PublishOptions {
         Self {
             style,
             custom_styles,
+            cover: super::cover::CoverOptions::read(value.get("cover")),
             chapter_heading_uppercase: uppercase,
             words_per_page,
             format: format.unwrap_or(defaults.format),

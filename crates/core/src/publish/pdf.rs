@@ -10,7 +10,6 @@
 //! - Text the standard fonts can't show (outside Windows-1252) is drawn as "?" and counted in
 //!   [`Layout::unshown`]; jsPDF writes such a string's UTF-16 bytes, which read as other
 //!   characters (jennraeross/ProseCraft#53).
-//! - Covers aren't ported yet, so there is no cover page.
 
 use std::collections::HashMap;
 
@@ -48,6 +47,14 @@ pub enum Op {
         color: Rgb,
         /// Points (jsPDF's default is 0.200025).
         width: f64,
+    },
+    /// A filled rectangle from (`x`, `y`).
+    Rect {
+        x: f64,
+        y: f64,
+        width: f64,
+        height: f64,
+        color: Rgb,
     },
     /// An embedded image (a `data:` URL) in the box from (`x`, `y`).
     Image {
@@ -1035,9 +1042,47 @@ impl Writer<'_> {
         }
     }
 
+    /// `renderCoverPage`: the cover as large as the page allows, centred on its average colour.
+    /// It takes the first page without a page number of its own.
+    fn render_cover_page(&mut self, cover: &super::cover::CompiledCover) {
+        let ratio = f64::from(cover.width) / f64::from(cover.height.max(1));
+        let (mut width, mut height) = (self.width, self.height);
+        if ratio > self.width / self.height {
+            height = width / ratio;
+        } else {
+            width = height * ratio;
+        }
+        // `pdfColor`.
+        let hex = cover.background.trim_start_matches('#');
+        let channel = |i: usize| {
+            hex.get(i..i + 2)
+                .and_then(|h| u8::from_str_radix(h, 16).ok())
+                .unwrap_or(255)
+        };
+        let page = &mut self.pages[self.current].ops;
+        page.push(Op::Rect {
+            x: 0.0,
+            y: 0.0,
+            width: self.width,
+            height: self.height,
+            color: [channel(0), channel(2), channel(4)],
+        });
+        page.push(Op::Image {
+            src: cover.data_url.clone(),
+            x: (self.width - width) / 2.0,
+            y: (self.height - height) / 2.0,
+            width,
+            height,
+        });
+        self.page_has_content = true;
+    }
+
     /// The title page, the copyright page and the dedication (`renderTitlePage`,
     /// `renderCopyrightPage`, `renderDedication`).
     fn render_opening_pages(&mut self, book: &CompiledBook, options: &PublishOptions) {
+        if let Some(cover) = &book.cover {
+            self.render_cover_page(cover);
+        }
         let regular = Face::new(self.family, false, false);
         let has_copyright_page = options.include_copyright_page && !book.copyright.is_empty();
         if options.include_title_page {

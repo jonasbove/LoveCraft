@@ -1,0 +1,203 @@
+//! ProseCraft's scene HTML: a small tree over `craft-html`'s tokenizer, and the text derived from it.
+//!
+//! ProseCraft stores every scene as sanitized HTML and reads it with the browser's `DOMParser`.
+//! This builds a comparable tree for that limited dialect: void elements, a `<p>` that a block
+//! closes, a `<li>` that the next item closes, end tags that close up to their element. Nesting
+//! is bounded, so hostile input can't exhaust the stack.
+
+mod plain;
+
+pub use plain::{
+    PlainTextOptions, RichText, count_words, html_to_plain_text, html_word_count, is_js_whitespace,
+};
+
+/// Deepest element nesting kept; anything deeper is attached to the deepest kept element.
+pub const MAX_DEPTH: usize = 128;
+
+const VOID: &[&str] = &[
+    "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track",
+    "wbr",
+];
+
+/// Elements whose start closes an open `<p>` (the HTML parsing rules for the tags ProseCraft uses).
+const CLOSES_P: &[&str] = &[
+    "address",
+    "article",
+    "aside",
+    "blockquote",
+    "div",
+    "dl",
+    "fieldset",
+    "figcaption",
+    "figure",
+    "footer",
+    "form",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "header",
+    "hr",
+    "main",
+    "nav",
+    "ol",
+    "p",
+    "pre",
+    "section",
+    "table",
+    "ul",
+];
+
+/// A node of the tree.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Node {
+    Text(String),
+    Element(Element),
+}
+
+/// An element: lower-case name, attributes (decoded), children.
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct Element {
+    pub name: String,
+    pub attrs: Vec<(String, String)>,
+    pub children: Vec<Node>,
+}
+
+impl Element {
+    pub fn attr(&self, name: &str) -> Option<&str> {
+        self.attrs
+            .iter()
+            .find(|(key, _)| key == name)
+            .map(|(_, value)| value.as_str())
+    }
+
+    pub fn has_class(&self, class: &str) -> bool {
+        self.attr("class")
+            .is_some_and(|classes| classes.split_ascii_whitespace().any(|c| c == class))
+    }
+}
+
+/// Parses an HTML fragment into the children of an implicit body.
+pub fn parse_fragment(html: &str) -> Vec<Node> {
+    let options = craft_html::Options {
+        drop: &["script", "style", "template"],
+        ..craft_html::Options::default()
+    };
+    let mut stack: Vec<Element> = vec![Element {
+        name: "body".into(),
+        ..Element::default()
+    }];
+
+    fn close_top(stack: &mut Vec<Element>) {
+        if stack.len() > 1
+            && let Some(done) = stack.pop()
+            && let Some(parent) = stack.last_mut()
+        {
+            parent.children.push(Node::Element(done));
+        }
+    }
+
+    fn close_to(stack: &mut Vec<Element>, name: &str) {
+        if let Some(position) = stack.iter().rposition(|e| e.name == name)
+            && position > 0
+        {
+            while stack.len() > position {
+                close_top(stack);
+            }
+        }
+    }
+
+    for token in craft_html::Lexer::with(html, options) {
+        match token {
+            craft_html::Token::Text(text) => {
+                let text = craft_html::unescape(text);
+                if let Some(top) = stack.last_mut() {
+                    match top.children.last_mut() {
+                        Some(Node::Text(previous)) => previous.push_str(&text),
+                        _ => top.children.push(Node::Text(text)),
+                    }
+                }
+            }
+            craft_html::Token::Start(tag) => {
+                let name = tag.name.clone();
+                if CLOSES_P.contains(&name.as_str()) && stack.iter().any(|e| e.name == "p") {
+                    close_to(&mut stack, "p");
+                }
+                if name == "li" {
+                    // A new item closes the open one, up to its list.
+                    if let Some(item) = stack.iter().rposition(|e| e.name == "li") {
+                        let list = stack.iter().rposition(|e| e.name == "ul" || e.name == "ol");
+                        if list.is_none_or(|l| l < item) {
+                            close_to(&mut stack, "li");
+                        }
+                    }
+                }
+                let element = Element {
+                    name: name.clone(),
+                    attrs: tag
+                        .attributes()
+                        .map(|(k, v)| (k.to_ascii_lowercase(), v))
+                        .collect(),
+                    children: Vec::new(),
+                };
+                if VOID.contains(&name.as_str()) || tag.self_close || stack.len() > MAX_DEPTH {
+                    if let Some(top) = stack.last_mut() {
+                        top.children.push(Node::Element(element));
+                    }
+                } else {
+                    stack.push(element);
+                }
+            }
+            craft_html::Token::End(name) => {
+                if !VOID.contains(&name.as_str()) {
+                    close_to(&mut stack, &name);
+                }
+            }
+        }
+    }
+    while stack.len() > 1 {
+        close_top(&mut stack);
+    }
+    stack.pop().map(|body| body.children).unwrap_or_default()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Node, parse_fragment};
+
+    fn names(nodes: &[Node]) -> Vec<String> {
+        nodes
+            .iter()
+            .map(|n| match n {
+                Node::Text(t) => format!("#{t}"),
+                Node::Element(e) => format!("{}[{}]", e.name, names(&e.children).join(",")),
+            })
+            .collect()
+    }
+
+    #[test]
+    fn builds_the_tree_html_would() {
+        assert_eq!(names(&parse_fragment("<p>a<p>b")), ["p[#a]", "p[#b]"]);
+        assert_eq!(
+            names(&parse_fragment("<ul><li>a<li>b</ul>")),
+            ["ul[li[#a],li[#b]]"]
+        );
+        assert_eq!(
+            names(&parse_fragment("<p>x<br>y</p></span>z")),
+            ["p[#x,br[],#y]", "#z"]
+        );
+        assert_eq!(
+            names(&parse_fragment("a &amp; b&nbsp;c")),
+            ["#a & b\u{a0}c"]
+        );
+    }
+
+    #[test]
+    fn deep_nesting_is_bounded() {
+        let html = "<div>".repeat(100_000);
+        let nodes = parse_fragment(&html);
+        assert_eq!(nodes.len(), 1);
+    }
+}

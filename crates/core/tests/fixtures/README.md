@@ -8,6 +8,7 @@ tested against what the original really reads and writes, not against our readin
 | `json-cases.json` | `JSON.parse` / `JSON.stringify` (compact and indent 2) / `stableStringify`: lone surrogates, integer-like keys, duplicate keys, escapes, numbers |
 | `numbers.json` | `String(n)` for 3,500 doubles (special values plus a fixed pseudo-random sample) |
 | `crypto.json` | Argon2id key derivation (with NFKC and a lone surrogate in a passphrase), vault keys, and sealed records |
+| `plain-text.json` | `htmlToPlainText` (equations and diagrams kept and left out) and `countWords` for the fixture scenes and HTML edge cases |
 | `bundle-plain.prosecraft` | A plain backup with two projects that touch every stored field, including a field from a "future release" |
 | `bundle-encrypted.prosecraft` | The same projects as an encrypted backup; `bundle-encrypted.key.json` holds its test passphrase and key |
 

@@ -19,7 +19,13 @@ The aim is ProseCraft's feature set, rebuilt natively:
 ProseCraft backups and sync folders are meant to open without losing anything. Cloud sync is planned through [CraftCloud](https://github.com/jonasbove/craftcloud). See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Build from source
+The fonts (Inter for the interface, Source Serif 4 for the manuscript) come from a checkout of
+[craft-fonts](https://github.com/storytold/craft-fonts); without it the app builds and uses egui's
+and your system's fonts.
+
 ```sh
+git clone https://github.com/storytold/craft-fonts ../craft-fonts
+export CRAFT_FONTS_DIR=$PWD/../craft-fonts
 cargo run -p prosecraft-rs            # desktop
 cargo xtask ci                        # fmt, clippy, tests, layers, wasm check
 cd apps/prosecraft-rs-web && trunk build --release   # web build into dist/web

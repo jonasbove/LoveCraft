@@ -71,6 +71,22 @@ fn a_cover_exports_like_prosecraft() {
             height: 3,
             background: text(cover, "background"),
         });
+        let sections: Vec<String> = prosecraft_core::publish::sections::list(&book, &options)
+            .into_iter()
+            .map(|s| s.id)
+            .collect();
+        let want: Vec<String> = case
+            .get("sections")
+            .and_then(JsValue::as_array)
+            .expect("sections")
+            .iter()
+            .map(|v| {
+                v.as_js_string()
+                    .map(JsString::to_string_lossy)
+                    .unwrap_or_default()
+            })
+            .collect();
+        assert_eq!(sections, want, "{name}: sections");
         let html = export_html(&book, &options);
         assert_eq!(
             String::from_utf8_lossy(&html.bytes),

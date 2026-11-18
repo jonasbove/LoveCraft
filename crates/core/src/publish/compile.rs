@@ -268,9 +268,9 @@ impl CompiledBook {
     }
 
     /// The Publish view's page estimate: the body at the style's words per page plus a page
-    /// for each title, copyright, dedication, contents and matter page. `None` when the style
-    /// is reflowable or its words per page aren't known. (A cover page isn't counted: covers
-    /// aren't ported yet.)
+    /// for each cover (in PDF and DOCX), title, copyright, dedication, contents, matter and
+    /// bibliography page. `None` when the style is reflowable or its words per page aren't
+    /// known.
     pub fn page_estimate(&self, options: &PublishOptions) -> Option<usize> {
         let words_per_page = options.words_per_page.filter(|w| *w > 0)? as usize;
         let body = self.words.div_ceil(words_per_page).max(1);
@@ -284,6 +284,10 @@ impl CompiledBook {
             + usize::from(!self.dedication.is_empty())
             + contents
             + self.front_matter.len();
-        Some(body + front + self.back_matter.len())
+        let sections = super::sections::list(self, options);
+        let has = |kind: &str| sections.iter().any(|s| s.kind == kind);
+        let cover = usize::from(has("cover") && matches!(options.format.as_ref(), "pdf" | "docx"));
+        let bibliography = usize::from(has("bibliography"));
+        Some(body + cover + front + self.back_matter.len() + bibliography)
     }
 }

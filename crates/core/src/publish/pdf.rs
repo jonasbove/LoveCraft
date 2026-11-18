@@ -82,6 +82,9 @@ pub struct Layout {
     pub subtitle: String,
     /// Characters drawn as "?" because the standard fonts can't show them.
     pub unshown: usize,
+    /// Where each part of the book starts: its section id (as [`super::sections`] names it)
+    /// and the page index, in order. Covers, title pages, matter, chapters, the bibliography.
+    pub sections: Vec<(String, usize)>,
 }
 
 /// A word, space, break, footnote number or inline image, measured.
@@ -151,6 +154,8 @@ fn split_spaces(text: &str) -> Vec<(String, bool)> {
 }
 
 struct Writer<'a> {
+    /// Section ids and the page each starts on.
+    marks: Vec<(String, usize)>,
     family: Family,
     width: f64,
     height: f64,
@@ -282,6 +287,11 @@ impl Writer<'_> {
                 Some("center"),
             );
         }
+    }
+
+    /// Notes that the section `id` starts on the current page.
+    fn mark(&mut self, id: &str) {
+        self.marks.push((id.to_owned(), self.current));
     }
 
     fn start_front_matter_page(&mut self) {
@@ -1082,11 +1092,15 @@ impl Writer<'_> {
     fn render_opening_pages(&mut self, book: &CompiledBook, options: &PublishOptions) {
         if let Some(cover) = &book.cover {
             self.render_cover_page(cover);
+            if options.cover.mode != "none" {
+                self.mark("front-cover");
+            }
         }
         let regular = Face::new(self.family, false, false);
         let has_copyright_page = options.include_copyright_page && !book.copyright.is_empty();
         if options.include_title_page {
             self.start_front_matter_page();
+            self.mark("front-title-page");
             let title_size = (self.body_size * 2.7).min(34.0);
             let mut y = self.height * 0.3;
             for line in regular.split_text_to_size(&book.title, self.content_width, title_size) {
@@ -1144,6 +1158,7 @@ impl Writer<'_> {
         }
         if has_copyright_page {
             self.start_front_matter_page();
+            self.mark("front-copyright");
             let size = self.body_size * 0.82;
             let line_height = size * 1.6;
             let lines =
@@ -1165,6 +1180,7 @@ impl Writer<'_> {
         }
         if !book.dedication.is_empty() {
             self.start_front_matter_page();
+            self.mark("front-dedication");
             let face = Face::new(self.family, false, true);
             let size = self.body_size * 1.05;
             let mut y = self.height * 0.45;
@@ -1305,6 +1321,7 @@ pub fn layout_pdf(
         images,
         unshown: 0,
         no_notes: HashMap::new(),
+        marks: Vec::new(),
         font: std::cell::Cell::new((Face::new(Family::Times, false, false), 16.0)),
     };
     let regular = Face::new(w.family, false, false);
@@ -1346,12 +1363,16 @@ pub fn layout_pdf(
     let mut chapter_start_pages: Vec<usize> = Vec::new();
 
     w.render_opening_pages(&book, options);
-    for _ in 0..toc_page_count {
+    for index in 0..toc_page_count {
         w.start_front_matter_page();
+        if index == 0 {
+            w.mark("front-contents");
+        }
         toc_pages.push(w.current);
     }
     for page in &book.front_matter {
         w.start_front_matter_page();
+        w.mark(&format!("front-matter-{}", page.id));
         w.front_matter_mode = true;
         w.render_matter_page(page, tokens.justify);
         w.front_matter_mode = false;
@@ -1397,6 +1418,7 @@ pub fn layout_pdf(
             w.y += tokens.chapter_after * size;
         }
         chapter_start_pages.push(start_page);
+        w.mark(&format!("chapter-{}", chapter.id));
         for (s, scene) in chapter.scenes.iter().enumerate() {
             if options.include_scene_titles {
                 w.render_scene_title(&scene.title);
@@ -1435,6 +1457,7 @@ pub fn layout_pdf(
         } else {
             w.begin_body();
         }
+        w.mark(&format!("back-matter-{}", page.id));
         w.render_matter_page(page, tokens.justify);
     }
 
@@ -1444,6 +1467,7 @@ pub fn layout_pdf(
         } else {
             w.begin_body();
         }
+        w.mark("back-bibliography");
         let opts = ParagraphOptions {
             size: body_size * 1.5,
             line_height: body_size * 1.8,
@@ -1486,5 +1510,6 @@ pub fn layout_pdf(
         author: book.author.clone(),
         subtitle: book.subtitle.clone(),
         unshown: w.unshown,
+        sections: w.marks,
     }
 }

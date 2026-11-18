@@ -30,6 +30,7 @@ pub mod project;
 pub mod proofread;
 pub mod publish;
 pub mod research;
+pub mod rich;
 pub mod richtext;
 pub mod screenplay;
 pub mod search;

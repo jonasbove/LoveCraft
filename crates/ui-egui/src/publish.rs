@@ -1519,6 +1519,26 @@ fn controls(
     .fill(palette.accent_strong)
     .min_size(egui::vec2(ui.available_width(), 34.0));
     if ui.add_enabled(can_export, button).clicked() {
+        // `renderExport`: equations and calculations drawn for the formats that show them
+        // (SVG in HTML, pictures elsewhere).
+        let prepared;
+        let book = if matches!(format.0, "pdf" | "epub" | "docx" | "html") {
+            let tokens = prosecraft_core::publish::styles::resolve_style_tokens(
+                &options.style,
+                &options.custom_styles,
+            );
+            prepared = prosecraft_core::rich::prepare_book(
+                book,
+                &prosecraft_core::rich::RenderOptions {
+                    png: format.0 != "html",
+                    color: "#1d211d".into(),
+                    body_size_pt: tokens.body_size,
+                },
+            );
+            &prepared
+        } else {
+            book
+        };
         let export = match format.0 {
             "epub" => {
                 // Without a library store there is no id source: a fixed id, so the export works.

@@ -323,6 +323,8 @@ pub struct BlockPreview {
     pub lines: Vec<String>,
     /// More lines than are shown.
     pub more: bool,
+    /// An equation's TeX, or a diagram's or calculation's source (else empty).
+    pub source: String,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -388,6 +390,7 @@ pub fn block_preview(html: &str) -> Option<BlockPreview> {
             }
         }
     }
+    let mut raw = String::new();
     let (kind, lines): (BlockKind, Vec<String>) = match element.name.as_str() {
         "hr" => (BlockKind::Rule, Vec::new()),
         "pre" => {
@@ -415,6 +418,7 @@ pub fn block_preview(html: &str) -> Option<BlockPreview> {
                 return None;
             };
             let source = element.attr(attr).unwrap_or_default();
+            raw = source.to_owned();
             // A calculation shows its results (`worksheetToPlainText`); drawing it as
             // ProseCraft's typeset worksheet comes with equations.
             let text = if kind == BlockKind::Calculation {
@@ -431,6 +435,7 @@ pub fn block_preview(html: &str) -> Option<BlockPreview> {
         kind,
         lines: lines.into_iter().take(PREVIEW_LINES).collect(),
         more,
+        source: raw,
     })
 }
 

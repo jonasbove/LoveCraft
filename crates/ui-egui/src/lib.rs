@@ -32,6 +32,7 @@ mod preview;
 mod project_settings;
 mod proofreading;
 mod publish;
+mod rich_view;
 mod screenplay_editor;
 mod scrivener_import;
 mod settings;

@@ -525,7 +525,8 @@ fn matter_page(page: &MatterPage, out: &mut Vec<Paragraph>) {
 
 /// ProseCraft's own fallback for an equation, diagram or calculation it can't draw
 /// (`prepareRichHtml` and `showRichFallback` in `src/lib/rich/`): the placeholder shows its
-/// source text. Drawing them isn't ported, so every placeholder takes the fallback.
+/// source text. Placeholders [`crate::rich::prepare_rich_html`] has drawn (or already marked)
+/// are kept as they are.
 fn show_rich_sources(html: &str) -> String {
     if !RICH.iter().any(|(class, ..)| html.contains(class)) {
         return html.to_owned();
@@ -537,6 +538,9 @@ fn show_rich_sources(html: &str) -> String {
         }
         for node in nodes {
             if let Node::Element(e) = node {
+                if e.has_class("rich-rendered") || e.has_class("rich-render-error") {
+                    continue;
+                }
                 // `richKindOf`: the first kind whose class it has, and that kind's source.
                 let source = RICH
                     .iter()

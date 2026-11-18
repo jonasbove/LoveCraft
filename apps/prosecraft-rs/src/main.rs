@@ -38,6 +38,8 @@ enum Then {
     Fountain,
     /// Import this citation file into the Sources dialog.
     Citations,
+    /// Put this picture into the open scene.
+    Picture,
     /// Write these bytes where the person chose (a backup or an exported manuscript).
     Export(Vec<u8>),
     /// The folder to sync through.
@@ -207,6 +209,20 @@ impl eframe::App for DesktopApp {
                         }
                     }
                 }
+                (Then::Picture, Answer::Paths(paths)) => {
+                    if let Some(path) = paths.first() {
+                        let name = path
+                            .file_name()
+                            .map(|n| n.to_string_lossy().into_owned())
+                            .unwrap_or_default();
+                        // One byte more than a picture may have, so a larger file is refused.
+                        let limit = prosecraft_core::picture::MAX_FILE_BYTES as u64;
+                        match read_capped(path, limit) {
+                            Ok(bytes) => self.app.insert_picture(&name, &bytes),
+                            Err(e) => eprintln!("{}: {e}", path.display()),
+                        }
+                    }
+                }
                 (Then::Fountain, Answer::Paths(paths)) => {
                     if let Some(path) = paths.first() {
                         let name = path
@@ -308,6 +324,12 @@ impl eframe::App for DesktopApp {
                         &["bib", "bibtex", "ris", "json", "csljson"],
                     );
                     self.dialogs.ask(dialog, Then::Citations);
+                }
+                HostRequest::InsertPicture => {
+                    let dialog = FileDialog::open()
+                        .title("Insert image")
+                        .filter("Images", &prosecraft_core::picture::EXTENSIONS);
+                    self.dialogs.ask(dialog, Then::Picture);
                 }
                 HostRequest::ImportFountain => {
                     let dialog = FileDialog::open()

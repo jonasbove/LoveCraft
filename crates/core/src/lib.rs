@@ -24,6 +24,7 @@ pub mod js;
 pub mod labels;
 pub mod library;
 pub mod markdown;
+pub mod picture;
 pub mod project;
 pub mod publish;
 pub mod richtext;

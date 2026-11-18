@@ -26,6 +26,7 @@ mod fountain_import;
 mod labels;
 mod library;
 mod markdown_import;
+mod pictures;
 mod project_settings;
 mod publish;
 mod screenplay_editor;
@@ -124,6 +125,9 @@ pub enum HostRequest {
     ImportCitations,
     /// Ask for a Fountain screenplay, then call [`ProseApp::import_fountain`].
     ImportFountain,
+    /// Ask for a picture (a PNG, JPEG, WebP, GIF, BMP or AVIF file; see
+    /// [`prosecraft_core::picture::EXTENSIONS`]), then call [`ProseApp::insert_picture`].
+    InsertPicture,
     /// Ask for a sync folder, then call [`ProseApp::set_sync_folder`].
     ChooseSyncFolder,
     /// Ask where to save an exported manuscript, then write it there. `kind` names the format
@@ -244,6 +248,8 @@ pub struct AppState {
     has_home: bool,
     /// Requests for the host, taken with [`ProseApp::take_requests`].
     requests: Vec<HostRequest>,
+    /// Where a picture asked for goes: the scene and a character.
+    picture_target: Option<(String, usize)>,
     /// The binder's Export button was pressed; the app builds the backup after the frame.
     export_wanted: bool,
     /// Whether projects can be changed (a library that isn't read-only).
@@ -418,7 +424,8 @@ pub fn setup_for_tests(ctx: &egui::Context) {
 }
 
 /// egui's own line breaking, with a row ending after a line separator: the editor's newline in
-/// the text (U+2028) and `<br>` (U+2029) end their row as they do in ProseCraft.
+/// the text (U+2028) and `<br>` (U+2029) end their row as they do in ProseCraft; and a row may
+/// end before and after a picture (`views::PICTURE_CHAR`).
 struct RowBreaks;
 
 impl egui::epaint::text::LineBreaker for RowBreaks {
@@ -433,6 +440,10 @@ impl egui::epaint::text::LineBreaker for RowBreaks {
         for (at, c) in text.char_indices() {
             if matches!(c, '\u{2028}' | '\u{2029}') {
                 out.push(LineBreak::hard(at + c.len_utf8()));
+            }
+            if c == views::PICTURE_CHAR {
+                out.push(LineBreak::soft(at));
+                out.push(LineBreak::soft(at + c.len_utf8()));
             }
         }
     }
@@ -762,6 +773,43 @@ impl ProseApp {
         self.state.footnote_open = Some((document.to_owned(), id));
     }
 
+    /// A picture from the host (`insertImageFiles`): made into an embedded image as ProseCraft
+    /// makes it and put into the open scene where it was asked for, or at the caret; ProseCraft's
+    /// message in the status line when it can't be.
+    pub fn insert_picture(&mut self, name: &str, bytes: &[u8]) {
+        let target = self.state.picture_target.take();
+        let Some(draft) = self
+            .state
+            .draft
+            .as_mut()
+            .filter(|d| d.markdown.is_none())
+            .filter(|d| target.as_ref().is_none_or(|(doc, _)| *doc == d.document))
+        else {
+            return;
+        };
+        let url = match prosecraft_core::picture::prepare(name, bytes) {
+            Ok(url) => url,
+            Err(message) => {
+                self.state.status = Some(message);
+                return;
+            }
+        };
+        let html =
+            prosecraft_core::picture::image_html(&url, &prosecraft_core::picture::alt_text(name));
+        let at = target
+            .map(|(_, at)| at)
+            .or(draft.caret)
+            .unwrap_or_else(|| draft.doc.text.chars().count());
+        let (body, after) = draft.doc.insert_picture(at, &html);
+        draft.body = body;
+        draft.body_dirty = true;
+        draft.changed_at = self.state.now;
+        draft.caret = Some(after);
+        let document = draft.document.clone();
+        self.state.comment_goto = Some((document, after, after));
+        self.commit_draft();
+    }
+
     /// `commitCitationPicker`: the citation goes into the open scene's draft, new at a
     /// character or in place of an atom, and the caret after it.
     fn place_citation(
@@ -936,6 +984,11 @@ impl ProseApp {
                     self.insert_footnote(document, *at);
                     continue;
                 }
+                editing::Intent::InsertPicture { document, at } => {
+                    self.state.picture_target = Some((document.clone(), *at));
+                    self.state.requests.push(HostRequest::InsertPicture);
+                    continue;
+                }
                 editing::Intent::PlaceCitation {
                     document,
                     target,
@@ -1062,6 +1115,16 @@ impl ProseApp {
         }
     }
 
+    /// Whether a dropped picture has a scene to go into: one open in the rich editor.
+    pub fn picture_wanted(&self) -> bool {
+        self.state.editable
+            && self
+                .state
+                .draft
+                .as_ref()
+                .is_some_and(|d| d.markdown.is_none())
+    }
+
     /// Backups are a few megabytes; anything far larger isn't one and isn't read into memory.
     pub const MAX_BACKUP_BYTES: u64 = 512 * 1024 * 1024;
 
@@ -1079,6 +1142,10 @@ impl ProseApp {
             return;
         }
         match file.bytes() {
+            // A picture dropped while a scene is open goes into it (`handleImageDrop`).
+            Ok(bytes) if prosecraft_core::picture::is_supported(&name) && self.picture_wanted() => {
+                self.insert_picture(&name, &bytes);
+            }
             // A dropped EPUB is imported (`importEpubData`); anything else is a backup.
             Ok(bytes) if name.to_lowercase().ends_with(".epub") => self.import_epub(&name, &bytes),
             Ok(bytes) => self.open_backup_bytes(&name, &bytes),

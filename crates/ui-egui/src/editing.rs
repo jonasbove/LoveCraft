@@ -164,6 +164,12 @@ pub enum Intent {
         document: String,
         at: usize,
     },
+    /// ProseCraft's Insert image: ask the host for a picture, for a character of the open
+    /// scene (placed with the editor's draft when it arrives).
+    InsertPicture {
+        document: String,
+        at: usize,
+    },
     SetFootnote {
         document: String,
         id: String,
@@ -226,6 +232,9 @@ pub struct Draft {
     /// In the chapter view's Markdown editor: the chapter whose scenes `markdown` holds, with
     /// `<!-- scene-break -->` lines between them.
     pub chapter: Option<String>,
+    /// Where the caret last was in the text (a character), for what arrives later: a dropped
+    /// picture.
+    pub caret: Option<usize>,
 }
 
 /// Seconds after the last keystroke before the draft reaches the project (ProseCraft: 250 ms).
@@ -405,6 +414,7 @@ pub fn run(
         }
         // Placed by the app, which holds the draft.
         Intent::InsertFootnote { .. }
+        | Intent::InsertPicture { .. }
         | Intent::PlaceCitation { .. }
         | Intent::RemoveCitation { .. } => Ok(()),
         Intent::SetFootnote { document, id, html } => {

@@ -17,6 +17,9 @@ egui = { workspace = true }
 craft-ui = { workspace = true }
 craft-fonts-build = { workspace = true }
 chrono = { workspace = true }
+# Pictures in the text: their data URLs read, their pixels decoded for drawing.
+base64 = { workspace = true }
+craft-image-codecs = { workspace = true }
 
 # Installed system fonts as fallbacks (emoji, every script) on the desktop.
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

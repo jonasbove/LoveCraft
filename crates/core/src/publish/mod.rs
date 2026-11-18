@@ -18,6 +18,10 @@ mod html;
 mod html_css;
 mod markdown;
 mod options;
+pub mod pdf;
+mod pdf_metrics;
+pub mod pdf_text;
+pub mod pdf_writer;
 pub mod rich_text;
 mod text;
 

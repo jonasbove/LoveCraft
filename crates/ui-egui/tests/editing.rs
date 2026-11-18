@@ -2735,3 +2735,43 @@ fn a_chapter_is_written_in_markdown_with_scene_break_lines() {
         Some("First.\n\n<!-- scene-break -->\n\nSecond *one*.")
     );
 }
+
+#[test]
+fn pdf_exports_from_the_publish_view() {
+    let (mut harness, _memory) = app();
+    harness.get_by_role_and_label(Role::Tab, "Publish").click();
+    harness.run();
+    for (role, name) in [
+        (Role::RadioButton, "PDF (pdf)"),
+        (Role::Button, "Export PDF"),
+    ] {
+        harness.get_by_role_and_label(role, name).scroll_to_me();
+        harness.run();
+        harness.get_by_role_and_label(role, name).click();
+        harness.run_steps(4);
+    }
+    let requests = harness.state_mut().take_requests();
+    let Some(prosecraft_ui_egui::HostRequest::ExportFile {
+        file_name,
+        bytes,
+        extension,
+        ..
+    }) = requests.first()
+    else {
+        panic!("an export was asked for: {requests:?}");
+    };
+    assert!(
+        file_name.ends_with(".pdf") && extension == "pdf",
+        "{file_name}"
+    );
+    assert!(bytes.starts_with(b"%PDF-"));
+    // The fixture's title has a character outside Windows-1252: it is said, not garbled.
+    let notes: Vec<String> = harness
+        .query_all_by_role(Role::Alert)
+        .filter_map(|n| n.accesskit_node().label())
+        .collect();
+    assert!(
+        notes.iter().any(|n| n.contains("came out as “?”")),
+        "{notes:?}"
+    );
+}

@@ -65,7 +65,7 @@ const FORMATS: [(&str, &str, &str, &str); 8] = [
 ];
 
 /// Formats that can be exported here.
-const PORTED: [&str; 6] = ["epub", "docx", "markdown", "html", "text", "fountain"];
+const PORTED: [&str; 7] = ["pdf", "epub", "docx", "markdown", "html", "text", "fountain"];
 
 /// ProseCraft's built-in styles (`PRESETS`).
 const STYLES: [(&str, &str, &str); 4] = [
@@ -665,19 +665,40 @@ fn controls(
                     .book_id
                     .take()
                     .unwrap_or_else(|| "00000000-0000-4000-8000-000000000000".to_owned());
-                export_epub(book, options, &uuid, edit.now_ms)
+                export_epub(book, options, &uuid, edit.now_ms).map(|e| (e, 0))
             }
             .map_err(|e| e.to_string()),
-            "docx" => export_docx(book, options).map_err(|e| e.to_string()),
-            "markdown" => Ok(export_markdown(book, options)),
-            "fountain" => Ok(prosecraft_core::screenplay::export::export_fountain(book)),
-            "html" => Ok(export_html(book, options)),
-            _ => Ok(export_text(book, options)),
+            "pdf" => prosecraft_core::publish::pdf_writer::export_pdf(book, options)
+                .map_err(|e| e.to_string()),
+            "docx" => export_docx(book, options)
+                .map(|e| (e, 0))
+                .map_err(|e| e.to_string()),
+            "markdown" => Ok((export_markdown(book, options), 0)),
+            "fountain" => Ok((
+                prosecraft_core::screenplay::export::export_fountain(book),
+                0,
+            )),
+            "html" => Ok((export_html(book, options), 0)),
+            _ => Ok((export_text(book, options), 0)),
         };
         let error_id = ui.make_persistent_id("publish-export-error");
         match export {
-            Ok(export) => {
-                ui.data_mut(|d| d.remove_temp::<String>(error_id));
+            Ok((export, unshown)) => {
+                // PDF's standard fonts show Western European text only (ProseCraft's too; see
+                // jennraeross/ProseCraft#53): say what came out as "?".
+                ui.data_mut(|d| {
+                    if unshown > 0 {
+                        d.insert_temp(
+                            error_id,
+                            format!(
+                                "{unshown} character{} the PDF fonts can't show came out as “?”.",
+                                if unshown == 1 { "" } else { "s" }
+                            ),
+                        );
+                    } else {
+                        d.remove_temp::<String>(error_id);
+                    }
+                });
                 edit.requests.push(HostRequest::ExportFile {
                     file_name: export.file_name,
                     bytes: export.bytes,
@@ -704,7 +725,7 @@ fn controls(
     }
     let note = if !ported {
         format!(
-            "{} export isn't ported yet; EPUB, DOCX, HTML, Markdown, plain text and Fountain are.",
+            "{} export isn't ported yet; PDF, EPUB, DOCX, HTML, Markdown, plain text and Fountain are.",
             format.1
         )
     } else if book.scenes() == 0 {

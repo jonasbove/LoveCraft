@@ -415,7 +415,14 @@ pub fn block_preview(html: &str) -> Option<BlockPreview> {
                 return None;
             };
             let source = element.attr(attr).unwrap_or_default();
-            (kind, source.lines().map(str::to_owned).collect())
+            // A calculation shows its results (`worksheetToPlainText`); drawing it as
+            // ProseCraft's typeset worksheet comes with equations.
+            let text = if kind == BlockKind::Calculation {
+                crate::calc::worksheet_to_plain_text(source)
+            } else {
+                source.to_owned()
+            };
+            (kind, text.lines().map(str::to_owned).collect())
         }
         _ => return None,
     };
@@ -1658,6 +1665,20 @@ mod tests {
             (BlockKind::Equation, vec!["x^2".into()])
         );
         assert_eq!(block_preview("<hr>").map(|p| p.kind), Some(BlockKind::Rule));
+        // A calculation shows its results.
+        let calc = block_preview(
+            r#"<div class="calc-worksheet" data-source="v := 60 mph&#10;v = kph&#10;v = kg"></div>"#,
+        )
+        .expect("calc");
+        assert_eq!(calc.kind, BlockKind::Calculation);
+        assert_eq!(
+            calc.lines,
+            [
+                "v := 60 mph",
+                "v = 96.561 kph",
+                "v = kg  [The result is in m·s^-1, which can't be shown in kg.]"
+            ]
+        );
         assert_eq!(block_preview("<p>x</p>"), None);
     }
 

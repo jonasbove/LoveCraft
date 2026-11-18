@@ -11,6 +11,7 @@
 )]
 
 pub mod about;
+pub mod calc;
 pub mod chapter;
 pub mod citations;
 pub mod cite;

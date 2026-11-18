@@ -41,7 +41,7 @@ const FOOTNOTE_REF_CLASS: &str = "footnote-ref";
 /// How equations, diagrams and calculations appear in the text.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum RichText {
-    /// Their source: TeX, diagram source, calculation source (text exports).
+    /// Their source: TeX, diagram source, the evaluated calculation (text exports).
     #[default]
     Source,
     /// Left out (word counts).
@@ -176,9 +176,7 @@ fn rich_representation(element: &Element, mode: RichText) -> Option<String> {
     } else if element.has_class("math-block") {
         format!("$$\n{}\n$$", tex())
     } else if element.has_class("calc-worksheet") {
-        // ProseCraft prints the evaluated worksheet here; until the calculation engine is
-        // ported, its source stands in. Word counts (`Omit`) are unaffected.
-        source().to_owned()
+        crate::calc::worksheet_to_plain_text(source())
     } else {
         format!("[Diagram]\n{}", source())
     })
@@ -338,6 +336,25 @@ pub fn html_to_plain_text(html: &str, options: &PlainTextOptions) -> String {
 #[cfg(test)]
 mod tests {
     use super::{count_words, is_js_whitespace};
+
+    #[test]
+    fn a_calculation_reads_as_its_evaluated_worksheet() {
+        use super::{PlainTextOptions, RichText, html_to_plain_text};
+        let html = r#"<p>Load:</p><div class="calc-worksheet" data-source="m := 5 kg&#10;F := m g ="></div>"#;
+        let source = PlainTextOptions {
+            rich: RichText::Source,
+            ..PlainTextOptions::default()
+        };
+        assert_eq!(
+            html_to_plain_text(html, &source),
+            "Load:\n\nm := 5 kg\nF := m g = 49.033 N"
+        );
+        let omit = PlainTextOptions {
+            rich: RichText::Omit,
+            ..PlainTextOptions::default()
+        };
+        assert_eq!(html_to_plain_text(html, &omit), "Load:");
+    }
 
     #[test]
     fn javascript_whitespace_not_rusts() {

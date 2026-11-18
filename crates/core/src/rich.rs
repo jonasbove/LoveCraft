@@ -58,6 +58,31 @@ impl RichKind {
     }
 }
 
+/// `createRichPlaceholder`: the bare placeholder as stored, its source cut to the kind's limit.
+pub fn placeholder_html(kind: RichKind, source: &str) -> String {
+    let (name, class) = match kind {
+        RichKind::MathInline => ("span", "math-inline"),
+        RichKind::MathBlock => ("div", "math-block"),
+        RichKind::Diagram => ("div", "mermaid-diagram"),
+        RichKind::Calc => ("div", "calc-worksheet"),
+    };
+    let units: Vec<u16> = source.encode_utf16().take(kind.limit()).collect();
+    let element = Element {
+        name: name.into(),
+        attrs: vec![
+            ("class".into(), class.into()),
+            (kind.attribute().into(), String::from_utf16_lossy(&units)),
+        ],
+        children: Vec::new(),
+    };
+    serialize(&[Node::Element(element)])
+}
+
+/// The source limit of a kind (`richSourceLimit`).
+pub fn source_limit(kind: RichKind) -> usize {
+    kind.limit()
+}
+
 /// `readRichPlaceholder`: the kind and its source (trimmed, cut to the kind's limit).
 pub fn read_placeholder(element: &Element) -> Option<(RichKind, String)> {
     let kind = RichKind::of(element)?;

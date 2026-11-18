@@ -1613,6 +1613,61 @@ fn proofreading_underlines_and_fixes_a_misspelling() {
 }
 
 #[test]
+fn equations_and_calculations_are_inserted_from_the_toolbar() {
+    let (mut harness, memory) = app();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    let body = harness.get_by_label("Scene text");
+    body.focus();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    harness.get_by_label("Scene text").type_text("Energy");
+    harness.run();
+    // An empty calculation is refused.
+    harness.get_by_label("Insert calculation").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Insert")
+        .click();
+    harness.run();
+    harness.get_by_label("Add a calculation first.");
+    harness
+        .get_by_role_and_label(Role::Button, "Cancel")
+        .click();
+    harness.run();
+    // A block equation after the line.
+    harness.get_by_label("Insert equation").click();
+    harness.run();
+    harness.get_by_role_and_label(Role::Button, "Block").click();
+    harness
+        .get_by_role_and_label(Role::MultilineTextInput, "LaTeX")
+        .focus();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::MultilineTextInput, "LaTeX")
+        .type_text("E = mc^2");
+    harness.run();
+    harness.get_by_label("Preview");
+    harness
+        .get_by_role_and_label(Role::Button, "Insert")
+        .click();
+    harness.run_steps(12);
+    assert!(harness.query_by_label("Insert equation").is_some());
+    assert!(
+        harness
+            .query_by_role_and_label(Role::MultilineTextInput, "LaTeX")
+            .is_none()
+    );
+    let saved = memory.last();
+    let scene = document(project(&saved, "project-1"), "doc-1").expect("scene");
+    assert_eq!(
+        js::stringify(scene.get("content").expect("content")),
+        r#""<p>Energy</p><div class=\"math-block\" data-tex=\"E = mc^2\"></div><p><br></p>""#
+    );
+}
+
+#[test]
 fn html_exports_from_the_publish_view() {
     let (mut harness, _memory) = app();
     harness.get_by_role_and_label(Role::Tab, "Publish").click();

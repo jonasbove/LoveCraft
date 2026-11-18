@@ -111,6 +111,8 @@ struct Edit<'a> {
     open: Option<Selection>,
     /// The open scene's proofreading.
     proofing: &'a mut crate::proofreading::Proofing,
+    /// The equation, diagram or calculation editor.
+    rich_dialog: &'a mut Option<crate::rich_dialog::RichDialog>,
 }
 
 pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
@@ -175,6 +177,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         writing,
         editor_rect,
         proofing,
+        rich_dialog,
         ..
     } = state;
     let entry = library.as_ref().and_then(|l| l.projects().get(*active));
@@ -241,6 +244,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         },
         separator: options.scene_separator,
         proofing,
+        rich_dialog,
         open: None,
     };
     let mut chosen = None;
@@ -761,6 +765,29 @@ fn proofreading_marks(
             draft.caret = Some(after);
             draft.words = prosecraft_core::html::html_word_count(&draft.doc.to_html());
         }
+    }
+}
+
+/// The equation, diagram or calculation editor over the scene, and what it changed.
+fn rich_dialog(
+    ui: &mut Ui,
+    palette: &Palette,
+    (slot, editable, now): (&mut Option<crate::rich_dialog::RichDialog>, bool, f64),
+    draft: &mut Draft,
+    document: &str,
+) {
+    let Some(dialog) = slot.as_mut().filter(|d| d.document == document) else {
+        return;
+    };
+    let (open, caret) = crate::rich_dialog::show(ui.ctx(), palette, dialog, draft, editable);
+    if let Some(caret) = caret {
+        draft.body_dirty = true;
+        draft.changed_at = now;
+        draft.caret = Some(caret);
+        draft.words = prosecraft_core::html::html_word_count(&draft.doc.to_html());
+    }
+    if !open {
+        *slot = None;
     }
 }
 
@@ -1885,6 +1912,31 @@ fn editor(
             if sources.clicked() {
                 *edit.sources = Some(crate::sources::SourcesDialog::default());
             }
+            // Insert equation, diagram, calculation (`openRichDialog`).
+            for (label, name, kind) in [
+                ("Σ", "Insert equation", crate::rich_dialog::DialogKind::Math),
+                (
+                    "Diagram",
+                    "Insert diagram",
+                    crate::rich_dialog::DialogKind::Diagram,
+                ),
+                (
+                    "Calc",
+                    "Insert calculation",
+                    crate::rich_dialog::DialogKind::Calc,
+                ),
+            ] {
+                let button = ui.button(label).on_hover_text(name);
+                name_field(ui, &button, name);
+                if button.clicked() {
+                    let caret = draft.caret.unwrap_or_else(|| draft.body.chars().count());
+                    *edit.rich_dialog = Some(crate::rich_dialog::RichDialog::insert(
+                        &document.id,
+                        kind,
+                        caret,
+                    ));
+                }
+            }
             // ProseCraft's "MD" button, when the Markdown editor is enabled.
             if edit.markdown_enabled {
                 ui.separator();
@@ -2045,6 +2097,12 @@ fn editor(
             Clicked::Footnote(id) => {
                 *edit.footnote_open = Some((document.id.clone(), id.clone()));
             }
+            Clicked::Rich(atom) => {
+                if let Some(html) = draft.doc.atoms.get(*atom) {
+                    *edit.rich_dialog =
+                        crate::rich_dialog::RichDialog::edit(&document.id, *atom, html);
+                }
+            }
             Clicked::Cite(atom) => {
                 let cites = draft
                     .doc
@@ -2069,6 +2127,13 @@ fn editor(
         (edit.proofing, edit.editable, edit.now),
         draft,
         &output,
+    );
+    rich_dialog(
+        ui,
+        palette,
+        (edit.rich_dialog, edit.editable, edit.now),
+        draft,
+        &document.id,
     );
     // A new citation's picker opens beside the caret.
     if let Some(picker) = edit
@@ -2298,6 +2363,8 @@ pub(crate) enum Clicked {
     Footnote(String),
     /// A citation: its atom's index.
     Cite(usize),
+    /// A drawn equation, diagram or calculation: its atom's index.
+    Rich(usize),
 }
 
 /// What the text itself can't show: list bullets and numbers, the quote bar, footnote
@@ -2583,6 +2650,7 @@ pub(crate) fn paint_atoms(
             {
                 let rect =
                     egui::Rect::from_center_size(egui::pos2(center.x, before.center().y), size);
+                markers.push((rect, Clicked::Rich(atom)));
                 let texture = crate::rich_view::texture(painter.ctx(), &pixels);
                 painter.image(
                     texture.id(),
@@ -2596,6 +2664,7 @@ pub(crate) fn paint_atoms(
                     center,
                     egui::vec2((right - before.min.x).max(16.0), ATOM_FONT + 4.0),
                 );
+                markers.push((chip, Clicked::Rich(atom)));
                 painter.rect_filled(chip, 4.0, palette.selected_bg);
                 painter.text(
                     chip.center(),
@@ -2606,7 +2675,19 @@ pub(crate) fn paint_atoms(
                 );
             }
             AtomLabel::Other => {}
-            AtomLabel::Block(preview) => paint_block(painter, palette, preview, before, right_edge),
+            AtomLabel::Block(preview) => {
+                paint_block(painter, palette, preview, before, right_edge);
+                // A click on an equation, diagram or calculation edits it (`openRichDialog`).
+                if crate::rich_view::block_kind(preview).is_some()
+                    && let Some(cell) = glyph_rect(galley, index)
+                {
+                    let row = cell.translate(origin.to_vec2());
+                    markers.push((
+                        egui::Rect::from_min_max(row.min, egui::pos2(right_edge, row.max.y)),
+                        Clicked::Rich(atom),
+                    ));
+                }
+            }
             AtomLabel::Picture(picture) => {
                 // Its own glyph's cell: at a row break the caret before it is at the end of the
                 // row above.

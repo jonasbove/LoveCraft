@@ -32,6 +32,7 @@ mod preview;
 mod project_settings;
 mod proofreading;
 mod publish;
+mod rich_dialog;
 mod rich_view;
 mod screenplay_editor;
 mod scrivener_import;
@@ -280,6 +281,7 @@ pub struct AppState {
     proofread: proofreading::ProofreadPrefs,
     proofread_choice: Option<proofreading::ProofreadPrefs>,
     proofing: proofreading::Proofing,
+    rich_dialog: Option<rich_dialog::RichDialog>,
     /// Undo and redo (ProseCraft's `UndoManager`), by text field and by page; selections are
     /// character ranges.
     undo: prosecraft_core::undo::UndoManager<(usize, usize)>,

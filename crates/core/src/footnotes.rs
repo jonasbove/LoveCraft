@@ -211,6 +211,31 @@ pub fn update_definition(
     Ok(())
 }
 
+/// `restoreScopeFootnotes` for one scene: its definitions as they were (none: the list goes),
+/// for undo and redo.
+pub fn restore_definitions(
+    project: &mut JsValue,
+    document: &str,
+    notes: &[(String, String)],
+) -> Result<(), EditError> {
+    let doc = document_mut(project, document)?;
+    if notes.is_empty() {
+        doc.remove("footnotes");
+        return Ok(());
+    }
+    let list = notes
+        .iter()
+        .map(|(id, html)| {
+            let mut def = JsObject::new();
+            def.insert("id", JsValue::str(id));
+            def.insert("html", JsValue::str(html));
+            JsValue::Object(def)
+        })
+        .collect();
+    doc.insert("footnotes", JsValue::Array(list));
+    Ok(())
+}
+
 /// `removeFootnoteById`: the markers and the definition.
 pub fn remove(project: &mut JsValue, document: &str, id: &str) -> Result<(), EditError> {
     let doc = document_mut(project, document)?;

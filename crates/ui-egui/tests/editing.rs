@@ -274,6 +274,143 @@ fn insert_image_puts_the_picture_at_the_caret_as_prosecraft_does() {
     harness.get_by_label_contains("Use a PNG, JPG, WebP, GIF, BMP, or AVIF image.");
 }
 
+/// The stored content of a document.
+fn content(memory: &Memory, id: &str) -> String {
+    let saved = memory.last();
+    document(project(&saved, "project-1"), id)
+        .and_then(|d| d.get("content"))
+        .and_then(JsValue::as_js_string)
+        .map(|c| c.to_string_lossy())
+        .unwrap_or_default()
+}
+
+#[test]
+fn undo_takes_back_typing_a_step_at_a_time_and_redo_brings_it_back() {
+    let (mut harness, memory) = app();
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("an add button")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Scene 1")
+        .click();
+    harness.run();
+    let body = harness.get_by_label("Scene text");
+    body.focus();
+    body.type_text("The lamp");
+    harness.run();
+    harness.key_press(egui::Key::Enter);
+    harness.get_by_label("Scene text").type_text("went out");
+    harness.run();
+    let undo = |harness: &mut Harness<'static, ProseApp>| {
+        harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::Z);
+        harness.run();
+    };
+    // Typing is one step, the new line another (ProseCraft's grouping).
+    undo(&mut harness);
+    harness.run_steps(12);
+    assert_eq!(content(&memory, "new-1"), "<p>The lamp</p><p><br></p>");
+    undo(&mut harness);
+    harness.run_steps(12);
+    assert_eq!(content(&memory, "new-1"), "<p>The lamp</p>");
+    harness.key_press_modifiers(
+        egui::Modifiers::COMMAND | egui::Modifiers::SHIFT,
+        egui::Key::Z,
+    );
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::Y);
+    harness.run_steps(12);
+    assert_eq!(content(&memory, "new-1"), "<p>The lamp</p><p>went out</p>");
+    // The toolbar's Undo, then typing: redo is gone.
+    harness.get_by_role_and_label(Role::Button, "Undo").click();
+    harness.run();
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    harness.get_by_label("Scene text").type_text("!");
+    harness.run();
+    harness.get_by_role_and_label(Role::Button, "Redo").click();
+    harness.run_steps(12);
+    let after = content(&memory, "new-1");
+    assert!(
+        after.contains('!') && !after.contains("went out"),
+        "{after}"
+    );
+}
+
+#[test]
+fn undo_takes_back_formatting() {
+    let (mut harness, memory) = app();
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("an add button")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Scene 1")
+        .click();
+    harness.run();
+    let body = harness.get_by_label("Scene text");
+    body.focus();
+    body.type_text("loud words");
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::NONE, egui::Key::Home);
+    for _ in 0..4 {
+        harness.key_press_modifiers(egui::Modifiers::SHIFT, egui::Key::ArrowRight);
+    }
+    harness.run();
+    harness.get_by_role_and_label(Role::Button, "Bold").click();
+    harness.run_steps(12);
+    assert_eq!(
+        content(&memory, "new-1"),
+        "<p><strong>loud</strong> words</p>"
+    );
+    harness.get_by_role_and_label(Role::Button, "Undo").click();
+    harness.run_steps(12);
+    assert_eq!(content(&memory, "new-1"), "<p>loud words</p>");
+}
+
+#[test]
+fn undo_outside_the_text_takes_back_the_last_change_on_the_page() {
+    let (mut harness, memory) = app();
+    let chapters = |memory: &Memory| -> usize {
+        project(&memory.last(), "project-1")
+            .get("project")
+            .and_then(|p| p.get("chapters"))
+            .and_then(JsValue::as_array)
+            .map_or(0, <[JsValue]>::len)
+    };
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness.run_steps(12);
+    let before = chapters(&memory);
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("an add button")
+        .click();
+    harness.run_steps(12);
+    assert_eq!(chapters(&memory), before + 1);
+    // Nothing focused: Ctrl+Z is the page's.
+    harness.ctx.memory_mut(|m| m.request_focus(egui::Id::NULL));
+    harness.ctx.memory_mut(|m| {
+        if let Some(id) = m.focused() {
+            m.surrender_focus(id);
+        }
+    });
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::Z);
+    harness.run_steps(12);
+    assert_eq!(chapters(&memory), before);
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::Y);
+    harness.run_steps(12);
+    assert_eq!(chapters(&memory), before + 1);
+}
+
 #[test]
 fn a_screenplay_scene_opens_in_the_screenplay_editor() {
     let (mut harness, _memory) = app();

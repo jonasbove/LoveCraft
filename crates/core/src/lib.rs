@@ -36,4 +36,5 @@ pub mod storage;
 pub mod storyboard;
 pub mod sync;
 pub mod timeline;
+pub mod undo;
 pub mod wiki;

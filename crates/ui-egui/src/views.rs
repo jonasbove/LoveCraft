@@ -78,6 +78,10 @@ struct Edit<'a> {
     now: f64,
     /// The editor's Comment button: the passage chosen, and the sidebar tab to show.
     pending_comment: &'a mut Option<crate::PendingComment>,
+    /// Undo and redo, and the project and page they are kept for.
+    undo: &'a mut prosecraft_core::undo::UndoManager<(usize, usize)>,
+    project_id: String,
+    undo_page: String,
     side_tab: &'a mut crate::SideTab,
     /// A passage to select ("Go to" in the Comments tab): document, editor start and end.
     comment_goto: &'a mut Option<(String, usize, usize)>,
@@ -155,6 +159,8 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         sources,
         citation_picker,
         cite_labels,
+        undo,
+        undo_page,
         ..
     } = state;
     let entry = library.as_ref().and_then(|l| l.projects().get(*active));
@@ -195,6 +201,9 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         save_state,
         now: *now,
         pending_comment,
+        undo,
+        project_id: project.id.clone(),
+        undo_page: undo_page.clone(),
         side_tab,
         comment_goto,
         footnote_open,
@@ -790,6 +799,93 @@ fn chapter_keys(
     }
 }
 
+/// `recordFieldEdit` for the editor: the scene's HTML and footnotes in its history, as one step
+/// per change, typing grouped as ProseCraft groups it. A history that doesn't end at this text
+/// (another scene opened, a change from elsewhere) starts over.
+/// The history and where an edit is recorded in it.
+struct UndoAt<'a> {
+    undo: &'a mut prosecraft_core::undo::UndoManager<(usize, usize)>,
+    project: &'a str,
+    page: &'a str,
+    now_ms: f64,
+}
+
+fn record_body_history(
+    edit: UndoAt<'_>,
+    document: &prosecraft_core::project::Document,
+    draft: &mut Draft,
+    cursor: Option<egui::text::CCursorRange>,
+) {
+    use prosecraft_core::undo::{Edit as UndoEdit, EditKind, decode_body, encode_body};
+    let key = format!("{}/body:{}", edit.project, document.id);
+    let notes: Vec<(String, String)> = document
+        .footnotes
+        .iter()
+        .map(|f| (f.id.clone(), f.html.clone()))
+        .collect();
+    let value = encode_body(&draft.doc.to_html(), &document.id, &notes);
+    let selection = cursor.map(|r| {
+        let (a, b) = (r.primary.index.0, r.secondary.index.0);
+        (a.min(b), a.max(b))
+    });
+    let Some(current) = edit.undo.current(&key).map(str::to_owned) else {
+        edit.undo.sync(&key, &value);
+        draft.undo_caret = selection;
+        return;
+    };
+    if current == value {
+        if let Some(selection) = selection.filter(|_| draft.undo_caret.is_none()) {
+            draft.undo_caret = Some(selection);
+        }
+        return;
+    }
+    let html_unchanged = decode_body(&current).0 == draft.doc.to_html();
+    if !draft.is_dirty() && !html_unchanged {
+        // Not typed here: the stored text changed underneath (a sync, an import).
+        edit.undo.sync(&key, &value);
+        draft.undo_caret = selection;
+        return;
+    }
+    // Only a footnote's text changed (`finishProgrammaticBodyEdit` when its popover closes):
+    // one step of its own.
+    let before_text = prosecraft_core::richtext::RichDoc::from_html(&decode_body(&current).0)
+        .map(|d| d.text)
+        .unwrap_or_default();
+    let diff = prosecraft_core::undo::diff_text(&before_text, &draft.doc.text);
+    let kind = if diff.inserted.contains('\n') {
+        EditKind::Newline
+    } else if diff.inserted.is_empty() && !diff.removed.is_empty() {
+        EditKind::Delete
+    } else if diff.removed.is_empty() && !diff.inserted.is_empty() {
+        EditKind::Type
+    } else {
+        EditKind::Other
+    };
+    let after = selection.or(draft.undo_caret).unwrap_or_default();
+    let start = before_text[..diff.from].chars().count();
+    // Where this edit began: right after the last one, unless the caret went elsewhere.
+    let at = match kind {
+        EditKind::Type | EditKind::Newline => start,
+        EditKind::Delete => start + diff.removed.chars().count(),
+        _ => start,
+    };
+    let previous = draft.undo_caret.unwrap_or((at, at));
+    let caret_moved = previous.1 != at && previous.0 != at;
+    edit.undo.record(
+        &key,
+        Some(edit.page),
+        &value,
+        UndoEdit {
+            kind,
+            time: edit.now_ms,
+            caret_moved,
+            before: previous,
+            after,
+        },
+    );
+    draft.undo_caret = Some(after);
+}
+
 /// `chapterMarkdownSource` over the chapter's scenes: their own sources when every scene has
 /// one, else Markdown from their HTML.
 fn chapter_markdown(scenes: &[&prosecraft_core::project::Document]) -> String {
@@ -1172,6 +1268,7 @@ fn editor(
             markdown_base: String::new(),
             chapter: None,
             caret: None,
+            undo_caret: None,
         });
     }
     let now = edit.now;
@@ -1368,6 +1465,18 @@ fn editor(
                 }
             }
             ui.separator();
+            // ProseCraft's Undo and Redo: the scene's own history.
+            for (label, undo) in [("Undo", true), ("Redo", false)] {
+                let button = ui.button(label).on_hover_text(label);
+                name_field(ui, &button, label);
+                if button.clicked() {
+                    edit.intents.push(Intent::BodyHistory {
+                        document: document.id.clone(),
+                        undo,
+                    });
+                }
+            }
+            ui.separator();
             // ProseCraft's Insert image: a picture at the caret (or the end of the text).
             let picture = ui.button("Image").on_hover_text("Insert image");
             name_field(ui, &picture, "Insert image");
@@ -1521,6 +1630,24 @@ fn editor(
             f.layout_job(job)
         })
     };
+    // Undo and redo in the text are the scene's history, taken before the text field's own.
+    if ui.memory(|m| m.has_focus(body_id)) {
+        let (undo, redo) = ui.input_mut(|i| {
+            // Ctrl+Shift+Z first: a Ctrl+Z pattern also matches it.
+            let redo = i.consume_key(
+                egui::Modifiers::COMMAND | egui::Modifiers::SHIFT,
+                egui::Key::Z,
+            ) || i.consume_key(egui::Modifiers::COMMAND, egui::Key::Y);
+            let undo = i.consume_key(egui::Modifiers::COMMAND, egui::Key::Z);
+            (undo, redo)
+        });
+        if undo || redo {
+            edit.intents.push(Intent::BodyHistory {
+                document: document.id.clone(),
+                undo,
+            });
+        }
+    }
     let output = egui::TextEdit::multiline(&mut draft.body)
         .id(body_id)
         .frame(egui::Frame::NONE)
@@ -1558,6 +1685,17 @@ fn editor(
         draft.words_added += (words as f64 - draft.words as f64).max(0.0);
         draft.words = words;
     }
+    record_body_history(
+        UndoAt {
+            undo: edit.undo,
+            project: &edit.project_id,
+            page: &edit.undo_page,
+            now_ms: edit.now_ms,
+        },
+        document,
+        draft,
+        output.cursor_range,
+    );
     let labels = atom_labels(&draft.doc, &edit.cites);
     let markers = paint_extras(
         ui,
@@ -1710,6 +1848,7 @@ fn markdown_editor(
             markdown_base: markdown_base(document),
             chapter: chapter.as_ref().map(|c| c.id.clone()),
             caret: None,
+            undo_caret: None,
         });
     }
     let now = edit.now;

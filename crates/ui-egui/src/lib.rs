@@ -267,6 +267,8 @@ pub struct AppState {
     focus_hint_until: f64,
     /// Focus mode asked for from the Settings dialog.
     focus_wanted: bool,
+    /// The keyboard shortcuts sheet, and which platform's keys it shows.
+    shortcuts: Option<bool>,
     /// Where the editor's text was drawn last frame (the pointer leaving it brings Zen mode's
     /// interface back).
     editor_rect: Option<egui::Rect>,
@@ -762,6 +764,181 @@ impl ProseApp {
             Err(error) => self.state.status = Some(format!("That change wasn't made: {error}")),
         }
         self.refresh_views();
+    }
+
+    /// ProseCraft's app shortcuts (its menu accelerators and `handleKeydown`): Ctrl+N a new
+    /// scene, Ctrl+, Settings, Ctrl+Shift+E the scene as text, Ctrl+Shift+P Publish, and Ctrl+/
+    /// (or "?" outside text) the shortcuts sheet, which Escape closes.
+    fn app_shortcuts(&mut self, ctx: &egui::Context) {
+        use egui::Modifiers as M;
+        let typing = ctx.memory(|m| m.focused().is_some());
+        let (sheet, question, escape, export, publish, settings, new) = ctx.input_mut(|i| {
+            (
+                i.consume_key(M::COMMAND, Key::Slash),
+                !typing && i.consume_key(M::SHIFT, Key::Questionmark)
+                    || !typing && i.consume_key(M::NONE, Key::Questionmark),
+                self.state.shortcuts.is_some() && i.consume_key(M::NONE, Key::Escape),
+                i.consume_key(M::COMMAND | M::SHIFT, Key::E),
+                i.consume_key(M::COMMAND | M::SHIFT, Key::P),
+                i.consume_key(M::COMMAND, Key::Comma),
+                i.consume_key(M::COMMAND, Key::N),
+            )
+        });
+        if sheet || question {
+            self.state.shortcuts = match self.state.shortcuts {
+                Some(_) => None,
+                None => Some(cfg!(target_os = "macos")),
+            };
+        }
+        if escape {
+            self.state.shortcuts = None;
+        }
+        if publish && self.state.library.is_some() {
+            self.state.view = WorkspaceView::Publish;
+        }
+        if settings {
+            self.state.settings_open = true;
+        }
+        if export {
+            self.export_scene();
+        }
+        if new && self.state.editable {
+            // `createDocument`: a scene in the first chapter, or a first chapter.
+            let first = self
+                .state
+                .library
+                .as_ref()
+                .and_then(|l| l.projects().get(self.state.active))
+                .and_then(|p| p.view.chapters.iter().find(|c| !c.trashed))
+                .map(|c| c.id.clone());
+            self.state.intents.push(match first {
+                Some(chapter) => editing::Intent::AddScene { chapter },
+                None => editing::Intent::AddChapter,
+            });
+        }
+    }
+
+    /// `exportDocument`: the open scene's text (`innerText`, trimmed) as a `.txt` named after
+    /// its title.
+    fn export_scene(&mut self) {
+        self.commit_draft();
+        let Some(Selection::Document(id)) = self.state.selection.clone() else {
+            return;
+        };
+        let Some(document) = self
+            .state
+            .library
+            .as_ref()
+            .and_then(|l| l.projects().get(self.state.active))
+            .and_then(|p| p.view.document(&id))
+        else {
+            return;
+        };
+        let text = prosecraft_core::html::inner_text(&document.content);
+        let text = text.trim_matches(prosecraft_core::html::is_js_whitespace);
+        let title = if document.title.is_empty() {
+            "untitled"
+        } else {
+            &document.title
+        };
+        // `title.replace(/[^\w-]+/g, "-").toLowerCase()`.
+        let mut name = String::new();
+        for c in title.chars() {
+            if c.is_ascii_alphanumeric() || c == '_' || c == '-' {
+                name.push(c);
+            } else if !name.ends_with('\u{1}') {
+                name.push('\u{1}');
+            }
+        }
+        let name = name.replace('\u{1}', "-").to_lowercase();
+        self.state.requests.push(HostRequest::ExportFile {
+            file_name: format!("{name}.txt"),
+            bytes: text.as_bytes().to_vec(),
+            kind: "Plain text".to_owned(),
+            extension: "txt".to_owned(),
+        });
+    }
+
+    /// `ShortcutsSheet`: the shortcuts by group, as macOS or Windows and Linux show them, and
+    /// Save as PDF.
+    fn shortcuts_sheet(&mut self, ctx: &egui::Context) {
+        use prosecraft_core::shortcuts::{GROUPS, format_key};
+        let Some(mut mac) = self.state.shortcuts else {
+            return;
+        };
+        let palette = self.state.palette;
+        let mut open = true;
+        let mut save = false;
+        egui::Window::new("Keyboard shortcuts")
+            .open(&mut open)
+            .collapsible(false)
+            .resizable(false)
+            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+            .show(ctx, |ui| {
+                ui.label(
+                    egui::RichText::new("PROSECRAFT")
+                        .size(10.0)
+                        .color(palette.text_muted),
+                );
+                ui.horizontal(|ui| {
+                    ui.selectable_value(&mut mac, true, "macOS");
+                    ui.selectable_value(&mut mac, false, "Windows / Linux");
+                    ui.separator();
+                    save = ui.button("Save as PDF").clicked();
+                });
+                ui.add_space(8.0);
+                ui.columns(2, |columns| {
+                    for (index, group) in GROUPS.iter().enumerate() {
+                        let ui = &mut columns[index % 2];
+                        ui.label(
+                            egui::RichText::new(group.title)
+                                .strong()
+                                .color(palette.text_heading),
+                        );
+                        for entry in group.entries {
+                            ui.horizontal(|ui| {
+                                ui.label(egui::RichText::new(entry.action).size(12.0));
+                                ui.with_layout(
+                                    egui::Layout::right_to_left(egui::Align::Center),
+                                    |ui| {
+                                        for key in entry.keys.iter().rev() {
+                                            egui::Frame::new()
+                                                .stroke(egui::Stroke::new(
+                                                    1.0,
+                                                    palette.border_control,
+                                                ))
+                                                .fill(palette.control_bg)
+                                                .corner_radius(4.0)
+                                                .inner_margin(egui::Margin::symmetric(5, 2))
+                                                .show(ui, |ui| {
+                                                    ui.label(
+                                                        egui::RichText::new(format_key(key, mac))
+                                                            .size(10.0),
+                                                    );
+                                                });
+                                        }
+                                    },
+                                );
+                            });
+                        }
+                        ui.add_space(10.0);
+                    }
+                });
+            });
+        self.state.shortcuts = open.then_some(mac);
+        if save {
+            match prosecraft_core::shortcuts::pdf(mac) {
+                Ok(bytes) => self.state.requests.push(HostRequest::ExportFile {
+                    file_name: "prosecraft-shortcuts.pdf".to_owned(),
+                    bytes,
+                    kind: "PDF document".to_owned(),
+                    extension: "pdf".to_owned(),
+                }),
+                Err(error) => {
+                    self.state.status = Some(format!("Could not save the PDF: {error}"));
+                }
+            }
+        }
     }
 
     /// Focus mode (Ctrl+Shift+Enter, Escape), Zen mode's interface coming back, the focus
@@ -1609,6 +1786,7 @@ impl ProseApp {
         let frame = egui::Frame::new()
             .fill(palette.sidebar_bg)
             .stroke(egui::Stroke::new(1.0, palette.border));
+        self.app_shortcuts(ui.ctx());
         self.writing_modes(ui.ctx());
         // Zen and focus mode hide the panes around the text.
         let hidden: Vec<Pane> = Vec::new();
@@ -1660,6 +1838,7 @@ impl ProseApp {
             self.state.find = Some(find::FindState::new());
         }
         find::show(ui, &mut self.state);
+        self.shortcuts_sheet(ui.ctx());
         if let Some((screenplay, blueprint)) = self.state.create_project.take() {
             self.create_project(screenplay, &blueprint);
         }

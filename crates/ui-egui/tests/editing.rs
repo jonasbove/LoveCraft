@@ -385,6 +385,74 @@ fn add_link_links_the_selection() {
 }
 
 #[test]
+fn app_shortcuts_and_the_shortcuts_sheet() {
+    use egui::Modifiers as M;
+    let (mut harness, memory) = app();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    // Ctrl+Shift+E: the scene as text, named after its title.
+    harness.key_press_modifiers(M::COMMAND | M::SHIFT, egui::Key::E);
+    harness.run();
+    let requests = harness.state_mut().take_requests();
+    let Some(prosecraft_ui_egui::HostRequest::ExportFile {
+        file_name, bytes, ..
+    }) = requests.first()
+    else {
+        panic!("no export: {requests:?}");
+    };
+    assert_eq!(file_name, "opening-scene.txt");
+    let text = String::from_utf8_lossy(bytes);
+    assert!(text.starts_with("It was dark."), "{text}");
+    assert!(!text.contains("Smith"), "a citation draws no text: {text}");
+    // Ctrl+/: the sheet; Save as PDF; Escape closes it.
+    harness.key_press_modifiers(M::COMMAND, egui::Key::Slash);
+    harness.run();
+    harness.get_by_label("Toggle focus mode");
+    assert!(harness.get_all_by_label("Ctrl").count() > 5);
+    harness
+        .get_by_role_and_label(Role::Button, "Save as PDF")
+        .click();
+    harness.run();
+    let requests = harness.state_mut().take_requests();
+    assert!(requests.iter().any(|r| matches!(r,
+        prosecraft_ui_egui::HostRequest::ExportFile { file_name, bytes, .. }
+            if file_name == "prosecraft-shortcuts.pdf" && bytes.starts_with(b"%PDF-"))));
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    assert!(harness.query_by_label("Toggle focus mode").is_none());
+    // Ctrl+, Settings; Ctrl+Shift+P Publish.
+    harness.key_press_modifiers(M::COMMAND, egui::Key::Comma);
+    harness.run();
+    harness.get_by_label("Writing");
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    // Ctrl+N: a new scene in the first chapter.
+    let scenes = |memory: &Memory| -> usize {
+        project(&memory.last(), "project-1")
+            .get("project")
+            .and_then(|p| p.get("documents"))
+            .and_then(JsValue::as_array)
+            .map_or(0, <[JsValue]>::len)
+    };
+    harness.run_steps(12);
+    let before = scenes(&memory);
+    harness.key_press_modifiers(M::COMMAND, egui::Key::N);
+    harness.run_steps(12);
+    assert_eq!(scenes(&memory), before + 1);
+    harness.key_press_modifiers(M::COMMAND | M::SHIFT, egui::Key::P);
+    harness.run();
+    assert_eq!(
+        harness
+            .get_by_role_and_label(Role::Tab, "Publish")
+            .accesskit_node()
+            .is_selected(),
+        Some(true)
+    );
+}
+
+#[test]
 fn undo_takes_back_formatting() {
     let (mut harness, memory) = app();
     harness

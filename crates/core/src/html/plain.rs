@@ -346,3 +346,94 @@ mod tests {
         assert_eq!(count_words(" a\u{a0}b\u{85}c \u{3000}d "), 3);
     }
 }
+
+/// `innerText` of the editor (`exportDocument`): the text as the browser lays it out, two
+/// newlines around a paragraph and one around other blocks (collapsed between them), a tab
+/// between table cells, a newline for `<br>`; footnote markers, citations and equations, which
+/// the editor draws without text, add nothing.
+pub fn inner_text(html: &str) -> String {
+    struct Out {
+        text: String,
+        /// Newlines owed before the next text (the larger of what the blocks around ask).
+        owed: usize,
+    }
+    impl Out {
+        fn push(&mut self, s: &str) {
+            if s.is_empty() {
+                return;
+            }
+            if !self.text.is_empty() {
+                self.text.push_str(&"\n".repeat(self.owed));
+            }
+            self.owed = 0;
+            self.text.push_str(s);
+        }
+        fn owe(&mut self, n: usize) {
+            self.owed = self.owed.max(n);
+        }
+    }
+    fn walk(nodes: &[Node], out: &mut Out) {
+        for node in nodes {
+            match node {
+                Node::Text(t) => out.push(t),
+                Node::Element(e) => {
+                    let widget = (e.name == "sup" && e.has_class("footnote-ref"))
+                        || e.has_class("cite-ref")
+                        || [
+                            "math-inline",
+                            "math-block",
+                            "mermaid-diagram",
+                            "calc-worksheet",
+                        ]
+                        .iter()
+                        .any(|c| e.has_class(c));
+                    if widget {
+                        continue;
+                    }
+                    let breaks = match e.name.as_str() {
+                        "p" => 2,
+                        "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "li" | "ul" | "ol"
+                        | "blockquote" | "pre" | "div" | "table" | "tr" | "hr" => 1,
+                        _ => 0,
+                    };
+                    if e.name == "br" {
+                        out.text.push('\n');
+                        continue;
+                    }
+                    out.owe(breaks);
+                    for (i, child) in e.children.iter().enumerate() {
+                        if e.name == "tr"
+                            && i > 0
+                            && matches!(child, Node::Element(c) if c.name == "td" || c.name == "th")
+                        {
+                            out.text.push('\t');
+                        }
+                        walk(std::slice::from_ref(child), out);
+                    }
+                    out.owe(breaks);
+                }
+            }
+        }
+    }
+    let mut out = Out {
+        text: String::new(),
+        owed: 0,
+    };
+    walk(&parse_fragment(html), &mut out);
+    out.text
+}
+
+#[cfg(test)]
+mod inner_text_tests {
+    use super::inner_text;
+
+    #[test]
+    fn reads_as_the_browser_lays_it_out() {
+        assert_eq!(
+            inner_text(
+                r#"<h2>Title</h2><p>It was <em>dark</em><sup class="footnote-ref" data-footnote-id="n"></sup>.</p><p>a<br>b</p><ul><li>one</li><li>two</li></ul>"#
+            ),
+            "Title\n\nIt was dark.\n\na\nb\n\none\ntwo"
+        );
+    }
+}

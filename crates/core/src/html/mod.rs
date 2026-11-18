@@ -10,7 +10,8 @@ mod plain;
 pub mod sanitize;
 
 pub use plain::{
-    PlainTextOptions, RichText, count_words, html_to_plain_text, html_word_count, is_js_whitespace,
+    PlainTextOptions, RichText, count_words, html_to_plain_text, html_word_count, inner_text,
+    is_js_whitespace,
 };
 pub use sanitize::{sanitize_html, sanitize_inline_html, sanitize_nodes};
 

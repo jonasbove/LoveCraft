@@ -1025,3 +1025,46 @@ fn citation_import_matches_prosecraft() {
     assert_eq!(checked, expected);
     assert!(checked > 100, "{checked}");
 }
+
+#[test]
+fn editor_citation_labels_match_prosecraft() {
+    use prosecraft_core::citations::labels::citation_labels;
+    let fx = fixture("citation-labels.json");
+    let text = |v: &JsValue| v.as_js_string().map(|s| s.to_string_lossy());
+    let library = fx
+        .get("library")
+        .and_then(JsValue::as_array)
+        .expect("library");
+    let markers: Vec<String> = fx
+        .get("markers")
+        .and_then(JsValue::as_array)
+        .expect("markers")
+        .iter()
+        .filter_map(text)
+        .collect();
+    let markers: Vec<&str> = markers.iter().map(String::as_str).collect();
+    let cases = fx.get("cases").and_then(JsValue::as_array).expect("cases");
+    assert!(cases.len() > 16);
+    for case in cases {
+        let style = case.get("style").and_then(text).expect("style");
+        let locale = case.get("locale").and_then(text).expect("locale");
+        let items = if case.get("empty").is_some() {
+            &[][..]
+        } else {
+            library
+        };
+        let expected: Vec<Option<String>> = case
+            .get("labels")
+            .and_then(JsValue::as_array)
+            .expect("labels")
+            .iter()
+            .map(text)
+            .collect();
+        assert_eq!(expected.len(), markers.len());
+        assert_eq!(
+            citation_labels(&markers, items, &style, &locale),
+            expected,
+            "{style} {locale}"
+        );
+    }
+}

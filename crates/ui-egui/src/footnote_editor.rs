@@ -138,8 +138,13 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                     });
                     let layout_doc = doc.clone();
                     let mut layouter = move |ui: &Ui, text: &dyn egui::TextBuffer, wrap: f32| {
-                        let job =
-                            crate::views::layout_doc(&layout_doc, text.as_str(), &palette, wrap);
+                        let job = crate::views::layout_doc(
+                            &layout_doc,
+                            text.as_str(),
+                            &palette,
+                            wrap,
+                            &[],
+                        );
                         ui.fonts_mut(|f| f.layout_job(job))
                     };
                     let output = egui::TextEdit::multiline(&mut edit.body)

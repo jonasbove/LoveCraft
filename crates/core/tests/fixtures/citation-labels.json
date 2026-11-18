@@ -1,0 +1,345 @@
+{
+  "library": [
+    {
+      "id": "smith2020",
+      "type": "book",
+      "title": "The Lighthouse Keeper",
+      "author": [
+        {
+          "family": "Smith",
+          "given": "Jo Ann"
+        }
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            2020
+          ]
+        ]
+      },
+      "publisher": "Harbour Press",
+      "citeKey": "smithLH"
+    },
+    {
+      "id": "smith2020b",
+      "type": "book",
+      "title": "Another Lighthouse",
+      "author": [
+        {
+          "family": "Smith",
+          "given": "Jo Ann"
+        }
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            2020
+          ]
+        ]
+      }
+    },
+    {
+      "id": "doe-roe",
+      "type": "article-journal",
+      "title": "Tides",
+      "author": [
+        {
+          "family": "Doe",
+          "given": "Jane"
+        },
+        {
+          "family": "Roe",
+          "given": "Richard"
+        }
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            2019
+          ]
+        ]
+      },
+      "container-title": "Sea",
+      "page": "101-120"
+    },
+    {
+      "id": "corp",
+      "type": "report",
+      "title": "Annual report",
+      "author": [
+        {
+          "literal": "World Lighthouse Organization"
+        }
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            2022
+          ]
+        ]
+      }
+    },
+    {
+      "id": "nodate",
+      "type": "book",
+      "title": "Undated",
+      "author": [
+        {
+          "family": "Nobody",
+          "given": "N."
+        }
+      ]
+    }
+  ],
+  "markers": [
+    "<span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;doe-roe&quot;}]\" contenteditable=\"false\"></span>",
+    "<span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smithLH&quot;,&quot;locator&quot;:&quot;42&quot;,&quot;label&quot;:&quot;page&quot;}]\" contenteditable=\"false\"></span>",
+    "<span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020b&quot;,&quot;prefix&quot;:&quot;see &quot;,&quot;suffix&quot;:&quot;for more&quot;},{&quot;id&quot;:&quot;corp&quot;,&quot;locator&quot;:&quot;3&quot;,&quot;label&quot;:&quot;chapter&quot;}]\" contenteditable=\"false\"></span>",
+    "<span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;missing&quot;}]\" contenteditable=\"false\"></span>",
+    "<span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;nodate&quot;,&quot;suppressAuthor&quot;:true},{&quot;id&quot;:&quot;gone&quot;}]\" contenteditable=\"false\"></span>",
+    "<span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;doe-roe&quot;,&quot;locator&quot;:&quot;7-9&quot;,&quot;label&quot;:&quot;section&quot;}]\" contenteditable=\"false\"></span>",
+    "<span class=\"cite-ref\" data-cites=\"&quot;not an array&quot;\" contenteditable=\"false\"></span>",
+    "<span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020&quot;},{&quot;id&quot;:&quot;smith2020&quot;}]\" contenteditable=\"false\"></span>"
+  ],
+  "cases": [
+    {
+      "style": "apa7",
+      "locale": "en",
+      "labels": [
+        "(Doe & Roe, 2019)",
+        "(Smith, 2020b, p. 42)",
+        "(see Smith, 2020a for more; World Lighthouse Organization, 2022, ch. 3)",
+        "[@missing]",
+        "(n.d.) [@gone]",
+        "(Doe & Roe, 2019, sec. 7–9)",
+        null,
+        "(Smith, 2020b; Smith, 2020b)"
+      ]
+    },
+    {
+      "style": "apa7",
+      "locale": "de",
+      "labels": [
+        "(Doe & Roe, 2019)",
+        "(Smith, 2020b, S. 42)",
+        "(see Smith, 2020a for more; World Lighthouse Organization, 2022, Kap. 3)",
+        "[@missing]",
+        "(o. J.) [@gone]",
+        "(Doe & Roe, 2019, Abschn. 7–9)",
+        null,
+        "(Smith, 2020b; Smith, 2020b)"
+      ]
+    },
+    {
+      "style": "chicago-author-date",
+      "locale": "en",
+      "labels": [
+        "(Doe and Roe 2019)",
+        "(Smith 2020b, 42)",
+        "(see Smith 2020a for more; World Lighthouse Organization 2022, ch. 3)",
+        "[@missing]",
+        "(n.d.) [@gone]",
+        "(Doe and Roe 2019, sec. 7–9)",
+        null,
+        "(Smith 2020b; Smith 2020b)"
+      ]
+    },
+    {
+      "style": "chicago-author-date",
+      "locale": "de",
+      "labels": [
+        "(Doe und Roe 2019)",
+        "(Smith 2020b, 42)",
+        "(see Smith 2020a for more; World Lighthouse Organization 2022, Kap. 3)",
+        "[@missing]",
+        "(o. J.) [@gone]",
+        "(Doe und Roe 2019, Abschn. 7–9)",
+        null,
+        "(Smith 2020b; Smith 2020b)"
+      ]
+    },
+    {
+      "style": "chicago-notes",
+      "locale": "en",
+      "labels": [
+        "Jane Doe and Richard Roe, \"Tides,\" Sea (2019): 101–120.",
+        "Jo Ann Smith, The Lighthouse Keeper (Harbour Press, 2020), 42.",
+        "see Jo Ann Smith, Another Lighthouse (2020) for more; World Lighthouse Organization, Annual report (2022), ch. 3.",
+        "[@missing]",
+        "Undated (n.d.). [@gone]",
+        "Jane Doe and Richard Roe, \"Tides,\" Sea (2019): 101–120, sec. 7–9.",
+        null,
+        "Jo Ann Smith, The Lighthouse Keeper (Harbour Press, 2020); Jo Ann Smith, The Lighthouse Keeper (Harbour Press, 2020)."
+      ]
+    },
+    {
+      "style": "chicago-notes",
+      "locale": "de",
+      "labels": [
+        "Jane Doe und Richard Roe, \"Tides\", Sea (2019): 101–120.",
+        "Jo Ann Smith, The Lighthouse Keeper (Harbour Press, 2020), 42.",
+        "see Jo Ann Smith, Another Lighthouse (2020) for more; World Lighthouse Organization, Annual report (2022), Kap. 3.",
+        "[@missing]",
+        "Undated (o. J.). [@gone]",
+        "Jane Doe und Richard Roe, \"Tides\", Sea (2019): 101–120, Abschn. 7–9.",
+        null,
+        "Jo Ann Smith, The Lighthouse Keeper (Harbour Press, 2020); Jo Ann Smith, The Lighthouse Keeper (Harbour Press, 2020)."
+      ]
+    },
+    {
+      "style": "mla9",
+      "locale": "en",
+      "labels": [
+        "(Doe and Roe)",
+        "(Smith 42)",
+        "(see Smith for more; World Lighthouse Organization ch. 3)",
+        "[@missing]",
+        "(Undated) [@gone]",
+        "(Doe and Roe sec. 7–9)",
+        null,
+        "(Smith; Smith)"
+      ]
+    },
+    {
+      "style": "mla9",
+      "locale": "de",
+      "labels": [
+        "(Doe und Roe)",
+        "(Smith 42)",
+        "(see Smith for more; World Lighthouse Organization Kap. 3)",
+        "[@missing]",
+        "(Undated) [@gone]",
+        "(Doe und Roe Abschn. 7–9)",
+        null,
+        "(Smith; Smith)"
+      ]
+    },
+    {
+      "style": "harvard",
+      "locale": "en",
+      "labels": [
+        "(Doe and Roe, 2019)",
+        "(Smith, 2020b, p. 42)",
+        "(see Smith, 2020a for more; World Lighthouse Organization, 2022, ch. 3)",
+        "[@missing]",
+        "(n.d.) [@gone]",
+        "(Doe and Roe, 2019, sec. 7–9)",
+        null,
+        "(Smith, 2020b; Smith, 2020b)"
+      ]
+    },
+    {
+      "style": "harvard",
+      "locale": "de",
+      "labels": [
+        "(Doe und Roe, 2019)",
+        "(Smith, 2020b, S. 42)",
+        "(see Smith, 2020a for more; World Lighthouse Organization, 2022, Kap. 3)",
+        "[@missing]",
+        "(o. J.) [@gone]",
+        "(Doe und Roe, 2019, Abschn. 7–9)",
+        null,
+        "(Smith, 2020b; Smith, 2020b)"
+      ]
+    },
+    {
+      "style": "ieee",
+      "locale": "en",
+      "labels": [
+        "[1]",
+        "[2, p. 42]",
+        "[see 3 for more], [4, ch. 3]",
+        "[@missing]",
+        "[5] [@gone]",
+        "[1, sec. 7–9]",
+        null,
+        "[2], [2]"
+      ]
+    },
+    {
+      "style": "ieee",
+      "locale": "de",
+      "labels": [
+        "[1]",
+        "[2, S. 42]",
+        "[see 3 for more], [4, Kap. 3]",
+        "[@missing]",
+        "[5] [@gone]",
+        "[1, Abschn. 7–9]",
+        null,
+        "[2], [2]"
+      ]
+    },
+    {
+      "style": "vancouver",
+      "locale": "en",
+      "labels": [
+        "(1)",
+        "(2, p. 42)",
+        "(see 3 for more, 4, ch. 3)",
+        "[@missing]",
+        "(5) [@gone]",
+        "(1, sec. 7–9)",
+        null,
+        "(2, 2)"
+      ]
+    },
+    {
+      "style": "vancouver",
+      "locale": "de",
+      "labels": [
+        "(1)",
+        "(2, S. 42)",
+        "(see 3 for more, 4, Kap. 3)",
+        "[@missing]",
+        "(5) [@gone]",
+        "(1, Abschn. 7–9)",
+        null,
+        "(2, 2)"
+      ]
+    },
+    {
+      "style": "din1505",
+      "locale": "en",
+      "labels": [
+        "(Doe and Roe 2019)",
+        "(Smith 2020b, p. 42)",
+        "(see Smith 2020a for more; World Lighthouse Organization 2022, ch. 3)",
+        "[@missing]",
+        "(n.d.) [@gone]",
+        "(Doe and Roe 2019, sec. 7–9)",
+        null,
+        "(Smith 2020b; Smith 2020b)"
+      ]
+    },
+    {
+      "style": "din1505",
+      "locale": "de",
+      "labels": [
+        "(Doe und Roe 2019)",
+        "(Smith 2020b, S. 42)",
+        "(see Smith 2020a for more; World Lighthouse Organization 2022, Kap. 3)",
+        "[@missing]",
+        "(o. J.) [@gone]",
+        "(Doe und Roe 2019, Abschn. 7–9)",
+        null,
+        "(Smith 2020b; Smith 2020b)"
+      ]
+    },
+    {
+      "style": "apa7",
+      "locale": "en",
+      "empty": true,
+      "labels": [
+        "[@doe-roe]",
+        "[@smithLH]",
+        "[@smith2020b; @corp]",
+        "[@missing]",
+        "[@nodate; @gone]",
+        "[@doe-roe]",
+        null,
+        "[@smith2020; @smith2020]"
+      ]
+    }
+  ]
+}

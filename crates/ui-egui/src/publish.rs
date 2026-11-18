@@ -513,7 +513,7 @@ fn cover_section(
         "generated" => {
             ui.horizontal_top(|ui| {
                 let art = edit.generated_cover.as_deref();
-                cover_thumb(ui, palette, art, "No preview", "Generated cover preview");
+                cover_thumb(ui, palette, art, "Generating…", "Generated cover preview");
                 ui.vertical(|ui| {
                     let width = ui.available_width();
                     for (id, label, detail) in DESIGNS {
@@ -561,6 +561,23 @@ fn cover_section(
     if let Some(error) = edit.cover_error.as_deref() {
         ui.label(RichText::new(error).size(11.0).color(palette.danger));
     }
+}
+
+/// The generated cover for the book in these options (`None` unless the cover is generated).
+fn generated_cover(
+    book: &prosecraft_core::publish::CompiledBook,
+    options: &PublishOptions,
+) -> Option<prosecraft_core::publish::cover::CompiledCover> {
+    let tokens = prosecraft_core::publish::styles::resolve_style_tokens(
+        &options.style,
+        &options.custom_styles,
+    );
+    let text = prosecraft_core::publish::cover_art::CoverText {
+        title: &book.title,
+        subtitle: &book.subtitle,
+        author: &book.author,
+    };
+    crate::cover_art::generated(&text, &options.cover, tokens.font)
 }
 
 fn style_editor_id() -> egui::Id {
@@ -953,6 +970,7 @@ pub(crate) fn show(
         })
         .unwrap_or(options.cover.mode);
     let book = compile_book(project, &options);
+    edit.generated_cover = generated_cover(&book, &options).map(|c| c.data_url);
     let preview = String::from_utf8_lossy(&export_text(&book, &options).bytes).into_owned();
     ui.add_space(18.0);
     ui.horizontal_top(|ui| {
@@ -1461,12 +1479,18 @@ fn controls(
     if ui.add_enabled(can_export, button).clicked() {
         // `resolveCoverImage`: the cover joins the book for the export.
         let mut with_cover;
-        let book = if options.cover.mode == "image" {
-            with_cover = book.clone();
-            with_cover.cover = prosecraft_core::publish::cover::resolve_image(&options.cover);
-            &with_cover
-        } else {
-            book
+        let book = match options.cover.mode {
+            "image" => {
+                with_cover = book.clone();
+                with_cover.cover = prosecraft_core::publish::cover::resolve_image(&options.cover);
+                &with_cover
+            }
+            "generated" => {
+                with_cover = book.clone();
+                with_cover.cover = generated_cover(book, options);
+                &with_cover
+            }
+            _ => book,
         };
         let export = match format.0 {
             "epub" => {

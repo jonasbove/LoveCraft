@@ -1,0 +1,851 @@
+{
+  "cases": [
+    {
+      "source": "",
+      "lines": null,
+      "error": "Add a calculation first.",
+      "latex": null,
+      "plain": ""
+    },
+    {
+      "source": "   \n  ",
+      "lines": null,
+      "error": "Add a calculation first.",
+      "latex": null,
+      "plain": ""
+    },
+    {
+      "source": "# Beam\nm := 5 kg\na := 9.81 m/s^2\nF := m a =\nF = kN\nF = kg\nf(x) := x^2 + 1\nf(3) =\nf(2, 3) =",
+      "lines": [
+        {
+          "kind": "text",
+          "text": "Beam"
+        },
+        {
+          "kind": "math",
+          "source": "m := 5 kg",
+          "latex": "m \\mathrel{:=} 5\\,\\mathrm{kg}",
+          "plain": "m := 5 kg"
+        },
+        {
+          "kind": "math",
+          "source": "a := 9.81 m/s^2",
+          "latex": "a \\mathrel{:=} \\frac{9.81\\,\\mathrm{m}}{{\\mathrm{s}}^{2}}",
+          "plain": "a := 9.81 m/s^2"
+        },
+        {
+          "kind": "math",
+          "source": "F := m a =",
+          "latex": "F \\mathrel{:=} m\\,a = 49.05\\,\\mathrm{N}",
+          "plain": "F := m a = 49.05 N"
+        },
+        {
+          "kind": "math",
+          "source": "F = kN",
+          "latex": "F = 0.04905\\,\\mathrm{kN}",
+          "plain": "F = 0.04905 kN"
+        },
+        {
+          "kind": "error",
+          "source": "F = kg",
+          "message": "The result is in N, which can't be shown in kg."
+        },
+        {
+          "kind": "math",
+          "source": "f(x) := x^2 + 1",
+          "latex": "\\operatorname{f}\\left(x\\right) \\mathrel{:=} {x}^{2} + 1",
+          "plain": "f(x) := x^2 + 1"
+        },
+        {
+          "kind": "math",
+          "source": "f(3) =",
+          "latex": "\\operatorname{f}\\left(3\\right) = 10",
+          "plain": "f(3) = 10"
+        },
+        {
+          "kind": "error",
+          "source": "f(2, 3) =",
+          "message": "f takes 1 argument."
+        }
+      ],
+      "error": null,
+      "latex": "\\begin{array}{l}\\text{Beam}\\\\[0.4em]\\displaystyle m \\mathrel{:=} 5\\,\\mathrm{kg}\\\\[0.4em]\\displaystyle a \\mathrel{:=} \\frac{9.81\\,\\mathrm{m}}{{\\mathrm{s}}^{2}}\\\\[0.4em]\\displaystyle F \\mathrel{:=} m\\,a = 49.05\\,\\mathrm{N}\\\\[0.4em]\\displaystyle F = 0.04905\\,\\mathrm{kN}\\\\[0.4em]\\text{F = kg}\\quad\\color{#c0392b}{\\text{The result is in N, which can't be shown in kg.}}\\\\[0.4em]\\displaystyle \\operatorname{f}\\left(x\\right) \\mathrel{:=} {x}^{2} + 1\\\\[0.4em]\\displaystyle \\operatorname{f}\\left(3\\right) = 10\\\\[0.4em]\\text{f(2, 3) =}\\quad\\color{#c0392b}{\\text{f takes 1 argument.}}\\end{array}",
+      "plain": "Beam\nm := 5 kg\na := 9.81 m/s^2\nF := m a = 49.05 N\nF = 0.04905 kN\nF = kg  [The result is in N, which can't be shown in kg.]\nf(x) := x^2 + 1\nf(3) = 10\nf(2, 3) =  [f takes 1 argument.]"
+    },
+    {
+      "source": "x := 2.0625\nx =\ny := 1.0005\ny =\nz := 0.0625\nz =\nw := 1.25e9\nw =\nv := 0.00012345\nv =\nu := -0.5\nu =\nt := 999999.9995\nt =\nq := 0.99995\nq =",
+      "lines": [
+        {
+          "kind": "math",
+          "source": "x := 2.0625",
+          "latex": "x \\mathrel{:=} 2.0625",
+          "plain": "x := 2.0625"
+        },
+        {
+          "kind": "math",
+          "source": "x =",
+          "latex": "x = 2.063",
+          "plain": "x = 2.063"
+        },
+        {
+          "kind": "math",
+          "source": "y := 1.0005",
+          "latex": "y \\mathrel{:=} 1.0005",
+          "plain": "y := 1.0005"
+        },
+        {
+          "kind": "math",
+          "source": "y =",
+          "latex": "y = 1",
+          "plain": "y = 1"
+        },
+        {
+          "kind": "math",
+          "source": "z := 0.0625",
+          "latex": "z \\mathrel{:=} 0.0625",
+          "plain": "z := 0.0625"
+        },
+        {
+          "kind": "math",
+          "source": "z =",
+          "latex": "z = 0.0625",
+          "plain": "z = 0.0625"
+        },
+        {
+          "kind": "math",
+          "source": "w := 1.25e9",
+          "latex": "w \\mathrel{:=} 1.25\\cdot 10^{9}",
+          "plain": "w := 1.25e9"
+        },
+        {
+          "kind": "math",
+          "source": "w =",
+          "latex": "w = 1.25\\cdot 10^{9}",
+          "plain": "w = 1.25·10^9"
+        },
+        {
+          "kind": "math",
+          "source": "v := 0.00012345",
+          "latex": "v \\mathrel{:=} 0.00012345",
+          "plain": "v := 0.00012345"
+        },
+        {
+          "kind": "math",
+          "source": "v =",
+          "latex": "v = 0.0001234",
+          "plain": "v = 0.0001234"
+        },
+        {
+          "kind": "math",
+          "source": "u := -0.5",
+          "latex": "u \\mathrel{:=} -0.5",
+          "plain": "u := -0.5"
+        },
+        {
+          "kind": "math",
+          "source": "u =",
+          "latex": "u = -0.5",
+          "plain": "u = -0.5"
+        },
+        {
+          "kind": "math",
+          "source": "t := 999999.9995",
+          "latex": "t \\mathrel{:=} 999999.9995",
+          "plain": "t := 999999.9995"
+        },
+        {
+          "kind": "math",
+          "source": "t =",
+          "latex": "t = 1000000",
+          "plain": "t = 1000000"
+        },
+        {
+          "kind": "math",
+          "source": "q := 0.99995",
+          "latex": "q \\mathrel{:=} 0.99995",
+          "plain": "q := 0.99995"
+        },
+        {
+          "kind": "math",
+          "source": "q =",
+          "latex": "q = 1",
+          "plain": "q = 1"
+        }
+      ],
+      "error": null,
+      "latex": "\\begin{array}{l}\\displaystyle x \\mathrel{:=} 2.0625\\\\[0.4em]\\displaystyle x = 2.063\\\\[0.4em]\\displaystyle y \\mathrel{:=} 1.0005\\\\[0.4em]\\displaystyle y = 1\\\\[0.4em]\\displaystyle z \\mathrel{:=} 0.0625\\\\[0.4em]\\displaystyle z = 0.0625\\\\[0.4em]\\displaystyle w \\mathrel{:=} 1.25\\cdot 10^{9}\\\\[0.4em]\\displaystyle w = 1.25\\cdot 10^{9}\\\\[0.4em]\\displaystyle v \\mathrel{:=} 0.00012345\\\\[0.4em]\\displaystyle v = 0.0001234\\\\[0.4em]\\displaystyle u \\mathrel{:=} -0.5\\\\[0.4em]\\displaystyle u = -0.5\\\\[0.4em]\\displaystyle t \\mathrel{:=} 999999.9995\\\\[0.4em]\\displaystyle t = 1000000\\\\[0.4em]\\displaystyle q \\mathrel{:=} 0.99995\\\\[0.4em]\\displaystyle q = 1\\end{array}",
+      "plain": "x := 2.0625\nx = 2.063\ny := 1.0005\ny = 1\nz := 0.0625\nz = 0.0625\nw := 1.25e9\nw = 1.25·10^9\nv := 0.00012345\nv = 0.0001234\nu := -0.5\nu = -0.5\nt := 999999.9995\nt = 1000000\nq := 0.99995\nq = 1"
+    },
+    {
+      "source": "v := 60 mph\nv = kph\nv = m/s\nd := 3 hr v\nd = mi\nd = km\nE := 1 kWh\nE = J\nE = cal",
+      "lines": [
+        {
+          "kind": "math",
+          "source": "v := 60 mph",
+          "latex": "v \\mathrel{:=} 60\\,\\mathrm{mph}",
+          "plain": "v := 60 mph"
+        },
+        {
+          "kind": "math",
+          "source": "v = kph",
+          "latex": "v = 96.561\\,\\mathrm{kph}",
+          "plain": "v = 96.561 kph"
+        },
+        {
+          "kind": "math",
+          "source": "v = m/s",
+          "latex": "v = 26.822\\,\\frac{\\mathrm{m}}{\\mathrm{s}}",
+          "plain": "v = 26.822 m/s"
+        },
+        {
+          "kind": "math",
+          "source": "d := 3 hr v",
+          "latex": "d \\mathrel{:=} 3\\,\\mathrm{hr}\\,v",
+          "plain": "d := 3 hr v"
+        },
+        {
+          "kind": "math",
+          "source": "d = mi",
+          "latex": "d = 180\\,\\mathrm{mi}",
+          "plain": "d = 180 mi"
+        },
+        {
+          "kind": "math",
+          "source": "d = km",
+          "latex": "d = 289.682\\,\\mathrm{km}",
+          "plain": "d = 289.682 km"
+        },
+        {
+          "kind": "math",
+          "source": "E := 1 kWh",
+          "latex": "E \\mathrel{:=} 1\\,\\mathrm{kWh}",
+          "plain": "E := 1 kWh"
+        },
+        {
+          "kind": "math",
+          "source": "E = J",
+          "latex": "E = 3600000\\,\\mathrm{J}",
+          "plain": "E = 3600000 J"
+        },
+        {
+          "kind": "math",
+          "source": "E = cal",
+          "latex": "E = 860420.65\\,\\mathrm{cal}",
+          "plain": "E = 860420.65 cal"
+        }
+      ],
+      "error": null,
+      "latex": "\\begin{array}{l}\\displaystyle v \\mathrel{:=} 60\\,\\mathrm{mph}\\\\[0.4em]\\displaystyle v = 96.561\\,\\mathrm{kph}\\\\[0.4em]\\displaystyle v = 26.822\\,\\frac{\\mathrm{m}}{\\mathrm{s}}\\\\[0.4em]\\displaystyle d \\mathrel{:=} 3\\,\\mathrm{hr}\\,v\\\\[0.4em]\\displaystyle d = 180\\,\\mathrm{mi}\\\\[0.4em]\\displaystyle d = 289.682\\,\\mathrm{km}\\\\[0.4em]\\displaystyle E \\mathrel{:=} 1\\,\\mathrm{kWh}\\\\[0.4em]\\displaystyle E = 3600000\\,\\mathrm{J}\\\\[0.4em]\\displaystyle E = 860420.65\\,\\mathrm{cal}\\end{array}",
+      "plain": "v := 60 mph\nv = 96.561 kph\nv = 26.822 m/s\nd := 3 hr v\nd = 180 mi\nd = 289.682 km\nE := 1 kWh\nE = 3600000 J\nE = 860420.65 cal"
+    },
+    {
+      "source": "θ := 30°\nsin(θ) =\ncos(30 deg) =\ntan(pi/4) =\nasin(0.5) = deg\natan(1) = °\nln(e) =\nlog(1000) =\nexp(1) =",
+      "lines": [
+        {
+          "kind": "math",
+          "source": "θ := 30°",
+          "latex": "θ \\mathrel{:=} 30^{\\circ}",
+          "plain": "θ := 30°"
+        },
+        {
+          "kind": "math",
+          "source": "sin(θ) =",
+          "latex": "\\operatorname{sin}\\left(θ\\right) = 0.5",
+          "plain": "sin(θ) = 0.5"
+        },
+        {
+          "kind": "math",
+          "source": "cos(30 deg) =",
+          "latex": "\\operatorname{cos}\\left(30\\,\\mathrm{deg}\\right) = 0.866",
+          "plain": "cos(30 deg) = 0.866"
+        },
+        {
+          "kind": "math",
+          "source": "tan(pi/4) =",
+          "latex": "\\operatorname{tan}\\left(\\frac{\\pi }{4}\\right) = 1",
+          "plain": "tan(pi/4) = 1"
+        },
+        {
+          "kind": "math",
+          "source": "asin(0.5) = deg",
+          "latex": "\\operatorname{asin}\\left(0.5\\right) = 30\\,\\mathrm{deg}",
+          "plain": "asin(0.5) = 30 deg"
+        },
+        {
+          "kind": "math",
+          "source": "atan(1) = °",
+          "latex": "\\operatorname{atan}\\left(1\\right) = 45^{\\circ}",
+          "plain": "atan(1) = 45°"
+        },
+        {
+          "kind": "math",
+          "source": "ln(e) =",
+          "latex": "\\operatorname{ln}\\left(e\\right) = 1",
+          "plain": "ln(e) = 1"
+        },
+        {
+          "kind": "math",
+          "source": "log(1000) =",
+          "latex": "\\operatorname{log}\\left(1000\\right) = 3",
+          "plain": "log(1000) = 3"
+        },
+        {
+          "kind": "math",
+          "source": "exp(1) =",
+          "latex": "\\operatorname{exp}\\left(1\\right) = 2.718",
+          "plain": "exp(1) = 2.718"
+        }
+      ],
+      "error": null,
+      "latex": "\\begin{array}{l}\\displaystyle θ \\mathrel{:=} 30^{\\circ}\\\\[0.4em]\\displaystyle \\operatorname{sin}\\left(θ\\right) = 0.5\\\\[0.4em]\\displaystyle \\operatorname{cos}\\left(30\\,\\mathrm{deg}\\right) = 0.866\\\\[0.4em]\\displaystyle \\operatorname{tan}\\left(\\frac{\\pi }{4}\\right) = 1\\\\[0.4em]\\displaystyle \\operatorname{asin}\\left(0.5\\right) = 30\\,\\mathrm{deg}\\\\[0.4em]\\displaystyle \\operatorname{atan}\\left(1\\right) = 45^{\\circ}\\\\[0.4em]\\displaystyle \\operatorname{ln}\\left(e\\right) = 1\\\\[0.4em]\\displaystyle \\operatorname{log}\\left(1000\\right) = 3\\\\[0.4em]\\displaystyle \\operatorname{exp}\\left(1\\right) = 2.718\\end{array}",
+      "plain": "θ := 30°\nsin(θ) = 0.5\ncos(30 deg) = 0.866\ntan(pi/4) = 1\nasin(0.5) = 30 deg\natan(1) = 45°\nln(e) = 1\nlog(1000) = 3\nexp(1) = 2.718"
+    },
+    {
+      "source": "a := 5 m\nb := 3 s\na + b =\na / 0 =\nsqrt(a b) =\nabs(-a) =\nfloor(2.5 m) =\nround(2.5) =\nround(-2.5) =\nmin(1 m, 2 m) =\nmax(1, 2, 3) =\nmin() =\nsqrt(1, 2) =",
+      "lines": [
+        {
+          "kind": "math",
+          "source": "a := 5 m",
+          "latex": "a \\mathrel{:=} 5\\,\\mathrm{m}",
+          "plain": "a := 5 m"
+        },
+        {
+          "kind": "math",
+          "source": "b := 3 s",
+          "latex": "b \\mathrel{:=} 3\\,\\mathrm{s}",
+          "plain": "b := 3 s"
+        },
+        {
+          "kind": "error",
+          "source": "a + b =",
+          "message": "The units don't match: m and s."
+        },
+        {
+          "kind": "error",
+          "source": "a / 0 =",
+          "message": "Division by zero."
+        },
+        {
+          "kind": "math",
+          "source": "sqrt(a b) =",
+          "latex": "\\sqrt{a\\,b} = 3.873\\,\\mathrm{m}^{0.5}\\cdot \\mathrm{s}^{0.5}",
+          "plain": "sqrt(a b) = 3.873 m^0.5·s^0.5"
+        },
+        {
+          "kind": "math",
+          "source": "abs(-a) =",
+          "latex": "\\left|-a\\right| = 5\\,\\mathrm{m}",
+          "plain": "abs(-a) = 5 m"
+        },
+        {
+          "kind": "math",
+          "source": "floor(2.5 m) =",
+          "latex": "\\operatorname{floor}\\left(2.5\\,\\mathrm{m}\\right) = 2\\,\\mathrm{m}",
+          "plain": "floor(2.5 m) = 2 m"
+        },
+        {
+          "kind": "math",
+          "source": "round(2.5) =",
+          "latex": "\\operatorname{round}\\left(2.5\\right) = 3",
+          "plain": "round(2.5) = 3"
+        },
+        {
+          "kind": "math",
+          "source": "round(-2.5) =",
+          "latex": "\\operatorname{round}\\left(-2.5\\right) = -2",
+          "plain": "round(-2.5) = -2"
+        },
+        {
+          "kind": "math",
+          "source": "min(1 m, 2 m) =",
+          "latex": "\\operatorname{min}\\left(1\\,\\mathrm{m}, 2\\,\\mathrm{m}\\right) = 1\\,\\mathrm{m}",
+          "plain": "min(1 m, 2 m) = 1 m"
+        },
+        {
+          "kind": "math",
+          "source": "max(1, 2, 3) =",
+          "latex": "\\operatorname{max}\\left(1, 2, 3\\right) = 3",
+          "plain": "max(1, 2, 3) = 3"
+        },
+        {
+          "kind": "error",
+          "source": "min() =",
+          "message": "min takes at least one argument."
+        },
+        {
+          "kind": "error",
+          "source": "sqrt(1, 2) =",
+          "message": "sqrt takes one argument."
+        }
+      ],
+      "error": null,
+      "latex": "\\begin{array}{l}\\displaystyle a \\mathrel{:=} 5\\,\\mathrm{m}\\\\[0.4em]\\displaystyle b \\mathrel{:=} 3\\,\\mathrm{s}\\\\[0.4em]\\text{a + b =}\\quad\\color{#c0392b}{\\text{The units don't match: m and s.}}\\\\[0.4em]\\text{a / 0 =}\\quad\\color{#c0392b}{\\text{Division by zero.}}\\\\[0.4em]\\displaystyle \\sqrt{a\\,b} = 3.873\\,\\mathrm{m}^{0.5}\\cdot \\mathrm{s}^{0.5}\\\\[0.4em]\\displaystyle \\left|-a\\right| = 5\\,\\mathrm{m}\\\\[0.4em]\\displaystyle \\operatorname{floor}\\left(2.5\\,\\mathrm{m}\\right) = 2\\,\\mathrm{m}\\\\[0.4em]\\displaystyle \\operatorname{round}\\left(2.5\\right) = 3\\\\[0.4em]\\displaystyle \\operatorname{round}\\left(-2.5\\right) = -2\\\\[0.4em]\\displaystyle \\operatorname{min}\\left(1\\,\\mathrm{m}, 2\\,\\mathrm{m}\\right) = 1\\,\\mathrm{m}\\\\[0.4em]\\displaystyle \\operatorname{max}\\left(1, 2, 3\\right) = 3\\\\[0.4em]\\text{min() =}\\quad\\color{#c0392b}{\\text{min takes at least one argument.}}\\\\[0.4em]\\text{sqrt(1, 2) =}\\quad\\color{#c0392b}{\\text{sqrt takes one argument.}}\\end{array}",
+      "plain": "a := 5 m\nb := 3 s\na + b =  [The units don't match: m and s.]\na / 0 =  [Division by zero.]\nsqrt(a b) = 3.873 m^0.5·s^0.5\nabs(-a) = 5 m\nfloor(2.5 m) = 2 m\nround(2.5) = 3\nround(-2.5) = -2\nmin(1 m, 2 m) = 1 m\nmax(1, 2, 3) = 3\nmin() =  [min takes at least one argument.]\nsqrt(1, 2) =  [sqrt takes one argument.]"
+    },
+    {
+      "source": "m := 2 kg\nv := 3 m/s\nKE := 0.5 m v^2 =\nKE = J\nx := 5 m\nm := 3\n5 m =\n9.81 m/s^2 =",
+      "lines": [
+        {
+          "kind": "math",
+          "source": "m := 2 kg",
+          "latex": "m \\mathrel{:=} 2\\,\\mathrm{kg}",
+          "plain": "m := 2 kg"
+        },
+        {
+          "kind": "math",
+          "source": "v := 3 m/s",
+          "latex": "v \\mathrel{:=} \\frac{3\\,\\mathrm{m}}{\\mathrm{s}}",
+          "plain": "v := 3 m/s"
+        },
+        {
+          "kind": "math",
+          "source": "KE := 0.5 m v^2 =",
+          "latex": "\\mathit{KE} \\mathrel{:=} 0.5\\,m\\,{v}^{2} = 9\\,\\mathrm{J}",
+          "plain": "KE := 0.5 m v^2 = 9 J"
+        },
+        {
+          "kind": "math",
+          "source": "KE = J",
+          "latex": "\\mathit{KE} = 9\\,\\mathrm{J}",
+          "plain": "KE = 9 J"
+        },
+        {
+          "kind": "error",
+          "source": "x := 5 m",
+          "message": "m is both a unit and a variable here. Write *m to use the variable, or rename it."
+        },
+        {
+          "kind": "math",
+          "source": "m := 3",
+          "latex": "m \\mathrel{:=} 3",
+          "plain": "m := 3"
+        },
+        {
+          "kind": "error",
+          "source": "5 m =",
+          "message": "m is both a unit and a variable here. Write *m to use the variable, or rename it."
+        },
+        {
+          "kind": "math",
+          "source": "9.81 m/s^2 =",
+          "latex": "\\frac{9.81\\,\\mathrm{m}}{{\\mathrm{s}}^{2}} = 9.81\\,\\frac{\\mathrm{m}}{\\mathrm{s}^{2}}",
+          "plain": "9.81 m/s^2 = 9.81 m·s^-2"
+        }
+      ],
+      "error": null,
+      "latex": "\\begin{array}{l}\\displaystyle m \\mathrel{:=} 2\\,\\mathrm{kg}\\\\[0.4em]\\displaystyle v \\mathrel{:=} \\frac{3\\,\\mathrm{m}}{\\mathrm{s}}\\\\[0.4em]\\displaystyle \\mathit{KE} \\mathrel{:=} 0.5\\,m\\,{v}^{2} = 9\\,\\mathrm{J}\\\\[0.4em]\\displaystyle \\mathit{KE} = 9\\,\\mathrm{J}\\\\[0.4em]\\text{x := 5 m}\\quad\\color{#c0392b}{\\text{m is both a unit and a variable here. Write *m to use the variable, or rename it.}}\\\\[0.4em]\\displaystyle m \\mathrel{:=} 3\\\\[0.4em]\\text{5 m =}\\quad\\color{#c0392b}{\\text{m is both a unit and a variable here. Write *m to use the variable, or rename it.}}\\\\[0.4em]\\displaystyle \\frac{9.81\\,\\mathrm{m}}{{\\mathrm{s}}^{2}} = 9.81\\,\\frac{\\mathrm{m}}{\\mathrm{s}^{2}}\\end{array}",
+      "plain": "m := 2 kg\nv := 3 m/s\nKE := 0.5 m v^2 = 9 J\nKE = 9 J\nx := 5 m  [m is both a unit and a variable here. Write *m to use the variable, or rename it.]\nm := 3\n5 m =  [m is both a unit and a variable here. Write *m to use the variable, or rename it.]\n9.81 m/s^2 = 9.81 m·s^-2"
+    },
+    {
+      "source": "f(x) := f(x)\nf(1) =\ng(x, y) := x y\ng(2, 3 m) =\nh := 2\nh(3) =\nh (4)^2 =\nnope(2) =\nsin =",
+      "lines": [
+        {
+          "kind": "math",
+          "source": "f(x) := f(x)",
+          "latex": "\\operatorname{f}\\left(x\\right) \\mathrel{:=} f\\left(x\\right)",
+          "plain": "f(x) := f(x)"
+        },
+        {
+          "kind": "error",
+          "source": "f(1) =",
+          "message": "The calculation is too deep. Check for a function that calls itself."
+        },
+        {
+          "kind": "math",
+          "source": "g(x, y) := x y",
+          "latex": "\\operatorname{g}\\left(x, y\\right) \\mathrel{:=} x\\,y",
+          "plain": "g(x, y) := x y"
+        },
+        {
+          "kind": "math",
+          "source": "g(2, 3 m) =",
+          "latex": "\\operatorname{g}\\left(2, 3\\,\\mathrm{m}\\right) = 6\\,\\mathrm{m}",
+          "plain": "g(2, 3 m) = 6 m"
+        },
+        {
+          "kind": "math",
+          "source": "h := 2",
+          "latex": "h \\mathrel{:=} 2",
+          "plain": "h := 2"
+        },
+        {
+          "kind": "math",
+          "source": "h(3) =",
+          "latex": "h\\left(3\\right) = 6",
+          "plain": "h(3) = 6"
+        },
+        {
+          "kind": "math",
+          "source": "h (4)^2 =",
+          "latex": "{h\\left(4\\right)}^{2} = 32",
+          "plain": "h (4)^2 = 32"
+        },
+        {
+          "kind": "error",
+          "source": "nope(2) =",
+          "message": "nope is not a known function."
+        },
+        {
+          "kind": "error",
+          "source": "sin =",
+          "message": "sin is a function; call it like sin(x)."
+        }
+      ],
+      "error": null,
+      "latex": "\\begin{array}{l}\\displaystyle \\operatorname{f}\\left(x\\right) \\mathrel{:=} f\\left(x\\right)\\\\[0.4em]\\text{f(1) =}\\quad\\color{#c0392b}{\\text{The calculation is too deep. Check for a function that calls itself.}}\\\\[0.4em]\\displaystyle \\operatorname{g}\\left(x, y\\right) \\mathrel{:=} x\\,y\\\\[0.4em]\\displaystyle \\operatorname{g}\\left(2, 3\\,\\mathrm{m}\\right) = 6\\,\\mathrm{m}\\\\[0.4em]\\displaystyle h \\mathrel{:=} 2\\\\[0.4em]\\displaystyle h\\left(3\\right) = 6\\\\[0.4em]\\displaystyle {h\\left(4\\right)}^{2} = 32\\\\[0.4em]\\text{nope(2) =}\\quad\\color{#c0392b}{\\text{nope is not a known function.}}\\\\[0.4em]\\text{sin =}\\quad\\color{#c0392b}{\\text{sin is a function; call it like sin(x).}}\\end{array}",
+      "plain": "f(x) := f(x)\nf(1) =  [The calculation is too deep. Check for a function that calls itself.]\ng(x, y) := x y\ng(2, 3 m) = 6 m\nh := 2\nh(3) = 6\nh (4)^2 = 32\nnope(2) =  [nope is not a known function.]\nsin =  [sin is a function; call it like sin(x).]"
+    },
+    {
+      "source": "1 +\n(2 =\n2 = = 3\nx := 1 =\n3 $ 4\nf(x) := x =\n1x := 2\nf(1x) := 2\nα := 2\nβ_0 := α^2 =\nΩ_load := 5 kΩ\nΩ_load = ohm\nμ := 3 μm\nμ = um",
+      "lines": [
+        {
+          "kind": "error",
+          "source": "1 +",
+          "message": "Expression ends too early."
+        },
+        {
+          "kind": "error",
+          "source": "(2 =",
+          "message": "Expected “)”."
+        },
+        {
+          "kind": "error",
+          "source": "2 = = 3",
+          "message": "Use one “=” per line."
+        },
+        {
+          "kind": "math",
+          "source": "x := 1 =",
+          "latex": "x \\mathrel{:=} 1 = 1",
+          "plain": "x := 1 = 1"
+        },
+        {
+          "kind": "error",
+          "source": "3 $ 4",
+          "message": "Unexpected character “$”."
+        },
+        {
+          "kind": "error",
+          "source": "f(x) := x =",
+          "message": "A function definition can't show a value."
+        },
+        {
+          "kind": "error",
+          "source": "1x := 2",
+          "message": "“1x” can't be used as a name."
+        },
+        {
+          "kind": "error",
+          "source": "f(1x) := 2",
+          "message": "Function parameters must be simple names."
+        },
+        {
+          "kind": "math",
+          "source": "α := 2",
+          "latex": "α \\mathrel{:=} 2",
+          "plain": "α := 2"
+        },
+        {
+          "kind": "math",
+          "source": "β_0 := α^2 =",
+          "latex": "{β}_{\\mathrm{0}} \\mathrel{:=} {α}^{2} = 4",
+          "plain": "β_0 := α^2 = 4"
+        },
+        {
+          "kind": "math",
+          "source": "Ω_load := 5 kΩ",
+          "latex": "{Ω}_{\\mathrm{load}} \\mathrel{:=} 5\\,\\mathrm{k\\Omega }",
+          "plain": "Ω_load := 5 kΩ"
+        },
+        {
+          "kind": "math",
+          "source": "Ω_load = ohm",
+          "latex": "{Ω}_{\\mathrm{load}} = 5000\\,\\mathrm{ohm}",
+          "plain": "Ω_load = 5000 ohm"
+        },
+        {
+          "kind": "math",
+          "source": "μ := 3 μm",
+          "latex": "μ \\mathrel{:=} 3\\,\\mathrm{\\mu m}",
+          "plain": "μ := 3 μm"
+        },
+        {
+          "kind": "math",
+          "source": "μ = um",
+          "latex": "μ = 3\\,\\mathrm{\\mu m}",
+          "plain": "μ = 3 um"
+        }
+      ],
+      "error": null,
+      "latex": "\\begin{array}{l}\\text{1 +}\\quad\\color{#c0392b}{\\text{Expression ends too early.}}\\\\[0.4em]\\text{(2 =}\\quad\\color{#c0392b}{\\text{Expected “)”.}}\\\\[0.4em]\\text{2 = = 3}\\quad\\color{#c0392b}{\\text{Use one “=” per line.}}\\\\[0.4em]\\displaystyle x \\mathrel{:=} 1 = 1\\\\[0.4em]\\text{3 \\$ 4}\\quad\\color{#c0392b}{\\text{Unexpected character “\\$”.}}\\\\[0.4em]\\text{f(x) := x =}\\quad\\color{#c0392b}{\\text{A function definition can't show a value.}}\\\\[0.4em]\\text{1x := 2}\\quad\\color{#c0392b}{\\text{“1x” can't be used as a name.}}\\\\[0.4em]\\text{f(1x) := 2}\\quad\\color{#c0392b}{\\text{Function parameters must be simple names.}}\\\\[0.4em]\\displaystyle α \\mathrel{:=} 2\\\\[0.4em]\\displaystyle {β}_{\\mathrm{0}} \\mathrel{:=} {α}^{2} = 4\\\\[0.4em]\\displaystyle {Ω}_{\\mathrm{load}} \\mathrel{:=} 5\\,\\mathrm{k\\Omega }\\\\[0.4em]\\displaystyle {Ω}_{\\mathrm{load}} = 5000\\,\\mathrm{ohm}\\\\[0.4em]\\displaystyle μ \\mathrel{:=} 3\\,\\mathrm{\\mu m}\\\\[0.4em]\\displaystyle μ = 3\\,\\mathrm{\\mu m}\\end{array}",
+      "plain": "1 +  [Expression ends too early.]\n(2 =  [Expected “)”.]\n2 = = 3  [Use one “=” per line.]\nx := 1 = 1\n3 $ 4  [Unexpected character “$”.]\nf(x) := x =  [A function definition can't show a value.]\n1x := 2  [“1x” can't be used as a name.]\nf(1x) := 2  [Function parameters must be simple names.]\nα := 2\nβ_0 := α^2 = 4\nΩ_load := 5 kΩ\nΩ_load = 5000 ohm\nμ := 3 μm\nμ = 3 um"
+    },
+    {
+      "source": "p := 1 atm\np = psi\np = bar\nP := 2 hp\nP = kW\nI := 2 mA\nR := 5 kΩ\nU := I R =\nU = V\nQ := 1 coul\nQ = A s",
+      "lines": [
+        {
+          "kind": "math",
+          "source": "p := 1 atm",
+          "latex": "p \\mathrel{:=} 1\\,\\mathrm{atm}",
+          "plain": "p := 1 atm"
+        },
+        {
+          "kind": "math",
+          "source": "p = psi",
+          "latex": "p = 14.696\\,\\mathrm{psi}",
+          "plain": "p = 14.696 psi"
+        },
+        {
+          "kind": "math",
+          "source": "p = bar",
+          "latex": "p = 1.013\\,\\mathrm{bar}",
+          "plain": "p = 1.013 bar"
+        },
+        {
+          "kind": "math",
+          "source": "P := 2 hp",
+          "latex": "P \\mathrel{:=} 2\\,\\mathrm{hp}",
+          "plain": "P := 2 hp"
+        },
+        {
+          "kind": "math",
+          "source": "P = kW",
+          "latex": "P = 1.491\\,\\mathrm{kW}",
+          "plain": "P = 1.491 kW"
+        },
+        {
+          "kind": "math",
+          "source": "I := 2 mA",
+          "latex": "I \\mathrel{:=} 2\\,\\mathrm{mA}",
+          "plain": "I := 2 mA"
+        },
+        {
+          "kind": "math",
+          "source": "R := 5 kΩ",
+          "latex": "R \\mathrel{:=} 5\\,\\mathrm{k\\Omega }",
+          "plain": "R := 5 kΩ"
+        },
+        {
+          "kind": "math",
+          "source": "U := I R =",
+          "latex": "U \\mathrel{:=} I\\,R = 10\\,\\mathrm{V}",
+          "plain": "U := I R = 10 V"
+        },
+        {
+          "kind": "math",
+          "source": "U = V",
+          "latex": "U = 10\\,\\mathrm{V}",
+          "plain": "U = 10 V"
+        },
+        {
+          "kind": "math",
+          "source": "Q := 1 coul",
+          "latex": "Q \\mathrel{:=} 1\\,\\mathrm{coul}",
+          "plain": "Q := 1 coul"
+        },
+        {
+          "kind": "math",
+          "source": "Q = A s",
+          "latex": "Q = 1\\,\\mathrm{A}\\,\\mathrm{s}",
+          "plain": "Q = 1 A s"
+        }
+      ],
+      "error": null,
+      "latex": "\\begin{array}{l}\\displaystyle p \\mathrel{:=} 1\\,\\mathrm{atm}\\\\[0.4em]\\displaystyle p = 14.696\\,\\mathrm{psi}\\\\[0.4em]\\displaystyle p = 1.013\\,\\mathrm{bar}\\\\[0.4em]\\displaystyle P \\mathrel{:=} 2\\,\\mathrm{hp}\\\\[0.4em]\\displaystyle P = 1.491\\,\\mathrm{kW}\\\\[0.4em]\\displaystyle I \\mathrel{:=} 2\\,\\mathrm{mA}\\\\[0.4em]\\displaystyle R \\mathrel{:=} 5\\,\\mathrm{k\\Omega }\\\\[0.4em]\\displaystyle U \\mathrel{:=} I\\,R = 10\\,\\mathrm{V}\\\\[0.4em]\\displaystyle U = 10\\,\\mathrm{V}\\\\[0.4em]\\displaystyle Q \\mathrel{:=} 1\\,\\mathrm{coul}\\\\[0.4em]\\displaystyle Q = 1\\,\\mathrm{A}\\,\\mathrm{s}\\end{array}",
+      "plain": "p := 1 atm\np = 14.696 psi\np = 1.013 bar\nP := 2 hp\nP = 1.491 kW\nI := 2 mA\nR := 5 kΩ\nU := I R = 10 V\nU = 10 V\nQ := 1 coul\nQ = 1 A s"
+    },
+    {
+      "source": "x := 1e400\nx =\ny := 1e-400\ny =\nz := 2^0.5 =\nn := -8\nn^(1/3) =\n10^-3 =\n2^3^2 =\n-2^2 =\n(-2)^2 =",
+      "lines": [
+        {
+          "kind": "math",
+          "source": "x := 1e400",
+          "latex": "x \\mathrel{:=} 1\\cdot 10^{400}",
+          "plain": "x := 1e400"
+        },
+        {
+          "kind": "math",
+          "source": "x =",
+          "latex": "x = Infinity\\cdot 10^{NaN}",
+          "plain": "x = Infinity·10^NaN"
+        },
+        {
+          "kind": "math",
+          "source": "y := 1e-400",
+          "latex": "y \\mathrel{:=} 1\\cdot 10^{-400}",
+          "plain": "y := 1e-400"
+        },
+        {
+          "kind": "math",
+          "source": "y =",
+          "latex": "y = 0",
+          "plain": "y = 0"
+        },
+        {
+          "kind": "math",
+          "source": "z := 2^0.5 =",
+          "latex": "z \\mathrel{:=} {2}^{0.5} = 1.414",
+          "plain": "z := 2^0.5 = 1.414"
+        },
+        {
+          "kind": "math",
+          "source": "n := -8",
+          "latex": "n \\mathrel{:=} -8",
+          "plain": "n := -8"
+        },
+        {
+          "kind": "error",
+          "source": "n^(1/3) =",
+          "message": "The result is undefined or infinite."
+        },
+        {
+          "kind": "math",
+          "source": "10^-3 =",
+          "latex": "{10}^{-3} = 0.001",
+          "plain": "10^-3 = 0.001"
+        },
+        {
+          "kind": "math",
+          "source": "2^3^2 =",
+          "latex": "{2}^{{3}^{2}} = 512",
+          "plain": "2^3^2 = 512"
+        },
+        {
+          "kind": "math",
+          "source": "-2^2 =",
+          "latex": "-{2}^{2} = -4",
+          "plain": "-2^2 = -4"
+        },
+        {
+          "kind": "math",
+          "source": "(-2)^2 =",
+          "latex": "{\\left(-2\\right)}^{2} = 4",
+          "plain": "(-2)^2 = 4"
+        }
+      ],
+      "error": null,
+      "latex": "\\begin{array}{l}\\displaystyle x \\mathrel{:=} 1\\cdot 10^{400}\\\\[0.4em]\\displaystyle x = Infinity\\cdot 10^{NaN}\\\\[0.4em]\\displaystyle y \\mathrel{:=} 1\\cdot 10^{-400}\\\\[0.4em]\\displaystyle y = 0\\\\[0.4em]\\displaystyle z \\mathrel{:=} {2}^{0.5} = 1.414\\\\[0.4em]\\displaystyle n \\mathrel{:=} -8\\\\[0.4em]\\text{nˆ(1/3) =}\\quad\\color{#c0392b}{\\text{The result is undefined or infinite.}}\\\\[0.4em]\\displaystyle {10}^{-3} = 0.001\\\\[0.4em]\\displaystyle {2}^{{3}^{2}} = 512\\\\[0.4em]\\displaystyle -{2}^{2} = -4\\\\[0.4em]\\displaystyle {\\left(-2\\right)}^{2} = 4\\end{array}",
+      "plain": "x := 1e400\nx = Infinity·10^NaN\ny := 1e-400\ny = 0\nz := 2^0.5 = 1.414\nn := -8\nn^(1/3) =  [The result is undefined or infinite.]\n10^-3 = 0.001\n2^3^2 = 512\n-2^2 = -4\n(-2)^2 = 4"
+    },
+    {
+      "source": "a := 3·4 =\nb := 6×7 =\nc := 9−4 =\nlength := 2 ft + 3 in =\nlength = cm\nT := 300 K\nT = K\nn := 2 mol\nlum := 1 cd\nk := 1 \nk =",
+      "lines": [
+        {
+          "kind": "math",
+          "source": "a := 3·4 =",
+          "latex": "a \\mathrel{:=} 3\\cdot 4 = 12",
+          "plain": "a := 3·4 = 12"
+        },
+        {
+          "kind": "math",
+          "source": "b := 6×7 =",
+          "latex": "b \\mathrel{:=} 6\\cdot 7 = 42",
+          "plain": "b := 6×7 = 42"
+        },
+        {
+          "kind": "math",
+          "source": "c := 9−4 =",
+          "latex": "c \\mathrel{:=} 9 - 4 = 5",
+          "plain": "c := 9−4 = 5"
+        },
+        {
+          "kind": "math",
+          "source": "length := 2 ft + 3 in =",
+          "latex": "\\mathit{length} \\mathrel{:=} 2\\,\\mathrm{ft} + 3\\,\\mathrm{in} = 0.6858\\,\\mathrm{m}",
+          "plain": "length := 2 ft + 3 in = 0.6858 m"
+        },
+        {
+          "kind": "math",
+          "source": "length = cm",
+          "latex": "\\mathit{length} = 68.58\\,\\mathrm{cm}",
+          "plain": "length = 68.58 cm"
+        },
+        {
+          "kind": "math",
+          "source": "T := 300 K",
+          "latex": "T \\mathrel{:=} 300\\,\\mathrm{K}",
+          "plain": "T := 300 K"
+        },
+        {
+          "kind": "math",
+          "source": "T = K",
+          "latex": "T = 300\\,\\mathrm{K}",
+          "plain": "T = 300 K"
+        },
+        {
+          "kind": "math",
+          "source": "n := 2 mol",
+          "latex": "n \\mathrel{:=} 2\\,\\mathrm{mol}",
+          "plain": "n := 2 mol"
+        },
+        {
+          "kind": "math",
+          "source": "lum := 1 cd",
+          "latex": "\\mathit{lum} \\mathrel{:=} 1\\,\\mathrm{cd}",
+          "plain": "lum := 1 cd"
+        },
+        {
+          "kind": "math",
+          "source": "k := 1 ",
+          "latex": "k \\mathrel{:=} 1",
+          "plain": "k := 1"
+        },
+        {
+          "kind": "math",
+          "source": "k =",
+          "latex": "k = 1",
+          "plain": "k = 1"
+        }
+      ],
+      "error": null,
+      "latex": "\\begin{array}{l}\\displaystyle a \\mathrel{:=} 3\\cdot 4 = 12\\\\[0.4em]\\displaystyle b \\mathrel{:=} 6\\cdot 7 = 42\\\\[0.4em]\\displaystyle c \\mathrel{:=} 9 - 4 = 5\\\\[0.4em]\\displaystyle \\mathit{length} \\mathrel{:=} 2\\,\\mathrm{ft} + 3\\,\\mathrm{in} = 0.6858\\,\\mathrm{m}\\\\[0.4em]\\displaystyle \\mathit{length} = 68.58\\,\\mathrm{cm}\\\\[0.4em]\\displaystyle T \\mathrel{:=} 300\\,\\mathrm{K}\\\\[0.4em]\\displaystyle T = 300\\,\\mathrm{K}\\\\[0.4em]\\displaystyle n \\mathrel{:=} 2\\,\\mathrm{mol}\\\\[0.4em]\\displaystyle \\mathit{lum} \\mathrel{:=} 1\\,\\mathrm{cd}\\\\[0.4em]\\displaystyle k \\mathrel{:=} 1\\\\[0.4em]\\displaystyle k = 1\\end{array}",
+      "plain": "a := 3·4 = 12\nb := 6×7 = 42\nc := 9−4 = 5\nlength := 2 ft + 3 in = 0.6858 m\nlength = 68.58 cm\nT := 300 K\nT = 300 K\nn := 2 mol\nlum := 1 cd\nk := 1\nk = 1"
+    },
+    {
+      "source": "x0 := 0\nx1 := 1\nx2 := 2\nx3 := 3\nx4 := 4\nx5 := 5\nx6 := 6\nx7 := 7\nx8 := 8\nx9 := 9\nx10 := 10\nx11 := 11\nx12 := 12\nx13 := 13\nx14 := 14\nx15 := 15\nx16 := 16\nx17 := 17\nx18 := 18\nx19 := 19\nx20 := 20\nx21 := 21\nx22 := 22\nx23 := 23\nx24 := 24\nx25 := 25\nx26 := 26\nx27 := 27\nx28 := 28\nx29 := 29\nx30 := 30\nx31 := 31\nx32 := 32\nx33 := 33\nx34 := 34\nx35 := 35\nx36 := 36\nx37 := 37\nx38 := 38\nx39 := 39\nx40 := 40\nx41 := 41\nx42 := 42\nx43 := 43\nx44 := 44\nx45 := 45\nx46 := 46\nx47 := 47\nx48 := 48\nx49 := 49\nx50 := 50\nx51 := 51\nx52 := 52\nx53 := 53\nx54 := 54\nx55 := 55\nx56 := 56\nx57 := 57\nx58 := 58\nx59 := 59\nx60 := 60\nx61 := 61\nx62 := 62\nx63 := 63\nx64 := 64\nx65 := 65\nx66 := 66\nx67 := 67\nx68 := 68\nx69 := 69\nx70 := 70\nx71 := 71\nx72 := 72\nx73 := 73\nx74 := 74\nx75 := 75\nx76 := 76\nx77 := 77\nx78 := 78\nx79 := 79\nx80 := 80\nx81 := 81\nx82 := 82\nx83 := 83\nx84 := 84\nx85 := 85\nx86 := 86\nx87 := 87\nx88 := 88\nx89 := 89\nx90 := 90\nx91 := 91\nx92 := 92\nx93 := 93\nx94 := 94\nx95 := 95\nx96 := 96\nx97 := 97\nx98 := 98\nx99 := 99\nx100 := 100\nx101 := 101\nx102 := 102\nx103 := 103\nx104 := 104\nx105 := 105\nx106 := 106\nx107 := 107\nx108 := 108\nx109 := 109\nx110 := 110\nx111 := 111\nx112 := 112\nx113 := 113\nx114 := 114\nx115 := 115\nx116 := 116\nx117 := 117\nx118 := 118\nx119 := 119\nx120 := 120\nx121 := 121\nx122 := 122\nx123 := 123\nx124 := 124\nx125 := 125\nx126 := 126\nx127 := 127\nx128 := 128\nx129 := 129\nx130 := 130\nx131 := 131\nx132 := 132\nx133 := 133\nx134 := 134\nx135 := 135\nx136 := 136\nx137 := 137\nx138 := 138\nx139 := 139\nx140 := 140\nx141 := 141\nx142 := 142\nx143 := 143\nx144 := 144\nx145 := 145\nx146 := 146\nx147 := 147\nx148 := 148\nx149 := 149\nx150 := 150\nx151 := 151\nx152 := 152\nx153 := 153\nx154 := 154\nx155 := 155\nx156 := 156\nx157 := 157\nx158 := 158\nx159 := 159\nx160 := 160\nx161 := 161\nx162 := 162\nx163 := 163\nx164 := 164\nx165 := 165\nx166 := 166\nx167 := 167\nx168 := 168\nx169 := 169\nx170 := 170\nx171 := 171\nx172 := 172\nx173 := 173\nx174 := 174\nx175 := 175\nx176 := 176\nx177 := 177\nx178 := 178\nx179 := 179\nx180 := 180\nx181 := 181\nx182 := 182\nx183 := 183\nx184 := 184\nx185 := 185\nx186 := 186\nx187 := 187\nx188 := 188\nx189 := 189\nx190 := 190\nx191 := 191\nx192 := 192\nx193 := 193\nx194 := 194\nx195 := 195\nx196 := 196\nx197 := 197\nx198 := 198\nx199 := 199\nx200 := 200\nx201 := 201\nx202 := 202\nx203 := 203\nx204 := 204",
+      "lines": null,
+      "error": "Keep a calculation to 200 lines or fewer.",
+      "latex": null,
+      "plain": "x0 := 0\nx1 := 1\nx2 := 2\nx3 := 3\nx4 := 4\nx5 := 5\nx6 := 6\nx7 := 7\nx8 := 8\nx9 := 9\nx10 := 10\nx11 := 11\nx12 := 12\nx13 := 13\nx14 := 14\nx15 := 15\nx16 := 16\nx17 := 17\nx18 := 18\nx19 := 19\nx20 := 20\nx21 := 21\nx22 := 22\nx23 := 23\nx24 := 24\nx25 := 25\nx26 := 26\nx27 := 27\nx28 := 28\nx29 := 29\nx30 := 30\nx31 := 31\nx32 := 32\nx33 := 33\nx34 := 34\nx35 := 35\nx36 := 36\nx37 := 37\nx38 := 38\nx39 := 39\nx40 := 40\nx41 := 41\nx42 := 42\nx43 := 43\nx44 := 44\nx45 := 45\nx46 := 46\nx47 := 47\nx48 := 48\nx49 := 49\nx50 := 50\nx51 := 51\nx52 := 52\nx53 := 53\nx54 := 54\nx55 := 55\nx56 := 56\nx57 := 57\nx58 := 58\nx59 := 59\nx60 := 60\nx61 := 61\nx62 := 62\nx63 := 63\nx64 := 64\nx65 := 65\nx66 := 66\nx67 := 67\nx68 := 68\nx69 := 69\nx70 := 70\nx71 := 71\nx72 := 72\nx73 := 73\nx74 := 74\nx75 := 75\nx76 := 76\nx77 := 77\nx78 := 78\nx79 := 79\nx80 := 80\nx81 := 81\nx82 := 82\nx83 := 83\nx84 := 84\nx85 := 85\nx86 := 86\nx87 := 87\nx88 := 88\nx89 := 89\nx90 := 90\nx91 := 91\nx92 := 92\nx93 := 93\nx94 := 94\nx95 := 95\nx96 := 96\nx97 := 97\nx98 := 98\nx99 := 99\nx100 := 100\nx101 := 101\nx102 := 102\nx103 := 103\nx104 := 104\nx105 := 105\nx106 := 106\nx107 := 107\nx108 := 108\nx109 := 109\nx110 := 110\nx111 := 111\nx112 := 112\nx113 := 113\nx114 := 114\nx115 := 115\nx116 := 116\nx117 := 117\nx118 := 118\nx119 := 119\nx120 := 120\nx121 := 121\nx122 := 122\nx123 := 123\nx124 := 124\nx125 := 125\nx126 := 126\nx127 := 127\nx128 := 128\nx129 := 129\nx130 := 130\nx131 := 131\nx132 := 132\nx133 := 133\nx134 := 134\nx135 := 135\nx136 := 136\nx137 := 137\nx138 := 138\nx139 := 139\nx140 := 140\nx141 := 141\nx142 := 142\nx143 := 143\nx144 := 144\nx145 := 145\nx146 := 146\nx147 := 147\nx148 := 148\nx149 := 149\nx150 := 150\nx151 := 151\nx152 := 152\nx153 := 153\nx154 := 154\nx155 := 155\nx156 := 156\nx157 := 157\nx158 := 158\nx159 := 159\nx160 := 160\nx161 := 161\nx162 := 162\nx163 := 163\nx164 := 164\nx165 := 165\nx166 := 166\nx167 := 167\nx168 := 168\nx169 := 169\nx170 := 170\nx171 := 171\nx172 := 172\nx173 := 173\nx174 := 174\nx175 := 175\nx176 := 176\nx177 := 177\nx178 := 178\nx179 := 179\nx180 := 180\nx181 := 181\nx182 := 182\nx183 := 183\nx184 := 184\nx185 := 185\nx186 := 186\nx187 := 187\nx188 := 188\nx189 := 189\nx190 := 190\nx191 := 191\nx192 := 192\nx193 := 193\nx194 := 194\nx195 := 195\nx196 := 196\nx197 := 197\nx198 := 198\nx199 := 199\nx200 := 200\nx201 := 201\nx202 := 202\nx203 := 203\nx204 := 204"
+    },
+    {
+      "source": "# Title with {braces} $ and % and _ and ^ and ~ and \\ back\nbad $ line\n\n\n\nx := 1\n\n",
+      "lines": [
+        {
+          "kind": "text",
+          "text": "Title with {braces} $ and % and _ and ^ and ~ and \\ back"
+        },
+        {
+          "kind": "error",
+          "source": "bad $ line",
+          "message": "Unexpected character “$”."
+        },
+        {
+          "kind": "blank"
+        },
+        {
+          "kind": "blank"
+        },
+        {
+          "kind": "blank"
+        },
+        {
+          "kind": "math",
+          "source": "x := 1",
+          "latex": "x \\mathrel{:=} 1",
+          "plain": "x := 1"
+        }
+      ],
+      "error": null,
+      "latex": "\\begin{array}{l}\\text{Title with \\{braces\\} \\$ and \\% and \\_ and ˆ and ˜ and / back}\\\\[0.4em]\\text{bad \\$ line}\\quad\\color{#c0392b}{\\text{Unexpected character “\\$”.}}\\\\[0.4em]\\\\[0.4em]\\displaystyle x \\mathrel{:=} 1\\end{array}",
+      "plain": "Title with {braces} $ and % and _ and ^ and ~ and \\ back\nbad $ line  [Unexpected character “$”.]\n\nx := 1"
+    },
+    {
+      "source": "x := 1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1",
+      "lines": null,
+      "error": "That calculation is too large to render.",
+      "latex": null,
+      "plain": "x := 1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1"
+    }
+  ]
+}

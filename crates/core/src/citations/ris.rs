@@ -1,7 +1,7 @@
 //! RIS import (ProseCraft `src/lib/citations/ris.ts`, upstream `7dae544`): `TY` … `ER` records
 //! read into CSL-JSON items, and a warning for each line or record that could not be read.
 
-use crate::csl::{parse_month_value, parse_person_name};
+use crate::csl::{parse_month_number, parse_person_name};
 use crate::html::is_js_whitespace;
 use crate::js::regexp::Re;
 use crate::js::{JsObject, JsValue, string_to_number};
@@ -66,10 +66,10 @@ fn parse_ris_date(raw: &str) -> Option<(JsValue, usize)> {
     let mut parts = vec![JsValue::Number(string_to_number(segments[0]))];
     let raw_month = js_trim(segments.get(1).copied().unwrap_or_default());
     let month = (!raw_month.is_empty())
-        .then(|| parse_month_value(raw_month))
+        .then(|| parse_month_number(raw_month))
         .flatten();
     if let Some(month) = month {
-        parts.push(month);
+        parts.push(JsValue::Number(month));
         let raw_day = js_trim(segments.get(2).copied().unwrap_or_default());
         if is_digits(raw_day, 1..=2) {
             let day = string_to_number(raw_day);

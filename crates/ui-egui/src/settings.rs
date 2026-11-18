@@ -341,18 +341,51 @@ impl ThemePreference {
 pub(crate) enum Category {
     #[default]
     General,
+    Writing,
     Data,
 }
 
 impl Category {
-    const ALL: [Self; 2] = [Self::General, Self::Data];
+    const ALL: [Self; 3] = [Self::General, Self::Writing, Self::Data];
 
     fn label(self) -> &'static str {
         match self {
             Self::General => "General",
+            Self::Writing => "Writing",
             Self::Data => "Data and sync",
         }
     }
+}
+
+/// ProseCraft's Markdown editor preference (`prosecraft-markdown-editor-enabled`).
+pub const MARKDOWN_EDITOR_KEY: &str = "prosecraft-markdown-editor-enabled";
+
+/// The Writing category: ProseCraft's Markdown editor preference.
+fn writing(ui: &mut Ui, state: &mut AppState) {
+    let palette = state.palette;
+    ui.label(
+        RichText::new("Markdown editor")
+            .strong()
+            .color(palette.text_heading),
+    );
+    help(
+        ui,
+        &palette,
+        "Enable an optional plain-text Markdown editor alongside rich text",
+    );
+    ui.add_space(6.0);
+    let mut enabled = state.markdown_enabled;
+    if ui
+        .checkbox(&mut enabled, "Enable Markdown editor")
+        .changed()
+    {
+        state.markdown_enabled_choice = Some(enabled);
+    }
+    help(
+        ui,
+        &palette,
+        "When enabled, use the Markdown editor button above a document to switch between Markdown source and rich text.",
+    );
 }
 
 fn general(ui: &mut Ui, state: &mut AppState) {
@@ -450,6 +483,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                     ui.set_width(440.0);
                     match state.settings_tab {
                         Category::General => general(ui, state),
+                        Category::Writing => writing(ui, state),
                         Category::Data => {
                             import_manuscript(ui, state);
                             ui.add_space(14.0);

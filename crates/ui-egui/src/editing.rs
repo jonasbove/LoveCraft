@@ -185,6 +185,10 @@ pub struct Draft {
     pub words: usize,
     pub edits: u32,
     pub words_added: f64,
+    /// In the Markdown editor: the scene's Markdown source (written back as Markdown), and the
+    /// content it was read from (a change underneath an untouched draft reloads it).
+    pub markdown: Option<String>,
+    pub markdown_base: String,
 }
 
 /// Seconds after the last keystroke before the draft reaches the project (ProseCraft: 250 ms).
@@ -406,7 +410,10 @@ pub fn commit_draft(draft: &Draft, data: &mut JsValue, today: &str) -> Result<()
         edit::set_document_title(data, &draft.document, &draft.title)?;
     }
     if draft.body_dirty {
-        edit::set_document_content(data, &draft.document, &draft.doc.to_html())?;
+        match &draft.markdown {
+            Some(source) => edit::set_document_markdown(data, &draft.document, source)?,
+            None => edit::set_document_content(data, &draft.document, &draft.doc.to_html())?,
+        }
     }
     Ok(())
 }

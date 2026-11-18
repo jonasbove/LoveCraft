@@ -206,6 +206,36 @@ pub fn set_document_content(project: &mut JsValue, id: &str, html: &str) -> Resu
     Ok(())
 }
 
+/// `applySingleDocumentMarkdown`: Markdown from the Markdown editor as the document's content
+/// (sanitized), kept as its `markdownSource`, and its footnote definitions as the document's
+/// footnotes (replacing the old ones; none when it has none).
+pub fn set_document_markdown(
+    project: &mut JsValue,
+    id: &str,
+    source: &str,
+) -> Result<(), EditError> {
+    let parsed = crate::markdown::markdown_to_document(source);
+    let html = crate::html::sanitize_html(&parsed.html);
+    let document = find_mut(project, "documents", id)?;
+    document.remove("footnotes");
+    document.insert("content", JsValue::str(&html));
+    document.insert("markdownSource", JsValue::str(source));
+    if !parsed.footnotes.is_empty() {
+        let notes = parsed
+            .footnotes
+            .iter()
+            .map(|f| {
+                let mut note = crate::js::JsObject::new();
+                note.insert("id", JsValue::str(&f.id));
+                note.insert("html", JsValue::str(&f.html));
+                JsValue::Object(note)
+            })
+            .collect();
+        document.insert("footnotes", JsValue::Array(notes));
+    }
+    Ok(())
+}
+
 pub fn set_project_name(project: &mut JsValue, name: &str) -> Result<(), EditError> {
     project
         .as_object_mut()
@@ -570,6 +600,39 @@ mod goal_tests {
         assert_eq!(
             stringify(&p),
             r#"{"projectGoal":1234,"chapterGoals":{"a":0,"b":0},"activity":{"2026-11-01":{"edits":6,"wordsAdded":13},"2026-11-02":{"edits":1,"wordsAdded":0}}}"#
+        );
+    }
+}
+
+#[cfg(test)]
+mod markdown_tests {
+    use super::{set_document_content, set_document_markdown};
+    use crate::js::{self, JsValue};
+
+    /// `applySingleDocumentMarkdown`: the content and source kept in their places, the
+    /// footnotes replaced (and put last, as the object spread puts them), or dropped when the
+    /// Markdown has none; a rich edit then drops the source.
+    #[test]
+    fn markdown_is_applied_as_prosecraft_applies_it() {
+        let mut project = js::parse(
+            r#"{"documents":[{"id":"d","title":"T","content":"<p>old</p>","footnotes":[{"id":"x","html":"old"}],"chapterId":"c","labelId":"l"}]}"#,
+        )
+        .unwrap_or(JsValue::Null);
+        let source = "New *text*[^n1] <u>u</u>\n\n[^n1]: A **note**.";
+        assert!(set_document_markdown(&mut project, "d", source).is_ok());
+        assert_eq!(
+            js::stringify(&project),
+            r#"{"documents":[{"id":"d","title":"T","content":"<p>New <em>text</em><sup class=\"footnote-ref\" data-footnote-id=\"n1\" contenteditable=\"false\"></sup> <u>u</u></p>\n","chapterId":"c","labelId":"l","markdownSource":"New *text*[^n1] <u>u</u>\n\n[^n1]: A **note**.","footnotes":[{"id":"n1","html":"A <strong>note</strong>."}]}]}"#
+        );
+        assert!(set_document_markdown(&mut project, "d", "Plain").is_ok());
+        assert_eq!(
+            js::stringify(&project),
+            r#"{"documents":[{"id":"d","title":"T","content":"<p>Plain</p>\n","chapterId":"c","labelId":"l","markdownSource":"Plain"}]}"#
+        );
+        assert!(set_document_content(&mut project, "d", "<p>Rich</p>").is_ok());
+        assert_eq!(
+            js::stringify(&project),
+            r#"{"documents":[{"id":"d","title":"T","content":"<p>Rich</p>","chapterId":"c","labelId":"l"}]}"#
         );
     }
 }

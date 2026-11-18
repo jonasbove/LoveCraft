@@ -123,6 +123,7 @@ fn mode_option(
 /// ProseCraft's "Import a manuscript" group (the EPUB importer; Scrivener, Markdown folders and
 /// Fountain come later).
 fn import_manuscript(ui: &mut Ui, state: &mut AppState) {
+    use crate::HostRequest;
     let palette = state.palette;
     ui.label(
         RichText::new("Import a manuscript")
@@ -132,20 +133,18 @@ fn import_manuscript(ui: &mut Ui, state: &mut AppState) {
     ui.add_space(4.0);
     ui.horizontal_wrapped(|ui| {
         for (label, request) in [
-            ("Import EPUB…", crate::HostRequest::ImportEpub),
-            (
-                "Import Scrivener zip…",
-                crate::HostRequest::ImportScrivenerZip,
-            ),
+            ("Import EPUB…", HostRequest::ImportEpub),
+            ("Import Scrivener zip…", HostRequest::ImportScrivenerZip),
             (
                 "Import Scrivener folder…",
-                crate::HostRequest::ImportScrivenerFolder,
+                HostRequest::ImportScrivenerFolder,
             ),
+            ("Import Fountain screenplay…", HostRequest::ImportFountain),
         ] {
-            if ui
-                .add_enabled(state.has_home, egui::Button::new(label))
-                .clicked()
-            {
+            // A screenplay joins the open project, so it needs one.
+            let enabled = state.has_home
+                && (request != HostRequest::ImportFountain || state.library.is_some());
+            if ui.add_enabled(enabled, egui::Button::new(label)).clicked() {
                 state.requests.push(request);
             }
         }
@@ -159,6 +158,11 @@ fn import_manuscript(ui: &mut Ui, state: &mut AppState) {
         ui,
         &palette,
         "Creates a new project from a Scrivener project (.scriv), as a zip or as a folder. Manuscript chapters and scenes become chapters and scenes, the research folder becomes wiki pages. Labels, status, keywords, notes and snapshots are not imported.",
+    );
+    help(
+        ui,
+        &palette,
+        "Adds a Fountain or plain-text screenplay to the open project as a screenplay scene.",
     );
 }
 

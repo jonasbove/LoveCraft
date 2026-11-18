@@ -1,0 +1,1037 @@
+{
+  "cases": [
+    {
+      "input": "Title: The Last Lighthouse\nCredit: Written by\nAuthor: Sascha\nDraft date: 12/11/2026\n\nEXT. LIGHTHOUSE - NIGHT\n\nWaves crash against the rocks.\n\nMARA\n(quietly)\nIs anyone there?\n\nCUT TO:\n\nINT. LIGHTHOUSE - NIGHT\n\nMARA\n(into the dark)\nHello?\n\n> THE END <\n\n===\n",
+      "title": {
+        "Title": "The Last Lighthouse",
+        "Credit": "Written by",
+        "Author": "Sascha",
+        "Draft date": "12/11/2026"
+      },
+      "elements": [
+        {
+          "type": "scene-heading",
+          "text": "EXT. LIGHTHOUSE - NIGHT"
+        },
+        {
+          "type": "action",
+          "text": "Waves crash against the rocks."
+        },
+        {
+          "type": "character",
+          "text": "MARA"
+        },
+        {
+          "type": "parenthetical",
+          "text": "(quietly)"
+        },
+        {
+          "type": "dialogue",
+          "text": "Is anyone there?"
+        },
+        {
+          "type": "transition",
+          "text": "CUT TO:"
+        },
+        {
+          "type": "scene-heading",
+          "text": "INT. LIGHTHOUSE - NIGHT"
+        },
+        {
+          "type": "character",
+          "text": "MARA"
+        },
+        {
+          "type": "parenthetical",
+          "text": "(into the dark)"
+        },
+        {
+          "type": "dialogue",
+          "text": "Hello?"
+        },
+        {
+          "type": "centered",
+          "text": "THE END"
+        },
+        {
+          "type": "page-break",
+          "text": ""
+        }
+      ],
+      "html": "<p data-sp=\"scene-heading\">EXT. LIGHTHOUSE - NIGHT</p><p data-sp=\"action\">Waves crash against the rocks.</p><p data-sp=\"character\">MARA</p><p data-sp=\"parenthetical\">(quietly)</p><p data-sp=\"dialogue\">Is anyone there?</p><p data-sp=\"transition\">CUT TO:</p><p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p><p data-sp=\"character\">MARA</p><p data-sp=\"parenthetical\">(into the dark)</p><p data-sp=\"dialogue\">Hello?</p><p data-sp=\"centered\">THE END</p><p data-sp=\"page-break\"></p>",
+      "back": [
+        {
+          "type": "scene-heading",
+          "text": "EXT. LIGHTHOUSE - NIGHT"
+        },
+        {
+          "type": "action",
+          "text": "Waves crash against the rocks."
+        },
+        {
+          "type": "character",
+          "text": "MARA"
+        },
+        {
+          "type": "parenthetical",
+          "text": "(quietly)"
+        },
+        {
+          "type": "dialogue",
+          "text": "Is anyone there?"
+        },
+        {
+          "type": "transition",
+          "text": "CUT TO:"
+        },
+        {
+          "type": "scene-heading",
+          "text": "INT. LIGHTHOUSE - NIGHT"
+        },
+        {
+          "type": "character",
+          "text": "MARA"
+        },
+        {
+          "type": "parenthetical",
+          "text": "(into the dark)"
+        },
+        {
+          "type": "dialogue",
+          "text": "Hello?"
+        },
+        {
+          "type": "centered",
+          "text": "THE END"
+        },
+        {
+          "type": "page-break",
+          "text": ""
+        }
+      ],
+      "fountain": "Title: The Last Lighthouse\nCredit: Written by\nAuthor: Sascha\nDraft date: 12/11/2026\n\nEXT. LIGHTHOUSE - NIGHT\n\nWaves crash against the rocks.\n\nMARA\n(quietly)\nIs anyone there?\n\nCUT TO:\n\nINT. LIGHTHOUSE - NIGHT\n\nMARA\n(into the dark)\nHello?\n\n> THE END <\n\n===\n"
+    },
+    {
+      "input": "Title: A Very\n    Long Title\nAuthor: Mara\n\nINT. ROOM - DAY\n",
+      "title": {
+        "Title": "A Very\nLong Title",
+        "Author": "Mara"
+      },
+      "elements": [
+        {
+          "type": "scene-heading",
+          "text": "INT. ROOM - DAY"
+        }
+      ],
+      "html": "<p data-sp=\"scene-heading\">INT. ROOM - DAY</p>",
+      "back": [
+        {
+          "type": "scene-heading",
+          "text": "INT. ROOM - DAY"
+        }
+      ],
+      "fountain": "Title: A Very\n    Long Title\nAuthor: Mara\n\nINT. ROOM - DAY\n"
+    },
+    {
+      "input": "A door opens.\nINT. NOT A HEADING\n",
+      "title": {},
+      "elements": [
+        {
+          "type": "action",
+          "text": "A door opens."
+        },
+        {
+          "type": "action",
+          "text": "INT. NOT A HEADING"
+        }
+      ],
+      "html": "<p data-sp=\"action\">A door opens.</p><p data-sp=\"action\">INT. NOT A HEADING</p>",
+      "back": [
+        {
+          "type": "action",
+          "text": "A door opens."
+        },
+        {
+          "type": "action",
+          "text": "INT. NOT A HEADING"
+        }
+      ],
+      "fountain": "A door opens.\n\n!INT. NOT A HEADING\n"
+    },
+    {
+      "input": "INT. ROOM - DAY\n\nCUT TO:\n\ncut to:\n",
+      "title": {},
+      "elements": [
+        {
+          "type": "scene-heading",
+          "text": "INT. ROOM - DAY"
+        },
+        {
+          "type": "transition",
+          "text": "CUT TO:"
+        },
+        {
+          "type": "action",
+          "text": "cut to:"
+        }
+      ],
+      "html": "<p data-sp=\"scene-heading\">INT. ROOM - DAY</p><p data-sp=\"transition\">CUT TO:</p><p data-sp=\"action\">cut to:</p>",
+      "back": [
+        {
+          "type": "scene-heading",
+          "text": "INT. ROOM - DAY"
+        },
+        {
+          "type": "transition",
+          "text": "CUT TO:"
+        },
+        {
+          "type": "action",
+          "text": "cut to:"
+        }
+      ],
+      "fountain": "INT. ROOM - DAY\n\nCUT TO:\n\ncut to:\n"
+    },
+    {
+      "input": "INT. KITCHEN - DAY\n\nALICE\nLeft.\n\nBOB ^\nRight.\n",
+      "title": {},
+      "elements": [
+        {
+          "type": "scene-heading",
+          "text": "INT. KITCHEN - DAY"
+        },
+        {
+          "type": "character",
+          "text": "ALICE"
+        },
+        {
+          "type": "dialogue",
+          "text": "Left."
+        },
+        {
+          "type": "character",
+          "text": "BOB",
+          "dual": true
+        },
+        {
+          "type": "dialogue",
+          "text": "Right."
+        }
+      ],
+      "html": "<p data-sp=\"scene-heading\">INT. KITCHEN - DAY</p><p data-sp=\"character\">ALICE</p><p data-sp=\"dialogue\">Left.</p><p data-sp=\"character\">BOB</p><p data-sp=\"dialogue\">Right.</p>",
+      "back": [
+        {
+          "type": "scene-heading",
+          "text": "INT. KITCHEN - DAY"
+        },
+        {
+          "type": "character",
+          "text": "ALICE"
+        },
+        {
+          "type": "dialogue",
+          "text": "Left."
+        },
+        {
+          "type": "character",
+          "text": "BOB"
+        },
+        {
+          "type": "dialogue",
+          "text": "Right."
+        }
+      ],
+      "fountain": "INT. KITCHEN - DAY\n\nALICE\nLeft.\n\nBOB ^\nRight.\n"
+    },
+    {
+      "input": "INT. ROOM - DAY\n\n[[first\nsecond]]\n\nAction.\n",
+      "title": {},
+      "elements": [
+        {
+          "type": "scene-heading",
+          "text": "INT. ROOM - DAY"
+        },
+        {
+          "type": "note",
+          "text": "first\nsecond"
+        },
+        {
+          "type": "action",
+          "text": "Action."
+        }
+      ],
+      "html": "<p data-sp=\"scene-heading\">INT. ROOM - DAY</p><p data-sp=\"note\">first\nsecond</p><p data-sp=\"action\">Action.</p>",
+      "back": [
+        {
+          "type": "scene-heading",
+          "text": "INT. ROOM - DAY"
+        },
+        {
+          "type": "note",
+          "text": "first\nsecond"
+        },
+        {
+          "type": "action",
+          "text": "Action."
+        }
+      ],
+      "fountain": "INT. ROOM - DAY\n\n[[first\nsecond]]\n\nAction.\n"
+    },
+    {
+      "input": "",
+      "title": {},
+      "elements": [],
+      "html": "",
+      "back": [],
+      "fountain": ""
+    },
+    {
+      "input": "  \n\n\t\n",
+      "title": {},
+      "elements": [],
+      "html": "",
+      "back": [],
+      "fountain": ""
+    },
+    {
+      "input": "title: lower case key\nNotes: kept\n    on two lines\nUnknown: stops here\n\nAction.\n",
+      "title": {
+        "title": "lower case key",
+        "Notes": "kept\non two lines"
+      },
+      "elements": [
+        {
+          "type": "action",
+          "text": "Unknown: stops here"
+        },
+        {
+          "type": "action",
+          "text": "Action."
+        }
+      ],
+      "html": "<p data-sp=\"action\">Unknown: stops here</p><p data-sp=\"action\">Action.</p>",
+      "back": [
+        {
+          "type": "action",
+          "text": "Unknown: stops here"
+        },
+        {
+          "type": "action",
+          "text": "Action."
+        }
+      ],
+      "fountain": "title: lower case key\nNotes: kept\n    on two lines\n\nUnknown: stops here\n\nAction.\n"
+    },
+    {
+      "input": "Title: Only a title\n",
+      "title": {
+        "Title": "Only a title"
+      },
+      "elements": [],
+      "html": "",
+      "back": [],
+      "fountain": "Title: Only a title\n"
+    },
+    {
+      "input": ".FORCED HEADING #12#\n\nINT. HOUSE - DAY #1A#\n\nEXT. PARK #  #\n\nI/E. CAR - MOVING\n\nINT/EXT. HALL\n\nEST. CITY\n\nINTERIOR DESIGN is not a heading.\n",
+      "title": {},
+      "elements": [
+        {
+          "type": "scene-heading",
+          "text": "FORCED HEADING",
+          "forced": true,
+          "sceneNumber": "12"
+        },
+        {
+          "type": "scene-heading",
+          "text": "INT. HOUSE - DAY",
+          "sceneNumber": "1A"
+        },
+        {
+          "type": "scene-heading",
+          "text": "EXT. PARK #  #"
+        },
+        {
+          "type": "scene-heading",
+          "text": "I/E. CAR - MOVING"
+        },
+        {
+          "type": "scene-heading",
+          "text": "INT/EXT. HALL"
+        },
+        {
+          "type": "scene-heading",
+          "text": "EST. CITY"
+        },
+        {
+          "type": "action",
+          "text": "INTERIOR DESIGN is not a heading."
+        }
+      ],
+      "html": "<p data-sp=\"scene-heading\">FORCED HEADING</p><p data-sp=\"scene-heading\">INT. HOUSE - DAY</p><p data-sp=\"scene-heading\">EXT. PARK #  #</p><p data-sp=\"scene-heading\">I/E. CAR - MOVING</p><p data-sp=\"scene-heading\">INT/EXT. HALL</p><p data-sp=\"scene-heading\">EST. CITY</p><p data-sp=\"action\">INTERIOR DESIGN is not a heading.</p>",
+      "back": [
+        {
+          "type": "scene-heading",
+          "text": "FORCED HEADING"
+        },
+        {
+          "type": "scene-heading",
+          "text": "INT. HOUSE - DAY"
+        },
+        {
+          "type": "scene-heading",
+          "text": "EXT. PARK #  #"
+        },
+        {
+          "type": "scene-heading",
+          "text": "I/E. CAR - MOVING"
+        },
+        {
+          "type": "scene-heading",
+          "text": "INT/EXT. HALL"
+        },
+        {
+          "type": "scene-heading",
+          "text": "EST. CITY"
+        },
+        {
+          "type": "action",
+          "text": "INTERIOR DESIGN is not a heading."
+        }
+      ],
+      "fountain": ".FORCED HEADING #12#\n\nINT. HOUSE - DAY #1A#\n\nEXT. PARK #  #\n\nI/E. CAR - MOVING\n\nINT/EXT. HALL\n\nEST. CITY\n\nINTERIOR DESIGN is not a heading.\n"
+    },
+    {
+      "input": "..not forced\n\n.\n\n!INT. FORCED ACTION\n\n!\n",
+      "title": {},
+      "elements": [
+        {
+          "type": "action",
+          "text": "..not forced"
+        },
+        {
+          "type": "action",
+          "text": "."
+        },
+        {
+          "type": "action",
+          "text": "INT. FORCED ACTION",
+          "forced": true
+        },
+        {
+          "type": "action",
+          "text": "!"
+        }
+      ],
+      "html": "<p data-sp=\"action\">..not forced</p><p data-sp=\"action\">.</p><p data-sp=\"action\">INT. FORCED ACTION</p><p data-sp=\"action\">!</p>",
+      "back": [
+        {
+          "type": "action",
+          "text": "..not forced"
+        },
+        {
+          "type": "action",
+          "text": "."
+        },
+        {
+          "type": "action",
+          "text": "INT. FORCED ACTION"
+        },
+        {
+          "type": "action",
+          "text": "!"
+        }
+      ],
+      "fountain": "!..not forced\n\n!.\n\n!INT. FORCED ACTION\n\n!!\n"
+    },
+    {
+      "input": "@McCLANE\nYippee ki-yay.\n\nMcCLANE (V.O.)\nStill not a cue? (lowercase c)\n\nSTEEL (CONT'D)\n(beat)\nRight.\n[[aside]] More.\n\nSTEEL\n\nAfter a blank line, not dialogue.\n",
+      "title": {},
+      "elements": [
+        {
+          "type": "character",
+          "text": "McCLANE",
+          "forced": true
+        },
+        {
+          "type": "dialogue",
+          "text": "Yippee ki-yay."
+        },
+        {
+          "type": "action",
+          "text": "McCLANE (V.O.)"
+        },
+        {
+          "type": "action",
+          "text": "Still not a cue? (lowercase c)"
+        },
+        {
+          "type": "character",
+          "text": "STEEL (CONT'D)"
+        },
+        {
+          "type": "parenthetical",
+          "text": "(beat)"
+        },
+        {
+          "type": "dialogue",
+          "text": "Right."
+        },
+        {
+          "type": "dialogue",
+          "text": "More."
+        },
+        {
+          "type": "note",
+          "text": "aside"
+        },
+        {
+          "type": "action",
+          "text": "STEEL"
+        },
+        {
+          "type": "action",
+          "text": "After a blank line, not dialogue."
+        }
+      ],
+      "html": "<p data-sp=\"character\">McCLANE</p><p data-sp=\"dialogue\">Yippee ki-yay.</p><p data-sp=\"action\">McCLANE (V.O.)</p><p data-sp=\"action\">Still not a cue? (lowercase c)</p><p data-sp=\"character\">STEEL (CONT'D)</p><p data-sp=\"parenthetical\">(beat)</p><p data-sp=\"dialogue\">Right.</p><p data-sp=\"dialogue\">More.</p><p data-sp=\"note\">aside</p><p data-sp=\"action\">STEEL</p><p data-sp=\"action\">After a blank line, not dialogue.</p>",
+      "back": [
+        {
+          "type": "character",
+          "text": "McCLANE"
+        },
+        {
+          "type": "dialogue",
+          "text": "Yippee ki-yay."
+        },
+        {
+          "type": "action",
+          "text": "McCLANE (V.O.)"
+        },
+        {
+          "type": "action",
+          "text": "Still not a cue? (lowercase c)"
+        },
+        {
+          "type": "character",
+          "text": "STEEL (CONT'D)"
+        },
+        {
+          "type": "parenthetical",
+          "text": "(beat)"
+        },
+        {
+          "type": "dialogue",
+          "text": "Right."
+        },
+        {
+          "type": "dialogue",
+          "text": "More."
+        },
+        {
+          "type": "note",
+          "text": "aside"
+        },
+        {
+          "type": "action",
+          "text": "STEEL"
+        },
+        {
+          "type": "action",
+          "text": "After a blank line, not dialogue."
+        }
+      ],
+      "fountain": "@McCLANE\nYippee ki-yay.\n\nMcCLANE (V.O.)\n\nStill not a cue? (lowercase c)\n\nSTEEL (CONT'D)\n(beat)\nRight.\nMore.\n\n[[aside]]\n\nSTEEL\n\nAfter a blank line, not dialogue.\n"
+    },
+    {
+      "input": "HANS ^\n\nSOLO\n",
+      "title": {},
+      "elements": [
+        {
+          "type": "action",
+          "text": "HANS ^"
+        },
+        {
+          "type": "action",
+          "text": "SOLO"
+        }
+      ],
+      "html": "<p data-sp=\"action\">HANS ^</p><p data-sp=\"action\">SOLO</p>",
+      "back": [
+        {
+          "type": "action",
+          "text": "HANS ^"
+        },
+        {
+          "type": "action",
+          "text": "SOLO"
+        }
+      ],
+      "fountain": "HANS ^\n\nSOLO\n"
+    },
+    {
+      "input": "> Forced transition\n\n>CENTERED<\n\n> < \n\nFADE TO BLACK.\n\nSMASH CUT TO:\n\nfade out to:\n",
+      "title": {},
+      "elements": [
+        {
+          "type": "transition",
+          "text": "Forced transition",
+          "forced": true
+        },
+        {
+          "type": "centered",
+          "text": "CENTERED"
+        },
+        {
+          "type": "centered",
+          "text": ""
+        },
+        {
+          "type": "action",
+          "text": "FADE TO BLACK."
+        },
+        {
+          "type": "transition",
+          "text": "SMASH CUT TO:"
+        },
+        {
+          "type": "action",
+          "text": "fade out to:"
+        }
+      ],
+      "html": "<p data-sp=\"transition\">Forced transition</p><p data-sp=\"centered\">CENTERED</p><p data-sp=\"centered\"></p><p data-sp=\"action\">FADE TO BLACK.</p><p data-sp=\"transition\">SMASH CUT TO:</p><p data-sp=\"action\">fade out to:</p>",
+      "back": [
+        {
+          "type": "transition",
+          "text": "Forced transition"
+        },
+        {
+          "type": "centered",
+          "text": "CENTERED"
+        },
+        {
+          "type": "centered",
+          "text": ""
+        },
+        {
+          "type": "action",
+          "text": "FADE TO BLACK."
+        },
+        {
+          "type": "transition",
+          "text": "SMASH CUT TO:"
+        },
+        {
+          "type": "action",
+          "text": "fade out to:"
+        }
+      ],
+      "fountain": ">Forced transition\n\n> CENTERED <\n\n>  <\n\nFADE TO BLACK.\n\nSMASH CUT TO:\n\nfade out to:\n"
+    },
+    {
+      "input": "# Act One\n\n## Sequence\n\n####### Seven\n\n#\n\n= A synopsis\n\n=\n\n===\n\n==\n\nINT. AFTER SECTION - DAY\n",
+      "title": {},
+      "elements": [
+        {
+          "type": "section",
+          "text": "Act One",
+          "level": 1
+        },
+        {
+          "type": "section",
+          "text": "Sequence",
+          "level": 2
+        },
+        {
+          "type": "action",
+          "text": "####### Seven"
+        },
+        {
+          "type": "section",
+          "text": "",
+          "level": 1
+        },
+        {
+          "type": "synopsis",
+          "text": "A synopsis"
+        },
+        {
+          "type": "synopsis",
+          "text": ""
+        },
+        {
+          "type": "page-break",
+          "text": ""
+        },
+        {
+          "type": "synopsis",
+          "text": "="
+        },
+        {
+          "type": "scene-heading",
+          "text": "INT. AFTER SECTION - DAY"
+        }
+      ],
+      "html": "<p data-sp=\"section\">Act One</p><p data-sp=\"section\">Sequence</p><p data-sp=\"action\">####### Seven</p><p data-sp=\"section\"></p><p data-sp=\"synopsis\">A synopsis</p><p data-sp=\"synopsis\"></p><p data-sp=\"page-break\"></p><p data-sp=\"synopsis\">=</p><p data-sp=\"scene-heading\">INT. AFTER SECTION - DAY</p>",
+      "back": [
+        {
+          "type": "section",
+          "text": "Act One"
+        },
+        {
+          "type": "section",
+          "text": "Sequence"
+        },
+        {
+          "type": "action",
+          "text": "####### Seven"
+        },
+        {
+          "type": "section",
+          "text": ""
+        },
+        {
+          "type": "synopsis",
+          "text": "A synopsis"
+        },
+        {
+          "type": "synopsis",
+          "text": ""
+        },
+        {
+          "type": "page-break",
+          "text": ""
+        },
+        {
+          "type": "synopsis",
+          "text": "="
+        },
+        {
+          "type": "scene-heading",
+          "text": "INT. AFTER SECTION - DAY"
+        }
+      ],
+      "fountain": "# Act One\n\n## Sequence\n\n!####### Seven\n\n#\n\n= A synopsis\n\n=\n\n===\n\n= =\n\nINT. AFTER SECTION - DAY\n"
+    },
+    {
+      "input": "Action with [[an inline note]] and [[another]]  text.\n\nAction [[unclosed note\ncontinues\n\nnext]] tail text\n",
+      "title": {},
+      "elements": [
+        {
+          "type": "action",
+          "text": "Action with and  text."
+        },
+        {
+          "type": "note",
+          "text": "an inline note"
+        },
+        {
+          "type": "note",
+          "text": "another"
+        },
+        {
+          "type": "action",
+          "text": "Action [[unclosed note"
+        },
+        {
+          "type": "action",
+          "text": "continues"
+        },
+        {
+          "type": "action",
+          "text": "next]] tail text"
+        }
+      ],
+      "html": "<p data-sp=\"action\">Action with and  text.</p><p data-sp=\"note\">an inline note</p><p data-sp=\"note\">another</p><p data-sp=\"action\">Action [[unclosed note</p><p data-sp=\"action\">continues</p><p data-sp=\"action\">next]] tail text</p>",
+      "back": [
+        {
+          "type": "action",
+          "text": "Action with and  text."
+        },
+        {
+          "type": "note",
+          "text": "an inline note"
+        },
+        {
+          "type": "note",
+          "text": "another"
+        },
+        {
+          "type": "action",
+          "text": "Action [[unclosed note"
+        },
+        {
+          "type": "action",
+          "text": "continues"
+        },
+        {
+          "type": "action",
+          "text": "next]] tail text"
+        }
+      ],
+      "fountain": "Action with and  text.\n\n[[an inline note]]\n\n[[another]]\n\nAction [[unclosed note\n\ncontinues\n\nnext]] tail text\n"
+    },
+    {
+      "input": "[[note at end]] and the rest\n\n[[never closed\nat all",
+      "title": {},
+      "elements": [
+        {
+          "type": "note",
+          "text": "note at end"
+        },
+        {
+          "type": "action",
+          "text": "and the rest"
+        },
+        {
+          "type": "note",
+          "text": "never closed\nat all"
+        }
+      ],
+      "html": "<p data-sp=\"note\">note at end</p><p data-sp=\"action\">and the rest</p><p data-sp=\"note\">never closed\nat all</p>",
+      "back": [
+        {
+          "type": "note",
+          "text": "note at end"
+        },
+        {
+          "type": "action",
+          "text": "and the rest"
+        },
+        {
+          "type": "note",
+          "text": "never closed\nat all"
+        }
+      ],
+      "fountain": "[[note at end]]\n\nand the rest\n\n[[never closed\nat all]]\n"
+    },
+    {
+      "input": "Boneyard /* hidden\nacross lines */ visible.\n\n/* unclosed boneyard\nto the end",
+      "title": {},
+      "elements": [
+        {
+          "type": "action",
+          "text": "Boneyard  visible."
+        }
+      ],
+      "html": "<p data-sp=\"action\">Boneyard  visible.</p>",
+      "back": [
+        {
+          "type": "action",
+          "text": "Boneyard  visible."
+        }
+      ],
+      "fountain": "Boneyard  visible.\n"
+    },
+    {
+      "input": "Emphasis: *italic*, **bold**, ***both***, _under_, * not*, **mixed*, a < b & c > d\n\n_un_der_score_\n",
+      "title": {},
+      "elements": [
+        {
+          "type": "action",
+          "text": "Emphasis: *italic*, **bold**, ***both***, _under_, * not*, **mixed*, a < b & c > d"
+        },
+        {
+          "type": "action",
+          "text": "_un_der_score_"
+        }
+      ],
+      "html": "<p data-sp=\"action\">Emphasis: <em>italic</em>, <strong>bold</strong>, <strong><em>both</em></strong>, <u>under</u>, <em> not</em>, *<em>mixed</em>, a &lt; b &amp; c &gt; d</p><p data-sp=\"action\"><u>un</u>der<u>score</u></p>",
+      "back": [
+        {
+          "type": "action",
+          "text": "Emphasis: *italic*, **bold**, ***both***, _under_, * not*, **mixed*, a < b & c > d"
+        },
+        {
+          "type": "action",
+          "text": "_un_der_score_"
+        }
+      ],
+      "fountain": "Emphasis: *italic*, **bold**, ***both***, _under_, * not*, **mixed*, a < b & c > d\n\n_un_der_score_\n"
+    },
+    {
+      "input": "INT. ROOM - DAY\r\n\r\nWindows lines.\r\nMore.\rOld Mac.\r\n",
+      "title": {},
+      "elements": [
+        {
+          "type": "scene-heading",
+          "text": "INT. ROOM - DAY"
+        },
+        {
+          "type": "action",
+          "text": "Windows lines."
+        },
+        {
+          "type": "action",
+          "text": "More."
+        },
+        {
+          "type": "action",
+          "text": "Old Mac."
+        }
+      ],
+      "html": "<p data-sp=\"scene-heading\">INT. ROOM - DAY</p><p data-sp=\"action\">Windows lines.</p><p data-sp=\"action\">More.</p><p data-sp=\"action\">Old Mac.</p>",
+      "back": [
+        {
+          "type": "scene-heading",
+          "text": "INT. ROOM - DAY"
+        },
+        {
+          "type": "action",
+          "text": "Windows lines."
+        },
+        {
+          "type": "action",
+          "text": "More."
+        },
+        {
+          "type": "action",
+          "text": "Old Mac."
+        }
+      ],
+      "fountain": "INT. ROOM - DAY\n\nWindows lines.\n\nMore.\n\nOld Mac.\n"
+    },
+    {
+      "input": "   Indented action.\n\n\tTabbed.\n\nINT. ROOM - DAY\nNo blank before this action.\nMARA\nNot a cue (no blank before).\n",
+      "title": {},
+      "elements": [
+        {
+          "type": "action",
+          "text": "Indented action."
+        },
+        {
+          "type": "action",
+          "text": "Tabbed."
+        },
+        {
+          "type": "scene-heading",
+          "text": "INT. ROOM - DAY"
+        },
+        {
+          "type": "action",
+          "text": "No blank before this action."
+        },
+        {
+          "type": "action",
+          "text": "MARA"
+        },
+        {
+          "type": "action",
+          "text": "Not a cue (no blank before)."
+        }
+      ],
+      "html": "<p data-sp=\"action\">Indented action.</p><p data-sp=\"action\">Tabbed.</p><p data-sp=\"scene-heading\">INT. ROOM - DAY</p><p data-sp=\"action\">No blank before this action.</p><p data-sp=\"action\">MARA</p><p data-sp=\"action\">Not a cue (no blank before).</p>",
+      "back": [
+        {
+          "type": "action",
+          "text": "Indented action."
+        },
+        {
+          "type": "action",
+          "text": "Tabbed."
+        },
+        {
+          "type": "scene-heading",
+          "text": "INT. ROOM - DAY"
+        },
+        {
+          "type": "action",
+          "text": "No blank before this action."
+        },
+        {
+          "type": "action",
+          "text": "MARA"
+        },
+        {
+          "type": "action",
+          "text": "Not a cue (no blank before)."
+        }
+      ],
+      "fountain": "Indented action.\n\nTabbed.\n\nINT. ROOM - DAY\n\nNo blank before this action.\n\nMARA\n\nNot a cue (no blank before).\n"
+    },
+    {
+      "input": "MARA\n(beat)\n\n(not parenthetical\n",
+      "title": {},
+      "elements": [
+        {
+          "type": "character",
+          "text": "MARA"
+        },
+        {
+          "type": "parenthetical",
+          "text": "(beat)"
+        },
+        {
+          "type": "action",
+          "text": "(not parenthetical"
+        }
+      ],
+      "html": "<p data-sp=\"character\">MARA</p><p data-sp=\"parenthetical\">(beat)</p><p data-sp=\"action\">(not parenthetical</p>",
+      "back": [
+        {
+          "type": "character",
+          "text": "MARA"
+        },
+        {
+          "type": "parenthetical",
+          "text": "(beat)"
+        },
+        {
+          "type": "action",
+          "text": "(not parenthetical"
+        }
+      ],
+      "fountain": "MARA\n(beat)\n\n(not parenthetical\n"
+    },
+    {
+      "input": "1 2 3 numbers ONLY\n\nX-RAY 2\nDialogue.\n\nA.B.C.\nTalk.\n",
+      "title": {},
+      "elements": [
+        {
+          "type": "action",
+          "text": "1 2 3 numbers ONLY"
+        },
+        {
+          "type": "character",
+          "text": "X-RAY 2"
+        },
+        {
+          "type": "dialogue",
+          "text": "Dialogue."
+        },
+        {
+          "type": "character",
+          "text": "A.B.C."
+        },
+        {
+          "type": "dialogue",
+          "text": "Talk."
+        }
+      ],
+      "html": "<p data-sp=\"action\">1 2 3 numbers ONLY</p><p data-sp=\"character\">X-RAY 2</p><p data-sp=\"dialogue\">Dialogue.</p><p data-sp=\"character\">A.B.C.</p><p data-sp=\"dialogue\">Talk.</p>",
+      "back": [
+        {
+          "type": "action",
+          "text": "1 2 3 numbers ONLY"
+        },
+        {
+          "type": "character",
+          "text": "X-RAY 2"
+        },
+        {
+          "type": "dialogue",
+          "text": "Dialogue."
+        },
+        {
+          "type": "character",
+          "text": "A.B.C."
+        },
+        {
+          "type": "dialogue",
+          "text": "Talk."
+        }
+      ],
+      "fountain": "1 2 3 numbers ONLY\n\nX-RAY 2\nDialogue.\n\nA.B.C.\nTalk.\n"
+    }
+  ]
+}

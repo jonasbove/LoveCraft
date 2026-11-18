@@ -1707,3 +1707,51 @@ fn a_footnote_keeps_its_formatting_when_edited() {
         Some("A note with <em>emphasis</em>. More.")
     );
 }
+
+#[test]
+fn a_fountain_screenplay_joins_the_open_chapter() {
+    let (mut harness, memory) = app();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness.state_mut().import_fountain(
+        "pilot.fountain",
+        "Title: The Pilot\n\nINT. LIGHTHOUSE - NIGHT\n\nMARA\n(quietly)\nIs **anyone** there?\n",
+    );
+    harness.run_steps(12);
+    harness.get_by_label_contains("Imported “The Pilot” as a screenplay scene.");
+    let saved = memory.last();
+    let docs = project(&saved, "project-1")
+        .get("project")
+        .and_then(|p| p.get("documents"))
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+        .to_vec();
+    let scene = docs.last().cloned().expect("the new scene");
+    let s = |k: &str| {
+        scene
+            .get(k)
+            .and_then(JsValue::as_js_string)
+            .map(|v| v.to_string_lossy())
+            .unwrap_or_default()
+    };
+    assert_eq!(
+        (
+            s("title").as_str(),
+            s("chapterId").as_str(),
+            s("format").as_str()
+        ),
+        ("The Pilot", "chapter-1", "screenplay")
+    );
+    assert_eq!(
+        s("content"),
+        r#"<p data-sp="scene-heading">INT. LIGHTHOUSE - NIGHT</p><p data-sp="character">MARA</p><p data-sp="parenthetical">(quietly)</p><p data-sp="dialogue">Is <strong>anyone</strong> there?</p>"#
+    );
+    // Without a title page, the file name names it.
+    harness
+        .state_mut()
+        .import_fountain("Second Act.txt", "EXT. SHORE - DAY\n\nWaves.\n");
+    harness.run_steps(12);
+    harness.get_by_label_contains("Imported “Second Act” as a screenplay scene.");
+}

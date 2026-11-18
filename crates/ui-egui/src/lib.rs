@@ -21,6 +21,7 @@ mod editing;
 pub mod find;
 pub mod fonts;
 mod footnote_editor;
+mod fountain_import;
 mod labels;
 mod library;
 mod project_settings;
@@ -112,6 +113,8 @@ pub enum HostRequest {
     ImportScrivenerZip,
     /// Ask for a Scrivener project folder, then call [`ProseApp::import_scrivener_folder`].
     ImportScrivenerFolder,
+    /// Ask for a Fountain screenplay, then call [`ProseApp::import_fountain`].
+    ImportFountain,
     /// Ask for a sync folder, then call [`ProseApp::set_sync_folder`].
     ChooseSyncFolder,
     /// Ask where to save an exported manuscript, then write it there. `kind` names the format

@@ -30,6 +30,7 @@ pub mod publish;
 pub mod richtext;
 pub mod screenplay;
 pub mod search;
+pub mod shortcuts;
 pub mod snapshots;
 pub mod starters;
 pub mod storage;

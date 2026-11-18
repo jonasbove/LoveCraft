@@ -46,6 +46,8 @@ pub enum Op {
         x2: f64,
         y2: f64,
         color: Rgb,
+        /// Points (jsPDF's default is 0.200025).
+        width: f64,
     },
     /// An embedded image (a `data:` URL) in the box from (`x`, `y`).
     Image {
@@ -233,6 +235,7 @@ impl Writer<'_> {
             x2,
             y2,
             color,
+            width: 0.200025,
         });
     }
 

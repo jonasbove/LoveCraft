@@ -25,6 +25,7 @@ mod labels;
 mod library;
 mod project_settings;
 mod publish;
+mod scrivener_import;
 mod settings;
 mod sidebar;
 mod starter;
@@ -107,6 +108,10 @@ pub enum HostRequest {
     ExportBackup { file_name: String, text: String },
     /// Ask for an EPUB to import, then call [`ProseApp::import_epub`].
     ImportEpub,
+    /// Ask for a zipped Scrivener project, then call [`ProseApp::import_scrivener_zip`].
+    ImportScrivenerZip,
+    /// Ask for a Scrivener project folder, then call [`ProseApp::import_scrivener_folder`].
+    ImportScrivenerFolder,
     /// Ask for a sync folder, then call [`ProseApp::set_sync_folder`].
     ChooseSyncFolder,
     /// Ask where to save an exported manuscript, then write it there. `kind` names the format
@@ -264,6 +269,9 @@ pub struct AppState {
     /// A footnote to open in the footnote editor (document, id), and the one open.
     footnote_open: Option<(String, String)>,
     footnote_edit: Option<footnote_editor::FootnoteEdit>,
+    /// A Scrivener project read and shown before it is imported, and one to import now.
+    scrivener: Option<scrivener_import::ScrivenerPreview>,
+    scrivener_done: Option<scrivener_import::ScrivenerPreview>,
     /// The Labels dialog, while open.
     labels_dialog: Option<labels::LabelsDraft>,
     /// The Project Settings dialog, while open.
@@ -902,6 +910,10 @@ impl ProseApp {
         project_settings::show(ui, &mut self.state);
         labels::show(ui, &mut self.state);
         footnote_editor::show(ui, &mut self.state);
+        scrivener_import::show(ui, &mut self.state);
+        if let Some(preview) = self.state.scrivener_done.take() {
+            self.finish_scrivener_import(preview);
+        }
         // Ctrl+F opens Find and replace, as in ProseCraft.
         if self.state.find.is_none()
             && self.state.library.is_some()

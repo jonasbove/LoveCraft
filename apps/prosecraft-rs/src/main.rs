@@ -26,6 +26,9 @@ enum Then {
     Open,
     /// Import this EPUB as a new project.
     ImportEpub,
+    /// Read this zipped Scrivener project, or this `.scriv` folder.
+    ScrivenerZip,
+    ScrivenerFolder,
     /// Write these bytes where the person chose (a backup or an exported manuscript).
     Export(Vec<u8>),
     /// The folder to sync through.
@@ -195,6 +198,24 @@ impl eframe::App for DesktopApp {
                         }
                     }
                 }
+                (Then::ScrivenerZip, Answer::Paths(paths)) => {
+                    if let Some(path) = paths.first() {
+                        match read_capped(path, SCRIVENER_LIMIT) {
+                            Ok(bytes) => self.app.import_scrivener_zip(&bytes),
+                            Err(e) => eprintln!("{}: {e}", path.display()),
+                        }
+                    }
+                }
+                (Then::ScrivenerFolder, Answer::Paths(paths)) => {
+                    if let Some(path) = paths.first() {
+                        let name = path
+                            .file_name()
+                            .map(|n| n.to_string_lossy().into_owned())
+                            .unwrap_or_default();
+                        self.app
+                            .import_scrivener_folder(&name, read_scrivener_folder(path));
+                    }
+                }
                 (Then::Export(text), Answer::Paths(paths)) => {
                     if let Some(path) = paths.first()
                         && let Err(e) = craft_atomic::atomic_write(path, &text)
@@ -224,6 +245,17 @@ impl eframe::App for DesktopApp {
                         .title("Open a ProseCraft backup")
                         .filter("ProseCraft backup", &["prosecraft", "json"]);
                     self.dialogs.ask(dialog, Then::Open);
+                }
+                HostRequest::ImportScrivenerZip => {
+                    let dialog = FileDialog::open()
+                        .title("Import a Scrivener project")
+                        .filter("Zipped Scrivener project", &["zip"]);
+                    self.dialogs.ask(dialog, Then::ScrivenerZip);
+                }
+                HostRequest::ImportScrivenerFolder => {
+                    let dialog =
+                        FileDialog::folder().title("Import a Scrivener project folder (.scriv)");
+                    self.dialogs.ask(dialog, Then::ScrivenerFolder);
                 }
                 HostRequest::ImportEpub => {
                     let dialog = FileDialog::open()
@@ -260,6 +292,65 @@ impl eframe::App for DesktopApp {
             self.title = title;
         }
     }
+}
+
+/// The most a Scrivener project may unpack to (the importer refuses anything larger).
+const SCRIVENER_LIMIT: u64 = 200 * 1024 * 1024;
+/// ProseCraft skips any one file of a project folder larger than this.
+const MAX_SCRIVENER_ENTRY_BYTES: u64 = 50_000_000;
+
+/// The file's bytes, or no more than `limit` and one (the importer then says it is too large).
+fn read_capped(path: &std::path::Path, limit: u64) -> std::io::Result<Vec<u8>> {
+    let mut bytes = Vec::new();
+    std::io::Read::read_to_end(
+        &mut std::io::Read::take(std::fs::File::open(path)?, limit + 1),
+        &mut bytes,
+    )?;
+    Ok(bytes)
+}
+
+/// A `.scriv` folder's files by their paths inside it, as a folder picker gives them: files
+/// larger than ProseCraft's 50 MB skipped, and no more than the importer accepts (it then says
+/// the project is too large).
+fn read_scrivener_folder(root: &std::path::Path) -> Vec<(String, Vec<u8>)> {
+    let mut entries = Vec::new();
+    let mut total: u64 = 0;
+    let mut pending = vec![root.to_path_buf()];
+    while let Some(dir) = pending.pop() {
+        let Ok(read) = std::fs::read_dir(&dir) else {
+            continue;
+        };
+        let mut children: Vec<_> = read.filter_map(Result::ok).map(|e| e.path()).collect();
+        children.sort();
+        for path in children.into_iter().rev() {
+            if path.is_symlink() {
+                continue;
+            }
+            if path.is_dir() {
+                pending.push(path);
+                continue;
+            }
+            let size = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
+            if size > MAX_SCRIVENER_ENTRY_BYTES || total > SCRIVENER_LIMIT || entries.len() > 20_000
+            {
+                continue;
+            }
+            let Ok(relative) = path.strip_prefix(root) else {
+                continue;
+            };
+            let Ok(bytes) = std::fs::read(&path) else {
+                continue;
+            };
+            total += bytes.len() as u64;
+            let name = relative
+                .components()
+                .map(|c| c.as_os_str().to_string_lossy())
+                .collect::<Vec<_>>()
+                .join("/");
+            entries.push((name, bytes));
+        }
+    }
+    entries
 }
 
 fn main() -> ExitCode {

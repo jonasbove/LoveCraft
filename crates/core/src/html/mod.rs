@@ -169,7 +169,8 @@ pub fn parse_fragment(html: &str) -> Vec<Node> {
     for token in craft_html::Lexer::with(html, options) {
         match token {
             craft_html::Token::Text(text) => {
-                let text = craft_html::unescape(text);
+                // The HTML parser ignores NUL characters in the body.
+                let text = craft_html::unescape(text).replace('\0', "");
                 if let Some(top) = stack.last_mut() {
                     match top.children.last_mut() {
                         Some(Node::Text(previous)) => previous.push_str(&text),
@@ -195,7 +196,8 @@ pub fn parse_fragment(html: &str) -> Vec<Node> {
                     name: name.clone(),
                     attrs: tag
                         .attributes()
-                        .map(|(k, v)| (k.to_ascii_lowercase(), v))
+                        // A NUL in an attribute value is read as U+FFFD.
+                        .map(|(k, v)| (k.to_ascii_lowercase(), v.replace('\0', "\u{fffd}")))
                         .collect(),
                     children: Vec::new(),
                 };

@@ -14,6 +14,9 @@ workspace = true
 [dependencies]
 craft-html = { workspace = true }
 craft-image-codecs = { workspace = true }
+# DOCX export: the document built on the word-processing model and written as OOXML.
+craft-docx = { workspace = true }
+craft-wordmodel = { workspace = true }
 craft-zip = { workspace = true }
 craft-xml = { workspace = true }
 # Names sorted as `localeCompare` sorts them (ICU collation, numbers by value).
@@ -35,3 +38,8 @@ chrono = { workspace = true }
 # `crypto.getRandomValues` through `RandomSource` instead.
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 getrandom = { workspace = true }
+
+[dev-dependencies]
+# The DOCX fixture test prints the formatting craft-docx reads back as compact JSON (only the
+# properties a file sets), so a difference anywhere in it shows. MIT OR Apache-2.0.
+serde_json = "1"

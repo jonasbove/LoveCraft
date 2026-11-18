@@ -32,6 +32,11 @@ pub struct StyleTokens {
     pub drop_cap: bool,
     /// Width, height, margins top, right, bottom, left, in points.
     pub page: [f64; 6],
+    /// The font DOCX names (`docxFont`), and whether print layouts carry a running header
+    /// (author / title) and page numbers.
+    pub docx_font: &'static str,
+    pub running_header: bool,
+    pub page_numbers: bool,
 }
 
 const MANUSCRIPT: StyleTokens = StyleTokens {
@@ -49,6 +54,9 @@ const MANUSCRIPT: StyleTokens = StyleTokens {
     scene_break: 1.0,
     drop_cap: false,
     page: [612.0, 792.0, 72.0, 72.0, 72.0, 72.0],
+    docx_font: "Times New Roman",
+    running_header: true,
+    page_numbers: true,
 };
 
 const CLASSIC: StyleTokens = StyleTokens {
@@ -66,6 +74,9 @@ const CLASSIC: StyleTokens = StyleTokens {
     scene_break: 1.2,
     drop_cap: true,
     page: [432.0, 648.0, 54.0, 54.0, 54.0, 54.0],
+    docx_font: "Georgia",
+    running_header: true,
+    page_numbers: true,
 };
 
 const MODERN: StyleTokens = StyleTokens {
@@ -83,6 +94,9 @@ const MODERN: StyleTokens = StyleTokens {
     scene_break: 1.1,
     drop_cap: false,
     page: [432.0, 648.0, 60.0, 54.0, 60.0, 54.0],
+    docx_font: "Georgia",
+    running_header: false,
+    page_numbers: true,
 };
 
 const EBOOK: StyleTokens = StyleTokens {
@@ -100,6 +114,9 @@ const EBOOK: StyleTokens = StyleTokens {
     scene_break: 1.1,
     drop_cap: false,
     page: [432.0, 648.0, 42.0, 42.0, 42.0, 42.0],
+    docx_font: "Georgia",
+    running_header: false,
+    page_numbers: false,
 };
 
 /// `resolveStyleTokens` for the built-in styles. Custom styles aren't ported yet and use the

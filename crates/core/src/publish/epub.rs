@@ -8,8 +8,6 @@
 
 use std::collections::HashMap;
 
-use base64::Engine;
-
 use super::citations::resolve_book_citations;
 use super::epub_css::{CSS, DROP_CAPS};
 use super::footnotes::{BookFootnotes, resolve_book_footnotes};
@@ -478,35 +476,6 @@ fn ncx(book: &CompiledBook, identifier: &str, items: &[(String, String)]) -> Str
     )
 }
 
-/// `decodeEmbeddedImage`: the image's bytes, extension and media type. WebP becomes PNG.
-fn decode_image(src: &str) -> Result<(Vec<u8>, &'static str, &'static str), EpubError> {
-    let (kind, data) = ["png", "jpeg", "webp"]
-        .iter()
-        .find_map(|k| {
-            src.strip_prefix(&format!("data:image/{k};base64,"))
-                .map(|d| (*k, d))
-        })
-        .ok_or_else(|| EpubError::Image("not an embedded PNG, JPEG or WebP".into()))?;
-    let bytes = base64::engine::general_purpose::STANDARD
-        .decode(data)
-        .map_err(|e| EpubError::Image(e.to_string()))?;
-    match kind {
-        "jpeg" => Ok((bytes, "jpg", "image/jpeg")),
-        "png" => Ok((bytes, "png", "image/png")),
-        _ => {
-            let image =
-                craft_image_codecs::decode(&bytes).map_err(|e| EpubError::Image(e.to_string()))?;
-            let png = craft_image_codecs::encode(
-                &image,
-                craft_image_codecs::Format::Png,
-                &craft_image_codecs::EncodeOptions::default(),
-            )
-            .map_err(|e| EpubError::Image(e.to_string()))?;
-            Ok((png, "png", "image/png"))
-        }
-    }
-}
-
 fn collect_images(nodes: &[Node], out: &mut Vec<String>) {
     for node in nodes {
         if let Node::Element(e) = node {
@@ -556,7 +525,12 @@ pub fn epub_entries(
             if images.contains_key(&src) {
                 continue;
             }
-            let (bytes, extension, media_type) = decode_image(&src)?;
+            let super::embedded_image::EmbeddedImage {
+                bytes,
+                extension,
+                media_type,
+                ..
+            } = super::embedded_image::decode_embedded_image(&src).map_err(EpubError::Image)?;
             let index = images.len() + 1;
             let file = format!("image-{index}.{extension}");
             images.insert(src, format!("../images/{file}"));
@@ -776,6 +750,7 @@ mod tests {
             words: 0,
             citations: Vec::new(),
             bibliography: None,
+            cover: None,
         };
         let entries =
             epub_entries(&book, &PublishOptions::default(), "urn:uuid:ID", "M").expect("entries");

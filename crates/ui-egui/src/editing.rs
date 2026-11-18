@@ -223,6 +223,9 @@ pub struct Draft {
     /// it was read from (a change underneath an untouched draft reloads it).
     pub markdown: Option<String>,
     pub markdown_base: String,
+    /// In the chapter view's Markdown editor: the chapter whose scenes `markdown` holds, with
+    /// `<!-- scene-break -->` lines between them.
+    pub chapter: Option<String>,
 }
 
 /// Seconds after the last keystroke before the draft reaches the project (ProseCraft: 250 ms).
@@ -458,10 +461,45 @@ pub fn commit_draft(draft: &Draft, data: &mut JsValue, today: &str) -> Result<()
         edit::set_document_title(data, &draft.document, &draft.title)?;
     }
     if draft.body_dirty {
-        match &draft.markdown {
-            Some(source) => edit::set_document_markdown(data, &draft.document, source)?,
-            None => edit::set_document_content(data, &draft.document, &draft.doc.to_html())?,
+        match (&draft.markdown, &draft.chapter) {
+            (Some(source), Some(chapter)) => write_chapter_markdown(data, chapter, source)?,
+            (Some(source), None) => edit::set_document_markdown(data, &draft.document, source)?,
+            (None, _) => edit::set_document_content(data, &draft.document, &draft.doc.to_html())?,
         }
     }
     Ok(())
+}
+
+/// `applyMarkdownSourceToDocs`: the chapter's Markdown, split at its marker lines, written back
+/// to its scenes as their sources, HTML and footnote definitions.
+fn write_chapter_markdown(
+    data: &mut JsValue,
+    chapter: &str,
+    source: &str,
+) -> Result<(), EditError> {
+    use prosecraft_core::chapter::{split_chapter_markdown, write_chapter_sections};
+    let sections = split_chapter_markdown(source);
+    let parsed: Vec<_> = sections
+        .iter()
+        .map(|s| prosecraft_core::markdown::markdown_to_document(s))
+        .collect();
+    let html: Vec<String> = parsed
+        .iter()
+        .map(|p| prosecraft_core::html::sanitize_html(&p.html))
+        .collect();
+    let notes: Vec<Vec<JsValue>> = parsed
+        .iter()
+        .map(|p| {
+            p.footnotes
+                .iter()
+                .map(|f| {
+                    let mut note = prosecraft_core::js::JsObject::new();
+                    note.insert("id", JsValue::str(&f.id));
+                    note.insert("html", JsValue::str(&f.html));
+                    JsValue::Object(note)
+                })
+                .collect()
+        })
+        .collect();
+    write_chapter_sections(data, chapter, &html, Some(&sections), Some(&notes))
 }

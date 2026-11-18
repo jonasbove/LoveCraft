@@ -446,7 +446,13 @@ fn write(
                 // The Markdown editor edits any scene's source, even one the rich editor can't
                 // hold (a table, a code block); a screenplay keeps its own editor.
                 if edit.markdown_mode && edit.editable && !screenplay {
-                    markdown_editor(ui, palette, document, edit);
+                    // A screenplay scene can't go through Markdown (its elements would be lost),
+                    // so a chapter holding one edits only the open scene's Markdown.
+                    let chapter = chapter_view(project, document).filter(|c| {
+                        !c.screenplay_project
+                            && c.before.iter().chain(&c.after).all(|s| !s.screenplay)
+                    });
+                    markdown_editor(ui, palette, document, chapter, edit);
                     return;
                 }
                 match RichDoc::from_html(&document.content).filter(|_| edit.editable) {
@@ -786,6 +792,32 @@ fn chapter_keys(
     }
 }
 
+/// `chapterMarkdownSource` over the chapter's scenes: their own sources when every scene has
+/// one, else Markdown from their HTML.
+fn chapter_markdown(scenes: &[&prosecraft_core::project::Document]) -> String {
+    use prosecraft_core::chapter::join_chapter_markdown;
+    let sources: Option<Vec<String>> = scenes.iter().map(|s| s.markdown_source.clone()).collect();
+    match sources {
+        Some(sources) if !scenes.is_empty() => join_chapter_markdown(&sources),
+        _ => join_chapter_markdown(
+            &scenes
+                .iter()
+                .map(|s| {
+                    let notes: Vec<prosecraft_core::markdown::FootnoteDef> = s
+                        .footnotes
+                        .iter()
+                        .map(|f| prosecraft_core::markdown::FootnoteDef {
+                            id: f.id.clone(),
+                            html: f.html.clone(),
+                        })
+                        .collect();
+                    prosecraft_core::markdown::html_to_markdown(&s.content, &notes)
+                })
+                .collect::<Vec<_>>(),
+        ),
+    }
+}
+
 /// The block styles of ProseCraft's toolbar.
 const BLOCK_STYLES: [(LineKind, &str); 7] = [
     (LineKind::Paragraph, "Normal text"),
@@ -1032,6 +1064,7 @@ fn editor(
             words_added: 0.0,
             markdown: None,
             markdown_base: String::new(),
+            chapter: None,
         });
     }
     let now = edit.now;
@@ -1469,18 +1502,42 @@ fn markdown_editor(
     ui: &mut Ui,
     palette: &Palette,
     document: &prosecraft_core::project::Document,
+    chapter: Option<ChapterView<'_>>,
     edit: &mut Edit<'_>,
 ) {
+    // In the chapter view, the whole chapter's Markdown (`chapterMarkdownSource`).
+    let chapter_source = chapter.as_ref().map(|c| {
+        let scenes: Vec<&prosecraft_core::project::Document> = c
+            .before
+            .iter()
+            .copied()
+            .chain(std::iter::once(document))
+            .chain(c.after.iter().copied())
+            .collect();
+        chapter_markdown(&scenes)
+    });
     // A new draft when another document opens, or when the scene changed underneath an
-    // untouched draft.
+    // untouched draft. A chapter's source is compared as its sections, as it is written back.
     let stale = edit.draft.as_ref().is_none_or(|d| {
         d.document != document.id
             || d.markdown.is_none()
+            || d.chapter != chapter.as_ref().map(|c| c.id.clone())
             || (!d.is_dirty()
-                && (d.title != document.title || d.markdown_base != markdown_base(document)))
+                && match &chapter_source {
+                    Some(source) => {
+                        d.markdown.as_deref().map(|m| {
+                            prosecraft_core::chapter::join_chapter_markdown(
+                                &prosecraft_core::chapter::split_chapter_markdown(m),
+                            )
+                        }) != Some(source.clone())
+                    }
+                    None => d.title != document.title || d.markdown_base != markdown_base(document),
+                })
     });
     if stale {
-        let source = document.markdown();
+        let source = chapter_source
+            .clone()
+            .unwrap_or_else(|| document.markdown());
         let doc = RichDoc::from_html(&document.content).unwrap_or_default();
         *edit.draft = Some(Draft {
             document: document.id.clone(),
@@ -1495,24 +1552,36 @@ fn markdown_editor(
             words_added: 0.0,
             markdown: Some(source),
             markdown_base: markdown_base(document),
+            chapter: chapter.as_ref().map(|c| c.id.clone()),
         });
     }
     let now = edit.now;
     let Some(draft) = edit.draft.as_mut() else {
         return;
     };
-    let title = ui.add(
-        egui::TextEdit::singleline(&mut draft.title)
-            .font(fonts::serif(38.0))
-            .text_color(palette.text_heading)
-            .frame(egui::Frame::NONE)
-            .hint_text("Untitled scene")
-            .desired_width(f32::INFINITY),
-    );
-    name_field(ui, &title, "Scene title");
-    if title.changed() {
-        draft.title_dirty = true;
-        draft.changed_at = now;
+    if let Some(chapter) = &chapter {
+        chapter_title(
+            ui,
+            palette,
+            &chapter.id,
+            &chapter.label,
+            &chapter.title,
+            edit.intents,
+        );
+    } else {
+        let title = ui.add(
+            egui::TextEdit::singleline(&mut draft.title)
+                .font(fonts::serif(38.0))
+                .text_color(palette.text_heading)
+                .frame(egui::Frame::NONE)
+                .hint_text("Untitled scene")
+                .desired_width(f32::INFINITY),
+        );
+        name_field(ui, &title, "Scene title");
+        if title.changed() {
+            draft.title_dirty = true;
+            draft.changed_at = now;
+        }
     }
     ui.add_space(10.0);
     // ProseCraft's Markdown utilities: back to the rich text editor.

@@ -179,6 +179,31 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                 crate::views::name_field(ui, &plus, "Create project");
                 plus.clicked()
             };
+            // `trashActiveProject` (it asks first); the last project can't go.
+            let live = projects.iter().filter(|p| !p.view.trashed).count();
+            if actions {
+                let trash = ui.add_enabled_ui(live > 1, |ui| {
+                    ui.menu_button("Trash", |ui| {
+                        ui.label(format!(
+                            "Move “{}” to Trash? You can restore it later.",
+                            current.view.name
+                        ));
+                        if ui
+                            .button(RichText::new("Move to Trash").color(palette.danger))
+                            .clicked()
+                        {
+                            state.intents.push(Intent::TrashProject);
+                            ui.close();
+                        }
+                    })
+                });
+                let response = trash.inner.response.on_hover_text(if live > 1 {
+                    "Move project to Trash"
+                } else {
+                    "The last project cannot be moved to Trash"
+                });
+                crate::views::name_field(ui, &response, "Move current project to Trash");
+            }
             let settings = actions && {
                 let gear = ui.button("⚙").on_hover_text("Project settings");
                 crate::views::name_field(ui, &gear, "Project settings");
@@ -238,6 +263,12 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         .auto_shrink([false, false])
         .show(ui, |ui| {
             let mut manage_labels = false;
+            // The label filter belongs to the project it was chosen in.
+            let mut filter = state
+                .label_filter
+                .as_ref()
+                .filter(|(p, l)| *p == project.id && project.label(l).is_some())
+                .map(|(_, l)| l.clone());
             chosen = chapters(
                 ui,
                 &palette,
@@ -247,7 +278,10 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                 &mut state.intents,
                 &mut manage_labels,
                 &mut state.renaming_scene,
+                &mut filter,
+                state.now_ms,
             );
+            state.label_filter = filter.map(|l| (project.id.clone(), l));
             if manage_labels {
                 state.labels_dialog = Some(crate::labels::LabelsDraft::for_project(project));
             }
@@ -267,7 +301,20 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
             ui.add_space(14.0);
             ui.separator();
             ui.add_space(8.0);
-            trash(ui, &palette, project, state.editable, &mut state.intents);
+            let trashed: Vec<(String, String)> = library
+                .projects()
+                .iter()
+                .filter(|p| p.view.trashed)
+                .map(|p| (p.view.id.clone(), p.view.name.clone()))
+                .collect();
+            trash(
+                ui,
+                &palette,
+                project,
+                &trashed,
+                state.editable,
+                &mut state.intents,
+            );
         });
     if let Some(selection) = chosen {
         state.select(selection);
@@ -284,6 +331,8 @@ fn chapters(
     intents: &mut Vec<Intent>,
     manage_labels: &mut bool,
     renaming: &mut Option<(String, String)>,
+    filter: &mut Option<String>,
+    now_ms: f64,
 ) -> Option<Selection> {
     let mut chosen = None;
     ui.horizontal(|ui| {
@@ -301,8 +350,38 @@ fn chapters(
         }
     });
     ui.add_space(4.0);
+    // "Filter scenes by label": only the scenes with that label, and their chapters.
+    if !project.labels.is_empty() {
+        let current = filter.as_deref().and_then(|id| project.label(id));
+        let combo = craft_ui::ComboBox::from_id_salt(("label-filter", &project.id))
+            .selected_text(current.map_or("All labels", |l| l.name.as_str()))
+            .show_ui(ui, |ui| {
+                ui.selectable_value(filter, None, "All labels");
+                for label in &project.labels {
+                    ui.selectable_value(filter, Some(label.id.clone()), label.name.as_str());
+                }
+            });
+        ui.ctx().accesskit_node_builder(combo.response.id, |node| {
+            node.set_label("Filter scenes by label");
+        });
+        if let Some(label) = current {
+            let chip = ui.small_button(format!("Filter: {} · clear", label.name));
+            crate::views::name_field(ui, &chip, &format!("Clear label filter: {}", label.name));
+            if chip.clicked() {
+                *filter = None;
+            }
+        }
+    }
+    let shown = |scene: &&prosecraft_core::project::Document| {
+        filter
+            .as_deref()
+            .is_none_or(|l| scene.label_id.as_deref() == Some(l))
+    };
     let mut any = false;
     for chapter in project.live_chapters() {
+        if filter.is_some() && !project.scenes_in_chapter(&chapter.id).any(|s| shown(&s)) {
+            continue;
+        }
         any = true;
         let selected = selection == Some(&Selection::Chapter(chapter.id.clone()));
         let title = crate::views::label_of(project, &chapter.id);
@@ -394,7 +473,7 @@ fn chapters(
                 }
             });
         }
-        for scene in project.scenes_in_chapter(&chapter.id) {
+        for scene in project.scenes_in_chapter(&chapter.id).filter(shown) {
             let selected = selection == Some(&Selection::Document(scene.id.clone()));
             let title = if scene.title.is_empty() {
                 "Untitled scene"
@@ -448,6 +527,21 @@ fn chapters(
                                 ui.close();
                             }
                         }
+                        // `convertToScreenplay` (it asks first; a snapshot of the prose is kept).
+                        if !scene.screenplay {
+                            ui.menu_button("Convert this scene to screenplay", |ui| {
+                                ui.label(format!(
+                                    "Convert “{title}” to screenplay format? A snapshot of the prose version will be saved first."
+                                ));
+                                if ui.button(RichText::new("Convert").strong()).clicked() {
+                                    intents.push(Intent::ConvertToScreenplay {
+                                        document: scene.id.clone(),
+                                        now: now_ms,
+                                    });
+                                    ui.close();
+                                }
+                            });
+                        }
                         ui.menu_button("Move to chapter…", |ui| {
                             for target in project.live_chapters() {
                                 let here = scene.chapter_id.as_deref() == Some(&target.id);
@@ -490,7 +584,12 @@ fn chapters(
         }
     }
     if !any {
-        ui.label(RichText::new("No chapters yet.").color(palette.text_muted));
+        let empty = if filter.is_some() {
+            "No scenes with this label"
+        } else {
+            "No chapters yet."
+        };
+        ui.label(RichText::new(empty).color(palette.text_muted));
     }
     chosen
 }
@@ -695,11 +794,12 @@ fn trash(
     ui: &mut Ui,
     palette: &Palette,
     project: &Project,
+    projects: &[(String, String)],
     editable: bool,
     intents: &mut Vec<Intent>,
 ) {
     let (chapters, documents) = project.trash();
-    let count = chapters.len() + documents.len();
+    let count = chapters.len() + documents.len() + projects.len();
     egui::CollapsingHeader::new(
         RichText::new(format!("Trash ({count})"))
             .size(13.5)
@@ -710,6 +810,29 @@ fn trash(
     .show(ui, |ui| {
         if count == 0 {
             ui.label(RichText::new("Trash is empty").color(palette.text_muted));
+        }
+        for (id, name) in projects {
+            ui.horizontal(|ui| {
+                ui.label(RichText::new(format!("Project: {name}")).color(palette.text_secondary));
+                if editable && restore_button(ui, &format!("project {name}")).clicked() {
+                    intents.push(Intent::RestoreProject(id.clone()));
+                }
+                if editable {
+                    // `permanentlyDeleteProject` asks first.
+                    let delete = ui.menu_button(RichText::new("Delete").color(palette.danger), |ui| {
+                        ui.label(format!(
+                            "Permanently delete “{name}” and all its contents? This cannot be undone."
+                        ));
+                        if ui.button(RichText::new("Delete").color(palette.danger)).clicked() {
+                            intents.push(Intent::DeleteProject(id.clone()));
+                            ui.close();
+                        }
+                    });
+                    let label = format!("Permanently delete project {name}");
+                    ui.ctx()
+                        .accesskit_node_builder(delete.response.id, |node| node.set_label(label));
+                }
+            });
         }
         for chapter in chapters {
             ui.horizontal(|ui| {

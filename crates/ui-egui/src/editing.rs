@@ -32,6 +32,11 @@ pub enum Intent {
         scene: String,
         chapter: String,
     },
+    /// The open project to the Trash, a project back from it, or gone for good
+    /// (`trashActiveProject`, `restoreProject`, `permanentlyDeleteProject`).
+    TrashProject,
+    RestoreProject(String),
+    DeleteProject(String),
     /// From the Trash, gone for good (`permanentlyDelete`, `permanentlyDeleteChapter`).
     DeleteDocument(String),
     DeleteChapter(String),
@@ -459,6 +464,9 @@ pub fn run(
         | Intent::BodyHistory { .. }
         | Intent::PageHistory { .. }
         | Intent::HideInterface
+        | Intent::TrashProject
+        | Intent::RestoreProject(_)
+        | Intent::DeleteProject(_)
         | Intent::InsertPicture { .. }
         | Intent::PlaceCitation { .. }
         | Intent::RemoveCitation { .. } => Ok(()),

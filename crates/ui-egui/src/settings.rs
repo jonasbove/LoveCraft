@@ -506,6 +506,49 @@ fn general(ui: &mut Ui, state: &mut AppState) {
 
 /// The Settings dialog, while open: ProseCraft's categories on the left, the chosen one's
 /// settings beside them.
+/// "Wiki files": where imported files live on this device.
+fn wiki_files(ui: &mut Ui, state: &mut AppState) {
+    let palette = state.palette;
+    eyebrow(ui, &palette, "Wiki files");
+    if !state.wiki_available {
+        help(
+            ui,
+            &palette,
+            "Wiki files are stored in a folder on this computer, so they are available in the desktop app.",
+        );
+        return;
+    }
+    help(
+        ui,
+        &palette,
+        "Imported wiki files live in a project folder on this device. They are stored as plain files, not encrypted, and are not included in project backups or device sync. Their metadata travels with the project. Files can be up to 200 MB each.",
+    );
+    ui.add_space(6.0);
+    let root = state.wiki_root.clone().unwrap_or_default();
+    ui.horizontal(|ui| {
+        let path = if root.is_empty() {
+            "No folder chosen"
+        } else {
+            root.as_str()
+        };
+        ui.add(egui::Label::new(RichText::new(path).monospace().size(12.0)).truncate())
+            .on_hover_text(path);
+        let choose = ui.button("Choose folder…");
+        crate::views::name_field(ui, &choose, "Choose wiki files folder");
+        if choose.clicked() {
+            state.intents.push(crate::editing::Intent::ChooseWikiRoot);
+        }
+    });
+    if ui.button("Reveal project folder").clicked() {
+        state
+            .intents
+            .push(crate::editing::Intent::RevealWikiProjectFolder);
+    }
+    if let Some(status) = &state.wiki_settings_status {
+        ui.label(RichText::new(status).size(11.0).color(palette.text_muted));
+    }
+}
+
 pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
     if !state.settings_open {
         return;
@@ -569,9 +612,15 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                         Category::General => general(ui, state),
                         Category::Writing => writing(ui, state),
                         Category::Data => {
-                            import_manuscript(ui, state);
-                            ui.add_space(14.0);
-                            device_sync(ui, state);
+                            egui::ScrollArea::vertical()
+                                .id_salt("settings-data")
+                                .show(ui, |ui| {
+                                    import_manuscript(ui, state);
+                                    ui.add_space(14.0);
+                                    device_sync(ui, state);
+                                    ui.add_space(14.0);
+                                    wiki_files(ui, state);
+                                });
                         }
                     }
                 });

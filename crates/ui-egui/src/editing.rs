@@ -37,6 +37,20 @@ pub enum Intent {
     TrashProject,
     /// Ask the host for a cover image (`coverImageInput.click()`).
     ChooseCover,
+    /// Wiki files and links (`addResearchFiles`, `openResearchLinkDialog`, `openResearchFile`,
+    /// `openResearchLink`, `revealResearchFile`, `moveResearchItem`, `removeResearchItem`).
+    AddWikiFiles(Option<String>),
+    AddWikiLink(Option<String>),
+    OpenWikiItem(String),
+    RevealWikiFile(String),
+    MoveWikiItem {
+        id: String,
+        folder: Option<String>,
+    },
+    RemoveWikiItem(String),
+    /// Settings: `chooseResearchRoot`, `revealResearchProjectFolder`.
+    ChooseWikiRoot,
+    RevealWikiProjectFolder,
     /// A custom export style saved (a new one gets its id) and chosen, or deleted.
     SaveCustomStyle(Box<prosecraft_core::publish::styles::CustomStyle>),
     DeleteCustomStyle(String),
@@ -337,6 +351,9 @@ pub fn run(
         Intent::TrashDocument(id) => edit::trash_document(data, id),
         Intent::TrashChapter(id) => edit::trash_chapter(data, id),
         Intent::MoveChapter { id, offset } => edit::move_chapter(data, id, *offset),
+        Intent::MoveWikiItem { id, folder } => {
+            prosecraft_core::research::move_item(data, id, folder.as_deref())
+        }
         Intent::SaveCustomStyle(style) => edit::save_custom_style(data, style, &new_id()),
         Intent::DeleteCustomStyle(id) => edit::delete_custom_style(data, id),
         Intent::AddMatterPage {
@@ -493,6 +510,13 @@ pub fn run(
         | Intent::DeleteProject(_)
         | Intent::InsertPicture { .. }
         | Intent::ChooseCover
+        | Intent::AddWikiFiles(_)
+        | Intent::AddWikiLink(_)
+        | Intent::OpenWikiItem(_)
+        | Intent::RevealWikiFile(_)
+        | Intent::RemoveWikiItem(_)
+        | Intent::ChooseWikiRoot
+        | Intent::RevealWikiProjectFolder
         | Intent::PlaceCitation { .. }
         | Intent::RemoveCitation { .. } => Ok(()),
         Intent::SetFootnote { document, id, html } => {

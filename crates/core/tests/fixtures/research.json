@@ -1,0 +1,479 @@
+{
+  "urls": [
+    {
+      "raw": "",
+      "normalized": null,
+      "title": ""
+    },
+    {
+      "raw": "  ",
+      "normalized": null,
+      "title": ""
+    },
+    {
+      "raw": "example.com",
+      "normalized": "https://example.com/",
+      "title": "example.com"
+    },
+    {
+      "raw": "https://www.Example.com/a b?q=1#x",
+      "normalized": "https://www.example.com/a%20b?q=1#x",
+      "title": "example.com"
+    },
+    {
+      "raw": "http://ex.org",
+      "normalized": "http://ex.org/",
+      "title": "ex.org"
+    },
+    {
+      "raw": "ftp://x.org",
+      "normalized": null,
+      "title": "ftp://x.org"
+    },
+    {
+      "raw": "mailto:a@b.c",
+      "normalized": null,
+      "title": "mailto:a@b.c"
+    },
+    {
+      "raw": "javascript:alert(1)",
+      "normalized": null,
+      "title": "javascript:alert(1)"
+    },
+    {
+      "raw": "www.wiki.org/Page",
+      "normalized": "https://www.wiki.org/Page",
+      "title": "wiki.org"
+    },
+    {
+      "raw": "HTTPS://WWW.EXAMPLE.COM",
+      "normalized": "https://www.example.com/",
+      "title": "example.com"
+    },
+    {
+      "raw": "localhost:3000/x",
+      "normalized": null,
+      "title": "localhost:3000/x"
+    },
+    {
+      "raw": "https://user:pw@host.io:8443/p",
+      "normalized": "https://user:pw@host.io:8443/p",
+      "title": "host.io"
+    },
+    {
+      "raw": "not a url",
+      "normalized": null,
+      "title": "not a url"
+    },
+    {
+      "raw": "https://bücher.de/ä",
+      "normalized": "https://xn--bcher-kva.de/%C3%A4",
+      "title": "xn--bcher-kva.de"
+    },
+    {
+      "raw": "//proto.rel",
+      "normalized": "https://proto.rel/",
+      "title": "proto.rel"
+    },
+    {
+      "raw": "https://",
+      "normalized": null,
+      "title": "https://"
+    }
+  ],
+  "names": [
+    {
+      "raw": "report.pdf",
+      "safe": "report.pdf",
+      "mime": "application/pdf"
+    },
+    {
+      "raw": "  notes .txt ..",
+      "safe": "notes .txt",
+      "mime": "application/octet-stream"
+    },
+    {
+      "raw": "a/b\\c:d*e?f\"g<h>i|j.md",
+      "safe": "a-b-c-d-e-f-g-h-i-j.md",
+      "mime": "text/markdown"
+    },
+    {
+      "raw": "CON",
+      "safe": "file-CON",
+      "mime": "application/octet-stream"
+    },
+    {
+      "raw": "con.txt",
+      "safe": "file-con.txt",
+      "mime": "text/plain"
+    },
+    {
+      "raw": "com1.doc",
+      "safe": "file-com1.doc",
+      "mime": "application/msword"
+    },
+    {
+      "raw": "COM0",
+      "safe": "COM0",
+      "mime": "application/octet-stream"
+    },
+    {
+      "raw": "lpt9",
+      "safe": "file-lpt9",
+      "mime": "application/octet-stream"
+    },
+    {
+      "raw": ".",
+      "safe": "research-file-1795009656173",
+      "mime": "application/octet-stream"
+    },
+    {
+      "raw": "..",
+      "safe": "research-file-1795009656173",
+      "mime": "application/octet-stream"
+    },
+    {
+      "raw": "",
+      "safe": "research-file-1795009656173",
+      "mime": "application/octet-stream"
+    },
+    {
+      "raw": "ﬁle№１.TXT",
+      "safe": "fileNo1.TXT",
+      "mime": "text/plain"
+    },
+    {
+      "raw": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.markdown",
+      "safe": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.markdown",
+      "mime": "application/octet-stream"
+    },
+    {
+      "raw": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "safe": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "mime": "application/octet-stream"
+    },
+    {
+      "raw": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz.verylongextensionhere",
+      "safe": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
+      "mime": "application/octet-stream"
+    },
+    {
+      "raw": "tab\there\nnew.txt",
+      "safe": "tab-here-new.txt",
+      "mime": "text/plain"
+    },
+    {
+      "raw": "émoji 😀 file.png",
+      "safe": "émoji 😀 file.png",
+      "mime": "image/png"
+    }
+  ],
+  "paths": [
+    {
+      "raw": "/home/a/Report Final.PDF",
+      "name": "Report Final.PDF"
+    },
+    {
+      "raw": "C:\\Users\\b\\notes.md",
+      "name": "notes.md"
+    },
+    {
+      "raw": "dir/",
+      "name": "file"
+    },
+    {
+      "raw": "file",
+      "name": "file"
+    }
+  ],
+  "sizes": [
+    {
+      "bytes": -1,
+      "text": ""
+    },
+    {
+      "bytes": 0,
+      "text": "0 B"
+    },
+    {
+      "bytes": 1,
+      "text": "1 B"
+    },
+    {
+      "bytes": 1023,
+      "text": "1023 B"
+    },
+    {
+      "bytes": 1024,
+      "text": "1 KB"
+    },
+    {
+      "bytes": 1536,
+      "text": "2 KB"
+    },
+    {
+      "bytes": 1048575,
+      "text": "1024 KB"
+    },
+    {
+      "bytes": 1048576,
+      "text": "1.0 MB"
+    },
+    {
+      "bytes": 1310720,
+      "text": "1.3 MB"
+    },
+    {
+      "bytes": 1572864,
+      "text": "1.5 MB"
+    },
+    {
+      "bytes": 10485759,
+      "text": "10.0 MB"
+    },
+    {
+      "bytes": 10485760,
+      "text": "10 MB"
+    },
+    {
+      "bytes": 15728640,
+      "text": "15 MB"
+    },
+    {
+      "bytes": 209715200,
+      "text": "200 MB"
+    },
+    {
+      "bytes": "NaN",
+      "text": ""
+    },
+    {
+      "bytes": "Infinity",
+      "text": ""
+    }
+  ],
+  "folders": [
+    {
+      "name": "My Novel",
+      "id": "abc-123-XYZ-9999",
+      "folder": "My Novel (abc123XY)"
+    },
+    {
+      "name": "",
+      "id": "",
+      "folder": "Untitled Project (project)"
+    },
+    {
+      "name": "  ..Hidden: name?  ",
+      "id": "!!",
+      "folder": "Hidden- name- (project)"
+    },
+    {
+      "name": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "id": "id",
+      "folder": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA (id)"
+    },
+    {
+      "name": "trail. . ",
+      "id": "x",
+      "folder": "trail (x)"
+    }
+  ],
+  "folderValues": [
+    {
+      "value": "  My/Folder  ",
+      "normalized": "My-Folder"
+    },
+    {
+      "value": "con",
+      "normalized": "folder-con"
+    },
+    {
+      "value": "CON.txt",
+      "normalized": "CON.txt"
+    },
+    {
+      "value": "..",
+      "normalized": ""
+    },
+    {
+      "value": ".",
+      "normalized": ""
+    },
+    {
+      "value": "...a",
+      "normalized": "a"
+    },
+    {
+      "value": 5,
+      "normalized": ""
+    },
+    {
+      "value": null,
+      "normalized": ""
+    },
+    {
+      "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa .",
+      "normalized": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "value": "lpt3",
+      "normalized": "folder-lpt3"
+    }
+  ],
+  "keys": [
+    {
+      "key": "research/abc-1/file.txt",
+      "items": 1
+    },
+    {
+      "key": "research/abc/../x",
+      "items": 0
+    },
+    {
+      "key": "research//x",
+      "items": 0
+    },
+    {
+      "key": "research/a b/x",
+      "items": 0
+    },
+    {
+      "key": "research/a/b/c",
+      "items": 0
+    },
+    {
+      "key": "other/a/x",
+      "items": 0
+    },
+    {
+      "key": "research/a/.",
+      "items": 0
+    },
+    {
+      "key": "research/a/..",
+      "items": 0
+    },
+    {
+      "key": "research/a/x\\y",
+      "items": 0
+    }
+  ],
+  "items": {
+    "raw": [
+      {
+        "id": "f1",
+        "kind": "file",
+        "folderId": "f",
+        "title": "  Report  ",
+        "fileName": "report.pdf",
+        "mimeType": "application/pdf",
+        "size": 1234,
+        "storageKey": "research/f1/report.pdf",
+        "addedAt": 5
+      },
+      {
+        "id": "f2",
+        "kind": "file",
+        "folderId": "gone",
+        "title": "",
+        "fileName": "a.md",
+        "mimeType": "",
+        "size": 0,
+        "storageKey": "research/f2/a.md"
+      },
+      {
+        "id": "f3",
+        "kind": "file",
+        "fileName": "b.md",
+        "mimeType": "text/markdown",
+        "size": -1,
+        "storageKey": "research/f3/b.md"
+      },
+      {
+        "id": "f4",
+        "kind": "file",
+        "fileName": "c.md",
+        "mimeType": "text/markdown",
+        "size": 3,
+        "storageKey": "../etc/passwd"
+      },
+      {
+        "id": "l1",
+        "kind": "link",
+        "url": "example.org/x",
+        "description": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      {
+        "id": "l1",
+        "kind": "link",
+        "url": "https://dup.org"
+      },
+      {
+        "id": "l2",
+        "kind": "link",
+        "url": "ftp://nope"
+      },
+      {
+        "id": "l3",
+        "kind": "link",
+        "title": "Named",
+        "url": "https://named.org",
+        "folderId": "f",
+        "addedAt": "7"
+      },
+      {
+        "id": "",
+        "kind": "link",
+        "url": "https://x.org"
+      },
+      {
+        "id": "n",
+        "kind": "note"
+      },
+      "str",
+      null
+    ],
+    "normalized": [
+      {
+        "id": "f1",
+        "kind": "file",
+        "folderId": "f",
+        "title": "Report",
+        "fileName": "report.pdf",
+        "mimeType": "application/pdf",
+        "size": 1234,
+        "storageKey": "research/f1/report.pdf",
+        "addedAt": 5
+      },
+      {
+        "id": "f2",
+        "kind": "file",
+        "folderId": null,
+        "title": "a.md",
+        "fileName": "a.md",
+        "mimeType": "application/octet-stream",
+        "size": 0,
+        "storageKey": "research/f2/a.md",
+        "addedAt": 0
+      },
+      {
+        "id": "l1",
+        "kind": "link",
+        "folderId": null,
+        "title": "example.org",
+        "url": "https://example.org/x",
+        "description": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "addedAt": 0
+      },
+      {
+        "id": "l3",
+        "kind": "link",
+        "folderId": "f",
+        "title": "Named",
+        "url": "https://named.org/",
+        "addedAt": 0
+      }
+    ]
+  }
+}

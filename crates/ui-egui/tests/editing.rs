@@ -1351,6 +1351,192 @@ fn the_preview_shows_each_part_on_its_pages() {
     harness.get_by_label_contains("Previewing Bibliography.");
 }
 
+/// Wiki files on a pretend device: what was copied in, read and deleted.
+#[derive(Clone, Default)]
+struct PretendWikiFiles(std::rc::Rc<std::cell::RefCell<Vec<String>>>);
+
+impl prosecraft_ui_egui::WikiFileStore for PretendWikiFiles {
+    fn import(&self, root: &str, folder: &str, key: &str, source: &str) -> Result<u64, String> {
+        if source.ends_with("locked.pdf") {
+            return Err("The selected file could not be read.".into());
+        }
+        self.0
+            .borrow_mut()
+            .push(format!("import {root}|{folder}|{key}"));
+        Ok(2048)
+    }
+    fn read_markdown(&self, _: &str, _: &str, key: &str) -> Result<String, String> {
+        self.0.borrow_mut().push(format!("read {key}"));
+        Ok("# Harbour notes\n\nThe *tide* turns at six.".into())
+    }
+    fn file_path(&self, root: &str, folder: &str, key: &str) -> Result<String, String> {
+        Ok(format!("{root}/{folder}/{key}"))
+    }
+    fn delete(&self, _: &str, _: &str, key: &str) -> Result<(), String> {
+        self.0.borrow_mut().push(format!("delete {key}"));
+        Ok(())
+    }
+    fn prepare_folder(&self, root: &str, folder: &str) -> Result<String, String> {
+        Ok(format!("{root}/{folder}"))
+    }
+    fn open(&self, target: &str) -> Result<(), String> {
+        self.0.borrow_mut().push(format!("open {target}"));
+        Ok(())
+    }
+    fn reveal(&self, path: &str) -> Result<(), String> {
+        self.0.borrow_mut().push(format!("reveal {path}"));
+        Ok(())
+    }
+}
+
+#[test]
+fn wiki_links_and_files_are_added_opened_and_removed() {
+    let (mut harness, memory) = app();
+    let device = PretendWikiFiles::default();
+    harness.state_mut().set_wiki_files(Box::new(device.clone()));
+    let items = |memory: &Memory| -> Vec<JsValue> {
+        project(&memory.last(), "project-1")
+            .get("project")
+            .and_then(|p| p.get("researchItems"))
+            .and_then(JsValue::as_array)
+            .map(<[JsValue]>::to_vec)
+            .unwrap_or_default()
+    };
+    let text = |v: &JsValue, k: &str| {
+        v.get(k)
+            .and_then(JsValue::as_js_string)
+            .map(|s| s.to_string_lossy())
+            .unwrap_or_default()
+    };
+    // A web link: the address made https, titled by its site.
+    harness.get_by_label("Add to Wiki").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Add web link")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TextInput, "Web address")
+        .type_text("ftp://nope");
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Add link")
+        .click();
+    harness.run();
+    harness.get_by_label("Enter a valid http or https address.");
+    harness
+        .get_by_role_and_label(Role::TextInput, "Web address")
+        .focus();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    harness
+        .get_by_role_and_label(Role::TextInput, "Web address")
+        .type_text("www.example.org/harbour");
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::MultilineTextInput, "Description")
+        .focus();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::MultilineTextInput, "Description")
+        .type_text("Tide tables");
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Add link")
+        .click();
+    harness.run_steps(12);
+    let link = items(&memory)
+        .into_iter()
+        .find(|i| text(i, "kind") == "link")
+        .expect("a link");
+    assert_eq!(text(&link, "url"), "https://www.example.org/harbour");
+    assert_eq!(text(&link, "title"), "example.org");
+    assert_eq!(text(&link, "description"), "Tide tables");
+    harness.get_by_label("Link added.");
+    harness.get_by_label("example.org").click();
+    harness.run();
+    assert!(harness.state_mut().take_requests().contains(
+        &prosecraft_ui_egui::HostRequest::OpenUrl("https://www.example.org/harbour".into())
+    ));
+    // Files: the folder is asked for first, then the files; one can't be read.
+    harness.get_by_label("Add to Wiki").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Add file")
+        .click();
+    harness.run();
+    assert_eq!(
+        harness.state_mut().take_requests(),
+        [prosecraft_ui_egui::HostRequest::ChooseWikiRoot { add_to: Some(None) }]
+    );
+    harness.state_mut().set_wiki_root("/wiki", Some(None));
+    assert_eq!(
+        harness.state_mut().take_requests(),
+        [prosecraft_ui_egui::HostRequest::PickWikiFiles { folder: None }]
+    );
+    harness.state_mut().add_wiki_files(
+        None,
+        &[
+            "/home/me/Harbour notes.md".into(),
+            "/home/me/locked.pdf".into(),
+        ],
+    );
+    harness.run_steps(12);
+    harness.get_by_label("Added 1 file. The selected file could not be read.");
+    let file = items(&memory)
+        .into_iter()
+        .find(|i| text(i, "kind") == "file")
+        .expect("a file");
+    let key = text(&file, "storageKey");
+    assert!(
+        key.starts_with("research/") && key.ends_with("/Harbour notes.md"),
+        "{key}"
+    );
+    assert_eq!(text(&file, "mimeType"), "text/markdown");
+    assert_eq!(file.get("size").and_then(JsValue::as_number), Some(2048.0));
+    let folder = text(
+        project(&memory.last(), "project-1")
+            .get("project")
+            .expect("project"),
+        "researchFolderName",
+    );
+    assert!(folder.ends_with(")") && folder.contains(" ("), "{folder}");
+    assert!(
+        device
+            .0
+            .borrow()
+            .contains(&format!("import /wiki|{folder}|{key}"))
+    );
+    // A Markdown file opens in the preview.
+    harness.get_by_label("Harbour notes.md").click();
+    harness.run();
+    let preview = harness.get_by_label("Markdown preview");
+    assert!(
+        preview
+            .accesskit_node()
+            .value()
+            .is_some_and(|v| v.contains("The tide turns at six.")),
+        "{:?}",
+        preview.accesskit_node().value()
+    );
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    assert!(harness.query_by_label("Markdown preview").is_none());
+    // Removed, asked first: gone from the Wiki and deleted from the folder.
+    harness
+        .get_by_role_and_label(Role::Button, "Actions for Harbour notes.md")
+        .click();
+    harness.run();
+    harness.get_by_label("Remove and delete file").click();
+    harness.run();
+    harness.get_by_label_contains("The file will be deleted from the project folder.");
+    harness
+        .get_by_role_and_label(Role::Button, "Remove")
+        .click();
+    harness.run_steps(12);
+    assert!(items(&memory).iter().all(|i| text(i, "kind") != "file"));
+    assert!(device.0.borrow().contains(&format!("delete {key}")));
+}
+
 #[test]
 fn html_exports_from_the_publish_view() {
     let (mut harness, _memory) = app();

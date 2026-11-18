@@ -111,6 +111,14 @@ mod web {
                         choose(".bib,.bibtex,.ris,.json,.csljson", Then::Citations)
                     }
                     HostRequest::ChooseCover => choose(".png,.jpg,.jpeg,.webp", Then::Cover),
+                    HostRequest::OpenUrl(url) => {
+                        ctx.open_url(eframe::egui::OpenUrl::new_tab(url));
+                        Ok(())
+                    }
+                    // Wiki files need a folder on the device (`set_wiki_files` isn't called here).
+                    HostRequest::ChooseWikiRoot { .. } | HostRequest::PickWikiFiles { .. } => {
+                        Ok(())
+                    }
                     HostRequest::ImportScrivenerFolder
                     | HostRequest::ImportMarkdownFolder
                     | HostRequest::ChooseSyncFolder => {

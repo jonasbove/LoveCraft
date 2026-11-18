@@ -166,6 +166,17 @@ fn render_views() {
         .type_text("The turn");
     harness.run();
     save(&mut harness, "storyboard");
+    // The Timeline view is off by default (Settings → Writing).
+    harness
+        .get_by_role_and_label(Role::Button, "Settings…")
+        .click();
+    harness.run();
+    harness.get_by_label("Writing").click();
+    harness.run();
+    harness.get_by_label("Show Timeline view").click();
+    harness.run();
+    harness.key_press(egui::Key::Escape);
+    harness.run();
     harness.get_by_role_and_label(Role::Tab, "Timeline").click();
     save(&mut harness, "timeline");
     harness.get_by_role_and_label(Role::Tab, "Write").click();

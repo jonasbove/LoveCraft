@@ -82,6 +82,9 @@ struct Edit<'a> {
     undo: &'a mut prosecraft_core::undo::UndoManager<(usize, usize)>,
     project_id: String,
     undo_page: String,
+    /// The Writing settings (text size, typewriter, fade, Zen), and where the text was drawn.
+    writing: crate::WritingPrefs,
+    editor_rect: &'a mut Option<egui::Rect>,
     side_tab: &'a mut crate::SideTab,
     /// A passage to select ("Go to" in the Comments tab): document, editor start and end.
     comment_goto: &'a mut Option<(String, usize, usize)>,
@@ -111,29 +114,34 @@ struct Edit<'a> {
 pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
     let palette = state.palette;
     ui.add_space(14.0);
-    let labels: Vec<&str> = WorkspaceView::ALL.iter().map(|v| v.label()).collect();
-    let current = WorkspaceView::ALL
-        .iter()
-        .position(|v| *v == state.view)
-        .unwrap_or(0);
-    ui.horizontal(|ui| {
-        ui.add_space(16.0);
-        if let Some(index) = segmented(ui, &palette, "workspace-tab", &labels, current, 13.0) {
-            state.view = WorkspaceView::ALL.get(index).copied().unwrap_or_default();
-        }
-        if state.library.is_some() {
-            let search = ui.button("Search").on_hover_text("Search project (Ctrl+F)");
-            name_field(ui, &search, "Search project");
-            if search.clicked() {
-                state.find = Some(crate::find::FindState::new());
-            }
-        }
-    });
-    if let Some(status) = &state.status {
+    // The Timeline view only when it is turned on (Settings → Writing).
+    let views: Vec<WorkspaceView> = WorkspaceView::ALL
+        .into_iter()
+        .filter(|v| *v != WorkspaceView::Timeline || state.writing.timeline)
+        .collect();
+    let labels: Vec<&str> = views.iter().map(|v| v.label()).collect();
+    let current = views.iter().position(|v| *v == state.view).unwrap_or(0);
+    // Zen and focus mode hide the workspace controls too.
+    if !state.zen_hidden {
         ui.horizontal(|ui| {
-            ui.add_space(18.0);
-            ui.label(RichText::new(status).size(12.0).color(palette.text_muted));
+            ui.add_space(16.0);
+            if let Some(index) = segmented(ui, &palette, "workspace-tab", &labels, current, 13.0) {
+                state.view = views.get(index).copied().unwrap_or_default();
+            }
+            if state.library.is_some() {
+                let search = ui.button("Search").on_hover_text("Search project (Ctrl+F)");
+                name_field(ui, &search, "Search project");
+                if search.clicked() {
+                    state.find = Some(crate::find::FindState::new());
+                }
+            }
         });
+        if let Some(status) = &state.status {
+            ui.horizontal(|ui| {
+                ui.add_space(18.0);
+                ui.label(RichText::new(status).size(12.0).color(palette.text_muted));
+            });
+        }
     }
     let AppState {
         library,
@@ -161,6 +169,8 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         cite_labels,
         undo,
         undo_page,
+        writing,
+        editor_rect,
         ..
     } = state;
     let entry = library.as_ref().and_then(|l| l.projects().get(*active));
@@ -204,6 +214,8 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         undo,
         project_id: project.id.clone(),
         undo_page: undo_page.clone(),
+        writing: *writing,
+        editor_rect,
         side_tab,
         comment_goto,
         footnote_open,
@@ -688,6 +700,7 @@ fn chapter_scene(
     screenplay: bool,
     cites: &CiteStyle<'_>,
     open: &mut Option<Selection>,
+    look: &Look,
 ) {
     let title = if scene.title.is_empty() {
         "Untitled scene"
@@ -716,7 +729,7 @@ fn chapter_scene(
     } else {
         ui.fonts_mut(|f| {
             let spacing = atom_sizes(f, &labels, wrap);
-            f.layout_job(layout_doc(&doc, &doc.text, palette, wrap, &spacing))
+            f.layout_job(layout_doc(&doc, &doc.text, palette, wrap, &spacing, look))
         })
     };
     let (rect, response) = ui.allocate_exact_size(
@@ -802,6 +815,55 @@ fn chapter_keys(
 /// `recordFieldEdit` for the editor: the scene's HTML and footnotes in its history, as one step
 /// per change, typing grouped as ProseCraft groups it. A history that doesn't end at this text
 /// (another scene opened, a change from elsewhere) starts over.
+/// Undo and redo in the text are the scene's history, taken before the text field's own.
+fn history_keys(ui: &Ui, body_id: egui::Id, document: &str, intents: &mut Vec<Intent>) {
+    if !ui.memory(|m| m.has_focus(body_id)) {
+        return;
+    }
+    let (undo, redo) = ui.input_mut(|i| {
+        // Ctrl+Shift+Z first: a Ctrl+Z pattern also matches it.
+        let redo = i.consume_key(
+            egui::Modifiers::COMMAND | egui::Modifiers::SHIFT,
+            egui::Key::Z,
+        ) || i.consume_key(egui::Modifiers::COMMAND, egui::Key::Y);
+        let undo = i.consume_key(egui::Modifiers::COMMAND, egui::Key::Z);
+        (undo, redo)
+    });
+    if undo || redo {
+        intents.push(Intent::BodyHistory {
+            document: document.to_owned(),
+            undo,
+        });
+    }
+}
+
+/// What typing sets off: Zen mode hides the interface, typewriter mode keeps the caret at the
+/// middle of the view (`scheduleRichTextTypewriter`); and where the text is, for Zen mode.
+fn after_typing(
+    ui: &Ui,
+    writing: crate::WritingPrefs,
+    editor_rect: &mut Option<egui::Rect>,
+    intents: &mut Vec<Intent>,
+    output: &egui::text_edit::TextEditOutput,
+) {
+    *editor_rect = Some(output.response.rect);
+    if !output.response.changed() {
+        return;
+    }
+    if writing.zen {
+        intents.push(Intent::HideInterface);
+    }
+    if writing.typewriter
+        && let Some(range) = output.cursor_range
+    {
+        let caret = output
+            .galley
+            .pos_from_cursor(range.primary)
+            .translate(output.galley_pos.to_vec2());
+        ui.scroll_to_rect(caret, Some(egui::Align::Center));
+    }
+}
+
 /// `addLink`'s prompt ("Paste a link"), with ProseCraft's messages for what can't be a link.
 fn link_prompt(ui: &mut Ui, draft: &mut Draft, now: f64) {
     let Some((range, entered, error)) = draft.link_prompt.as_mut() else {
@@ -1166,12 +1228,76 @@ pub(crate) fn atom_sizes(
 const ATOM_FONT: f32 = 12.0;
 
 /// The text formats the editor lays the scene out with.
+/// How the editor's text looks beyond its formatting: the text size (`--editor-scale`), and
+/// which lines Fade other paragraphs dims.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct Look {
+    pub scale: f32,
+    pub faded: Vec<bool>,
+}
+
+impl Default for Look {
+    fn default() -> Self {
+        Self {
+            scale: 1.0,
+            faded: Vec::new(),
+        }
+    }
+}
+
+impl Look {
+    fn scaled(writing: &crate::WritingPrefs) -> Self {
+        Self {
+            scale: writing.scale as f32 / 100.0,
+            faded: Vec::new(),
+        }
+    }
+}
+
+/// `applyRichTextFade`: every line but those the selection is in, and the list items they sit
+/// inside, faded.
+fn faded_lines(doc: &RichDoc, selection: std::ops::Range<usize>) -> Vec<bool> {
+    let ranges = doc.line_ranges();
+    let line_of = |i: usize| {
+        ranges
+            .iter()
+            .position(|(s, e)| (*s..=*e).contains(&i))
+            .unwrap_or(0)
+    };
+    let (first, last) = (line_of(selection.start), line_of(selection.end));
+    let mut faded = vec![true; ranges.len()];
+    for line in first..=last.min(ranges.len().saturating_sub(1)) {
+        faded[line] = false;
+        // The items a nested item sits inside are its ancestors: kept.
+        let mut depth = doc.lines.get(line).and_then(|k| k.list_depth());
+        let mut at = line;
+        while let Some(d) = depth.filter(|d| *d > 0) {
+            let Some(parent) = (0..at).rev().find(|l| {
+                doc.lines
+                    .get(*l)
+                    .and_then(|k| k.list_depth())
+                    .is_none_or(|ld| ld < d)
+            }) else {
+                break;
+            };
+            if doc.lines.get(parent).and_then(|k| k.list_depth()).is_none() {
+                break;
+            }
+            faded[parent] = false;
+            depth = doc.lines.get(parent).and_then(|k| k.list_depth());
+            at = parent;
+        }
+    }
+    faded
+}
+
 pub(crate) fn layout_doc(
     doc: &RichDoc,
     text: &str,
     palette: &Palette,
     wrap: f32,
     atom_sizes: &[AtomBox],
+    look: &Look,
 ) -> egui::text::LayoutJob {
     let mut job = egui::text::LayoutJob::default();
     job.wrap.max_width = wrap;
@@ -1193,6 +1319,7 @@ pub(crate) fn layout_doc(
             LineKind::Eyebrow => (12.0, false),
             _ => (17.0, false),
         };
+        let size = size * look.scale;
         let bold = heading || Mark::Bold.applies(marks);
         let italic = kind == LineKind::Quote || Mark::Italic.applies(marks);
         let font = match (bold, italic) {
@@ -1216,6 +1343,10 @@ pub(crate) fn layout_doc(
             _ if heading => palette.text_heading,
             _ => palette.text_body,
         };
+        if look.faded.get(line).copied().unwrap_or(false) {
+            // `.faded-writing-block { opacity: .38 }`.
+            format.color = format.color.gamma_multiply(0.38);
+        }
         if Mark::Underline.applies(marks) || marks.iter().any(|t| t.name == "a") {
             format.underline = egui::Stroke::new(1.0, format.color);
         }
@@ -1656,13 +1787,32 @@ fn editor(
     if let Some(chapter) = &chapter {
         for scene in &chapter.before {
             let screenplay = scene.screenplay || chapter.screenplay_project;
-            chapter_scene(ui, palette, scene, screenplay, &edit.cites, &mut edit.open);
+            chapter_scene(
+                ui,
+                palette,
+                scene,
+                screenplay,
+                &edit.cites,
+                &mut edit.open,
+                &Look::scaled(&edit.writing),
+            );
             scene_divider(ui, palette, edit.separator);
         }
     }
     let doc_for_layout = draft.doc.clone();
     let layout_labels = atom_labels(&draft.doc, &edit.cites);
     let layout_palette = *palette;
+    let mut look = Look::scaled(&edit.writing);
+    // Fade other paragraphs while the editor has the focus.
+    if edit.writing.fade
+        && !screenplay
+        && ui.memory(|m| m.has_focus(body_id))
+        && let Some(range) =
+            egui::TextEdit::load_state(ui.ctx(), body_id).and_then(|s| s.cursor.char_range())
+    {
+        let (a, b) = (range.primary.index.0, range.secondary.index.0);
+        look.faded = faded_lines(&draft.doc, a.min(b)..a.max(b));
+    }
     let mut layouter = move |ui: &Ui, text: &dyn egui::TextBuffer, wrap_width: f32| {
         if screenplay {
             return crate::screenplay_editor::galley(
@@ -1681,29 +1831,13 @@ fn editor(
                 &layout_palette,
                 wrap_width,
                 &spacing,
+                &look,
             );
             f.layout_job(job)
         })
     };
     link_prompt(ui, draft, now);
-    // Undo and redo in the text are the scene's history, taken before the text field's own.
-    if ui.memory(|m| m.has_focus(body_id)) {
-        let (undo, redo) = ui.input_mut(|i| {
-            // Ctrl+Shift+Z first: a Ctrl+Z pattern also matches it.
-            let redo = i.consume_key(
-                egui::Modifiers::COMMAND | egui::Modifiers::SHIFT,
-                egui::Key::Z,
-            ) || i.consume_key(egui::Modifiers::COMMAND, egui::Key::Y);
-            let undo = i.consume_key(egui::Modifiers::COMMAND, egui::Key::Z);
-            (undo, redo)
-        });
-        if undo || redo {
-            edit.intents.push(Intent::BodyHistory {
-                document: document.id.clone(),
-                undo,
-            });
-        }
-    }
+    history_keys(ui, body_id, &document.id, edit.intents);
     let output = egui::TextEdit::multiline(&mut draft.body)
         .id(body_id)
         .frame(egui::Frame::NONE)
@@ -1741,6 +1875,7 @@ fn editor(
         draft.words_added += (words as f64 - draft.words as f64).max(0.0);
         draft.words = words;
     }
+    after_typing(ui, edit.writing, edit.editor_rect, edit.intents, &output);
     record_body_history(
         UndoAt {
             undo: edit.undo,
@@ -1813,7 +1948,15 @@ fn editor(
         for scene in &chapter.after {
             scene_divider(ui, palette, edit.separator);
             let screenplay = scene.screenplay || chapter.screenplay_project;
-            chapter_scene(ui, palette, scene, screenplay, &edit.cites, &mut edit.open);
+            chapter_scene(
+                ui,
+                palette,
+                scene,
+                screenplay,
+                &edit.cites,
+                &mut edit.open,
+                &Look::scaled(&edit.writing),
+            );
         }
         count += chapter.words;
     }

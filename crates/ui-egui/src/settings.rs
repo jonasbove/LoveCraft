@@ -363,9 +363,74 @@ impl Category {
 /// ProseCraft's Markdown editor preference (`prosecraft-markdown-editor-enabled`).
 pub const MARKDOWN_EDITOR_KEY: &str = "prosecraft-markdown-editor-enabled";
 
-/// The Writing category: ProseCraft's Markdown editor preference.
+/// The Writing category: text size, the writing experience (typewriter, fade, Zen), focus mode,
+/// the Markdown editor, and the Timeline view.
 fn writing(ui: &mut Ui, state: &mut AppState) {
     let palette = state.palette;
+    let heading = |ui: &mut Ui, title: &str, text: &str| {
+        ui.label(RichText::new(title).strong().color(palette.text_heading));
+        help(ui, &palette, text);
+        ui.add_space(6.0);
+    };
+    let mut prefs = state.writing;
+    heading(ui, "Text size", "Adjust the editor scale");
+    let scale = craft_ui::ComboBox::from_id_salt("editor-scale")
+        .selected_text(format!("{}%", prefs.scale))
+        .show_ui(ui, |ui| {
+            for scale in crate::WritingPrefs::SCALES {
+                ui.selectable_value(&mut prefs.scale, scale, format!("{scale}%"));
+            }
+        });
+    ui.ctx().accesskit_node_builder(scale.response.id, |node| {
+        node.set_label("Scale");
+    });
+    ui.add_space(14.0);
+    heading(
+        ui,
+        "Writing experience",
+        "Control how the editor follows your focus",
+    );
+    ui.checkbox(&mut prefs.typewriter, "Typewriter mode");
+    help(
+        ui,
+        &palette,
+        "Keeps the caret near the vertical center of the page in both the rich-text and Markdown editors.",
+    );
+    ui.checkbox(&mut prefs.fade, "Fade other paragraphs");
+    help(
+        ui,
+        &palette,
+        "Keeps the paragraph you’re editing at full contrast and fades the rest while an editor is focused.",
+    );
+    ui.checkbox(&mut prefs.zen, "Hide the interface while typing (Zen mode)");
+    help(
+        ui,
+        &palette,
+        "Only hides the interface once you start typing in the editor. Move the mouse outside the editor or press Escape to bring it back.",
+    );
+    ui.add_space(8.0);
+    let modifier = if cfg!(target_os = "macos") {
+        "Cmd"
+    } else {
+        "Ctrl"
+    };
+    heading(
+        ui,
+        "Focus mode",
+        &format!(
+            "Hides everything except your text right now. Press {modifier}+Shift+Enter (or Escape) to bring it back."
+        ),
+    );
+    if ui.button("Enter focus mode").clicked() {
+        state.settings_open = false;
+        state.view = crate::WorkspaceView::Write;
+        state.focus_wanted = true;
+    }
+    ui.add_space(14.0);
+    let mut timeline = prefs.timeline;
+    if prefs != state.writing {
+        state.writing_choice = Some(prefs);
+    }
     ui.label(
         RichText::new("Markdown editor")
             .strong()
@@ -388,6 +453,22 @@ fn writing(ui: &mut Ui, state: &mut AppState) {
         ui,
         &palette,
         "When enabled, use the Markdown editor button above a document to switch between Markdown source and rich text.",
+    );
+    ui.add_space(14.0);
+    heading(
+        ui,
+        "Timeline view",
+        "An experimental chronological view of your story",
+    );
+    if ui.checkbox(&mut timeline, "Show Timeline view").changed() {
+        let mut prefs = state.writing_choice.unwrap_or(state.writing);
+        prefs.timeline = timeline;
+        state.writing_choice = Some(prefs);
+    }
+    help(
+        ui,
+        &palette,
+        "The Timeline is still taking shape. Turn it on to try it; your timeline data is kept either way.",
     );
 }
 

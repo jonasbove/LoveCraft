@@ -43,8 +43,13 @@ fn opened() -> Harness<'static, ProseApp> {
 fn empty_app_offers_the_workspace_tabs_and_how_to_open() {
     let mut harness = harness(ProseApp::new());
     harness.run();
+    // The Timeline view only once it is turned on, as in ProseCraft.
     for view in WorkspaceView::ALL {
-        harness.get_by_role_and_label(Role::Tab, view.label());
+        if view == WorkspaceView::Timeline {
+            assert!(harness.query_by_label(view.label()).is_none());
+        } else {
+            harness.get_by_role_and_label(Role::Tab, view.label());
+        }
     }
     harness.get_by_label_contains("drop a .prosecraft file");
 }

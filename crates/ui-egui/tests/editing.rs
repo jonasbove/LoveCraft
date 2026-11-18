@@ -1202,9 +1202,71 @@ fn goals_are_set_and_writing_is_recorded_as_activity() {
     );
 }
 
+/// Settings → Writing → "Show Timeline view" (off by default, as in ProseCraft).
+fn enable_timeline(harness: &mut Harness<'static, ProseApp>) {
+    assert!(harness.query_by_label("Timeline").is_none());
+    harness
+        .get_by_role_and_label(Role::Button, "Settings…")
+        .click();
+    harness.run();
+    harness.get_by_label("Writing").click();
+    harness.run();
+    harness.get_by_label("Show Timeline view").click();
+    harness.run();
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+}
+
+#[test]
+fn zen_mode_hides_the_interface_while_typing_and_focus_mode_hides_it_until_left() {
+    let (mut harness, _) = app();
+    harness
+        .get_by_role_and_label(Role::Button, "Settings…")
+        .click();
+    harness.run();
+    harness.get_by_label("Writing").click();
+    harness.run();
+    harness
+        .get_by_label("Hide the interface while typing (Zen mode)")
+        .click();
+    harness.run();
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    harness.get_by_label("Scene text").type_text(" More.");
+    harness.run();
+    // The binder, the side panel and the view tabs are gone; the text stays.
+    assert!(harness.query_by_label("Opening Scene").is_none());
+    assert!(harness.query_by_label("Write").is_none());
+    harness.get_by_label("Scene text");
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    harness.get_by_label("Opening Scene");
+    // Focus mode: Ctrl+Shift+Enter hides it all at once, with a hint, until left.
+    harness.key_press_modifiers(
+        egui::Modifiers::COMMAND | egui::Modifiers::SHIFT,
+        egui::Key::Enter,
+    );
+    harness.run();
+    assert!(harness.query_by_label("Opening Scene").is_none());
+    harness.get_by_label_contains("Focus mode · Ctrl+Shift+Enter or Escape to leave");
+    harness.key_press_modifiers(
+        egui::Modifiers::COMMAND | egui::Modifiers::SHIFT,
+        egui::Key::Enter,
+    );
+    harness.run();
+    harness.get_by_label("Opening Scene");
+}
+
 #[test]
 fn timeline_moments_are_added_edited_moved_and_removed() {
     let (mut harness, memory) = app();
+    enable_timeline(&mut harness);
     harness.get_by_role_and_label(Role::Tab, "Timeline").click();
     harness.run();
     harness

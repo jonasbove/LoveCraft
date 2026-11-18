@@ -239,6 +239,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                                 &palette,
                                 wrap,
                                 &sizes,
+                                &crate::views::Look::default(),
                             );
                             f.layout_job(job)
                         })

@@ -121,6 +121,232 @@ pub(crate) struct PublishEdit<'a> {
     pub requests: &'a mut Vec<HostRequest>,
 }
 
+/// `FRONT_MATTER_PRESETS` and `BACK_MATTER_PRESETS`: label, title, blank.
+const FRONT_PRESETS: [(&str, &str, bool); 5] = [
+    ("Epigraph", "Epigraph", false),
+    ("Foreword", "Foreword", false),
+    ("Preface", "Preface", false),
+    ("Introduction", "Introduction", false),
+    ("Blank page", "", true),
+];
+const BACK_PRESETS: [(&str, &str, bool); 7] = [
+    ("Acknowledgments", "Acknowledgments", false),
+    ("About the Author", "About the Author", false),
+    ("Also By", "Also By", false),
+    ("Afterword", "Afterword", false),
+    ("Appendix", "Appendix", false),
+    ("Glossary", "Glossary", false),
+    ("Blank page", "", true),
+];
+
+fn help(ui: &mut Ui, palette: &Palette, text: &str) {
+    ui.label(RichText::new(text).size(12.0).color(palette.text_muted));
+}
+
+/// The pages as `publishOptions` keeps them.
+fn matter_value(pages: &[prosecraft_core::publish::MatterPage]) -> JsValue {
+    JsValue::Array(
+        pages
+            .iter()
+            .map(|page| {
+                let mut object = prosecraft_core::js::JsObject::new();
+                object.insert("id", JsValue::str(&page.id));
+                object.insert("title", JsValue::str(&page.title));
+                object.insert("body", JsValue::str(&page.body));
+                if page.blank {
+                    object.insert("blank", JsValue::Bool(true));
+                }
+                JsValue::Object(object)
+            })
+            .collect(),
+    )
+}
+
+/// A text field saved when it is left (each keystroke isn't a revision).
+#[allow(clippy::too_many_arguments)]
+fn kept_field(
+    ui: &mut Ui,
+    editable: bool,
+    key: &str,
+    value: &str,
+    multiline: bool,
+    hint: &str,
+    name: &str,
+    limit: usize,
+) -> Option<String> {
+    let id = ui.make_persistent_id(("matter-field", key));
+    let mut text = ui
+        .data(|d| d.get_temp::<String>(id))
+        .unwrap_or_else(|| value.to_owned());
+    let field = if multiline {
+        egui::TextEdit::multiline(&mut text).desired_rows(3)
+    } else {
+        egui::TextEdit::singleline(&mut text)
+    };
+    let response = ui.add_enabled(
+        editable,
+        field
+            .id(id)
+            .char_limit(limit)
+            .hint_text(hint)
+            .desired_width(f32::INFINITY),
+    );
+    crate::views::name_field(ui, &response, name);
+    if response.changed() {
+        ui.data_mut(|d| d.insert_temp(id, text.clone()));
+    }
+    if response.lost_focus() {
+        ui.data_mut(|d| d.remove_temp::<String>(id));
+        if text != value {
+            return Some(text);
+        }
+    }
+    None
+}
+
+/// "Additional pages": add from a preset (at most 12), each page's title and text, move up,
+/// move down, remove (`addMatterPage`, `updateMatterPage`, `moveMatterPage`, `removeMatterPage`).
+fn matter_editor(
+    ui: &mut Ui,
+    palette: &Palette,
+    edit: &mut PublishEdit<'_>,
+    front: bool,
+    pages: &[prosecraft_core::publish::MatterPage],
+) {
+    let (key, side, presets): (&str, &str, &[(&str, &str, bool)]) = if front {
+        ("frontMatter", "front matter", &FRONT_PRESETS)
+    } else {
+        ("backMatter", "back matter", &BACK_PRESETS)
+    };
+    let editable = edit.editable;
+    ui.add_space(6.0);
+    ui.horizontal(|ui| {
+        ui.label(RichText::new("Additional pages").strong());
+        ui.label(
+            RichText::new(format!("{}/12", pages.len()))
+                .size(12.0)
+                .color(palette.text_muted),
+        );
+    });
+    let preset_id = ui.make_persistent_id(("matter-preset", front));
+    let mut chosen = ui.data(|d| d.get_temp::<usize>(preset_id)).unwrap_or(0);
+    ui.horizontal(|ui| {
+        let combo = craft_ui::ComboBox::from_id_salt(("matter-preset-combo", front))
+            .selected_text(presets[chosen.min(presets.len() - 1)].0)
+            .show_ui(ui, |ui| {
+                for (index, (label, ..)) in presets.iter().enumerate() {
+                    ui.selectable_value(&mut chosen, index, *label);
+                }
+            });
+        let name = if front {
+            "Front matter preset"
+        } else {
+            "Back matter preset"
+        };
+        ui.ctx()
+            .accesskit_node_builder(combo.response.id, |node| node.set_label(name));
+        ui.data_mut(|d| d.insert_temp(preset_id, chosen));
+        let add = ui.add_enabled(editable && pages.len() < 12, egui::Button::new("Add page"));
+        if add.clicked() {
+            let (_, title, blank) = presets[chosen.min(presets.len() - 1)];
+            edit.intents.push(Intent::AddMatterPage {
+                front,
+                title: title.to_owned(),
+                blank,
+            });
+        }
+    });
+    let mut next: Option<Vec<prosecraft_core::publish::MatterPage>> = None;
+    for (index, page) in pages.iter().enumerate() {
+        let named = if page.title.is_empty() {
+            format!("{side} page")
+        } else {
+            page.title.clone()
+        };
+        ui.horizontal(|ui| {
+            let hint = if page.blank && page.title.is_empty() {
+                "Blank page"
+            } else {
+                "Page title"
+            };
+            let label = if front {
+                "Front matter page title"
+            } else {
+                "Back matter page title"
+            };
+            ui.allocate_ui(egui::vec2(ui.available_width() - 110.0, 24.0), |ui| {
+                if let Some(title) = kept_field(
+                    ui,
+                    editable,
+                    &format!("{}:title", page.id),
+                    &page.title,
+                    false,
+                    hint,
+                    label,
+                    120,
+                ) {
+                    let mut all = pages.to_vec();
+                    all[index].title = title;
+                    next = Some(all);
+                }
+            });
+            for (text, offset, name, enabled) in [
+                ("↑", -1isize, format!("Move {named} up"), index > 0),
+                (
+                    "↓",
+                    1,
+                    format!("Move {named} down"),
+                    index + 1 < pages.len(),
+                ),
+            ] {
+                let button = ui.add_enabled(editable && enabled, egui::Button::new(text).small());
+                crate::views::name_field(ui, &button, &name);
+                if button.clicked() {
+                    let mut all = pages.to_vec();
+                    all.swap(index, index.saturating_add_signed(offset));
+                    next = Some(all);
+                }
+            }
+            let remove = ui.add_enabled(
+                editable,
+                egui::Button::new(RichText::new("Remove").color(palette.danger)).small(),
+            );
+            crate::views::name_field(ui, &remove, &format!("Remove {named}"));
+            if remove.clicked() {
+                next = Some(pages.iter().filter(|p| p.id != page.id).cloned().collect());
+            }
+        });
+        let body_name = format!(
+            "{} text",
+            if page.title.is_empty() {
+                if front { "Front matter" } else { "Back matter" }
+            } else {
+                page.title.as_str()
+            }
+        );
+        if let Some(body) = kept_field(
+            ui,
+            editable,
+            &format!("{}:body", page.id),
+            &page.body,
+            true,
+            "Page text…",
+            &body_name,
+            20_000,
+        ) {
+            let mut all = next.clone().unwrap_or_else(|| pages.to_vec());
+            if let Some(p) = all.iter_mut().find(|p| p.id == page.id) {
+                p.body = body;
+            }
+            next = Some(all);
+        }
+        ui.add_space(6.0);
+    }
+    if let Some(pages) = next {
+        set(edit, key, matter_value(&pages));
+    }
+}
+
 fn set(edit: &mut PublishEdit<'_>, key: &str, value: JsValue) {
     edit.intents.push(Intent::SetPublishOption {
         key: key.to_owned(),
@@ -642,6 +868,14 @@ fn controls(
             ) {
                 set(edit, "includeTableOfContents", JsValue::Bool(v));
             }
+            matter_editor(ui, palette, edit, true, &options.front_matter);
+        });
+    ui.separator();
+    egui::CollapsingHeader::new(RichText::new("Back matter").color(palette.text_primary))
+        .id_salt("back-matter")
+        .show(ui, |ui| {
+            help(ui, palette, "Acknowledgments, author notes, appendices");
+            matter_editor(ui, palette, edit, false, &options.back_matter);
         });
     ui.separator();
 

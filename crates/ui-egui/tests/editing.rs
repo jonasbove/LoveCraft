@@ -643,6 +643,109 @@ fn the_label_filter_project_trash_and_converting_from_the_binder() {
 }
 
 #[test]
+fn front_and_back_matter_pages_are_added_written_moved_and_removed() {
+    let (mut harness, memory) = app();
+    let pages = |memory: &Memory, key: &str| -> Vec<(String, String, bool)> {
+        project(&memory.last(), "project-1")
+            .get("project")
+            .and_then(|p| p.get("publishOptions"))
+            .and_then(|o| o.get(key))
+            .and_then(JsValue::as_array)
+            .unwrap_or_default()
+            .iter()
+            .map(|p| {
+                let s = |k: &str| {
+                    p.get(k)
+                        .and_then(JsValue::as_js_string)
+                        .map(|v| v.to_string_lossy())
+                        .unwrap_or_default()
+                };
+                (
+                    s("title"),
+                    s("body"),
+                    matches!(p.get("blank"), Some(JsValue::Bool(true))),
+                )
+            })
+            .collect()
+    };
+    harness.get_by_role_and_label(Role::Tab, "Publish").click();
+    harness.run();
+    harness.get_by_label("Front matter").scroll_to_me();
+    harness.run();
+    harness.get_by_label("Front matter").click();
+    harness.run();
+    harness.get_by_label("Front matter preset").scroll_to_me();
+    harness.run();
+    harness.get_by_label("Front matter preset").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Foreword")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Add page")
+        .click();
+    harness.run_steps(12);
+    harness.get_by_label("Foreword text").focus();
+    harness
+        .get_by_label("Foreword text")
+        .type_text("Why this book.");
+    harness.get_by_label("Front matter preset").focus();
+    harness.run_steps(12);
+    assert_eq!(
+        pages(&memory, "frontMatter"),
+        [("Foreword".into(), "Why this book.".into(), false)]
+    );
+    harness.get_by_label("Front matter preset").scroll_to_me();
+    harness.run();
+    harness.get_by_label("Front matter preset").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Preface")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Add page")
+        .click();
+    harness.run_steps(12);
+    harness
+        .get_by_role_and_label(Role::Button, "Move Preface up")
+        .click();
+    harness.run_steps(12);
+    harness
+        .get_by_role_and_label(Role::Button, "Remove Foreword")
+        .click();
+    harness.run_steps(12);
+    assert_eq!(
+        pages(&memory, "frontMatter"),
+        [("Preface".into(), String::new(), false)]
+    );
+    // A blank page at the back.
+    harness.get_by_label("Back matter").scroll_to_me();
+    harness.run();
+    harness.get_by_label("Back matter").click();
+    harness.run();
+    harness.get_by_label("Back matter preset").scroll_to_me();
+    harness.run();
+    harness.get_by_label("Back matter preset").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Blank page")
+        .click_accesskit();
+    harness.run();
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add page")
+        .last()
+        .expect("the back matter's Add page")
+        .click();
+    harness.run_steps(12);
+    assert_eq!(
+        pages(&memory, "backMatter"),
+        [(String::new(), String::new(), true)]
+    );
+}
+
+#[test]
 fn undo_takes_back_formatting() {
     let (mut harness, memory) = app();
     harness

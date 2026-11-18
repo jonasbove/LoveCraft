@@ -1,12 +1,14 @@
 //! A small, tolerant RTF reader for running text (ProseCraft `src/lib/import/rtf.ts`, upstream
-//! `7dae544`), as Scrivener stores each document: paragraphs, line breaks and the common
-//! character styles; layout, tables, images and every other destination are ignored.
+//! `7dae544` with jennraeross/ProseCraft#50), as Scrivener stores each document: paragraphs,
+//! line breaks and the common character styles; layout, tables, images and every other
+//! destination are ignored.
 //!
 //! This follows `rtf.ts`'s byte reader exactly, quirks included (a `\'` takes the next two
 //! bytes whatever they are; a raw 8-bit byte is decoded on its own), so text comes out as
 //! ProseCraft's does; craft-rtf's tokenizer reads such input differently. Code pages are the
-//! browser's `TextDecoder` labels (`windows-N`, or UTF-8 for 65001) through `encoding_rs`,
-//! falling back to Windows-1252 where the browser has no such label.
+//! browser's `TextDecoder` labels through `encoding_rs`: `shift_jis`, `gbk`, `big5`, `macintosh`
+//! and UTF-8 for 932, 936, 950, 10000 and 65001, `windows-N` for the rest, falling back to
+//! Windows-1252 where the browser has no such label.
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 struct State {
@@ -174,15 +176,18 @@ impl Reader {
         self.sync_tags();
     }
 
-    /// `setCodepage(String(number))`: `windows-N` (`windows-NaN` for an unreadable number),
-    /// UTF-8 for 65001, Windows-1252 where the browser knows no such label.
+    /// `setCodepage(String(number))`: `CODEPAGE_LABELS`, else `windows-N` (`windows-NaN` for an
+    /// unreadable number); Windows-1252 where the browser knows no such label.
     fn set_codepage(&mut self, number: f64) {
         self.flush_text();
         let name = crate::js::number_to_string(number);
-        let label = if name == "65001" {
-            "utf-8".to_owned()
-        } else {
-            format!("windows-{name}")
+        let label = match name.as_str() {
+            "932" => "shift_jis".to_owned(),
+            "936" => "gbk".to_owned(),
+            "950" => "big5".to_owned(),
+            "10000" => "macintosh".to_owned(),
+            "65001" => "utf-8".to_owned(),
+            _ => format!("windows-{name}"),
         };
         self.decoder =
             encoding_rs::Encoding::for_label(label.as_bytes()).unwrap_or(encoding_rs::WINDOWS_1252);
@@ -249,7 +254,10 @@ impl Reader {
             b"pard" => self.sync_tags(),
             b"par" => self.end_paragraph(),
             b"line" => self.append_html("<br>"),
-            b"tab" => self.append_text("\t"),
+            b"tab" => {
+                self.flush_text();
+                self.append_text("\t");
+            }
             _ => {}
         }
     }
@@ -307,6 +315,8 @@ impl Reader {
                         && let Ok(value) =
                             u8::from_str_radix(std::str::from_utf8(&hex).unwrap_or("zz"), 16)
                     {
+                        // Pending `\uN` text came first.
+                        self.flush_units();
                         self.bytes.push(value);
                     }
                     continue;
@@ -354,7 +364,10 @@ impl Reader {
                     b'*' => self.skip_depth = 1,
                     b'~' => self.append_html("&nbsp;"),
                     b'_' => self.append_html("&#8209;"),
-                    b'{' | b'}' | b'\\' => self.append_text(&(next as char).to_string()),
+                    b'{' | b'}' | b'\\' => {
+                        self.flush_text();
+                        self.append_text(&(next as char).to_string());
+                    }
                     _ => {}
                 }
                 continue;

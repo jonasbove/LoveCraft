@@ -2403,3 +2403,21 @@ pub fn format_bibliography(style: &str, items: &[JsValue], locale: &str) -> Vec<
         })
         .collect()
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn doi_prefixes_are_matched_as_javascript_matches_them() {
+        assert_eq!(super::normalize_doi("HTTPS://DX.DOI.ORG/10.1/x"), "10.1/x");
+        assert_eq!(super::normalize_doi("Doi: 10.1/x"), "10.1/x");
+        // `/^https?:…/i` and `/^doi:/i` don't take "ſ" for "s" or "ı" for "i" in JavaScript.
+        assert_eq!(
+            super::normalize_doi("http\u{17f}://doi.org/10.1/x"),
+            "http\u{17f}://doi.org/10.1/x"
+        );
+        assert_eq!(
+            super::normalize_doi("do\u{131}: 10.1/x"),
+            "do\u{131}: 10.1/x"
+        );
+    }
+}

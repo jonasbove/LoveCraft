@@ -241,6 +241,34 @@ fn contents_page(items: &[(String, String)]) -> String {
     )
 }
 
+/// `bibliographyXhtml`.
+fn bibliography_page(bibliography: &crate::citations::bibliography::BookBibliography) -> String {
+    let same = |src: &str| src.to_owned();
+    let entries: Vec<String> = bibliography
+        .entries
+        .iter()
+        .map(|e| {
+            let xhtml = html_to_xhtml(
+                &e.html,
+                &mut XhtmlOptions {
+                    image: &same,
+                    footnote: None,
+                },
+            );
+            format!("  <p class=\"bibliography-entry\">{xhtml}</p>")
+        })
+        .collect();
+    page(
+        &bibliography.heading,
+        &format!(
+            "<section class=\"matter-page back-matter bibliography\" epub:type=\"bibliography\">\n  <h1 class=\"matter-title\">{}</h1>\n{}\n</section>",
+            escape_xml(&bibliography.heading),
+            entries.join("\n")
+        ),
+        "back-matter-page bibliography-page",
+    )
+}
+
 fn matter_page(p: &MatterPage, placement: &str) -> String {
     let title = if p.title.is_empty() {
         String::new()
@@ -513,7 +541,9 @@ pub fn epub_entries(
     identifier: &str,
     modified: &str,
 ) -> Result<Vec<(String, Vec<u8>)>, EpubError> {
-    let book = &resolve_book_citations(book);
+    let (book, bibliography) = resolve_book_citations(book, options);
+    let book = &book;
+    let bibliography = bibliography.filter(|b| !b.entries.is_empty());
     let mut files: Vec<(String, Vec<u8>)> =
         vec![("mimetype".into(), b"application/epub+zip".to_vec())];
     let mut images: HashMap<String, String> = HashMap::new();
@@ -577,6 +607,9 @@ pub fn epub_entries(
     }
     for i in 0..book.back_matter.len() {
         add(format!("back-matter-{}", i + 1), &mut manifest);
+    }
+    if bibliography.is_some() {
+        add("bibliography".into(), &mut manifest);
     }
     let creator = if book.author.is_empty() {
         String::new()
@@ -649,6 +682,12 @@ pub fn epub_entries(
         text(
             &format!("OEBPS/text/back-matter-{}.xhtml", i + 1),
             matter_page(p, "back"),
+        );
+    }
+    if let Some(bibliography) = &bibliography {
+        text(
+            "OEBPS/text/bibliography.xhtml",
+            bibliography_page(bibliography),
         );
     }
     Ok(files)
@@ -735,6 +774,8 @@ mod tests {
             back_matter: Vec::new(),
             chapters: vec![chapter],
             words: 0,
+            citations: Vec::new(),
+            bibliography: None,
         };
         let entries =
             epub_entries(&book, &PublishOptions::default(), "urn:uuid:ID", "M").expect("entries");

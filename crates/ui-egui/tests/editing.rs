@@ -2043,3 +2043,40 @@ fn a_scene_is_written_in_markdown_and_back_in_rich_text() {
     let scene = document(project(&saved, "project-1"), "new-1").expect("saved scene");
     assert!(scene.get("markdownSource").is_none());
 }
+
+#[test]
+fn the_citation_style_and_bibliography_are_chosen_in_publish() {
+    let (mut harness, memory) = app();
+    harness.get_by_role_and_label(Role::Tab, "Publish").click();
+    harness.run();
+    // ProseCraft's Citations section: the project's one source counted.
+    harness.get_by_label("1 SOURCE");
+    harness
+        .get_by_role_and_label(Role::ComboBox, "Citation style")
+        .scroll_to_me();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::ComboBox, "Citation style")
+        .click();
+    harness.run();
+    harness.get_by_role_and_label(Role::Button, "IEEE").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::CheckBox, "Include bibliography")
+        .scroll_to_me();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::CheckBox, "Include bibliography")
+        .click();
+    harness.run_steps(12);
+    let saved = memory.last();
+    let options = project(&saved, "project-1")
+        .get("project")
+        .and_then(|p| p.get("publishOptions"))
+        .expect("publishOptions were saved");
+    assert_eq!(options.get("citationStyle"), Some(&JsValue::str("ieee")));
+    assert_eq!(
+        options.get("includeBibliography"),
+        Some(&JsValue::Bool(false))
+    );
+}

@@ -93,7 +93,8 @@ fn separator(separator: SceneSeparator) -> &'static str {
 
 /// `exportMarkdown`, byte for byte.
 pub fn export_markdown(book: &CompiledBook, options: &PublishOptions) -> Export {
-    let book = &resolve_book_citations(book);
+    let (book, bibliography) = resolve_book_citations(book, options);
+    let book = &book;
     let restart = options.footnotes_restart_per_chapter;
     let notes = resolve_book_footnotes(book, restart);
     let chapters = book.chapters.len();
@@ -177,6 +178,18 @@ pub fn export_markdown(book: &CompiledBook, options: &PublishOptions) -> Export 
     }
     for page in &book.back_matter {
         blocks.push(matter_text(page, heading(&page.title)));
+    }
+    if let Some(bibliography) = bibliography.filter(|b| !b.entries.is_empty()) {
+        let items: Vec<String> = bibliography
+            .entries
+            .iter()
+            .map(|e| format!("- {}", crate::markdown::html_to_inline_markdown(&e.html)))
+            .collect();
+        blocks.push(format!(
+            "## {}\n\n{}",
+            bibliography.heading,
+            items.join("\n")
+        ));
     }
     if !notes.all.is_empty() {
         let definitions: Vec<String> = notes

@@ -1,0 +1,423 @@
+{
+  "styles": [
+    {
+      "id": "apa7",
+      "label": "APA 7th Edition",
+      "kind": "author-date"
+    },
+    {
+      "id": "chicago-author-date",
+      "label": "Chicago (Author-Date)",
+      "kind": "author-date"
+    },
+    {
+      "id": "chicago-notes",
+      "label": "Chicago (Notes & Bibliography)",
+      "kind": "note"
+    },
+    {
+      "id": "mla9",
+      "label": "MLA 9th Edition",
+      "kind": "author-date"
+    },
+    {
+      "id": "harvard",
+      "label": "Harvard",
+      "kind": "author-date"
+    },
+    {
+      "id": "ieee",
+      "label": "IEEE",
+      "kind": "numeric"
+    },
+    {
+      "id": "vancouver",
+      "label": "Vancouver",
+      "kind": "numeric"
+    },
+    {
+      "id": "din1505",
+      "label": "DIN 1505-2",
+      "kind": "author-date"
+    }
+  ],
+  "templates": {
+    "apa7": {
+      "meta": {
+        "id": "apa7",
+        "label": "APA 7th Edition",
+        "kind": "author-date"
+      },
+      "inText": {
+        "mode": "author-year",
+        "openDelimiter": "(",
+        "closeDelimiter": ")",
+        "itemSeparator": "; ",
+        "authorYearSeparator": ", ",
+        "locatorPrefix": ", ",
+        "omitPageLabel": false,
+        "etAlThreshold": 3,
+        "useAmpersand": true,
+        "italicizeStandaloneTitle": true,
+        "disambiguateYear": true
+      },
+      "bibliography": {
+        "sort": "author",
+        "numberPrefix": "none",
+        "names": {
+          "firstAuthor": "family-initials-dots",
+          "otherAuthors": "family-initials-dots",
+          "separator": ", ",
+          "lastSeparator": "ampersand",
+          "oxfordComma": true,
+          "etAlThreshold": 21,
+          "etAlKeep": 19,
+          "etAlEllipsisBeforeLast": true,
+          "editorFormat": "initials-family",
+          "primaryEditorSuffix": "paren-cap",
+          "containerEditorMode": "initials-ed-paren"
+        },
+        "layout": "apa"
+      }
+    },
+    "chicago-author-date": {
+      "meta": {
+        "id": "chicago-author-date",
+        "label": "Chicago (Author-Date)",
+        "kind": "author-date"
+      },
+      "inText": {
+        "mode": "author-year",
+        "openDelimiter": "(",
+        "closeDelimiter": ")",
+        "itemSeparator": "; ",
+        "authorYearSeparator": " ",
+        "locatorPrefix": ", ",
+        "omitPageLabel": true,
+        "etAlThreshold": 4,
+        "useAmpersand": false,
+        "italicizeStandaloneTitle": true,
+        "disambiguateYear": true
+      },
+      "bibliography": {
+        "sort": "author",
+        "numberPrefix": "none",
+        "names": {
+          "firstAuthor": "family-given",
+          "otherAuthors": "given-family",
+          "separator": ", ",
+          "lastSeparator": "and",
+          "oxfordComma": true,
+          "etAlThreshold": 11,
+          "etAlKeep": 7,
+          "commaBeforeEtAl": true,
+          "editorFormat": "given-family",
+          "primaryEditorSuffix": "comma-ed",
+          "containerEditorMode": "edited-by"
+        },
+        "layout": "chicago-ad"
+      }
+    },
+    "chicago-notes": {
+      "meta": {
+        "id": "chicago-notes",
+        "label": "Chicago (Notes & Bibliography)",
+        "kind": "note"
+      },
+      "inText": {
+        "mode": "note",
+        "openDelimiter": "",
+        "closeDelimiter": ".",
+        "itemSeparator": "; ",
+        "authorYearSeparator": " ",
+        "locatorPrefix": ", ",
+        "omitPageLabel": true,
+        "etAlThreshold": 4,
+        "useAmpersand": false,
+        "italicizeStandaloneTitle": true,
+        "disambiguateYear": false
+      },
+      "bibliography": {
+        "sort": "author",
+        "numberPrefix": "none",
+        "names": {
+          "firstAuthor": "family-given",
+          "otherAuthors": "given-family",
+          "separator": ", ",
+          "lastSeparator": "and",
+          "oxfordComma": true,
+          "etAlThreshold": 11,
+          "etAlKeep": 7,
+          "commaBeforeEtAl": true,
+          "editorFormat": "given-family",
+          "primaryEditorSuffix": "comma-ed",
+          "containerEditorMode": "edited-by"
+        },
+        "layout": "chicago-nb"
+      }
+    },
+    "mla9": {
+      "meta": {
+        "id": "mla9",
+        "label": "MLA 9th Edition",
+        "kind": "author-date"
+      },
+      "inText": {
+        "mode": "author-page",
+        "openDelimiter": "(",
+        "closeDelimiter": ")",
+        "itemSeparator": "; ",
+        "authorYearSeparator": " ",
+        "locatorPrefix": " ",
+        "omitPageLabel": true,
+        "etAlThreshold": 3,
+        "useAmpersand": false,
+        "italicizeStandaloneTitle": true,
+        "disambiguateYear": false
+      },
+      "bibliography": {
+        "sort": "author",
+        "numberPrefix": "none",
+        "names": {
+          "firstAuthor": "family-given",
+          "otherAuthors": "given-family",
+          "separator": ", ",
+          "lastSeparator": "and",
+          "oxfordComma": true,
+          "etAlThreshold": 3,
+          "etAlKeep": 1,
+          "commaBeforeEtAl": true,
+          "editorFormat": "given-family",
+          "primaryEditorSuffix": "comma-editor",
+          "containerEditorMode": "edited-by"
+        },
+        "layout": "mla"
+      }
+    },
+    "harvard": {
+      "meta": {
+        "id": "harvard",
+        "label": "Harvard",
+        "kind": "author-date"
+      },
+      "inText": {
+        "mode": "author-year",
+        "openDelimiter": "(",
+        "closeDelimiter": ")",
+        "itemSeparator": "; ",
+        "authorYearSeparator": ", ",
+        "locatorPrefix": ", ",
+        "omitPageLabel": false,
+        "etAlThreshold": 4,
+        "useAmpersand": false,
+        "italicizeStandaloneTitle": true,
+        "disambiguateYear": true
+      },
+      "bibliography": {
+        "sort": "author",
+        "numberPrefix": "none",
+        "names": {
+          "firstAuthor": "family-initials-dots",
+          "otherAuthors": "family-initials-dots",
+          "separator": ", ",
+          "lastSeparator": "and",
+          "oxfordComma": false,
+          "etAlThreshold": 4,
+          "etAlKeep": 1,
+          "editorFormat": "family-initials-dots",
+          "primaryEditorSuffix": "paren-lower",
+          "containerEditorMode": "family-initials-ed-paren"
+        },
+        "layout": "harvard"
+      }
+    },
+    "ieee": {
+      "meta": {
+        "id": "ieee",
+        "label": "IEEE",
+        "kind": "numeric"
+      },
+      "inText": {
+        "mode": "numeric",
+        "openDelimiter": "[",
+        "closeDelimiter": "]",
+        "itemSeparator": "], [",
+        "authorYearSeparator": " ",
+        "locatorPrefix": ", ",
+        "omitPageLabel": false,
+        "etAlThreshold": 7,
+        "useAmpersand": false,
+        "italicizeStandaloneTitle": true,
+        "disambiguateYear": false
+      },
+      "bibliography": {
+        "sort": "citation-order",
+        "numberPrefix": "bracket",
+        "names": {
+          "firstAuthor": "initials-family",
+          "otherAuthors": "initials-family",
+          "separator": ", ",
+          "lastSeparator": "and",
+          "oxfordComma": true,
+          "etAlThreshold": 7,
+          "etAlKeep": 1,
+          "editorFormat": "initials-family",
+          "primaryEditorSuffix": "comma-ed",
+          "containerEditorMode": "initials-ed-cap"
+        },
+        "layout": "ieee"
+      }
+    },
+    "vancouver": {
+      "meta": {
+        "id": "vancouver",
+        "label": "Vancouver",
+        "kind": "numeric"
+      },
+      "inText": {
+        "mode": "numeric",
+        "openDelimiter": "(",
+        "closeDelimiter": ")",
+        "itemSeparator": ", ",
+        "authorYearSeparator": " ",
+        "locatorPrefix": ", ",
+        "omitPageLabel": false,
+        "etAlThreshold": 7,
+        "useAmpersand": false,
+        "italicizeStandaloneTitle": false,
+        "disambiguateYear": false
+      },
+      "bibliography": {
+        "sort": "citation-order",
+        "numberPrefix": "dot",
+        "names": {
+          "firstAuthor": "family-initials-compact",
+          "otherAuthors": "family-initials-compact",
+          "separator": ", ",
+          "lastSeparator": "comma",
+          "oxfordComma": false,
+          "etAlThreshold": 7,
+          "etAlKeep": 6,
+          "commaBeforeEtAl": true,
+          "editorFormat": "family-initials-compact",
+          "primaryEditorSuffix": "comma-editor",
+          "containerEditorMode": "compact-editor"
+        },
+        "layout": "vancouver"
+      }
+    },
+    "din1505": {
+      "meta": {
+        "id": "din1505",
+        "label": "DIN 1505-2",
+        "kind": "author-date"
+      },
+      "inText": {
+        "mode": "author-year",
+        "openDelimiter": "(",
+        "closeDelimiter": ")",
+        "itemSeparator": "; ",
+        "authorYearSeparator": " ",
+        "locatorPrefix": ", ",
+        "omitPageLabel": false,
+        "etAlThreshold": 3,
+        "useAmpersand": false,
+        "italicizeStandaloneTitle": true,
+        "disambiguateYear": true
+      },
+      "bibliography": {
+        "sort": "author",
+        "numberPrefix": "none",
+        "names": {
+          "firstAuthor": "family-given",
+          "otherAuthors": "family-given",
+          "separator": " ; ",
+          "lastSeparator": "semicolon",
+          "oxfordComma": false,
+          "etAlThreshold": 4,
+          "etAlKeep": 1,
+          "editorFormat": "family-given",
+          "primaryEditorSuffix": "paren-cap",
+          "containerEditorMode": "family-given-hrsg-paren"
+        },
+        "layout": "din1505"
+      }
+    }
+  },
+  "terms": {
+    "en": {
+      "and": "and",
+      "etAl": "et al.",
+      "noDate": "n.d.",
+      "pageSingle": "p.",
+      "pagePlural": "pp.",
+      "chapter": "ch.",
+      "section": "sec.",
+      "inWord": "In",
+      "editionSuffix": "ed.",
+      "editionSuffixHarvard": "edn.",
+      "volumeWord": "vol.",
+      "volumeCap": "Vol.",
+      "issueWord": "no.",
+      "issueCap": "No.",
+      "editorParenSingular": "(Ed.)",
+      "editorParenPlural": "(Eds.)",
+      "editorParenLowerSingular": "(ed.)",
+      "editorParenLowerPlural": "(eds.)",
+      "editorAbbrevSingular": "ed.",
+      "editorAbbrevPlural": "eds.",
+      "editorFullSingular": "editor",
+      "editorFullPlural": "editors",
+      "editedBy": "edited by",
+      "noteEdAbbrev": "ed.",
+      "availableAt": "Available at:",
+      "availableFrom": "Available from:",
+      "onlineAvailable": "[Online]. Available:",
+      "thesisPhd": "Doctoral dissertation",
+      "thesisPhdShort": "PhD diss.",
+      "thesisPhdHarvard": "PhD thesis",
+      "thesisPhdIeee": "Ph.D. dissertation",
+      "thesisVancouver": "[dissertation]",
+      "thesisDin": "Diss.",
+      "reportWord": "Report",
+      "quotePunctuationInside": true
+    },
+    "de": {
+      "and": "und",
+      "etAl": "et al.",
+      "noDate": "o. J.",
+      "pageSingle": "S.",
+      "pagePlural": "S.",
+      "chapter": "Kap.",
+      "section": "Abschn.",
+      "inWord": "In",
+      "editionSuffix": "Aufl.",
+      "editionSuffixHarvard": "Aufl.",
+      "volumeWord": "Bd.",
+      "volumeCap": "Bd.",
+      "issueWord": "Nr.",
+      "issueCap": "Nr.",
+      "editorParenSingular": "(Hrsg.)",
+      "editorParenPlural": "(Hrsg.)",
+      "editorParenLowerSingular": "(Hrsg.)",
+      "editorParenLowerPlural": "(Hrsg.)",
+      "editorAbbrevSingular": "Hrsg.",
+      "editorAbbrevPlural": "Hrsg.",
+      "editorFullSingular": "Hrsg.",
+      "editorFullPlural": "Hrsg.",
+      "editedBy": "herausgegeben von",
+      "noteEdAbbrev": "hg. von",
+      "availableAt": "Verfügbar unter:",
+      "availableFrom": "Verfügbar unter:",
+      "onlineAvailable": "[Online]. Verfügbar unter:",
+      "thesisPhd": "Dissertation",
+      "thesisPhdShort": "Diss.",
+      "thesisPhdHarvard": "Dissertation",
+      "thesisPhdIeee": "Dissertation",
+      "thesisVancouver": "[Dissertation]",
+      "thesisDin": "Diss.",
+      "reportWord": "Bericht",
+      "quotePunctuationInside": false
+    }
+  }
+}

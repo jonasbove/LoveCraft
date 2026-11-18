@@ -59,6 +59,10 @@ pub struct CompiledBook {
     pub back_matter: Vec<MatterPage>,
     pub chapters: Vec<CompiledChapter>,
     pub words: usize,
+    /// The project's citation library, and the bibliography of the sources cited (when the
+    /// options want one).
+    pub citations: Vec<crate::js::JsValue>,
+    pub bibliography: Option<crate::citations::bibliography::BookBibliography>,
 }
 
 fn js_trim(text: &str) -> &str {
@@ -238,6 +242,17 @@ pub fn compile_book(project: &Project, options: &PublishOptions) -> CompiledBook
         front_matter: compile_matter(&options.front_matter),
         back_matter: compile_matter(&options.back_matter),
         words: chapters.iter().map(|c| c.words).sum(),
+        bibliography: (!project.citations.is_empty() && options.include_bibliography)
+            .then(|| {
+                crate::citations::bibliography::build_book_bibliography(
+                    &chapters,
+                    &project.citations,
+                    &options.citation_style,
+                    &options.citation_locale,
+                )
+            })
+            .flatten(),
+        citations: project.citations.clone(),
         chapters,
     }
 }

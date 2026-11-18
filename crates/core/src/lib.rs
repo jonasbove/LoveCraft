@@ -11,6 +11,7 @@
 )]
 
 pub mod about;
+pub mod citations;
 pub mod cite;
 pub mod comments;
 pub mod csl;

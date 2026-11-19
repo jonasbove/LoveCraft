@@ -735,6 +735,61 @@ fn the_menu_bar_runs_prosecrafts_menu_commands() {
     assert!(prosecraft_ui_egui::window_title(harness.state()).starts_with("Second"));
 }
 
+#[test]
+fn the_side_panels_are_hidden_and_shown_from_the_header() {
+    let (mut harness, _memory) = app();
+    harness.get_by_role_and_label(Role::TreeItem, "Opening Scene");
+    harness.get_by_label("Hide chapter sidebar").click();
+    harness.run();
+    assert!(
+        harness
+            .query_by_role_and_label(Role::TreeItem, "Opening Scene")
+            .is_none()
+    );
+    harness.get_by_label("Show chapter sidebar").click();
+    harness.run();
+    harness.get_by_role_and_label(Role::TreeItem, "Opening Scene");
+    harness.get_by_role_and_label(Role::Tab, "Progress");
+    harness.get_by_label("Hide progress sidebar").click();
+    harness.run();
+    assert!(
+        harness
+            .query_by_role_and_label(Role::Tab, "Progress")
+            .is_none()
+    );
+    harness.get_by_label("Show progress sidebar").click();
+    harness.run();
+    harness.get_by_role_and_label(Role::Tab, "Progress");
+    harness.get_by_label("Keyboard shortcuts").click();
+    harness.run();
+    harness.get_by_label_contains("Save as PDF");
+}
+
+#[test]
+fn trashing_a_chapter_from_its_view_asks_first() {
+    let (mut harness, memory) = app();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Chapter One")
+        .click();
+    harness.run();
+    harness.get_by_label("Move chapter to Trash").click();
+    harness.run();
+    harness
+        .get_by_label("Move “Chapter One” and its 2 scenes to Trash? You can restore them later.");
+    harness
+        .get_by_role_and_label(Role::Button, "Move to Trash")
+        .click();
+    harness.run_steps(12);
+    let saved = memory.last();
+    let trashed = project(&saved, "project-1")
+        .get("project")
+        .and_then(|p| p.get("chapters"))
+        .and_then(JsValue::as_array)
+        .and_then(|c| c.first().cloned())
+        .and_then(|c| c.get("trashed").cloned());
+    assert_eq!(trashed, Some(JsValue::Bool(true)));
+}
+
 /// The stored content of a document.
 fn content(memory: &Memory, id: &str) -> String {
     let saved = memory.last();

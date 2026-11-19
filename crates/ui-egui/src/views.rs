@@ -131,7 +131,10 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
     let current = views.iter().position(|v| *v == state.view).unwrap_or(0);
     // Zen and focus mode hide the workspace controls too.
     if !state.zen_hidden {
-        ui.horizontal(|ui| {
+        // Wrapped, so a narrow window puts the toggles on a second row instead of widening
+        // the page under the side panels.
+        ui.horizontal_wrapped(|ui| {
+            ui.set_max_width(ui.available_width());
             ui.add_space(16.0);
             if let Some(index) = segmented(ui, &palette, "workspace-tab", &labels, current, 13.0) {
                 state.view = views.get(index).copied().unwrap_or_default();
@@ -142,6 +145,45 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                 if search.clicked() {
                     state.find = Some(crate::find::FindState::new());
                 }
+            }
+            // `toggleLeftSidebar`, `toggleRightSidebar` (not on the Storyboard) and
+            // `toggleShortcuts`.
+            if state.library.is_some() && state.view != WorkspaceView::Storyboard {
+                for (hidden, show, hide, text) in [
+                    (
+                        state.binder_hidden,
+                        "Show chapter sidebar",
+                        "Hide chapter sidebar",
+                        "Chapters",
+                    ),
+                    (
+                        state.sidebar_hidden,
+                        "Show progress sidebar",
+                        "Hide progress sidebar",
+                        "Progress",
+                    ),
+                ] {
+                    let name = if hidden { show } else { hide };
+                    let toggle = ui.selectable_label(!hidden, text).on_hover_text(name);
+                    name_field(ui, &toggle, name);
+                    if toggle.clicked() {
+                        if text == "Chapters" {
+                            state.binder_hidden = !state.binder_hidden;
+                        } else {
+                            state.sidebar_hidden = !state.sidebar_hidden;
+                        }
+                    }
+                }
+            }
+            let shortcuts = ui
+                .selectable_label(state.shortcuts.is_some(), "Shortcuts")
+                .on_hover_text("Keyboard shortcuts (Ctrl/Cmd+/)");
+            name_field(ui, &shortcuts, "Keyboard shortcuts");
+            if shortcuts.clicked() {
+                state.shortcuts = match state.shortcuts {
+                    Some(_) => None,
+                    None => Some(cfg!(target_os = "macos")),
+                };
             }
             // `toggleSplitView`, in the Write view.
             if state.library.is_some() && state.view == WorkspaceView::Write {
@@ -656,9 +698,24 @@ fn write(
                             chapter: id.clone(),
                         });
                     }
-                    if ui.button("Move chapter to Trash").clicked() {
-                        edit.intents.push(Intent::TrashChapter(id.clone()));
-                    }
+                    // `trashChapter` asks first, as from the binder.
+                    ui.menu_button(
+                        RichText::new("Move chapter to Trash").color(palette.danger),
+                        |ui| {
+                            let count = project.scenes_in_chapter(id).count();
+                            let scenes = if count == 1 { "scene" } else { "scenes" };
+                            ui.label(format!(
+                                "Move “{label}” and its {count} {scenes} to Trash? You can restore them later."
+                            ));
+                            if ui
+                                .button(RichText::new("Move to Trash").color(palette.danger))
+                                .clicked()
+                            {
+                                edit.intents.push(Intent::TrashChapter(id.clone()));
+                                ui.close();
+                            }
+                        },
+                    );
                 });
             } else {
                 ui.label(

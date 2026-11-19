@@ -694,7 +694,18 @@ pub fn show(
         Stroke::new(1.0, palette.border),
         egui::StrokeKind::Inside,
     );
-    if response.hovered() {
+    // `updatePinch`: two fingers zoom around their middle and move the view with it.
+    let pinch = ui.input(egui::InputState::multi_touch);
+    if let Some(touch) = pinch.filter(|t| rect.contains(t.center_pos)) {
+        let at = Point {
+            x: f64::from(touch.center_pos.x - rect.min.x),
+            y: f64::from(touch.center_pos.y - rect.min.y),
+        };
+        zoom_at(state, at, f64::from(touch.zoom_delta));
+        state.view.translate.x += f64::from(touch.translation_delta.x);
+        state.view.translate.y += f64::from(touch.translation_delta.y);
+    } else if response.hovered() {
+        // The wheel, and a trackpad's pinch (egui's zoom delta), around the pointer.
         let scroll = ui.input(|i| i.smooth_scroll_delta.y + (i.zoom_delta() - 1.0) * 400.0);
         if scroll != 0.0
             && let Some(pointer) = response.hover_pos()
@@ -706,7 +717,7 @@ pub fn show(
             zoom_at(state, at, (-f64::from(scroll) * 0.0015).exp());
         }
     }
-    if response.dragged() && state.dragging.is_none() {
+    if response.dragged() && state.dragging.is_none() && pinch.is_none() {
         let d = response.drag_delta();
         state.view.translate.x += f64::from(d.x);
         state.view.translate.y += f64::from(d.y);

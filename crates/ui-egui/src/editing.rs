@@ -105,6 +105,11 @@ pub enum Intent {
         caret: usize,
     },
     /// `saveSceneRename`: a scene's new title (from the binder).
+    /// A scene's text edited on its own in a split view pane.
+    SetSceneText {
+        document: String,
+        content: String,
+    },
     /// `updateTileDocument`: an edit made in a split view pane.
     PatchTile {
         document: String,
@@ -417,6 +422,9 @@ pub fn run(
         Intent::SetChapterTitle { chapter, title } => edit::set_chapter_title(data, chapter, title),
         Intent::SetDocumentTitle { document, title } => {
             edit::set_document_title(data, document, title)
+        }
+        Intent::SetSceneText { document, content } => {
+            edit::patch_document(data, document, None, Some(content))
         }
         Intent::PatchTile {
             document,

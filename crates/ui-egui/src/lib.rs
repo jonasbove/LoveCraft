@@ -27,6 +27,7 @@ mod fountain_import;
 mod labels;
 mod library;
 mod markdown_import;
+mod picture_tools;
 mod pictures;
 mod preview;
 mod project_settings;

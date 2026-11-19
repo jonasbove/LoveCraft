@@ -19,6 +19,8 @@ pub(crate) struct PictureInfo {
     pub size: (u32, u32),
     pub layout: ImageLayout,
     pub alt: String,
+    /// Its `width` attribute (ProseCraft's Image size buttons set it), in CSS pixels.
+    pub pixel_width: Option<u32>,
 }
 
 impl PictureInfo {
@@ -42,7 +44,18 @@ impl PictureInfo {
 
     /// Its drawn size in a column `width` points wide.
     pub fn drawn(&self, width: f32) -> egui::Vec2 {
-        let w = (width * self.share()).max(1.0);
+        let w = match self.pixel_width {
+            // A picture given a pixel width at the default column size keeps it, within the
+            // column (`max-width: 100%`).
+            Some(px)
+                if self.layout.size == image_layout::DEFAULT.size
+                    && self.layout.wrap == "block" =>
+            {
+                (px as f32).min(width)
+            }
+            _ => width * self.share(),
+        }
+        .max(1.0);
         let h = w * self.size.1 as f32 / self.size.0.max(1) as f32;
         egui::vec2(w, h)
     }
@@ -94,6 +107,7 @@ pub(crate) fn info(html: &str) -> Option<PictureInfo> {
             size,
             layout: image_layout::read(&image),
             alt: image.attr("alt").unwrap_or_default().to_owned(),
+            pixel_width: image.attr("width").and_then(|w| w.trim().parse().ok()),
         })
     });
     if let Ok(mut known) = known().lock() {

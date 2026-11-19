@@ -3215,6 +3215,53 @@ fn storyboard_cards_are_added_edited_nudged_and_removed() {
         ),
         (48.0, 24.0)
     );
+
+    // `startStoryboardPan`: a drag on the background pans with the Pan tool, not with Select.
+    let handle_name = "Move Opening. Use arrow keys to nudge the card, or drag to position it.";
+    let on_screen = |harness: &Harness<'static, ProseApp>| {
+        harness
+            .get_by_role_and_label(Role::Button, handle_name)
+            .rect()
+            .center()
+    };
+    let canvas = harness.get_by_label("Freeform storyboard").rect();
+    let empty = canvas.left_bottom() + egui::vec2(30.0, -30.0);
+    let pan = |harness: &mut Harness<'static, ProseApp>| {
+        harness.event(egui::Event::PointerMoved(empty));
+        harness.event(egui::Event::PointerButton {
+            pos: empty,
+            button: egui::PointerButton::Primary,
+            pressed: true,
+            modifiers: egui::Modifiers::NONE,
+        });
+        harness.run();
+        for step in 1..=4 {
+            harness.event(egui::Event::PointerMoved(
+                empty + egui::vec2(10.0, -5.0) * step as f32,
+            ));
+            harness.run();
+        }
+        harness.event(egui::Event::PointerButton {
+            pos: empty + egui::vec2(40.0, -20.0),
+            button: egui::PointerButton::Primary,
+            pressed: false,
+            modifiers: egui::Modifiers::NONE,
+        });
+        harness.run_steps(6);
+    };
+    let still = on_screen(&harness);
+    pan(&mut harness);
+    assert_eq!(on_screen(&harness), still, "Select doesn't pan");
+    harness
+        .get_by_role_and_label(Role::Button, "Pan tool")
+        .click();
+    harness.run();
+    pan(&mut harness);
+    let moved = on_screen(&harness) - still;
+    assert!(
+        (moved.x - 40.0).abs() < 1.0 && (moved.y + 20.0).abs() < 1.0,
+        "{moved:?}"
+    );
 }
 
 #[test]

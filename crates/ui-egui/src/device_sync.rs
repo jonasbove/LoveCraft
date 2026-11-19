@@ -66,6 +66,12 @@ impl ProseApp {
             .as_deref()
             .and_then(crate::settings::ThemePreference::from_id)
             .unwrap_or_default();
+        // `isColorScheme`: an unknown value is ProseCraft's own.
+        self.state.color_scheme = home
+            .store
+            .load_setting(crate::theme::SCHEME_KEY)
+            .filter(|s| crate::theme::SCHEMES.iter().any(|(v, _)| v == s))
+            .unwrap_or_else(|| "prosecraft".to_owned());
         if let Some(state) = home
             .store
             .load_setting(SYNC_STATE_KEY)

@@ -53,6 +53,9 @@ pub use zotero::Transport as ZoteroTransport;
 mod wiki_files;
 pub use wiki_files::WikiFileStore;
 
+/// Reads the clipboard's HTML, if it holds some.
+pub type ClipboardHtml = std::sync::Arc<dyn Fn() -> Option<String> + Send + Sync>;
+
 use std::collections::HashMap;
 
 use craft_ui::panes::{Edge, PaneContent, PaneHost, PaneRequest, PaneState};
@@ -291,6 +294,8 @@ pub struct AppState {
     /// The split view's panes (none when it is closed), and the device's wiki file store for
     /// what they show.
     split: Vec<prosecraft_core::split::Pane>,
+    /// The host's clipboard HTML, for rich paste.
+    clipboard_html: Option<ClipboardHtml>,
     wiki_store: Option<std::rc::Rc<dyn WikiFileStore>>,
     /// Undo and redo (ProseCraft's `UndoManager`), by text field and by page; selections are
     /// character ranges.
@@ -1493,6 +1498,11 @@ impl ProseApp {
     }
 
     /// Gives the app the device's wiki file store (the desktop host's).
+    /// How the host reads the clipboard's HTML, for rich paste (egui's paste is its text).
+    pub fn set_clipboard_html(&mut self, read: ClipboardHtml) {
+        self.state.clipboard_html = Some(read);
+    }
+
     pub fn set_wiki_files(&mut self, store: Box<dyn WikiFileStore>) {
         let store: std::rc::Rc<dyn WikiFileStore> = std::rc::Rc::from(store);
         self.state.wiki_store = Some(store.clone());
@@ -2136,6 +2146,13 @@ impl ProseApp {
                 }
                 editing::Intent::ChooseCover => {
                     self.state.requests.push(HostRequest::ChooseCover);
+                    continue;
+                }
+                editing::Intent::PastePicture { document, at, png } => {
+                    // The name the browser gives a pasted image.
+                    self.state.picture_target = Some((document.clone(), *at));
+                    let png = png.clone();
+                    self.insert_picture("image.png", &png);
                     continue;
                 }
                 editing::Intent::InsertPicture { document, at } => {

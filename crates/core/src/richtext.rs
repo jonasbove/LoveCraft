@@ -1226,6 +1226,78 @@ impl RichDoc {
         (self.text.clone(), caret)
     }
 
+    /// Pastes HTML over `range` as the browser pastes into ProseCraft's editor (the HTML
+    /// cleaned as its input handler cleans it): the first block joins the caret's line (taking
+    /// its own kind only on an empty line), the blocks after it keep theirs, and the text after
+    /// the caret joins the last one. HTML the editor can't hold is pasted as its plain text.
+    /// Returns the new text and the caret after the pasted text.
+    pub fn paste_html(&mut self, range: std::ops::Range<usize>, html: &str) -> (String, usize) {
+        let chars: Vec<char> = self.text.chars().collect();
+        let (start, end) = (range.start.min(chars.len()), range.end.min(chars.len()));
+        let without: String = chars[..start]
+            .iter()
+            .chain(&chars[end.max(start)..])
+            .collect();
+        self.apply_text_at(&without, Some(start));
+        let cleaned = crate::html::sanitize::sanitize_html(html);
+        // Inline content alone (a few words copied from a page) is a paragraph's.
+        let pasted = RichDoc::from_html(&cleaned)
+            .or_else(|| RichDoc::from_html(&format!("<p>{cleaned}</p>")))
+            .filter(|p| !p.text.is_empty());
+        let Some(pasted) = pasted else {
+            let plain = crate::html::html_to_plain_text(&cleaned, &Default::default());
+            let plain = plain.trim_end_matches('\n');
+            let chars: Vec<char> = self.text.chars().collect();
+            let at = start.min(chars.len());
+            let text: String = chars[..at]
+                .iter()
+                .copied()
+                .chain(plain.chars())
+                .chain(chars[at..].iter().copied())
+                .collect();
+            let caret = at + plain.chars().count();
+            return (self.apply_text_at(&text, Some(caret)), caret);
+        };
+        let chars: Vec<char> = self.text.chars().collect();
+        let at = start.min(chars.len());
+        let line = chars[..at].iter().filter(|c| **c == '\n').count();
+        let line_empty =
+            chars.get(at).is_none_or(|c| *c == '\n') && (at == 0 || chars[at - 1] == '\n');
+        let atoms_before = chars[..at].iter().filter(|c| **c == ATOM).count();
+        let pasted_chars = pasted.text.chars().count();
+        // The text and each character's inline elements.
+        let byte = self
+            .text
+            .char_indices()
+            .nth(at)
+            .map_or(self.text.len(), |(b, _)| b);
+        self.text.insert_str(byte, &pasted.text);
+        let tail = self.marks.split_off(at.min(self.marks.len()));
+        self.marks.extend(pasted.marks.iter().cloned());
+        self.marks.extend(tail);
+        let tail = self.atoms.split_off(atoms_before.min(self.atoms.len()));
+        self.atoms.extend(pasted.atoms.iter().cloned());
+        self.atoms.extend(tail);
+        // The lines: the caret's line split around the pasted blocks.
+        if self.lines.is_empty() {
+            self.lines.push(LineKind::Paragraph);
+        }
+        let line = line.min(self.lines.len() - 1);
+        let own = self.lines[line];
+        let first = match pasted.lines.first() {
+            Some(kind) if line_empty => *kind,
+            _ => own,
+        };
+        let tail = self.lines.split_off(line + 1);
+        self.lines[line] = first;
+        self.lines.extend(pasted.lines.iter().skip(1).copied());
+        self.lines.extend(tail);
+        self.empty_source = false;
+        self.keep_blocks_alone();
+        let caret = at + pasted_chars;
+        (self.text.clone(), caret)
+    }
+
     /// Replaces atom `index`'s HTML (an edited equation, diagram or calculation); a block that
     /// became inline, or the other way round, moves to or from a line of its own.
     pub fn replace_atom(&mut self, index: usize, html: &str) -> String {
@@ -1913,5 +1985,66 @@ mod tests {
         assert!(after.to_html().starts_with("<p><br></p><ul>"));
         let (_, after) = doc.split_at_line(3);
         assert_eq!(after.to_html(), "<p><br></p>");
+    }
+}
+
+#[cfg(test)]
+mod paste_tests {
+    use super::*;
+
+    fn paste(html: &str, at: std::ops::Range<usize>, pasted: &str) -> (String, usize) {
+        let mut doc = RichDoc::from_html(html).expect("doc");
+        let (_, caret) = doc.paste_html(at, pasted);
+        (doc.to_html(), caret)
+    }
+
+    #[test]
+    fn formatting_and_links_paste_into_the_line() {
+        let (html, caret) = paste(
+            "<p>Before after</p>",
+            7..7,
+            r#"<meta charset="utf-8"><span style="color: red">a <b>bold</b> <a href="https://x.test/">link</a></span>"#,
+        );
+        assert_eq!(
+            html,
+            r#"<p>Before a <b>bold</b> <a href="https://x.test/">link</a>after</p>"#
+        );
+        assert_eq!(caret, 7 + "a bold link".chars().count());
+    }
+
+    #[test]
+    fn paragraphs_split_the_line_and_keep_their_kinds() {
+        let (html, _) = paste(
+            "<h2>Start end</h2><p>Next</p>",
+            6..6,
+            "<p>one</p><blockquote><p>two</p></blockquote><p>three </p>",
+        );
+        assert_eq!(
+            html,
+            "<h2>Start one</h2><blockquote><p>two</p></blockquote><p>three end</p><p>Next</p>"
+        );
+    }
+
+    #[test]
+    fn an_empty_line_takes_the_first_block_kind_and_a_selection_is_replaced() {
+        let (html, _) = paste("<p>A</p><p><br></p>", 2..2, "<ul><li>x</li><li>y</li></ul>");
+        assert_eq!(html, "<p>A</p><ul><li>x</li><li>y</li></ul>");
+        let (html, caret) = paste("<p>Keep this word</p>", 5..9, "<em>that</em>");
+        assert_eq!(html, "<p>Keep <em>that</em> word</p>");
+        assert_eq!(caret, 9);
+    }
+
+    #[test]
+    fn scripts_are_cleaned_away() {
+        let (html, _) = paste(
+            "<p>x</p>",
+            1..1,
+            r#"<script>alert(1)</script><img src="x" onerror="alert(1)">!"#,
+        );
+        assert!(
+            !html.contains("script") && !html.contains("onerror"),
+            "{html}"
+        );
+        assert!(html.contains('!'), "{html}");
     }
 }

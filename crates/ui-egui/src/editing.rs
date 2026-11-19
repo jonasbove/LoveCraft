@@ -93,6 +93,12 @@ pub enum Intent {
         caret: usize,
     },
     /// `saveSceneRename`: a scene's new title (from the binder).
+    /// `updateTileDocument`: an edit made in a split view pane.
+    PatchTile {
+        document: String,
+        title: Option<String>,
+        content: Option<String>,
+    },
     SetDocumentTitle {
         document: String,
         title: String,
@@ -392,6 +398,11 @@ pub fn run(
         Intent::SetDocumentTitle { document, title } => {
             edit::set_document_title(data, document, title)
         }
+        Intent::PatchTile {
+            document,
+            title,
+            content,
+        } => edit::patch_tile_document(data, document, title.as_deref(), content.as_deref()),
         Intent::SplitScene {
             document,
             before,

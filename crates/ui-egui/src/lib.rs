@@ -296,6 +296,8 @@ pub struct AppState {
     split: Vec<prosecraft_core::split::Pane>,
     /// The host's clipboard HTML, for rich paste.
     clipboard_html: Option<ClipboardHtml>,
+    /// The split view panes' editors.
+    tiles: split_view::Tiles,
     wiki_store: Option<std::rc::Rc<dyn WikiFileStore>>,
     /// Undo and redo (ProseCraft's `UndoManager`), by text field and by page; selections are
     /// character ranges.

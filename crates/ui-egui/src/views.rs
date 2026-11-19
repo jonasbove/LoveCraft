@@ -204,6 +204,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         wiki_store,
         wiki_root,
         clipboard_html,
+        tiles,
         ..
     } = state;
     let entry = library.as_ref().and_then(|l| l.projects().get(*active));
@@ -349,10 +350,24 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                         options.scene_separator,
                         &files,
                         &mut crate::split_view::pane_id,
+                        tiles,
                     );
                     from_split = asked.open;
                     if let Some(file) = asked.open_file {
                         edit.intents.push(Intent::OpenWikiFileExternally(file));
+                    }
+                    if edit.editable {
+                        for (document, title, content) in asked.patches {
+                            edit.intents.push(Intent::PatchTile {
+                                document,
+                                title,
+                                content,
+                            });
+                        }
+                        for (chapter, title) in asked.chapter_titles {
+                            edit.intents
+                                .push(Intent::SetChapterTitle { chapter, title });
+                        }
                     }
                 },
             );
@@ -1138,6 +1153,62 @@ pub(crate) fn read_only_html_cited(
         n.set_label(name.to_owned());
         n.set_value(text);
     });
+}
+
+/// A split view pane's text, editable (ProseCraft's `TileEditor` body): laid out and drawn as
+/// the editor draws text, named "Document text". Whether it changed.
+pub(crate) fn tile_body(
+    ui: &mut Ui,
+    palette: &Palette,
+    id: egui::Id,
+    (doc, body): (&mut RichDoc, &mut String),
+    cites: &CiteStyle<'_>,
+) -> bool {
+    let labels = atom_labels(doc, cites);
+    let layout_labels = labels.clone();
+    let doc_for_layout = doc.clone();
+    let layout_palette = *palette;
+    let mut layouter = move |ui: &Ui, text: &dyn egui::TextBuffer, wrap_width: f32| {
+        ui.fonts_mut(|f| {
+            let spacing = atom_sizes(f, &layout_labels, wrap_width);
+            let look = Look::default();
+            f.layout_job(layout_doc(
+                &doc_for_layout,
+                text.as_str(),
+                &layout_palette,
+                wrap_width,
+                &spacing,
+                &look,
+            ))
+        })
+    };
+    let output = egui::TextEdit::multiline(body)
+        .id(id)
+        .frame(egui::Frame::NONE)
+        .desired_width(f32::INFINITY)
+        .desired_rows(4)
+        .layouter(&mut layouter)
+        .show(ui);
+    name_field(ui, &output.response, "Document text");
+    let mut changed = false;
+    if output.response.changed() {
+        let cursor = output.cursor_range.map(|r| r.primary.index.0);
+        let kept = doc.apply_text_at(body, cursor);
+        if kept != *body {
+            *body = kept;
+        }
+        changed = true;
+    }
+    paint_extras(
+        ui,
+        palette,
+        doc,
+        &labels,
+        &output.galley,
+        output.galley_pos,
+        output.text_clip_rect,
+    );
+    changed
 }
 
 /// Another scene of the open chapter, drawn as the editor draws it. A click opens it in the
@@ -2712,7 +2783,7 @@ pub(crate) enum Clicked {
 /// What the text itself can't show: list bullets and numbers, the quote bar, footnote
 /// markers as their numbers, and citations as their labels. Painted over the laid-out text, so the caret, selection and the
 /// accessibility tree still see the real text.
-fn paint_extras(
+pub(crate) fn paint_extras(
     ui: &Ui,
     palette: &Palette,
     doc: &RichDoc,

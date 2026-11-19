@@ -209,8 +209,69 @@ fn header_button(ui: &mut Ui, text: &str, label: &str, tip: &str, enabled: bool)
     button.clicked()
 }
 
+/// `EMIT_DELAY_MS`: a pane's edit is kept this long after the last keystroke.
+const EMIT_DELAY: f64 = 0.3;
+
+/// A pane's editor (`TileEditor`): what it shows, its draft, and what it last sent.
+#[derive(Clone)]
+pub(crate) struct Tile {
+    /// `paneKey`: the chapter, or the document; a new key is a new editor.
+    key: String,
+    document: String,
+    chapter: Option<String>,
+    doc: prosecraft_core::richtext::RichDoc,
+    body: String,
+    title: String,
+    /// The text this editor last sent, so its own echo doesn't reload it.
+    emitted: String,
+    /// When it was last typed in, while that edit hasn't been sent.
+    changed_at: Option<f64>,
+}
+
+impl Tile {
+    fn new(
+        key: String,
+        document: String,
+        chapter: Option<String>,
+        title: &str,
+        html: &str,
+    ) -> Self {
+        let doc = prosecraft_core::richtext::RichDoc::from_html(
+            &prosecraft_core::html::sanitize_html(html),
+        )
+        .unwrap_or_default();
+        Self {
+            key,
+            document,
+            chapter,
+            body: doc.text.clone(),
+            doc,
+            title: title.to_owned(),
+            emitted: String::new(),
+            changed_at: None,
+        }
+    }
+
+    /// `emit`: the cleaned HTML, for the document.
+    fn emit(&mut self, asked: &mut Asked) {
+        let html = prosecraft_core::html::sanitize_html(&self.doc.to_html());
+        self.emitted = html.clone();
+        self.changed_at = None;
+        asked
+            .patches
+            .push((self.document.clone(), None, Some(html)));
+    }
+}
+
+/// Each pane's editor, by pane.
+pub(crate) type Tiles = std::collections::HashMap<String, Tile>;
+
 /// What the panes asked for.
 pub(crate) struct Asked {
+    /// Edits made in panes: a document, its new title and its new text.
+    pub patches: Vec<(String, Option<String>, Option<String>)>,
+    /// Chapter titles changed in a scene's pane.
+    pub chapter_titles: Vec<(String, String)>,
     /// A scene to open in the editor (Swap).
     pub open: Option<Selection>,
     /// A wiki file to open with its app.
@@ -228,11 +289,28 @@ pub(crate) fn show(
     separator: prosecraft_core::publish::SceneSeparator,
     files: &Files<'_>,
     new_id: &mut dyn FnMut() -> String,
+    tiles: &mut Tiles,
 ) -> Asked {
     let mut asked = Asked {
+        patches: Vec::new(),
+        chapter_titles: Vec::new(),
         open: None,
         open_file: None,
     };
+    // `onDestroy(flush)`: a closed pane's pending edit is sent.
+    let open: std::collections::HashSet<&str> = panes.iter().map(|p| p.id.as_str()).collect();
+    let gone: Vec<String> = tiles
+        .keys()
+        .filter(|k| !open.contains(k.as_str()))
+        .cloned()
+        .collect();
+    for pane in gone {
+        if let Some(mut tile) = tiles.remove(&pane)
+            && tile.changed_at.is_some()
+        {
+            tile.emit(&mut asked);
+        }
+    }
     let groups = groups(project);
     // `pruneSplitTargets`.
     let valid: std::collections::HashSet<String> = groups
@@ -280,7 +358,7 @@ pub(crate) fn show(
                                         separator,
                                         files,
                                         (width - 30.0, body_height),
-                                        &mut asked,
+                                        (&mut asked, &mut *tiles),
                                     );
                                 });
                         });
@@ -392,7 +470,7 @@ fn body(
     separator: prosecraft_core::publish::SceneSeparator,
     files: &Files<'_>,
     (width, height): (f32, f32),
-    asked: &mut Asked,
+    (asked, tiles): (&mut Asked, &mut Tiles),
 ) {
     let note = |ui: &mut Ui, text: &str| {
         ui.label(RichText::new(text).size(11.0).color(palette.text_muted));
@@ -430,22 +508,34 @@ fn body(
                     }
                     None => (title_or(&doc.title, "Untitled"), doc.content.clone()),
                 };
-                ui.label(
-                    RichText::new(title)
-                        .strong()
-                        .size(15.0)
-                        .color(palette.text_heading),
-                );
                 if active == Some(doc.id.as_str()) {
+                    ui.label(
+                        RichText::new(title)
+                            .strong()
+                            .size(15.0)
+                            .color(palette.text_heading),
+                    );
                     note(ui, "Open in the editor");
+                    crate::views::read_only_html_cited(
+                        ui,
+                        palette,
+                        &html,
+                        "Pane text",
+                        &project.citations,
+                        (&files.citation_style, &files.citation_locale),
+                    );
+                    return;
                 }
-                crate::views::read_only_html_cited(
+                let raw_title = chapter.map_or(doc.title.as_str(), |c| c.title.as_str());
+                let key = chapter.map_or_else(|| doc.id.clone(), |c| c.id.clone());
+                tile(
                     ui,
                     palette,
-                    &html,
-                    "Pane text",
-                    &project.citations,
-                    (&files.citation_style, &files.citation_locale),
+                    project,
+                    files,
+                    (pane, doc, chapter.map(|c| c.id.clone())),
+                    (key, raw_title, &html),
+                    (asked, tiles),
                 );
             }
             Some(Target::File(id)) => {
@@ -494,4 +584,96 @@ fn body(
                 "Pick a scene, wiki page or file above to read it next to your text.",
             ),
         });
+}
+
+/// A pane's editor (`TileEditor`): the title, and the text drawn as the editor draws it. A
+/// scene's chapter title is the chapter's.
+#[allow(clippy::type_complexity)]
+fn tile(
+    ui: &mut Ui,
+    palette: &Palette,
+    project: &Project,
+    files: &Files<'_>,
+    (pane, doc, chapter): (&Pane, &prosecraft_core::project::Document, Option<String>),
+    (key, title, html): (String, &str, &str),
+    (asked, tiles): (&mut Asked, &mut Tiles),
+) {
+    let now = ui.input(|i| i.time);
+    // A new key is a new editor; the old one's pending edit is sent first.
+    if tiles.get(&pane.id).is_some_and(|t| t.key != key)
+        && let Some(mut old) = tiles.remove(&pane.id)
+        && old.changed_at.is_some()
+    {
+        old.emit(asked);
+    }
+    let tile = tiles
+        .entry(pane.id.clone())
+        .or_insert_with(|| Tile::new(key, doc.id.clone(), chapter.clone(), title, html));
+    let title_id = egui::Id::unique(("tile-title", pane.id.as_str()));
+    let body_id = egui::Id::unique(("tile-body", pane.id.as_str()));
+    let focused = ui.memory(|m| m.has_focus(body_id));
+    // Changed from outside (another pane, a rename, an undo): shown, unless it is this
+    // editor's own echo or it is being typed in.
+    if !focused && tile.changed_at.is_none() {
+        let clean = prosecraft_core::html::sanitize_html(html);
+        if clean != tile.emitted && clean != tile.doc.to_html() {
+            *tile = Tile::new(
+                tile.key.clone(),
+                doc.id.clone(),
+                chapter.clone(),
+                &tile.title,
+                html,
+            );
+        }
+    }
+    if !ui.memory(|m| m.has_focus(title_id)) && tile.title != title {
+        tile.title = title.to_owned();
+    }
+    let field = ui.add(
+        egui::TextEdit::singleline(&mut tile.title)
+            .id(title_id)
+            .hint_text("Untitled")
+            .char_limit(120)
+            .frame(egui::Frame::NONE)
+            .font(egui::FontId::proportional(15.0))
+            .text_color(palette.text_heading)
+            .desired_width(f32::INFINITY),
+    );
+    crate::views::name_field(ui, &field, "Title");
+    if field.changed() {
+        match &tile.chapter {
+            Some(chapter) => asked
+                .chapter_titles
+                .push((chapter.clone(), tile.title.clone())),
+            None => asked
+                .patches
+                .push((tile.document.clone(), Some(tile.title.clone()), None)),
+        }
+    }
+    ui.add_space(6.0);
+    let cache = std::cell::RefCell::new(Default::default());
+    let cites = crate::views::CiteStyle {
+        items: &project.citations,
+        style: files.citation_style.clone(),
+        locale: files.citation_locale.clone(),
+        cache: &cache,
+    };
+    if crate::views::tile_body(
+        ui,
+        palette,
+        body_id,
+        (&mut tile.doc, &mut tile.body),
+        &cites,
+    ) {
+        tile.changed_at = Some(now);
+    }
+    // `scheduleEmit` and `flush`: sent once typing pauses, or when the text loses focus.
+    if let Some(at) = tile.changed_at {
+        if now - at >= EMIT_DELAY || !ui.memory(|m| m.has_focus(body_id)) {
+            tile.emit(asked);
+        } else {
+            ui.ctx()
+                .request_repaint_after(std::time::Duration::from_secs_f64(EMIT_DELAY));
+        }
+    }
 }

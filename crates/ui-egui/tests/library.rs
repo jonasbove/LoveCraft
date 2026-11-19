@@ -705,7 +705,7 @@ fn a_table_and_code_stay_as_they_are_while_the_text_around_them_is_edited() {
 }
 
 #[test]
-fn a_scene_the_rich_editor_cannot_hold_opens_as_markdown() {
+fn a_scene_the_rich_editor_holds_only_simplified_still_opens_as_markdown() {
     use prosecraft_core::import::markdown_folder::MarkdownFile;
     let memory = Memory::default();
     let app = ProseApp::with_library(
@@ -714,7 +714,8 @@ fn a_scene_the_rich_editor_cannot_hold_opens_as_markdown() {
     );
     let mut harness = harness(app);
     harness.run();
-    // A loose list (paragraphs in its items), which the rich editor can't hold yet.
+    // A loose list (paragraphs in its items), which the rich editor holds only simplified (each
+    // paragraph an item of its own) and stores so only once it is edited.
     harness.state_mut().import_markdown_folder(
         "Vault",
         vec![MarkdownFile {
@@ -735,7 +736,8 @@ fn a_scene_the_rich_editor_cannot_hold_opens_as_markdown() {
         .expect("the scene")
         .click();
     harness.run();
-    assert!(harness.query_by_label("Scene text").is_none());
+    harness.get_by_label("Scene text");
+    harness.get_by_label("Some of this scene's formatting is simplified once you edit it.");
     harness
         .get_by_role_and_label(Role::Button, "Edit as Markdown")
         .click();

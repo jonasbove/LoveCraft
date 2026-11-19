@@ -368,6 +368,10 @@ pub struct Draft {
     pub title: String,
     /// The scene's text and formatting.
     pub doc: prosecraft_core::richtext::RichDoc,
+    /// The stored HTML the draft was read from. A scene the editor holds only in a normalized
+    /// shape writes different HTML; it is stored only once the text is edited, so this, not
+    /// `doc`'s HTML, tells an untouched draft from a scene changed underneath it.
+    pub source: String,
     /// The editor's text buffer (the document's text).
     pub body: String,
     /// Changed since the last commit to the project.

@@ -2676,9 +2676,12 @@ fn a_pane_edits_its_document_as_prosecrafts_tile_editor_does() {
 
 #[test]
 fn a_scene_pane_writes_its_chapter_back_and_leaves_text_it_cannot_hold_alone() {
-    // Mara's page as bare text, which the editor can't hold.
-    let bundle = fixture("bundle-plain.prosecraft")
-        .replace("<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>", "Loose notes about Mara");
+    // Mara's page with a line separator in its text, which the editor can't hold (it stands
+    // for a newline in the text there).
+    let bundle = fixture("bundle-plain.prosecraft").replace(
+        "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
+        "<p>Notes about\u{2028}Mara</p>",
+    );
     let memory = Memory::default();
     let mut app =
         ProseApp::with_library(ProjectLibrary::new("test".into()), Box::new(memory.clone()));
@@ -2756,7 +2759,7 @@ fn a_scene_pane_writes_its_chapter_back_and_leaves_text_it_cannot_hold_alone() {
     let mara = stored(&memory, "doc-2");
     assert!(
         mara.starts_with("<h2>Character profile</h2>")
-            && mara.ends_with("<hr>\nLoose notes about Mara"),
+            && mara.ends_with("<p>Notes about\u{2028}Mara</p>"),
         "{mara}"
     );
 }
@@ -5701,4 +5704,210 @@ fn a_screenplay_pdf_exports_from_the_publish_view() {
     };
     assert!(file_name.ends_with(".pdf"), "{file_name}");
     assert!(bytes.starts_with(b"%PDF-"));
+}
+
+/// The app with the fixture backup, the first scene's text wrapped in a `<div>` (as an import
+/// may leave it): HTML the editor holds only in a normalized shape.
+fn app_with_wrapped_scene() -> (Harness<'static, ProseApp>, Memory) {
+    let bundle = fixture("bundle-plain.prosecraft")
+        .replace("<p>It was <em>dark</em>.", "<div><p>It was <em>dark</em>.")
+        .replace("(Smith 2020)</span>.</p>", "(Smith 2020)</span>.</p></div>");
+    let memory = Memory::default();
+    let mut app =
+        ProseApp::with_library(ProjectLibrary::new("test".into()), Box::new(memory.clone()));
+    app.open_backup("bundle-plain.prosecraft", &bundle);
+    let mut harness = Harness::builder()
+        .with_max_steps(8)
+        .with_size([1700.0, 1000.0])
+        .build_ui_state(|ui, app: &mut ProseApp| app.show(ui), app);
+    prosecraft_ui_egui::setup_for_tests(&harness.ctx);
+    harness.run();
+    (harness, memory)
+}
+
+/// The project as last saved (`None` before the first save).
+fn saved_project(memory: &Memory) -> Option<String> {
+    let text = memory.saved.lock().ok()?.last()?.clone();
+    let library = js::parse(&text).ok()?;
+    Some(js::stringify(project(&library, "project-1")))
+}
+
+fn saved_content(memory: &Memory, id: &str) -> String {
+    let saved = memory.last();
+    document(project(&saved, "project-1"), id)
+        .and_then(|d| d.get("content"))
+        .and_then(JsValue::as_js_string)
+        .map(|c| c.to_string_lossy())
+        .unwrap_or_default()
+}
+
+/// Waits out the pane's pause before it sends an edit, and the save after it.
+fn settle(harness: &mut Harness<'static, ProseApp>) {
+    harness.step();
+    std::thread::sleep(std::time::Duration::from_millis(350));
+    harness.run_steps(12);
+}
+
+#[test]
+fn a_pane_edits_a_scene_it_holds_only_normalized_and_stores_it_only_once_typed_in() {
+    let (mut harness, memory) = app_with_wrapped_scene();
+    let wrapped = r#"<div><p>It was <em>dark</em>."#;
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Mara")
+        .click();
+    harness.run();
+    let before = saved_project(&memory);
+    harness.get_by_label("Open split view").click();
+    harness.run();
+    harness.get_by_label("Show in this pane").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "  INT. LIGHTHOUSE - NIGHT")
+        .click();
+    harness.run_steps(12);
+    // Both scenes of the chapter editable, the wrapped one too (it was shown read-only).
+    assert_eq!(harness.get_all_by_label("Document text").count(), 2);
+    assert!(
+        harness
+            .query_by_label("Open in the editor to change this text.")
+            .is_none()
+    );
+    // Opened, focused, the caret moved, then left: nothing is stored.
+    harness
+        .get_all_by_label("Document text")
+        .next()
+        .expect("the first scene")
+        .focus();
+    harness.run();
+    harness.key_press(egui::Key::ArrowRight);
+    harness.key_press(egui::Key::ArrowDown);
+    harness.run();
+    harness
+        .get_all_by_label("Document text")
+        .last()
+        .expect("the second scene")
+        .focus();
+    settle(&mut harness);
+    assert_eq!(saved_project(&memory), before, "opening changed nothing");
+    // Typed in: stored, in the shape the editor holds it.
+    harness
+        .get_all_by_label("Document text")
+        .next()
+        .expect("the first scene")
+        .focus();
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::End);
+    harness
+        .get_all_by_label("Document text")
+        .next()
+        .expect("the first scene")
+        .type_text(" Later.");
+    settle(&mut harness);
+    let content = saved_content(&memory, "doc-1");
+    assert!(!content.contains(wrapped), "{content}");
+    assert!(
+        content.starts_with("<p>It was <em>dark</em>.<sup") && content.ends_with(". Later.</p>"),
+        "{content}"
+    );
+}
+
+#[test]
+fn the_editor_opens_a_scene_it_holds_only_normalized_without_storing_it() {
+    let (mut harness, memory) = app_with_wrapped_scene();
+    let before = saved_project(&memory);
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    // Editable, with the Markdown editor still offered for the scene as stored.
+    harness.get_by_label("Scene text");
+    harness.get_by_role_and_label(Role::Button, "Edit as Markdown");
+    let body = harness.get_by_label("Scene text");
+    body.focus();
+    harness.run();
+    harness.key_press(egui::Key::ArrowRight);
+    harness.run_steps(12);
+    assert_eq!(saved_project(&memory), before, "opening changed nothing");
+    // Typed in: stored as the editor holds it.
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::End);
+    harness.get_by_label("Scene text").type_text(" Later.");
+    harness.run_steps(12);
+    let content = saved_content(&memory, "doc-1");
+    assert!(
+        content.starts_with("<p>It was <em>dark</em>.<sup") && content.ends_with(". Later.</p>"),
+        "{content}"
+    );
+    assert!(
+        harness
+            .query_by_role_and_label(Role::Button, "Edit as Markdown")
+            .is_none()
+    );
+}
+
+#[test]
+fn a_pane_shows_its_text_put_back_as_it_was_opened() {
+    let (mut harness, memory) = app();
+    harness.set_size(egui::vec2(1700.0, 1000.0));
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness.get_by_label("Open split view").click();
+    harness.run();
+    // Mara's page in two panes.
+    for _ in 0..2 {
+        harness
+            .get_all_by_label("Show in this pane")
+            .last()
+            .expect("a pane")
+            .click();
+        harness.run();
+        harness
+            .get_by_role_and_label(Role::Button, "  Mara")
+            .click();
+        harness.run();
+        if harness.get_all_by_label("Close this pane").count() < 2 {
+            harness.get_by_label("Add another pane").click();
+            harness.run();
+        }
+    }
+    assert_eq!(harness.get_all_by_label("Document text").count(), 2);
+    let pane = |harness: &Harness<'static, ProseApp>, n: usize| {
+        harness
+            .get_all_by_label("Document text")
+            .nth(n)
+            .and_then(|t| t.value())
+            .unwrap_or_default()
+    };
+    let opened = pane(&harness, 0);
+    // Typed in the first pane, then taken back in the second.
+    harness
+        .get_all_by_label("Document text")
+        .next()
+        .expect("the first pane")
+        .focus();
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::End);
+    harness
+        .get_all_by_label("Document text")
+        .next()
+        .expect("the first pane")
+        .type_text(" X");
+    settle(&mut harness);
+    assert!(saved_content(&memory, "doc-2").ends_with("𝔐𝔞𝔯𝔞 X</p>"));
+    harness
+        .get_all_by_label("Document text")
+        .last()
+        .expect("the second pane")
+        .focus();
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::End);
+    harness.key_press(egui::Key::Backspace);
+    harness.key_press(egui::Key::Backspace);
+    settle(&mut harness);
+    assert!(saved_content(&memory, "doc-2").ends_with("𝔐𝔞𝔯𝔞</p>"));
+    // The first pane shows the text as it is now, as it was opened.
+    assert_eq!(pane(&harness, 0), opened);
 }

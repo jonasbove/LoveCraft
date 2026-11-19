@@ -377,6 +377,254 @@ fn a_selected_picture_is_laid_out_from_its_toolbar() {
     assert!(harness.query_by_label("Selected image tools").is_none());
 }
 
+/// What was copied: its HTML and its text.
+type Board = Arc<Mutex<(String, String)>>;
+
+/// A new scene with a 2:1 picture laid out by `wrap` ("left" or "right") and three paragraphs
+/// after it; the harness, its store and a clipboard copied to.
+fn wrapped_picture(wrap: &str) -> (Harness<'static, ProseApp>, Memory, Board) {
+    let (mut harness, memory) = app();
+    let board: Board = Default::default();
+    let writer = board.clone();
+    harness
+        .state_mut()
+        .set_clipboard_writer(Arc::new(move |html: &str, text: &str| {
+            *writer.lock().expect("board") = (html.to_owned(), text.to_owned());
+        }));
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("an add button")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Scene 1")
+        .click();
+    harness.run();
+    let pixels = craft_image_codecs::Image::from_u8(
+        40,
+        20,
+        craft_image_codecs::ChannelLayout::Rgba,
+        vec![200; 40 * 20 * 4],
+    )
+    .expect("pixels");
+    let png = craft_image_codecs::encode(
+        &pixels,
+        craft_image_codecs::Format::Png,
+        &craft_image_codecs::EncodeOptions::default(),
+    )
+    .expect("png");
+    harness.state_mut().insert_picture("Coast map.png", &png);
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Image, "Coast map")
+        .click();
+    harness.run();
+    harness
+        .get_by_label(&format!("Wrap text beside {wrap}-aligned image"))
+        .click();
+    harness.run_steps(12);
+    assert!(
+        content(&memory, "new-1").contains(&format!(r#"data-wrap="wrap-{wrap}""#)),
+        "{}",
+        content(&memory, "new-1")
+    );
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::End);
+    let words = "The tide came in over the mud while the lamps went on along the harbour wall, \
+        one by one, until the whole town was lit and the boats lay still. ";
+    for _ in 0..3 {
+        harness
+            .get_by_label("Scene text")
+            .type_text(&words.repeat(2));
+        harness.key_press(egui::Key::Enter);
+    }
+    harness.run_steps(12);
+    (harness, memory, board)
+}
+
+/// A click of the pointer at `pos`.
+fn click_at(harness: &mut Harness<'static, ProseApp>, pos: egui::Pos2) {
+    let button = |pressed| egui::Event::PointerButton {
+        pos,
+        button: egui::PointerButton::Primary,
+        pressed,
+        modifiers: egui::Modifiers::default(),
+    };
+    harness.event(egui::Event::PointerMoved(pos));
+    harness.step();
+    harness.event(button(true));
+    harness.step();
+    harness.event(button(false));
+    harness.run();
+}
+
+/// The scene text's rows with words in them: each one's bounds and text.
+fn text_rows(harness: &Harness<'static, ProseApp>) -> Vec<(egui::Rect, String)> {
+    harness
+        .get_by_label("Scene text")
+        .children_recursive()
+        .filter(|n| n.accesskit_node().role() == Role::TextRun)
+        .map(|n| {
+            (
+                n.rect(),
+                n.accesskit_node().value().unwrap_or_default().to_owned(),
+            )
+        })
+        .filter(|(_, text)| text.chars().any(char::is_alphabetic))
+        .collect()
+}
+
+#[test]
+fn text_flows_beside_a_picture_wrapped_left() {
+    let (mut harness, memory, board) = wrapped_picture("left");
+    let picture = harness
+        .get_by_role_and_label(Role::Image, "Coast map")
+        .rect();
+    let rows = text_rows(&harness);
+    // The text's left edge.
+    let margin = rows
+        .iter()
+        .map(|(r, _)| r.left())
+        .fold(f32::INFINITY, f32::min);
+    assert!(
+        (picture.left() - margin).abs() < 1.0,
+        "{picture:?} {margin}"
+    );
+    // ProseCraft's `margin: 4px 18px 14px 0`.
+    let bottom = picture.bottom() + 14.0;
+    let beside: Vec<_> = rows.iter().filter(|(r, _)| r.top() < bottom).collect();
+    let below: Vec<_> = rows.iter().filter(|(r, _)| r.top() >= bottom).collect();
+    assert!(beside.len() >= 3, "{rows:?} {picture:?}");
+    assert!(!below.is_empty());
+    for (row, text) in &beside {
+        assert!(
+            row.left() >= picture.right() + 17.5,
+            "{text} {row:?} {picture:?}"
+        );
+    }
+    for (row, text) in &below {
+        assert!((row.left() - margin).abs() < 1.0, "{text} {row:?}");
+    }
+
+    // A click at the start of the second row beside the picture puts the caret there.
+    let (row, text) = beside[1].clone();
+    click_at(&mut harness, egui::pos2(row.left() + 0.5, row.center().y));
+    harness.run();
+    harness.get_by_label("Scene text").type_text("Q");
+    harness.run_steps(12);
+    let first = text.split_whitespace().next().expect("a word");
+    assert!(
+        content(&memory, "new-1").contains(&format!("Q{first}")),
+        "Q{first}: {}",
+        content(&memory, "new-1")
+    );
+    // Selecting to the end of that row takes the row's words, as laid out beside the picture.
+    let rows = text_rows(&harness);
+    let (row, text) = rows
+        .iter()
+        .filter(|(r, _)| r.top() < bottom)
+        .nth(1)
+        .cloned()
+        .expect("the row");
+    assert!(text.starts_with('Q'), "{text}");
+    click_at(&mut harness, egui::pos2(row.left() + 0.5, row.center().y));
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::SHIFT, egui::Key::End);
+    harness.run();
+    harness.event(egui::Event::Copy);
+    harness.run();
+    assert_eq!(board.lock().expect("board").1.trim(), text.trim());
+
+    // Below the picture, too.
+    let (row, text) = text_rows(&harness)
+        .into_iter()
+        .find(|(r, _)| r.top() >= bottom)
+        .expect("a row below");
+    click_at(&mut harness, egui::pos2(row.left() + 0.5, row.center().y));
+    harness.run();
+    harness.get_by_label("Scene text").type_text("Z");
+    harness.run_steps(12);
+    let first = text.split_whitespace().next().expect("a word");
+    assert!(
+        content(&memory, "new-1").contains(&format!("Z{first}")),
+        "Z{first}: {}",
+        content(&memory, "new-1")
+    );
+    // The picture is still picked by a click, its tools shown, and its corner resizes it.
+    harness
+        .get_by_role_and_label(Role::Image, "Coast map")
+        .click();
+    harness.run();
+    harness.get_by_label("Selected image tools");
+    let corner = harness.get_by_label("Resize image").rect().center();
+    drag(&mut harness, corner, corner - egui::vec2(120.0, 0.0));
+    harness.run_steps(12);
+    let stored = content(&memory, "new-1");
+    assert!(
+        stored.contains(r#"data-size="custom""#) && stored.contains(r#"data-wrap="wrap-left""#),
+        "{}",
+        &stored[stored.find("alt=").unwrap_or(0)..][..120]
+    );
+    let smaller = harness
+        .get_by_role_and_label(Role::Image, "Coast map")
+        .rect();
+    assert!(
+        smaller.width() < picture.width() - 60.0,
+        "{smaller:?} {}",
+        &stored[stored.find("alt=").unwrap_or(0)..][..90]
+    );
+    // The text follows the picture's new edge.
+    let (row, _) = text_rows(&harness)
+        .into_iter()
+        .find(|(r, _)| r.top() < smaller.bottom())
+        .expect("a row beside");
+    assert!(
+        (row.left() - (smaller.right() + 18.0)).abs() < 1.0,
+        "{row:?} {smaller:?}"
+    );
+}
+
+#[test]
+fn text_flows_beside_a_picture_wrapped_right() {
+    let (mut harness, memory, _) = wrapped_picture("right");
+    let picture = harness
+        .get_by_role_and_label(Role::Image, "Coast map")
+        .rect();
+    let rows = text_rows(&harness);
+    let margin = rows
+        .iter()
+        .map(|(r, _)| r.left())
+        .fold(f32::INFINITY, f32::min);
+    let bottom = picture.bottom() + 14.0;
+    let beside: Vec<_> = rows.iter().filter(|(r, _)| r.top() < bottom).collect();
+    assert!(beside.len() >= 3, "{rows:?} {picture:?}");
+    for (row, text) in &beside {
+        assert!((row.left() - margin).abs() < 1.0, "{text} {row:?}");
+        assert!(
+            row.right() <= picture.left() - 17.5,
+            "{text} {row:?} {picture:?}"
+        );
+    }
+    // Below it, a full row reaches past where the picture's left edge was.
+    assert!(
+        rows.iter()
+            .any(|(r, _)| r.top() >= bottom && r.right() > picture.left()),
+        "{rows:?}"
+    );
+    // A click at the end of a row beside the picture puts the caret after its last word.
+    let (row, text) = beside[1].clone();
+    click_at(&mut harness, egui::pos2(row.right() - 0.5, row.center().y));
+    harness.get_by_label("Scene text").type_text("Q");
+    harness.run_steps(12);
+    let last = text.split_whitespace().last().expect("a word");
+    assert!(
+        content(&memory, "new-1").contains(&format!("{last} Q")),
+        "{last} Q: {text}"
+    );
+}
+
 #[test]
 fn copying_keeps_formatting_for_pasting_back() {
     let (mut harness, memory) = app();

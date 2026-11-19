@@ -353,16 +353,14 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                     let layout_doc = doc.clone();
                     let mut layouter = move |ui: &Ui, text: &dyn egui::TextBuffer, wrap: f32| {
                         ui.fonts_mut(|f| {
-                            let sizes = crate::views::atom_sizes(f, &layout_labels, wrap);
-                            let job = crate::views::layout_doc(
-                                &layout_doc,
-                                text.as_str(),
+                            crate::views::doc_galley(
+                                f,
+                                (&layout_doc, text.as_str()),
                                 &palette,
                                 wrap,
-                                &sizes,
+                                &layout_labels,
                                 &crate::views::Look::default(),
-                            );
-                            f.layout_job(job)
+                            )
                         })
                     };
                     if let Some(at) = edit.caret.take() {

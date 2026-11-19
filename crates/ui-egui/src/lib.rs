@@ -30,6 +30,7 @@ mod fountain_import;
 mod labels;
 mod library;
 mod markdown_import;
+mod picture_flow;
 mod picture_tools;
 mod pictures;
 mod preview;

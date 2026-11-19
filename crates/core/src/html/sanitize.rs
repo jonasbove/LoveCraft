@@ -226,6 +226,16 @@ fn clean(node: &Node, inline: bool, out: &mut Vec<Node>) {
         ));
         return;
     }
+    // The editor has three heading levels. Deeper headings from a paste or an import become
+    // paragraphs, so each stays its own block (ProseCraft's sanitizer unwraps them to bare text
+    // and headings in a row run together: jennraeross/ProseCraft#70; this follows the fix
+    // proposed there).
+    if !inline && matches!(e.name.as_str(), "h4" | "h5" | "h6") {
+        let mut children = Vec::new();
+        clean_children(&e.children, inline, &mut children);
+        out.push(element("p", Vec::new(), children));
+        return;
+    }
     let allowed = if inline { INLINE_SAFE } else { SAFE };
     if !allowed.contains(&e.name.as_str()) {
         clean_children(&e.children, inline, out);

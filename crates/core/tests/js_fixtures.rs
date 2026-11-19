@@ -139,6 +139,10 @@ fn unusual_scenes_open_for_editing_as_prosecraft_keeps_them() {
             text(&case, "html"),
             text(&case, "saved"),
         );
+        // h4–h6 are a deliberate difference (`minor_headings_stay_blocks`).
+        if has_minor_heading(&html) {
+            continue;
+        }
         assert_eq!(
             prosecraft_core::html::sanitize_html(&html),
             text(&case, "sanitized"),
@@ -168,7 +172,9 @@ fn unusual_scenes_open_for_editing_as_prosecraft_keeps_them() {
         }
     }
     assert_eq!(exact.len(), 11, "{exact:?}");
-    assert_eq!(as_saved, ["a fourth-level heading"]);
+    // The fourth-level heading, the one shape stored as ProseCraft saves it, is checked in
+    // `minor_headings_stay_blocks` instead.
+    assert!(as_saved.is_empty(), "{as_saved:?}");
     assert_eq!(
         own,
         [
@@ -262,6 +268,11 @@ fn sanitizer_matches_prosecraft() {
         let html = text(case, "html");
         // The one deliberate difference: script and style content is dropped wherever it is.
         if html.contains("<style>") {
+            continue;
+        }
+        // Deliberate too: h4–h6 become paragraphs (`minor_headings_stay_blocks`), where
+        // ProseCraft's sanitizer runs them together as bare text (jennraeross/ProseCraft#70).
+        if has_minor_heading(&html) {
             continue;
         }
         for (got, key) in [
@@ -1433,4 +1444,35 @@ fn pdf_text_is_measured_and_split_as_jspdf_does() {
     assert_eq!(measured.len(), 540);
     assert_eq!(splits.len(), 40);
     assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+fn has_minor_heading(html: &str) -> bool {
+    ["<h4", "<h5", "<h6"].iter().any(|t| html.contains(t))
+}
+
+/// h4–h6 become paragraphs, so headings in a row stay apart. ProseCraft's sanitizer unwraps
+/// them to bare text ("FourFive"); this follows the fix proposed for jennraeross/ProseCraft#70.
+/// The editor opens such a scene exactly once it is sanitized.
+#[test]
+fn minor_headings_stay_blocks() {
+    use prosecraft_core::html::{sanitize_html, sanitize_inline_html};
+    use prosecraft_core::richtext::RichDoc;
+    assert_eq!(
+        sanitize_html("<h1>One</h1><h2>Two</h2><h3>Three</h3><h4>Four</h4><h5>Five</h5>"),
+        "<h1>One</h1><h2>Two</h2><h3>Three</h3><p>Four</p><p>Five</p>"
+    );
+    assert_eq!(
+        sanitize_html("<h4>One</h4><h6>Two <em>more</em></h6><p>Three</p>"),
+        "<p>One</p><p>Two <em>more</em></p><p>Three</p>"
+    );
+    // Footnotes keep headings as inline text, as before.
+    assert_eq!(sanitize_inline_html("<h4>Note</h4>"), "Note");
+    let html = "<p>Before</p><h4>Fourth level</h4><p>After</p>";
+    assert!(RichDoc::from_html(html).is_none());
+    assert_eq!(
+        RichDoc::from_html_normalized(html)
+            .map(|d| d.to_html())
+            .as_deref(),
+        Some("<p>Before</p><p>Fourth level</p><p>After</p>")
+    );
 }

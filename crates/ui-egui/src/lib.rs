@@ -16,6 +16,7 @@
 )]
 
 mod about_window;
+mod app_menu;
 mod binder;
 mod citation_picker;
 mod cover_art;
@@ -313,6 +314,17 @@ pub struct AppState {
     split: Vec<prosecraft_core::split::Pane>,
     /// The host's clipboard HTML, for rich paste.
     clipboard_html: Option<ClipboardHtml>,
+    /// The host's clipboard text, for Edit > Paste.
+    clipboard_text: Option<ClipboardHtml>,
+    /// The input an Edit menu item stands for, for the field that had the keys, given next
+    /// frame; and the field that last had them.
+    menu_events: Vec<egui::Event>,
+    /// The text field (and its selection) that had the keys when a menu opened: an Edit item
+    /// is for it, or for the page when there was none. The one that had them last frame, and
+    /// whether a menu was open then.
+    last_focus: Option<(egui::Id, Option<egui::text_edit::TextEditState>)>,
+    previous_focus: Option<(egui::Id, Option<egui::text_edit::TextEditState>)>,
+    menu_was_open: bool,
     /// The split view panes' editors.
     tiles: split_view::Tiles,
     wiki_store: Option<std::rc::Rc<dyn WikiFileStore>>,
@@ -934,12 +946,61 @@ impl ProseApp {
         self.refresh_views();
     }
 
+    /// The menu bar, the commands chosen in it, and an Edit item's input given to the text
+    /// field that had the keys (with its selection, which clicking the menu collapsed).
+    fn menu_bar(&mut self, ui: &mut Ui) {
+        // The text field with the keys now, with its selection (clicking the menu takes the
+        // focus and collapses it).
+        let ctx = ui.ctx().clone();
+        let focus_now = ctx
+            .memory(|m| m.focused())
+            .filter(|_| ctx.text_edit_focused())
+            .map(|id| (id, egui::TextEdit::load_state(&ctx, id)));
+        let chosen = egui::Panel::top("menu-bar")
+            .show(ui, |ui| app_menu::show(ui, &self.state))
+            .inner;
+        let open = craft_menu::bar::is_open(&ctx);
+        if open && !self.state.menu_was_open {
+            // The click that opened it may already have taken the focus: last frame's field.
+            self.state.last_focus = focus_now
+                .clone()
+                .or_else(|| self.state.previous_focus.clone());
+        }
+        self.state.menu_was_open = open;
+        if !open {
+            self.state.previous_focus = focus_now;
+        }
+        // An Edit menu item's input, to the field that had the keys before the menu took them.
+        let events = std::mem::take(&mut self.state.menu_events);
+        if !events.is_empty() {
+            if let Some((focus, text)) = self.state.last_focus.clone() {
+                ui.ctx().memory_mut(|m| m.request_focus(focus));
+                if let Some(text) = text {
+                    text.store(ui.ctx(), focus);
+                }
+            }
+            ui.ctx().input_mut(|i| {
+                // As the keys would be held: a text field reads the modifiers too.
+                if let Some(egui::Event::Key { modifiers, .. }) = events.first() {
+                    i.modifiers = *modifiers;
+                }
+                i.events.extend(events);
+            });
+        }
+        for command in chosen {
+            self.run_command(ui.ctx(), &command.id);
+        }
+    }
+
     /// ProseCraft's app shortcuts (its menu accelerators and `handleKeydown`): Ctrl+N a new
     /// scene, Ctrl+, Settings, Ctrl+Shift+E the scene as text, Ctrl+Shift+P Publish, and Ctrl+/
     /// (or "?" outside text) the shortcuts sheet, which Escape closes.
     fn app_shortcuts(&mut self, ctx: &egui::Context) {
         use egui::Modifiers as M;
         let typing = ctx.memory(|m| m.focused().is_some());
+        if ctx.input_mut(|i| i.consume_key(M::COMMAND, Key::Q)) {
+            self.run_command(ctx, "quit");
+        }
         let (sheet, question, escape, export, publish, settings, new) = ctx.input_mut(|i| {
             (
                 i.consume_key(M::COMMAND, Key::Slash),
@@ -953,24 +1014,99 @@ impl ProseApp {
             )
         });
         if sheet || question {
-            self.state.shortcuts = match self.state.shortcuts {
-                Some(_) => None,
-                None => Some(cfg!(target_os = "macos")),
-            };
+            self.run_command(ctx, "keyboard-shortcuts");
         }
         if escape {
             self.state.shortcuts = None;
         }
-        if publish && self.state.library.is_some() {
-            self.state.view = WorkspaceView::Publish;
+        for (asked, command) in [
+            (publish, "publish-manuscript"),
+            (settings, "settings"),
+            (export, "export-document"),
+            (new, "new-scene"),
+        ] {
+            if asked {
+                self.run_command(ctx, command);
+            }
         }
-        if settings {
-            self.state.settings_open = true;
+    }
+
+    /// A menu command (ProseCraft's menu events, `prosecraft:…`), also run by its shortcut.
+    fn run_command(&mut self, ctx: &egui::Context, id: &str) {
+        match id {
+            "keyboard-shortcuts" => {
+                self.state.shortcuts = match self.state.shortcuts {
+                    Some(_) => None,
+                    None => Some(cfg!(target_os = "macos")),
+                };
+            }
+            "publish-manuscript" if self.state.library.is_some() => {
+                self.state.view = WorkspaceView::Publish;
+            }
+            "settings" => self.state.settings_open = true,
+            "export-document" => self.export_scene(),
+            "new-scene" => self.new_scene(),
+            "new-project" if self.state.has_home => {
+                self.state.starter = Some(starter::StarterDraft::new());
+            }
+            "import-epub" if self.state.has_home => {
+                self.state.requests.push(HostRequest::ImportEpub);
+            }
+            "project-settings" => {
+                if let Some(project) = self
+                    .state
+                    .library
+                    .as_ref()
+                    .and_then(|l| l.projects().get(self.state.active))
+                {
+                    self.state.project_settings = Some(
+                        project_settings::ProjectSettingsDraft::for_project(&project.view),
+                    );
+                }
+            }
+            "typewriter-mode" | "fade-other-paragraphs" | "zen-mode" => {
+                let mut writing = self.state.writing;
+                match id {
+                    "typewriter-mode" => writing.typewriter = !writing.typewriter,
+                    "fade-other-paragraphs" => writing.fade = !writing.fade,
+                    _ => writing.zen = !writing.zen,
+                }
+                self.state.writing_choice = Some(writing);
+            }
+            "quit" => {
+                self.flush();
+                ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+            }
+            // With no text field: the page's history (`handleHistoryShortcut`).
+            "undo" | "redo" if self.state.last_focus.is_none() => {
+                self.state
+                    .intents
+                    .push(editing::Intent::PageHistory { undo: id == "undo" });
+            }
+            "undo" | "redo" | "cut" | "copy" | "paste" | "select-all" => {
+                let read = self.state.clipboard_text.clone();
+                self.state.menu_events = app_menu::edit_events(id, || read.and_then(|r| r()));
+            }
+            _ => {
+                if let Some(project) = id.strip_prefix(app_menu::SWITCH_PROJECT)
+                    && let Some(index) = self
+                        .state
+                        .library
+                        .as_ref()
+                        .and_then(|l| l.projects().iter().position(|p| p.view.id == project))
+                    && index != self.state.active
+                {
+                    self.commit_draft();
+                    self.state.active = index;
+                    self.state.selection = None;
+                }
+            }
         }
-        if export {
-            self.export_scene();
-        }
-        if new && self.state.editable {
+    }
+
+    /// `createDocument` (New Scene, Ctrl+N).
+    fn new_scene(&mut self) {
+        if self.state.editable {
             // `createDocument`: a scene in the first chapter, or a first chapter.
             let first = self
                 .state
@@ -1550,6 +1686,11 @@ impl ProseApp {
     pub fn set_installed_fonts(&mut self, fonts: std::sync::Arc<dyn editor_fonts::InstalledFonts>) {
         self.state.installed_fonts = Some(fonts);
         self.state.fonts_applied = None;
+    }
+
+    /// How the host reads the clipboard's text, for Edit > Paste in the menu bar.
+    pub fn set_clipboard_text(&mut self, read: ClipboardHtml) {
+        self.state.clipboard_text = Some(read);
     }
 
     /// How the host reads the clipboard's HTML, for rich paste (egui's paste is its text).
@@ -2445,6 +2586,7 @@ impl ProseApp {
         let frame = egui::Frame::new()
             .fill(palette.sidebar_bg)
             .stroke(egui::Stroke::new(1.0, palette.border));
+        self.menu_bar(ui);
         self.app_shortcuts(ui.ctx());
         self.writing_modes(ui.ctx());
         // Zen and focus mode hide the panes around the text.

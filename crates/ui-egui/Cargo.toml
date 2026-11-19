@@ -20,6 +20,8 @@ chrono = { workspace = true }
 # Pictures in the text: their data URLs read, their pixels decoded for drawing.
 base64 = { workspace = true }
 craft-image-codecs = { workspace = true }
+# ProseCraft's application menus, as the Craft apps draw their menu bar.
+craft-menu = { workspace = true }
 # The split view's PDFs, drawn page by page.
 craft-pdf = { workspace = true, features = ["read", "raster"] }
 # Generated covers: the shapes filled on the CPU, the letters' outlines from the app's fonts.

@@ -697,6 +697,150 @@ fn copying_keeps_formatting_for_pasting_back() {
 }
 
 #[test]
+fn a_footnote_marker_copied_alone_pastes_back() {
+    let (mut harness, memory) = app();
+    let board: Board = Default::default();
+    let (writer, reader) = (board.clone(), board.clone());
+    harness
+        .state_mut()
+        .set_clipboard_writer(Arc::new(move |html: &str, text: &str| {
+            *writer.lock().expect("board") = (html.to_owned(), text.to_owned());
+        }));
+    harness.state_mut().set_clipboard_html(Arc::new(move || {
+        Some(reader.lock().expect("board").0.clone()).filter(|h| !h.is_empty())
+    }));
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    // The marker after "It was dark.": twelve right from the start, one with Shift.
+    for _ in 0..3 {
+        harness.key_press(egui::Key::ArrowUp);
+    }
+    harness.key_press(egui::Key::Home);
+    for _ in 0..12 {
+        harness.key_press(egui::Key::ArrowRight);
+    }
+    harness.key_press_modifiers(egui::Modifiers::SHIFT, egui::Key::ArrowRight);
+    harness.run();
+    harness.event(egui::Event::Copy);
+    harness.run();
+    let (html, text) = board.lock().expect("board").clone();
+    assert!(html.contains(r#"data-footnote-id="fn-1""#), "{html}");
+    // The hosts send no paste for an empty text: the copy has one to paste with.
+    assert!(!text.is_empty());
+    // The end of the scene.
+    for _ in 0..3 {
+        harness.key_press(egui::Key::ArrowDown);
+    }
+    harness.key_press(egui::Key::End);
+    harness.run();
+    harness.event(egui::Event::Paste(text));
+    harness.run_steps(12);
+    let stored = content(&memory, "doc-1");
+    // The same footnote, referred to again (as ProseCraft pastes it), and nothing else.
+    assert_eq!(
+        stored.matches(r#"data-footnote-id="fn-1""#).count(),
+        2,
+        "{stored}"
+    );
+    assert!(
+        stored.ends_with(r#"</span>.<sup class="footnote-ref" data-footnote-id="fn-1" contenteditable="false"></sup></p>"#),
+        "{stored}"
+    );
+    assert!(!stored.contains('\u{FFFC}'), "{stored}");
+}
+
+/// The stored footnote definitions' ids of a document.
+fn footnote_ids(memory: &Memory, id: &str) -> Vec<String> {
+    let saved = memory.last();
+    document(project(&saved, "project-1"), id)
+        .and_then(|d| d.get("footnotes"))
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|f| f.get("id").and_then(JsValue::as_js_string))
+        .map(|i| i.to_string_lossy())
+        .collect()
+}
+
+#[test]
+fn a_footnote_marker_cut_takes_its_definition_until_undone() {
+    let (mut harness, memory) = app();
+    let board: Board = Default::default();
+    let (writer, reader) = (board.clone(), board.clone());
+    harness
+        .state_mut()
+        .set_clipboard_writer(Arc::new(move |html: &str, text: &str| {
+            *writer.lock().expect("board") = (html.to_owned(), text.to_owned());
+        }));
+    harness.state_mut().set_clipboard_html(Arc::new(move || {
+        Some(reader.lock().expect("board").0.clone()).filter(|h| !h.is_empty())
+    }));
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    assert_eq!(footnote_ids(&memory, "doc-1"), ["fn-1"]);
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    // "dark." and the marker after it, cut.
+    for _ in 0..3 {
+        harness.key_press(egui::Key::ArrowUp);
+    }
+    harness.key_press(egui::Key::Home);
+    for _ in 0..7 {
+        harness.key_press(egui::Key::ArrowRight);
+    }
+    for _ in 0..6 {
+        harness.key_press_modifiers(egui::Modifiers::SHIFT, egui::Key::ArrowRight);
+    }
+    harness.run();
+    harness.event(egui::Event::Cut);
+    harness.run_steps(12);
+    let stored = content(&memory, "doc-1");
+    assert!(stored.starts_with("<p>It was </p>"), "{stored}");
+    // As in ProseCraft, the definition goes with its last marker.
+    assert!(footnote_ids(&memory, "doc-1").is_empty());
+    // Undo brings both back.
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::Z);
+    harness.run_steps(12);
+    assert!(
+        content(&memory, "doc-1").contains(r#"data-footnote-id="fn-1""#),
+        "{}",
+        content(&memory, "doc-1")
+    );
+    assert_eq!(footnote_ids(&memory, "doc-1"), ["fn-1"]);
+    // Cut again and pasted back: the marker returns without its text, as in ProseCraft.
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    for _ in 0..3 {
+        harness.key_press(egui::Key::ArrowUp);
+    }
+    harness.key_press(egui::Key::Home);
+    for _ in 0..7 {
+        harness.key_press(egui::Key::ArrowRight);
+    }
+    for _ in 0..6 {
+        harness.key_press_modifiers(egui::Modifiers::SHIFT, egui::Key::ArrowRight);
+    }
+    harness.run();
+    harness.event(egui::Event::Cut);
+    harness.run_steps(12);
+    let text = board.lock().expect("board").1.clone();
+    harness.event(egui::Event::Paste(text));
+    harness.run_steps(12);
+    assert!(
+        content(&memory, "doc-1").contains(r#"data-footnote-id="fn-1""#),
+        "{}",
+        content(&memory, "doc-1")
+    );
+    assert!(footnote_ids(&memory, "doc-1").is_empty());
+}
+
+#[test]
 fn pasting_keeps_the_clipboards_formatting_and_pictures() {
     let (mut harness, memory) = app();
     let html = std::sync::Arc::new(std::sync::Mutex::new(String::new()));
@@ -4368,7 +4512,8 @@ fn footnotes_are_inserted_written_removed_and_cleaned_up() {
         std::slice::from_ref(&new_id)
     );
 
-    // Deleting the marker in the text leaves an unused definition; Clean up drops it.
+    // Deleting the marker in the text takes its definition too (ProseCraft's `handleInput`):
+    // no unused definition is left to clean up.
     let at = content(&after);
     assert!(at.contains(&new_id));
     harness.get_by_label("Scene text").focus();
@@ -4378,10 +4523,7 @@ fn footnotes_are_inserted_written_removed_and_cleaned_up() {
     harness.key_press(egui::Key::End);
     harness.key_press(egui::Key::Backspace);
     harness.run_steps(12);
-    harness
-        .get_by_role_and_label(Role::Button, "Clean up 1 orphan")
-        .click();
-    harness.run_steps(12);
+    assert!(harness.query_by_label("Clean up 1 orphan").is_none());
     let after = doc(&memory);
     assert!(
         !content(&after).contains("footnote-ref"),

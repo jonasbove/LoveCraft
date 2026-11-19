@@ -1134,7 +1134,14 @@ fn copy(
     };
     let html = prosecraft_core::html::sanitize_html(&draft.doc.slice_html(range.clone()));
     let text = prosecraft_core::html::html_to_plain_text(&html, &Default::default());
-    write(&html, text.trim_end_matches('\n'));
+    let atoms = draft
+        .body
+        .chars()
+        .skip(range.start)
+        .take(range.len())
+        .filter(|c| *c == prosecraft_core::richtext::ATOM)
+        .count();
+    write(&html, &clipboard_text(&text, atoms));
     ui.input_mut(|i| {
         i.events
             .retain(|e| !matches!(e, egui::Event::Copy | egui::Event::Cut))
@@ -1158,6 +1165,53 @@ fn copy(
             )));
         state.store(ui.ctx(), body_id);
     }
+}
+
+/// The plain text a copy puts beside its HTML. A selection of atoms with no text of their own
+/// (a footnote marker, a citation, a picture, a rule) is one object replacement character per
+/// atom, as a desktop puts an attachment's place in plain text: the hosts send no paste for an
+/// empty text, so without it the HTML could never be pasted back.
+fn clipboard_text(plain: &str, atoms: usize) -> String {
+    let plain = plain.trim_end_matches('\n');
+    if plain.trim().is_empty() && atoms > 0 {
+        std::iter::repeat_n(prosecraft_core::richtext::ATOM, atoms).collect()
+    } else {
+        plain.to_owned()
+    }
+}
+
+/// Whether the clipboard's HTML is the passage whose text was pasted (not HTML left from an
+/// earlier copy): the same words, or, for atoms alone, as many atoms as the text stands for.
+fn clipboard_holds(text: &str, html: &str) -> bool {
+    let plain = prosecraft_core::html::html_to_plain_text(html, &Default::default());
+    let words = words_of(text);
+    if !words.is_empty() {
+        return words_of(&plain) == words;
+    }
+    let atoms = text
+        .chars()
+        .filter(|c| *c == prosecraft_core::richtext::ATOM)
+        .count();
+    is_atom_text(text)
+        && words_of(&plain).is_empty()
+        && prosecraft_core::richtext::RichDoc::paste_atom_count(html) == atoms
+}
+
+/// A text standing for atoms alone (see [`clipboard_text`]).
+fn is_atom_text(text: &str) -> bool {
+    text.contains(prosecraft_core::richtext::ATOM)
+        && text
+            .chars()
+            .all(|c| c == prosecraft_core::richtext::ATOM || c.is_whitespace())
+}
+
+/// Outside the rich editor a copy of atoms alone pastes nothing, as its empty plain text does
+/// in ProseCraft; an object character in Markdown would leave the scene read-only.
+fn drop_atom_paste(ui: &Ui) {
+    ui.input_mut(|i| {
+        i.events
+            .retain(|e| !matches!(e, egui::Event::Paste(text) if is_atom_text(text)))
+    });
 }
 
 /// The words of a text, without spaces and punctuation: a pasted text and the clipboard's
@@ -1244,10 +1298,7 @@ fn paste(
     let Some(text) = text else {
         return;
     };
-    let Some(html) = read().filter(|html| {
-        let plain = prosecraft_core::html::html_to_plain_text(html, &Default::default());
-        !words_of(&text).is_empty() && words_of(&plain) == words_of(&text)
-    }) else {
+    let Some(html) = read().filter(|html| clipboard_holds(&text, html)) else {
         return;
     };
     ui.input_mut(|i| i.events.retain(|e| !matches!(e, egui::Event::Paste(_))));
@@ -1724,17 +1775,67 @@ struct UndoAt<'a> {
     now_ms: f64,
 }
 
+/// The ids of a scene's footnote markers, in order.
+fn footnote_ids(doc: &RichDoc) -> Vec<String> {
+    doc.atoms
+        .iter()
+        .filter(|a| is_footnote(a))
+        .flat_map(|a| prosecraft_core::footnotes::extract_ids(a))
+        .collect()
+}
+
+/// `handleInput`: a footnote whose last marker an edit took away (a cut, Backspace or Delete,
+/// typing or pasting over it) loses its definition in the scene, or the chapter, it belongs
+/// to. Undo brings it back with the marker (the step before holds both). Returns those ids.
+fn drop_removed_footnotes(
+    before: &[String],
+    draft: &Draft,
+    (document, chapter): (
+        &prosecraft_core::project::Document,
+        Option<&ChapterView<'_>>,
+    ),
+    intents: &mut Vec<Intent>,
+) -> Vec<String> {
+    let after = footnote_ids(&draft.doc);
+    if before == after.as_slice() {
+        return Vec::new();
+    }
+    let others: Vec<&prosecraft_core::project::Document> = chapter
+        .map(|c| c.before.iter().chain(&c.after).copied().collect())
+        .unwrap_or_default();
+    // In the chapter view the chapter's other scenes are in the editor too.
+    let elsewhere: Vec<String> = others
+        .iter()
+        .flat_map(|s| prosecraft_core::footnotes::extract_ids(&s.content))
+        .collect();
+    let mut removed = prosecraft_core::footnotes::removed_ids(before, &after);
+    removed.retain(|id| !elsewhere.contains(id));
+    for id in &removed {
+        for scene in std::iter::once(document).chain(others.iter().copied()) {
+            if scene.footnotes.iter().any(|f| f.id == *id) {
+                intents.push(Intent::RemoveFootnote {
+                    document: scene.id.clone(),
+                    id: id.clone(),
+                });
+            }
+        }
+    }
+    removed
+}
+
 fn record_body_history(
     edit: UndoAt<'_>,
-    document: &prosecraft_core::project::Document,
+    (document, dropped): (&prosecraft_core::project::Document, &[String]),
     draft: &mut Draft,
     cursor: Option<egui::text::CCursorRange>,
 ) {
     use prosecraft_core::undo::{Edit as UndoEdit, EditKind, decode_body, encode_body};
     let key = format!("{}/body:{}", edit.project, document.id);
+    // The definitions as they are after this edit (those it dropped are going).
     let notes: Vec<(String, String)> = document
         .footnotes
         .iter()
+        .filter(|f| !dropped.contains(&f.id))
         .map(|f| (f.id.clone(), f.html.clone()))
         .collect();
     let value = encode_body(&draft.doc.to_html(), &document.id, &notes);
@@ -2832,6 +2933,7 @@ fn editor(
         })
     };
     link_prompt(ui, draft, now);
+    let footnotes_before = footnote_ids(&draft.doc);
     copy(
         ui,
         body_id,
@@ -2885,6 +2987,12 @@ fn editor(
         draft.words = words;
     }
     after_typing(ui, edit.writing, edit.editor_rect, edit.intents, &output);
+    let dropped = drop_removed_footnotes(
+        &footnotes_before,
+        draft,
+        (document, chapter.as_ref()),
+        edit.intents,
+    );
     record_body_history(
         UndoAt {
             undo: edit.undo,
@@ -2892,7 +3000,7 @@ fn editor(
             page: &edit.undo_page,
             now_ms: edit.now_ms,
         },
-        document,
+        (document, &dropped),
         draft,
         output.cursor_range,
     );
@@ -3110,6 +3218,7 @@ fn markdown_editor(
     let Some(draft) = edit.draft.as_mut() else {
         return;
     };
+    drop_atom_paste(ui);
     if let Some(chapter) = &chapter {
         chapter_title(
             ui,
@@ -3933,5 +4042,25 @@ mod tests {
         assert_eq!(grouped(999), "999");
         assert_eq!(grouped(80_000), "80,000");
         assert_eq!(grouped(1_234_567), "1,234,567");
+    }
+
+    #[test]
+    fn atoms_alone_copy_as_object_characters_and_paste_back() {
+        use super::{clipboard_holds, clipboard_text, is_atom_text};
+        assert!(is_atom_text("\u{FFFC}\u{FFFC}\n"));
+        assert!(!is_atom_text("\u{FFFC} and words"));
+        assert!(!is_atom_text(" "));
+        let note = r#"<p><sup class="footnote-ref" data-footnote-id="fn-abc123" contenteditable="false"></sup></p>"#;
+        assert_eq!(clipboard_text("", 1), "\u{FFFC}");
+        assert_eq!(clipboard_text("\n", 2), "\u{FFFC}\u{FFFC}");
+        assert_eq!(clipboard_text("dark\n", 0), "dark");
+        assert_eq!(clipboard_text("$x^2$", 1), "$x^2$");
+        assert!(clipboard_holds("\u{FFFC}", note));
+        // Another number of atoms, words, or HTML with words: not this copy.
+        assert!(!clipboard_holds("\u{FFFC}\u{FFFC}", note));
+        assert!(!clipboard_holds("\u{FFFC}", "<p>Something else</p>"));
+        assert!(!clipboard_holds("", note));
+        assert!(clipboard_holds("dark", "<p><em>dark</em></p>"));
+        assert!(!clipboard_holds("light", "<p><em>dark</em></p>"));
     }
 }

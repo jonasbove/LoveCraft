@@ -33,6 +33,7 @@ mod labels;
 mod library;
 mod markdown_import;
 mod network_view;
+mod picture_flow;
 mod picture_tools;
 mod pictures;
 mod preview;

@@ -3054,8 +3054,7 @@ fn a_scene_pane_writes_its_chapter_back_and_leaves_text_it_cannot_hold_alone() {
         "<blockquote>".repeat(40),
         "</blockquote>".repeat(40)
     );
-    let bundle =
-        fixture("bundle-plain.prosecraft").replace("<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>", &deep);
+    let bundle = fixture("bundle-plain.prosecraft").replace("<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>", &deep);
     let memory = Memory::default();
     let mut app =
         ProseApp::with_library(ProjectLibrary::new("test".into()), Box::new(memory.clone()));
@@ -3132,8 +3131,7 @@ fn a_scene_pane_writes_its_chapter_back_and_leaves_text_it_cannot_hold_alone() {
     // As the Wiki migration left it (its profile above the text), not edited.
     let mara = stored(&memory, "doc-2");
     assert!(
-        mara.starts_with("<h2>Character profile</h2>")
-            && mara.ends_with(&deep),
+        mara.starts_with("<h2>Character profile</h2>") && mara.ends_with(&deep),
         "{mara}"
     );
 }
@@ -6136,10 +6134,13 @@ fn a_screenplay_pdf_exports_from_the_publish_view() {
 
 /// The app with the fixture backup, the first scene's text wrapped in a `<div>` (as an import
 /// may leave it): HTML the editor holds only in a normalized shape.
-fn app_with_wrapped_scene() -> (Harness<'static, ProseApp>, Memory) {
-    let bundle = fixture("bundle-plain.prosecraft")
-        .replace("<p>It was <em>dark</em>.", "<div><p>It was <em>dark</em>.")
-        .replace("(Smith 2020)</span>.</p>", "(Smith 2020)</span>.</p></div>");
+/// The opening scene after a fourth-level heading, which ProseCraft's sanitizer (and so this
+/// editor) writes as plain text once the scene is edited.
+fn app_with_simplified_scene() -> (Harness<'static, ProseApp>, Memory) {
+    let bundle = fixture("bundle-plain.prosecraft").replace(
+        "<p>It was <em>dark</em>.",
+        "<h4>Before</h4><p>It was <em>dark</em>.",
+    );
     let memory = Memory::default();
     let mut app =
         ProseApp::with_library(ProjectLibrary::new("test".into()), Box::new(memory.clone()));
@@ -6178,8 +6179,8 @@ fn settle(harness: &mut Harness<'static, ProseApp>) {
 
 #[test]
 fn a_pane_edits_a_scene_it_holds_only_normalized_and_stores_it_only_once_typed_in() {
-    let (mut harness, memory) = app_with_wrapped_scene();
-    let wrapped = r#"<div><p>It was <em>dark</em>."#;
+    let (mut harness, memory) = app_with_simplified_scene();
+    let heading = "<h4>Before</h4>";
     harness
         .get_by_role_and_label(Role::TreeItem, "Mara")
         .click();
@@ -6193,7 +6194,7 @@ fn a_pane_edits_a_scene_it_holds_only_normalized_and_stores_it_only_once_typed_i
         .get_by_role_and_label(Role::Button, "  INT. LIGHTHOUSE - NIGHT")
         .click();
     harness.run_steps(12);
-    // Both scenes of the chapter editable, the wrapped one too (it was shown read-only).
+    // Both scenes of the chapter editable, the simplified one too (it was shown read-only).
     assert_eq!(harness.get_all_by_label("Document text").count(), 2);
     assert!(
         harness
@@ -6232,16 +6233,17 @@ fn a_pane_edits_a_scene_it_holds_only_normalized_and_stores_it_only_once_typed_i
         .type_text(" Later.");
     settle(&mut harness);
     let content = saved_content(&memory, "doc-1");
-    assert!(!content.contains(wrapped), "{content}");
+    assert!(!content.contains(heading), "{content}");
     assert!(
-        content.starts_with("<p>It was <em>dark</em>.<sup") && content.ends_with(". Later.</p>"),
+        content.starts_with("Before<p>It was <em>dark</em>.<sup")
+            && content.ends_with(". Later.</p>"),
         "{content}"
     );
 }
 
 #[test]
 fn the_editor_opens_a_scene_it_holds_only_normalized_without_storing_it() {
-    let (mut harness, memory) = app_with_wrapped_scene();
+    let (mut harness, memory) = app_with_simplified_scene();
     let before = saved_project(&memory);
     harness
         .get_by_role_and_label(Role::TreeItem, "Opening Scene")
@@ -6264,7 +6266,8 @@ fn the_editor_opens_a_scene_it_holds_only_normalized_without_storing_it() {
     harness.run_steps(12);
     let content = saved_content(&memory, "doc-1");
     assert!(
-        content.starts_with("<p>It was <em>dark</em>.<sup") && content.ends_with(". Later.</p>"),
+        content.starts_with("Before<p>It was <em>dark</em>.<sup")
+            && content.ends_with(". Later.</p>"),
         "{content}"
     );
     assert!(

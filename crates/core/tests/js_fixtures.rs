@@ -167,16 +167,17 @@ fn unusual_scenes_open_for_editing_as_prosecraft_keeps_them() {
             own.push(name);
         }
     }
-    assert_eq!(exact.len(), 13, "{exact:?}");
-    assert_eq!(as_saved, ["a fourth-level heading"]);
+    assert_eq!(exact.len(), 27, "{exact:?}");
+    // Only what ProseCraft's own sanitizer changes on save is simplified.
     assert_eq!(
-        own,
+        as_saved,
         [
-            "a div wrapper",
-            "paragraphs in a list item",
-            "a stray end tag after a list"
+            "a fourth-level heading",
+            "a stray end tag after a list",
+            "fourth-level headings in a row"
         ]
     );
+    assert!(own.is_empty(), "{own:?}");
     assert!(read_only.is_empty(), "{read_only:?}");
 }
 
@@ -224,6 +225,9 @@ fn the_fixture_scenes_open_for_editing() {
             assert_eq!(doc.to_html(), *html, "{file}");
             exact += 1;
         } else if RichDoc::from_html_normalized(html).is_some() {
+            // Only what ProseCraft's sanitizer would change too (a fourth-level heading, a
+            // stray end tag).
+            assert_ne!(prosecraft_core::html::sanitize_html(html), *html, "{file}");
             normalized += 1;
         } else {
             read_only.push(html.clone());
@@ -235,7 +239,7 @@ fn the_fixture_scenes_open_for_editing() {
         scenes.len()
     );
     assert!(read_only.is_empty(), "{read_only:?}");
-    assert_eq!(normalized, 6);
+    assert_eq!(normalized, 5);
 }
 
 #[test]

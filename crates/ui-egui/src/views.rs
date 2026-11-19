@@ -364,6 +364,10 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                                 content,
                             });
                         }
+                        for (document, content) in asked.scenes {
+                            edit.intents
+                                .push(Intent::SetSceneText { document, content });
+                        }
                         for (chapter, title) in asked.chapter_titles {
                             edit.intents
                                 .push(Intent::SetChapterTitle { chapter, title });

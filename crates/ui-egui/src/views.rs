@@ -3211,6 +3211,50 @@ pub(crate) fn saved_field_response(
 /// ProseCraft's Timeline view: the story's moments in order, each with a title, a date, a
 /// time and a description, moved with the arrows (ProseCraft also drags them; that comes
 /// later) and removed with ×.
+/// `updateDrag` and `finishDrag`: while a moment is dragged, a line before or after the moment
+/// under the pointer (half way down it); letting go puts it there.
+fn timeline_drop(
+    ui: &Ui,
+    palette: &Palette,
+    drag_id: egui::Id,
+    cards: &[(egui::Rect, String)],
+    edit: &mut Edit<'_>,
+) {
+    let Some(dragging) = ui.data(|d| d.get_temp::<String>(drag_id)) else {
+        return;
+    };
+    let pos = ui.ctx().pointer_latest_pos();
+    let target = pos.and_then(|p| {
+        cards
+            .iter()
+            .find(|(r, id)| *id != dragging && r.y_range().contains(p.y))
+            .map(|(r, id)| (id.clone(), p.y > r.center().y, *r))
+    });
+    if let Some((_, after, rect)) = &target {
+        let y = if *after {
+            rect.bottom() + 4.0
+        } else {
+            rect.top() - 4.0
+        };
+        ui.painter()
+            .hline(rect.x_range(), y, egui::Stroke::new(2.0, palette.accent));
+    }
+    if ui.input(|i| i.pointer.any_released() || !i.pointer.any_down()) {
+        ui.data_mut(|d| d.remove::<String>(drag_id));
+        if let Some((target, after, _)) = target
+            && edit.editable
+        {
+            edit.intents.push(Intent::ReorderMoment {
+                id: dragging,
+                target,
+                after,
+            });
+        }
+    } else {
+        ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
+    }
+}
+
 fn timeline(ui: &mut Ui, palette: &Palette, project: &Project, edit: &mut Edit<'_>) {
     use prosecraft_core::timeline::Field;
     ui.add_space(28.0);
@@ -3220,7 +3264,7 @@ fn timeline(ui: &mut Ui, palette: &Palette, project: &Project, edit: &mut Edit<'
         ui.vertical(|ui| {
             eyebrow(ui, palette, "Follow your story");
             ui.label(RichText::new("Timeline").font(fonts::serif(32.0)).color(palette.text_heading));
-            ui.label(RichText::new("Map the moments that move your story forward. Use the arrows to change their order.").color(palette.text_muted));
+            ui.label(RichText::new("Map the moments that move your story forward. Drag nodes to change their order.").color(palette.text_muted));
         });
         ui.with_layout(egui::Layout::right_to_left(egui::Align::BOTTOM), |ui| {
             add |= ui.add_enabled(edit.editable, egui::Button::new("+ Add moment")).clicked();
@@ -3248,15 +3292,34 @@ fn timeline(ui: &mut Ui, palette: &Palette, project: &Project, edit: &mut Edit<'
             );
         });
     }
+    // `startDrag`: the moment whose handle is being dragged.
+    let drag_id = ui.make_persistent_id("timeline-drag");
+    let mut cards = Vec::new();
     for (index, node) in project.timeline.iter().enumerate() {
         let label = if node.title.trim().is_empty() {
             format!("timeline moment {}", index + 1)
         } else {
             node.title.trim().to_owned()
         };
-        card(palette).show(ui, |ui| {
+        let shown = card(palette).show(ui, |ui| {
             ui.set_width(ui.available_width());
             ui.horizontal(|ui| {
+                if edit.editable {
+                    let handle = ui
+                        .add(
+                            egui::Button::new("⠿")
+                                .frame(false)
+                                .sense(egui::Sense::drag()),
+                        )
+                        .on_hover_text("Drag to reorder");
+                    name_field(ui, &handle, &format!("Drag {label} to reorder"));
+                    if handle.drag_started() {
+                        ui.data_mut(|d| d.insert_temp(drag_id, node.id.clone()));
+                    }
+                    if handle.hovered() || handle.dragged() {
+                        ui.ctx().set_cursor_icon(egui::CursorIcon::Grab);
+                    }
+                }
                 ui.label(
                     RichText::new(format!("{:02}", index + 1))
                         .font(fonts::semibold(12.0))
@@ -3374,8 +3437,10 @@ fn timeline(ui: &mut Ui, palette: &Palette, project: &Project, edit: &mut Edit<'
                 });
             }
         });
+        cards.push((shown.response.rect, node.id.clone()));
         ui.add_space(8.0);
     }
+    timeline_drop(ui, palette, drag_id, &cards, edit);
     if count > 0 {
         add |= ui
             .add_enabled(

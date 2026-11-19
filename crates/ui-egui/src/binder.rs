@@ -828,6 +828,10 @@ fn wiki(
                             chosen = Some(Selection::Document(item.id.clone()));
                             ui.close();
                         }
+                        if ui.button("Open character card").clicked() {
+                            intents.push(Intent::OpenCharacterCard(item.id.clone()));
+                            ui.close();
+                        }
                         if ui.button("Open beside").clicked() {
                             intents.push(Intent::OpenBeside(prosecraft_core::split::doc_target(
                                 &item.id,

@@ -36,6 +36,10 @@ pub struct Palette {
     pub accent_strong: Color32,
     pub danger: Color32,
     pub warning: Color32,
+    /// `--success`: the relation network's "friend" colour.
+    pub success: Color32,
+    /// `--text-faint`: suggested relations in the network.
+    pub text_faint: Color32,
     pub heat: [Color32; 4],
 }
 
@@ -70,6 +74,8 @@ impl Palette {
         // ProseCraft's #ba6158 is 3.6:1 on the dark surfaces; lightened to pass 4.5:1.
         danger: rgb(0xe48c82),
         warning: rgb(0xc2a16c),
+        success: rgb(0x4c6a51),
+        text_faint: rgb(0x969d91),
         heat: [rgb(0x2a2e29), rgb(0x64805d), rgb(0x8fa985), rgb(0xb9c9b1)],
     };
 
@@ -103,6 +109,8 @@ impl Palette {
         danger: rgb(0xa14f47),
         // ProseCraft's #c2a16c is 2.2:1; darkened to pass 4.5:1.
         warning: rgb(0x7d6430),
+        success: rgb(0x4c6a51),
+        text_faint: rgb(0xa0a198),
         heat: [rgb(0xe6e8e1), rgb(0xb9c9b1), rgb(0x8fa985), rgb(0x64805d)],
     };
 
@@ -194,7 +202,6 @@ struct Primitives {
     fg_strong: Color32,
     fg: Color32,
     fg_muted: Color32,
-    #[allow(dead_code)]
     fg_faint: Color32,
     accent: Color32,
     #[allow(dead_code)]
@@ -206,6 +213,7 @@ struct Primitives {
     selected_text: Color32,
     danger: Color32,
     warning: Color32,
+    success: Color32,
 }
 
 /// Each scheme's primitives (`src/lib/color-schemes.css`): light, then dark.
@@ -230,6 +238,7 @@ const PRIMITIVES: [(&str, [Primitives; 2]); 7] = [
                 selected_text: rgb(0x3b5f8a),
                 danger: rgb(0xbf616a),
                 warning: rgb(0x9a7400),
+                success: rgb(0x4f7a4a),
             },
             Primitives {
                 base0: rgb(0x2e3440),
@@ -248,6 +257,7 @@ const PRIMITIVES: [(&str, [Primitives; 2]); 7] = [
                 selected_text: rgb(0xd8e5f0),
                 danger: rgb(0xbf616a),
                 warning: rgb(0xebcb8b),
+                success: rgb(0xa3be8c),
             },
         ],
     ),
@@ -271,6 +281,7 @@ const PRIMITIVES: [(&str, [Primitives; 2]); 7] = [
                 selected_text: rgb(0x5f5a08),
                 danger: rgb(0x9d0006),
                 warning: rgb(0xb57614),
+                success: rgb(0x6f7d00),
             },
             Primitives {
                 base0: rgb(0x282828),
@@ -289,6 +300,7 @@ const PRIMITIVES: [(&str, [Primitives; 2]); 7] = [
                 selected_text: rgb(0xf0e6c8),
                 danger: rgb(0xfb4934),
                 warning: rgb(0xfabd2f),
+                success: rgb(0xb8bb26),
             },
         ],
     ),
@@ -312,6 +324,7 @@ const PRIMITIVES: [(&str, [Primitives; 2]); 7] = [
                 selected_text: rgb(0x1a6fa8),
                 danger: rgb(0xdc322f),
                 warning: rgb(0xb58900),
+                success: rgb(0x859900),
             },
             Primitives {
                 base0: rgb(0x002b36),
@@ -330,6 +343,7 @@ const PRIMITIVES: [(&str, [Primitives; 2]); 7] = [
                 selected_text: rgb(0xb8e0e8),
                 danger: rgb(0xdc322f),
                 warning: rgb(0xb58900),
+                success: rgb(0x859900),
             },
         ],
     ),
@@ -353,6 +367,7 @@ const PRIMITIVES: [(&str, [Primitives; 2]); 7] = [
                 selected_text: rgb(0x6c2bd9),
                 danger: rgb(0xd20f39),
                 warning: rgb(0xdf8e1d),
+                success: rgb(0x40a02b),
             },
             Primitives {
                 base0: rgb(0x1e1e2e),
@@ -371,6 +386,7 @@ const PRIMITIVES: [(&str, [Primitives; 2]); 7] = [
                 selected_text: rgb(0xe6dcff),
                 danger: rgb(0xf38ba8),
                 warning: rgb(0xf9e2af),
+                success: rgb(0xa6e3a1),
             },
         ],
     ),
@@ -394,6 +410,7 @@ const PRIMITIVES: [(&str, [Primitives; 2]); 7] = [
                 selected_text: rgb(0x6f7d00),
                 danger: rgb(0xf85552),
                 warning: rgb(0xdfa000),
+                success: rgb(0x8da101),
             },
             Primitives {
                 base0: rgb(0x2d353b),
@@ -412,6 +429,7 @@ const PRIMITIVES: [(&str, [Primitives; 2]); 7] = [
                 selected_text: rgb(0xd3e6b8),
                 danger: rgb(0xe67e80),
                 warning: rgb(0xdbbc7f),
+                success: rgb(0x83c092),
             },
         ],
     ),
@@ -435,6 +453,7 @@ const PRIMITIVES: [(&str, [Primitives; 2]); 7] = [
                 selected_text: rgb(0x6f5a89),
                 danger: rgb(0xb4637a),
                 warning: rgb(0xea9d34),
+                success: rgb(0x286983),
             },
             Primitives {
                 base0: rgb(0x191724),
@@ -453,6 +472,7 @@ const PRIMITIVES: [(&str, [Primitives; 2]); 7] = [
                 selected_text: rgb(0xe6dcff),
                 danger: rgb(0xeb6f92),
                 warning: rgb(0xf6c177),
+                success: rgb(0x9ccfd8),
             },
         ],
     ),
@@ -476,6 +496,7 @@ const PRIMITIVES: [(&str, [Primitives; 2]); 7] = [
                 selected_text: rgb(0x533bb0),
                 danger: rgb(0xcb3a2a),
                 warning: rgb(0x846e15),
+                success: rgb(0x14710a),
             },
             Primitives {
                 base0: rgb(0x282a36),
@@ -494,6 +515,7 @@ const PRIMITIVES: [(&str, [Primitives; 2]); 7] = [
                 selected_text: rgb(0xf8f8f2),
                 danger: rgb(0xff5555),
                 warning: rgb(0xf1fa8c),
+                success: rgb(0x50fa7b),
             },
         ],
     ),
@@ -554,6 +576,8 @@ impl Palette {
             accent_strong: p.accent_strong,
             danger: p.danger,
             warning: p.warning,
+            success: p.success,
+            text_faint: p.fg_faint,
             heat: [
                 p.base2,
                 mix(p.accent_strong, 18.0, p.base1),

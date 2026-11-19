@@ -2,6 +2,7 @@
 //! typed relations between Wiki pages, where pages appear in the story, sheet templates, the
 //! graph's view model and its deterministic layout.
 
+pub mod edit;
 pub mod graph;
 pub mod layout;
 pub mod meta;

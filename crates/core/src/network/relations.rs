@@ -24,6 +24,8 @@ pub struct Doc {
     /// `meta.characters`: pages the author confirmed for a scene.
     pub characters: Vec<String>,
     pub relations: Vec<Relation>,
+    /// The `meta` as stored.
+    pub meta: Option<JsValue>,
 }
 
 fn text(value: &JsValue, key: &str) -> Option<String> {
@@ -48,6 +50,7 @@ impl Doc {
             aliases: meta.aliases(),
             characters: meta.characters(),
             relations: meta.relations(),
+            meta: meta.0.cloned(),
         }
     }
 

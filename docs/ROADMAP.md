@@ -1,8 +1,8 @@
-# Roadmap: prosecraft-rs (proposal, not yet agreed)
+# Roadmap: prosecraft-rs
 
-prosecraft-rs is a proposed native Rust/egui rewrite of [ProseCraft](https://github.com/jennraeross/ProseCraft), the MIT-licensed novel-writing app by Jennifer Roylance and its contributors. The aim is the same app: outline, write, storyboard and publish. It would run natively on Linux, macOS, Windows and BSD and on the web, with no webview, TypeScript or Tauri, and would follow the Craft suite's house rules.
+prosecraft-rs is a native Rust/egui rewrite of [ProseCraft](https://github.com/jennraeross/ProseCraft), the MIT-licensed novel-writing app by Jennifer Roylance and its contributors. The aim is the same app: outline, write, storyboard and publish. It would run natively on Linux, macOS, Windows and BSD and on the web, with no webview, TypeScript or Tauri, and would follow the Craft suite's house rules.
 
-Status: planning. Nothing here is decided yet. The port baseline is upstream `7dae544` (v0.6.0).
+Status: 0.1.0 has ProseCraft's feature set up to upstream `8cdc694` (v0.6.1). Cloud sync is planned through CraftCloud (P10). The rest of this document is the plan as it was written.
 
 ## The goal for writers' data
 A manuscript must never be lost or corrupted. The design aims for:
@@ -10,9 +10,9 @@ A manuscript must never be lost or corrupted. The design aims for:
 - Fields and formatting the app doesn't understand are kept.
 - Files from a newer version open read-only.
 - Every save is atomic.
-- Compatibility with ProseCraft's backup (`.prosecraft`) and sync-folder formats is tested against fixtures made by the original app. This is planned and does not exist yet.
+- Compatibility with ProseCraft's backup (`.prosecraft`) and sync-folder formats is tested against fixtures made by the original app.
 
-The proposed way to move work over: export a backup or set up folder sync in ProseCraft, then open that in prosecraft-rs.
+The way to move work over: export a backup or set up folder sync in ProseCraft, then open that in prosecraft-rs.
 
 ## Proposed milestones
 | # | Milestone | Done when |

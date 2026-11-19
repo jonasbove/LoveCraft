@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- AppStream metadata (software centres, Flathub). Template: package.sh and the other packaging
+     scripts substitute @VERSION@ and @DATE@ from Cargo.toml and the build date. -->
+<component type="desktop-application">
+  <id>io.github.jonasbove.prosecraft_rs</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT OR Apache-2.0</project_license>
+  <name>ProseCraft-rs</name>
+  <summary>Outline, write and publish a novel</summary>
+  <developer id="io.github.jonasbove">
+    <name>ProseCraft-rs contributors</name>
+  </developer>
+  <description>
+    <p>
+      ProseCraft-rs is a novel-writing app: plan the book, write it, and publish it, in one native
+      window. It is an independent Rust rewrite of ProseCraft by Jennifer Roylance and its
+      contributors, and opens ProseCraft backups and sync folders without losing anything.
+    </p>
+    <ul>
+      <li>Chapters and scenes in a binder with labels, drag and drop and a split view</li>
+      <li>A wiki for characters and places, with a relationship network</li>
+      <li>Outline, storyboard canvas and timeline</li>
+      <li>A rich-text editor with footnotes, citations, comments, snapshots, equations and proofreading</li>
+      <li>Publishing to PDF, EPUB, DOCX, HTML, Markdown, plain text and screenplay formats</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">io.github.jonasbove.prosecraft_rs.desktop</launchable>
+  <icon type="stock">io.github.jonasbove.prosecraft_rs</icon>
+  <!-- Only url types known to appstream 0.15 (Ubuntu 22.04, where CI builds): no vcs-browser. -->
+  <url type="homepage">https://github.com/jonasbove/ProseCraft-rs</url>
+  <url type="bugtracker">https://github.com/jonasbove/ProseCraft-rs/issues</url>
+  <url type="help">https://github.com/jonasbove/ProseCraft-rs#readme</url>
+  <categories>
+    <category>Office</category>
+    <category>WordProcessor</category>
+  </categories>
+  <keywords>
+    <keyword>writing</keyword>
+    <keyword>novel</keyword>
+    <keyword>book</keyword>
+    <keyword>manuscript</keyword>
+  </keywords>
+  <branding>
+    <color type="primary" scheme_preference="light">#c9d4c5</color>
+    <color type="primary" scheme_preference="dark">#191b19</color>
+  </branding>
+  <supports>
+    <control>keyboard</control>
+    <control>pointing</control>
+  </supports>
+  <provides>
+    <binary>prosecraft-rs</binary>
+    <binary>prosecraft-mcp</binary>
+    <mediatype>application/x-prosecraft</mediatype>
+  </provides>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="@VERSION@" date="@DATE@"/>
+  </releases>
+</component>

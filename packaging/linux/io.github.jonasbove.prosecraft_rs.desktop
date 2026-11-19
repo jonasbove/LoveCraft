@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=ProseCraft-rs
+GenericName=Novel Writing
+Comment=Outline, write and publish a novel
+Exec=prosecraft-rs %F
+TryExec=prosecraft-rs
+Icon=io.github.jonasbove.prosecraft_rs
+Terminal=false
+Categories=Office;WordProcessor;
+Keywords=writing;novel;book;manuscript;outline;screenplay;
+StartupNotify=true
+StartupWMClass=io.github.jonasbove.prosecraft_rs
+MimeType=application/x-prosecraft;

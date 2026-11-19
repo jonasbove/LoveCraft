@@ -1,4 +1,7 @@
 //! prosecraft-rs on the desktop.
+// A window app on Windows: release builds open no console window beside it (the MCP server,
+// prosecraft-mcp, stays a console program for its stdio). Debug builds keep the console for logs.
+#![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 #![deny(
     clippy::unwrap_used,
     clippy::expect_used,
@@ -23,6 +26,21 @@ use prosecraft_ui_egui::{HostRequest, LibraryStore, ProseApp, window_title};
 
 /// The window's app id (Wayland app id, X11 class). A placeholder until the bundle id is decided.
 const APP_ID: &str = "io.github.jonasbove.prosecraft_rs";
+
+/// The window's icon (the title bar, taskbar and X11 docks; Wayland docks find the icon by the
+/// app id), rendered from the app icon's master by packaging/icons/render.sh.
+const WINDOW_ICON_PNG: &[u8] = include_bytes!("../assets/icon-256.png");
+
+/// The window's icon, or none (the system's default) should the embedded PNG not decode.
+fn window_icon() -> Option<eframe::egui::IconData> {
+    match eframe::icon_data::from_png_bytes(WINDOW_ICON_PNG) {
+        Ok(icon) => Some(icon),
+        Err(e) => {
+            eprintln!("the window icon couldn't be read: {e}");
+            None
+        }
+    }
+}
 
 /// What to do with a dialog's answer.
 enum Then {
@@ -644,12 +662,16 @@ fn main() -> ExitCode {
     for path in &args {
         read_backup(&mut app, &PathBuf::from(path));
     }
+    let mut viewport = eframe::egui::ViewportBuilder::default()
+        .with_title(about::APP_NAME)
+        .with_app_id(APP_ID)
+        .with_inner_size([1280.0, 850.0])
+        .with_drag_and_drop(true);
+    if let Some(icon) = window_icon() {
+        viewport = viewport.with_icon(icon);
+    }
     let options = eframe::NativeOptions {
-        viewport: eframe::egui::ViewportBuilder::default()
-            .with_title(about::APP_NAME)
-            .with_app_id(APP_ID)
-            .with_inner_size([1280.0, 850.0])
-            .with_drag_and_drop(true),
+        viewport,
         // The app turns Cmd/Ctrl+X, C and V into cut, copy and paste itself
         // (`ProseApp::set_clipboard_keys`), so that it sees a paste with no text.
         clipboard_shortcuts: false,
@@ -766,5 +788,18 @@ impl prosecraft_ui_egui::editor_fonts::InstalledFonts for InstalledFonts {
             italic: load(400, fontdb::Style::Italic),
             bold: load(700, fontdb::Style::Normal),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The embedded window icon decodes, at the size packaging/icons/render.sh writes.
+    #[test]
+    fn window_icon_decodes() {
+        let icon = window_icon().expect("the embedded icon decodes");
+        assert_eq!((icon.width, icon.height), (256, 256));
+        assert_eq!(icon.rgba.len(), 256 * 256 * 4);
     }
 }

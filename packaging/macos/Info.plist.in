@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Template: packaging/macos/package.sh substitutes @VERSION@ (full, e.g. 0.2.0-rc.1),
+     @SHORT_VERSION@ (numeric X.Y.Z) and @BUILD_SHA@.
+     The bundle identifier is the app id with a hyphen (io.github.jonasbove.prosecraft-rs): bundle
+     identifiers allow only letters, digits, hyphens and dots, so the Linux and Windows id's
+     underscore can't be used here. The MCP server sits next to the app in Contents/MacOS.
+     No document types: Finder hands a double-clicked file to an app as an open-file event, which
+     the app's window toolkit (winit) doesn't pass on yet, so .prosecraft files open through
+     File › Open instead. -->
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>en</string>
+  <key>CFBundleName</key>
+  <string>ProseCraft-rs</string>
+  <key>CFBundleDisplayName</key>
+  <string>ProseCraft-rs</string>
+  <key>CFBundleIdentifier</key>
+  <string>io.github.jonasbove.prosecraft-rs</string>
+  <key>CFBundleExecutable</key>
+  <string>prosecraft-rs</string>
+  <key>CFBundleIconFile</key>
+  <string>prosecraft-rs</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleSignature</key>
+  <string>????</string>
+  <key>CFBundleShortVersionString</key>
+  <string>@SHORT_VERSION@</string>
+  <key>CFBundleVersion</key>
+  <string>@SHORT_VERSION@</string>
+  <key>ProseCraftVersion</key>
+  <string>@VERSION@</string>
+  <key>ProseCraftBuildCommit</key>
+  <string>@BUILD_SHA@</string>
+  <key>LSApplicationCategoryType</key>
+  <string>public.app-category.productivity</string>
+  <!-- Must match MACOSX_DEPLOYMENT_TARGET in package.sh. -->
+  <key>LSMinimumSystemVersion</key>
+  <string>11.0</string>
+  <key>NSHighResolutionCapable</key>
+  <true/>
+  <key>NSSupportsAutomaticGraphicsSwitching</key>
+  <true/>
+  <key>NSHumanReadableCopyright</key>
+  <string>Copyright © 2026 the ProseCraft-rs contributors. MIT OR Apache-2.0. A rewrite of ProseCraft, © 2026 Jennifer Roylance, MIT.</string>
+</dict>
+</plist>

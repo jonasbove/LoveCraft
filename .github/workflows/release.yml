@@ -1,0 +1,872 @@
+# Release builds of ProseCraft-rs, with the same file set as CraftCloud's and the Craft apps'
+# releases, through this repository's own workflow (adapted from CraftCloud's release.yml, MIT OR
+# Apache-2.0): storytold/craft-common-actions' release workflow needs an organisation's larger macOS
+# runner. Standard GitHub-hosted runners only; the Arm runners are free in public repositories.
+#
+# Runs on version tags and by hand. Files (packaging/*, packaging/README-desktop.md says which is which):
+#   prosecraft-rs-<ver>-linux-{x86_64,aarch64}.{AppImage,AppImage.zsync,deb,rpm,tar.gz,flatpak,pkg.tar.zst}
+#   prosecraft-rs-<ver>-windows-{x64,arm64}.msi    prosecraft-rs-<ver>-windows-{x64,arm64}-portable.zip
+#   prosecraft-rs-<ver>-macos-universal.dmg
+#   and, when their builds succeed (never tried yet, so they may not):
+#   prosecraft-rs-<ver>-freebsd-{x86_64,aarch64}.tar.gz    prosecraft-rs-<ver>-linux-riscv64.{deb,rpm,tar.gz}
+# Each holds the app (prosecraft-rs) and the MCP server (prosecraft-mcp). Every build embeds the
+# interface and manuscript fonts from storytold/craft-fonts at CRAFT_FONTS_REF (below), and fails
+# without them (CRAFT_FONTS_REQUIRED=1).
+#
+# `package-test` installs the Linux files in clean distro containers (packaging/linux/test-package.sh:
+# install, version, files, the MCP server, the window on a virtual display, upgrade from the
+# previous release, removal). `files` checks that every required file was built. Both run on every
+# run, also by hand from a branch, and the draft is made only when they pass.
+#
+# `windows-test` runs the workspace tests (`cargo test --workspace`, as `cargo xtask ci` does) on
+# Windows x64, which ci.yml runs on Linux only.
+#
+# On a `v*` tag the `release` job makes a **draft** GitHub release with those files, SHA256SUMS.txt
+# and the version's section of docs/RELEASE-NOTES.md, and each file gets a signed build-provenance
+# attestation. Every file and SHA256SUMS.txt get a detached GPG signature (`.asc`) made with the
+# RELEASE_SIGNING_KEY secret of the `release` environment (which only `v*` tags may use), checked
+# against release-signing-key.asc from the repository, which is attached too (docs/RELEASING.md).
+# A person publishes the draft; nothing is released on its own. A run by hand never reaches the
+# `release` job, so it makes no draft and never uses the environment. Apple and Windows code
+# signing are used when their secrets are set (see packaging/macos/import-cert.sh,
+# packaging/windows/sign.ps1); the builds are unsigned for now.
+
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+  NFPM_VERSION: "2.48.0"
+  WIX_VERSION: "5.0.2"
+  # The storytold/craft-fonts commit the builds embed Inter and Source Serif 4 from. It is newer
+  # than the suite's pin in craft-common-actions, which predates those fonts. Keep it equal to
+  # `_fonts` in packaging/arch/prosecraft-rs/PKGBUILD and the craft-fonts input in flake.nix.
+  CRAFT_FONTS_REF: cc9269cd8d8258785dac603fba3122e5d2556795
+  CRAFT_FONTS_REQUIRED: "1"
+
+jobs:
+  linux:
+    name: Linux ${{ matrix.arch }}
+    # Ubuntu 22.04 (glibc 2.35), like the Craft apps: the binary then runs on every newer distro.
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: x86_64, runner: ubuntu-22.04, nfpm: x86_64, nfpm_sha256: 6d7f9a28b2f397934403950fcbba83f598b08d02edbe79a0815b3b4897341750 }
+          - { arch: aarch64, runner: ubuntu-22.04-arm, nfpm: arm64, nfpm_sha256: a9a75213763783b7669719e505474c748c5ad7dc66591a195619deb50f85c2f4 }
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: storytold/craft-fonts
+          ref: ${{ env.CRAFT_FONTS_REF }}
+          path: craft-fonts
+          persist-credentials: false
+      - name: Build and packaging tools
+        env:
+          NFPM_ARCH: ${{ matrix.nfpm }}
+          NFPM_SHA256: ${{ matrix.nfpm_sha256 }}
+        run: |
+          sudo apt-get update
+          # zsync: appimagetool writes the AppImage's .zsync with zsyncmake.
+          sudo apt-get install -y --no-install-recommends \
+            libxkbcommon-dev libwayland-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev pkg-config \
+            desktop-file-utils appstream zsync
+          archive="nfpm_${NFPM_VERSION}_Linux_${NFPM_ARCH}.tar.gz"
+          curl --proto '=https' -fsSL --retry 3 -o "$RUNNER_TEMP/$archive" \
+            "https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VERSION}/${archive}"
+          echo "$NFPM_SHA256  $RUNNER_TEMP/$archive" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/bin"
+          tar -xz -C "$RUNNER_TEMP/bin" -f "$RUNNER_TEMP/$archive" nfpm
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # installs the toolchain named below
+        with:
+          toolchain: stable # as ci.yml's gate; there is no rust-toolchain.toml
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          key: release-linux-${{ matrix.arch }}
+      - name: Build and package (AppImage, deb, rpm, tar.gz)
+        env:
+          CRAFT_FONTS_DIR: ${{ github.workspace }}/craft-fonts
+        run: packaging/linux/package.sh
+      - name: Check the packages
+        run: |
+          dpkg-deb --info dist/release/*.deb
+          dpkg-deb --contents dist/release/*.deb | grep -E 'usr/bin/|metainfo|applications|mime/packages'
+          for appimage in dist/release/*.AppImage; do
+            chmod +x "$appimage"
+            APPIMAGE_EXTRACT_AND_RUN=1 PROSECRAFT_NO_DESKTOP_INTEGRATION=1 "$appimage" --version
+          done
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-linux-${{ matrix.arch }}
+          path: dist/release/*
+          if-no-files-found: error
+          retention-days: 30
+
+  flatpak:
+    name: Flatpak ${{ matrix.arch }}
+    needs: linux
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: x86_64, runner: ubuntu-24.04 }
+          - { arch: aarch64, runner: ubuntu-24.04-arm }
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-linux-${{ matrix.arch }}
+          path: dist/linux
+      - name: Install flatpak-builder
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends flatpak flatpak-builder elfutils
+          # flatpak-builder's bubblewrap needs unprivileged user namespaces, which 24.04's AppArmor
+          # restricts by default.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Build the Flatpak bundle
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          shopt -s nullglob
+          tarballs=(dist/linux/prosecraft-rs-*-linux-"$ARCH".tar.gz)
+          if [ "${#tarballs[@]}" -ne 1 ]; then
+            echo "::error::expected one prosecraft-rs tarball for $ARCH, found ${#tarballs[@]}: ${tarballs[*]}"
+            exit 1
+          fi
+          packaging/linux/flatpak-bundle.sh "${tarballs[0]}"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-flatpak-${{ matrix.arch }}
+          path: dist/release/*.flatpak
+          if-no-files-found: error
+          retention-days: 30
+
+  arch:
+    name: Arch Linux ${{ matrix.arch }}
+    needs: linux
+    # makepkg only repackages the tarball, so one x86_64 runner builds both architectures.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, aarch64]
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-linux-${{ matrix.arch }}
+          path: dist/linux
+      - name: makepkg in an Arch Linux container
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          shopt -s nullglob
+          tarballs=(dist/linux/prosecraft-rs-*-linux-"$ARCH".tar.gz)
+          if [ "${#tarballs[@]}" -ne 1 ]; then
+            echo "::error::expected one prosecraft-rs tarball for $ARCH, found ${#tarballs[@]}: ${tarballs[*]}"
+            exit 1
+          fi
+          mkdir -p dist/release
+          chmod 777 dist/release
+          # makepkg refuses to run as root, so it runs as an unprivileged user in the container.
+          docker run --rm --tmpfs /tmp -v "$PWD:/workspace" -w /workspace \
+            -e TARBALL="${tarballs[0]}" -e ARCH -e SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" \
+            archlinux:base-devel bash -euc '
+              useradd -m builder
+              runuser -u builder -- env TARBALL="$TARBALL" ARCH="$ARCH" SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH" \
+                CARGO_TARGET_DIR=/tmp/arch-target DIST=/workspace/dist/release \
+                bash packaging/arch/package.sh "$TARBALL" "$ARCH"'
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-arch-${{ matrix.arch }}
+          path: dist/release/*.pkg.tar.zst
+          if-no-files-found: error
+          retention-days: 30
+
+  macos:
+    name: macOS universal
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: storytold/craft-fonts
+          ref: ${{ env.CRAFT_FONTS_REF }}
+          path: craft-fonts
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # installs the toolchain named below
+        with:
+          toolchain: stable
+          targets: aarch64-apple-darwin, x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          key: release-macos-universal
+      # Without APPLE_CERTIFICATE this warns and the app is signed ad hoc (unsigned for Gatekeeper).
+      - name: Import signing certificate
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: packaging/macos/import-cert.sh
+      - name: Build, sign, notarize
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CRAFT_FONTS_DIR: ${{ github.workspace }}/craft-fonts
+        run: packaging/macos/package.sh --arch universal
+      - name: Verify the DMG
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: packaging/macos/verify.sh --arch universal
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-macos
+          path: dist/release/*
+          if-no-files-found: error
+          retention-days: 30
+      - name: Remove temporary keychain
+        if: always()
+        run: |
+          if [ -n "${MACOS_KEYCHAIN:-}" ]; then security delete-keychain "$MACOS_KEYCHAIN" || true; fi
+
+  windows:
+    name: Windows ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: x64, target: x86_64-pc-windows-msvc, runner: windows-latest }
+          - { arch: arm64, target: aarch64-pc-windows-msvc, runner: windows-11-arm }
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: storytold/craft-fonts
+          ref: ${{ env.CRAFT_FONTS_REF }}
+          path: craft-fonts
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # installs the toolchain named below
+        with:
+          toolchain: stable
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          key: release-windows-${{ matrix.arch }}
+      - name: Install WiX
+        shell: pwsh
+        run: |
+          dotnet tool install --global wix --version $env:WIX_VERSION
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          wix extension add -g "WixToolset.UI.wixext/$env:WIX_VERSION" "WixToolset.Util.wixext/$env:WIX_VERSION"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      # sign.ps1 leaves the files unsigned, with a warning, when neither secret set is there.
+      - name: Build, sign, package
+        shell: pwsh
+        env:
+          CRAFT_FONTS_DIR: ${{ github.workspace }}\craft-fonts
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_SIGNING_ENDPOINT: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+          AZURE_SIGNING_ACCOUNT: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          AZURE_CERT_PROFILE: ${{ secrets.AZURE_CERT_PROFILE }}
+        run: ./packaging/windows/package.ps1 -Arch ${{ matrix.arch }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-windows-${{ matrix.arch }}
+          path: dist/release/*
+          if-no-files-found: error
+          retention-days: 30
+
+  # The workspace tests on Windows itself (the paths, file names and dialogs' Windows rules), which
+  # ci.yml tests only on Linux. Built without craft-fonts, as ci.yml's gate builds.
+  windows-test:
+    name: Windows tests (x64)
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      CARGO_PROFILE_DEV_DEBUG: line-tables-only
+      CRAFT_FONTS_REQUIRED: "0"
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # installs the toolchain named below
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          key: test-windows-x64
+      - name: cargo test
+        run: cargo test --workspace --locked --no-fail-fast
+
+  # ProseCraft-rs has never been built on FreeBSD: this job may fail, and the release goes out
+  # without its files when it does. The VM is x86_64; aarch64 is cross-compiled in it with
+  # FreeBSD's own Rust (aarch64-unknown-freebsd is a tier-3 target), as the Craft apps do.
+  freebsd:
+    name: FreeBSD ${{ matrix.arch }} (untried)
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, aarch64]
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      # Copied into the VM with the workspace; packaging/env.sh finds it there.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: storytold/craft-fonts
+          ref: ${{ env.CRAFT_FONTS_REF }}
+          path: craft-fonts
+          persist-credentials: false
+      - name: Start the FreeBSD VM
+        uses: vmactions/freebsd-vm@811efaaac0668df8bfb8308c3ec997b5ab50037b # v1.6.0
+        with:
+          release: "15.1"
+          usesh: true
+          cpu: 4
+          mem: 12288
+          copyback: false
+          envs: "CARGO_INCREMENTAL CARGO_TERM_COLOR CRAFT_FONTS_REQUIRED"
+          prepare: |
+            if [ "${{ matrix.arch }}" = aarch64 ]; then
+              # The host compiler and the aarch64 standard library come from the amd64 and aarch64
+              # lang/rust packages, which must be the same build: the quarterly branch keeps them
+              # in step.
+              mkdir -p /usr/local/etc/pkg/repos
+              printf 'FreeBSD-ports: { url: "https://pkg.FreeBSD.org/${ABI}/quarterly" }\n' > /usr/local/etc/pkg/repos/FreeBSD.conf
+              pkg update -f -q
+            fi
+            pkg install -y bash git curl pkgconf libxkbcommon wayland libX11 libXcursor libXrandr libXi libxcb mesa-libs
+            if [ "${{ matrix.arch }}" = aarch64 ]; then
+              pkg install -y rust
+            else
+              curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable
+            fi
+      - name: Set up the aarch64 cross toolchain
+        if: matrix.arch == 'aarch64'
+        shell: freebsd {0}
+        run: |
+          set -eu
+          # Stable Rust, no -Zbuild-std: the aarch64 standard library is copied from FreeBSD's
+          # aarch64 lang/rust package, and C code links with base clang and lld against an arm64
+          # sysroot (base.txz plus the libraries the prepare step installs). Adapted from
+          # CraftCloud's release workflow, itself adapted from craft-common-actions' (MIT OR
+          # Apache-2.0; see NOTICE).
+          target=aarch64-unknown-freebsd
+          X=/var/tmp/craft-cross
+          S=$X/sysroot
+          mkdir -p "$X/db" "$X/cache" "$S"
+          release=$(freebsd-version -u | sed 's/-p[0-9]*$//')
+          P="-o ABI=FreeBSD:${release%%.*}:aarch64 -o OSVERSION=$(uname -U) -o PKG_DBDIR=$X/db -o PKG_CACHEDIR=$X/cache -o IGNORE_OSVERSION=yes"
+          # shellcheck disable=SC2086 # $P is a list of pkg options
+          pkg $P update -q
+          host=$(pkg query %v rust)
+          # shellcheck disable=SC2086
+          cross=$(pkg $P rquery %v rust)
+          if [ "$host" != "$cross" ]; then
+            echo "error: lang/rust is $host for amd64 but $cross for aarch64; the standard library must match the compiler" >&2
+            exit 1
+          fi
+          # shellcheck disable=SC2086
+          pkg $P fetch -y -q rust
+          tar -xf "$X/cache/rust-$cross.pkg" -C "$X" --include "*usr/local/lib/rustlib/$target/*"
+          cp -R "$X/usr/local/lib/rustlib/$target" /usr/local/lib/rustlib/
+          base=https://download.freebsd.org/releases/arm64/aarch64/$release
+          fetch -q -o "$X/MANIFEST" "$base/MANIFEST"
+          fetch -q -o "$X/base.txz" "$base/base.txz"
+          if [ "$(awk '$1 == "base.txz" { print $2 }' "$X/MANIFEST")" != "$(sha256 -q "$X/base.txz")" ]; then
+            echo "error: arm64 base.txz does not match its MANIFEST" >&2
+            exit 1
+          fi
+          tar -xf "$X/base.txz" -C "$S" ./lib ./usr/lib ./usr/include ./usr/libdata
+          # shellcheck disable=SC2086
+          pkg $P fetch -y -q -d libxkbcommon wayland libX11 libXcursor libXrandr libXi libxcb mesa-libs
+          for p in "$X"/cache/*.pkg; do
+            [ ! -L "$p" ] || continue
+            case "$p" in */rust-*) continue ;; esac
+            tar -xf "$p" -C "$S" --exclude '+*'
+          done
+          for tool in cc c++; do
+            printf '#!/bin/sh\nexec %s --target=%s%s --sysroot=%s -fuse-ld=lld -I%s/usr/local/include -L%s/usr/local/lib -Wl,-rpath-link,%s/usr/local/lib "$@"\n' \
+              "$tool" "$target" "${release%%-*}" "$S" "$S" "$S" "$S" > "$X/$tool"
+            chmod +x "$X/$tool"
+          done
+          cat > "$X/env" <<EOF
+          export CARGO_BUILD_TARGET=$target
+          export CARGO_TARGET_AARCH64_UNKNOWN_FREEBSD_LINKER=$X/cc
+          export CC_aarch64_unknown_freebsd=$X/cc CXX_aarch64_unknown_freebsd=$X/c++ AR_aarch64_unknown_freebsd=/usr/bin/ar
+          export PKG_CONFIG_ALLOW_CROSS=1 PKG_CONFIG_SYSROOT_DIR=$S PKG_CONFIG_LIBDIR=$S/usr/local/libdata/pkgconfig:$S/usr/libdata/pkgconfig
+          EOF
+      - name: Build and package
+        shell: freebsd {0}
+        run: |
+          set -eu
+          cd "${GITHUB_WORKSPACE:-$PWD}"
+          [ ! -f "$HOME/.cargo/env" ] || . "$HOME/.cargo/env"
+          git config --global --add safe.directory "*"
+          [ ! -f /var/tmp/craft-cross/env ] || . /var/tmp/craft-cross/env
+          CRAFT_FONTS_DIR="$PWD/craft-fonts" CARGO_TARGET_DIR=/var/tmp/prosecraft-target bash packaging/freebsd/package.sh
+      - name: Copy the archive from the VM
+        run: |
+          mkdir -p dist/release
+          rsync -a --rsync-path='env PATH=/usr/local/bin:/usr/bin:/bin rsync' \
+            "freebsd:$GITHUB_WORKSPACE/dist/release/" dist/release/
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: late-freebsd-${{ matrix.arch }}
+          path: dist/release/*-freebsd-*.tar.gz
+          if-no-files-found: error
+          retention-days: 30
+
+  # ProseCraft-rs has never been built for riscv64 either: cross-compiled on Ubuntu 24.04 (glibc
+  # 2.39), smoke-tested with qemu. The release goes out without these files when this fails.
+  linux-riscv64:
+    name: Linux riscv64 (untried)
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    timeout-minutes: 90
+    env:
+      GLIBC_FLOOR: "2.39"
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: storytold/craft-fonts
+          ref: ${{ env.CRAFT_FONTS_REF }}
+          path: craft-fonts
+          persist-credentials: false
+      - name: Cross tools and nfpm
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gcc-riscv64-linux-gnu libc6-dev-riscv64-cross qemu-user desktop-file-utils appstream
+          archive="nfpm_${NFPM_VERSION}_Linux_x86_64.tar.gz"
+          curl --proto '=https' -fsSL --retry 3 -o "$RUNNER_TEMP/$archive" \
+            "https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VERSION}/${archive}"
+          echo "6d7f9a28b2f397934403950fcbba83f598b08d02edbe79a0815b3b4897341750  $RUNNER_TEMP/$archive" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/bin"
+          tar -xz -C "$RUNNER_TEMP/bin" -f "$RUNNER_TEMP/$archive" nfpm
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # installs the toolchain named below
+        with:
+          toolchain: stable
+          targets: riscv64gc-unknown-linux-gnu
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          key: release-linux-riscv64
+      - name: Build and package (deb, rpm, tar.gz)
+        env:
+          CARGO_TARGET_RISCV64GC_UNKNOWN_LINUX_GNU_LINKER: riscv64-linux-gnu-gcc
+          CROSS_ARCH: riscv64
+          CROSS_TARGET: riscv64gc-unknown-linux-gnu
+          CROSS_COMPILE: riscv64-linux-gnu-
+          EMULATOR: qemu-riscv64
+          QEMU_LD_PREFIX: /usr/riscv64-linux-gnu
+          CRAFT_FONTS_DIR: ${{ github.workspace }}/craft-fonts
+        run: packaging/linux/package.sh --formats "deb rpm tar"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: late-linux-riscv64
+          path: dist/release/*
+          if-no-files-found: error
+          retention-days: 30
+
+  # Every Linux package installed in a clean container of a distro it is for, with that distro's
+  # package manager, then started (its version, the MCP server over stdio, the window on a virtual
+  # X display), upgraded from the previous release and removed (packaging/linux/test-package.sh,
+  # which runs the same way on any machine with Docker). The containers run on the runner of the
+  # package's architecture.
+  package-test:
+    name: Install ${{ matrix.ext }} on ${{ matrix.distro }} ${{ matrix.arch }}
+    needs: [linux, arch]
+    runs-on: ${{ matrix.arch == 'aarch64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    timeout-minutes: 25
+    permissions:
+      contents: read # the previous release's packages (gh release list/download)
+    strategy:
+      fail-fast: false
+      matrix:
+        # Pinned by digest (multi-arch index); the tag says which release it is.
+        include:
+          - { ext: deb, arch: x86_64, distro: debian-12, image: "debian:12@sha256:268fb24c39bca92d326dd83ea3abebe4a3f7751c804ffef23bb6d857dd343ff8" }
+          - { ext: deb, arch: aarch64, distro: debian-12, image: "debian:12@sha256:268fb24c39bca92d326dd83ea3abebe4a3f7751c804ffef23bb6d857dd343ff8" }
+          - { ext: deb, arch: x86_64, distro: ubuntu-22.04, image: "ubuntu:22.04@sha256:74b12b11ffa550fba1929ad4d8d16533c34f6612728469671afba1b03b66881c" }
+          - { ext: deb, arch: aarch64, distro: ubuntu-22.04, image: "ubuntu:22.04@sha256:74b12b11ffa550fba1929ad4d8d16533c34f6612728469671afba1b03b66881c" }
+          - { ext: deb, arch: x86_64, distro: ubuntu-24.04, image: "ubuntu:24.04@sha256:2198e4c65076e9cb0b3d695219df667c0e3b0072da64ca3c2648aca17dcecaf5" }
+          - { ext: deb, arch: aarch64, distro: ubuntu-24.04, image: "ubuntu:24.04@sha256:2198e4c65076e9cb0b3d695219df667c0e3b0072da64ca3c2648aca17dcecaf5" }
+          - { ext: rpm, arch: x86_64, distro: fedora-41, image: "fedora:41@sha256:f1a3fab47bcb3c3ddf3135d5ee7ba8b7b25f2e809a47440936212a3a50957f3d" }
+          - { ext: rpm, arch: aarch64, distro: fedora-41, image: "fedora:41@sha256:f1a3fab47bcb3c3ddf3135d5ee7ba8b7b25f2e809a47440936212a3a50957f3d" }
+          - { ext: rpm, arch: x86_64, distro: fedora-42, image: "fedora:42@sha256:99e203b80b1c3d8f7e161ec10a68fd02b081ef83a3963553e513c82846b97814" }
+          - { ext: rpm, arch: aarch64, distro: fedora-42, image: "fedora:42@sha256:99e203b80b1c3d8f7e161ec10a68fd02b081ef83a3963553e513c82846b97814" }
+          # The official Arch Linux image is x86_64 only.
+          - { ext: pkg.tar.zst, arch: x86_64, distro: archlinux, image: "archlinux:latest@sha256:d4594bb2300cba11f41c2f27923eb56f63d9988909c402f9c95517d1e362c899" }
+          # The oldest glibc the build supports (it is built on Ubuntu 22.04).
+          - { ext: AppImage, arch: x86_64, distro: ubuntu-22.04, image: "ubuntu:22.04@sha256:74b12b11ffa550fba1929ad4d8d16533c34f6612728469671afba1b03b66881c" }
+          - { ext: tar.gz, arch: x86_64, distro: ubuntu-22.04, image: "ubuntu:22.04@sha256:74b12b11ffa550fba1929ad4d8d16533c34f6612728469671afba1b03b66881c" }
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-linux-${{ matrix.arch }}
+          path: dist/linux
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        if: matrix.ext == 'pkg.tar.zst'
+        with:
+          name: release-arch-${{ matrix.arch }}
+          path: dist/linux
+      - name: The previous release's package
+        id: previous
+        if: matrix.ext != 'AppImage' && matrix.ext != 'tar.gz'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARCH: ${{ matrix.arch }}
+          EXT: ${{ matrix.ext }}
+        run: |
+          version="$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)"
+          # The newest published release other than this version (drafts and pre-releases left out).
+          prev="$(gh release list --repo "$GITHUB_REPOSITORY" --exclude-drafts --exclude-pre-releases --limit 20 \
+            --json tagName --jq '.[].tagName' | grep -Fvx "v$version" | head -1 || true)"
+          if [ -z "$prev" ]; then
+            echo "::notice::No earlier published release, so the upgrade isn't tested."
+            exit 0
+          fi
+          dir="$RUNNER_TEMP/previous"
+          mkdir -p "$dir"
+          # 0.1.0 and 0.1.1 were source-only releases: no packages, so no upgrade test from them.
+          if ! gh release download "$prev" --repo "$GITHUB_REPOSITORY" --dir "$dir" --pattern "prosecraft-rs-*-linux-$ARCH.$EXT"; then
+            echo "::notice::$prev has no prosecraft-rs-*-linux-$ARCH.$EXT, so the upgrade isn't tested."
+            exit 0
+          fi
+          shopt -s nullglob
+          files=("$dir"/prosecraft-rs-*-linux-"$ARCH"."$EXT")
+          if [ "${#files[@]}" -eq 1 ]; then
+            echo "Upgrading from $prev: ${files[0]}"
+            echo "file=${files[0]}" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::$prev has ${#files[@]} files matching prosecraft-rs-*-linux-$ARCH.$EXT, so the upgrade isn't tested."
+          fi
+      - name: Install, run, upgrade, remove
+        env:
+          ARCH: ${{ matrix.arch }}
+          EXT: ${{ matrix.ext }}
+          IMAGE: ${{ matrix.image }}
+          PREVIOUS: ${{ steps.previous.outputs.file }}
+        run: |
+          shopt -s nullglob
+          files=(dist/linux/prosecraft-rs-*-linux-"$ARCH"."$EXT")
+          if [ "${#files[@]}" -ne 1 ]; then
+            echo "::error::expected one prosecraft-rs-*-linux-$ARCH.$EXT, found ${#files[@]}: ${files[*]}"
+            exit 1
+          fi
+          args=(--image "$IMAGE")
+          if [ -n "$PREVIOUS" ]; then args+=(--previous "$PREVIOUS"); fi
+          packaging/linux/test-package.sh "${args[@]}" "${files[0]}"
+
+  # Every required file is there, by name. On every run (by hand too), so a dry run shows it.
+  files:
+    name: every required file
+    needs: [linux, flatpak, arch, macos, windows]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+          sparse-checkout: Cargo.toml
+          sparse-checkout-cone-mode: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+      - name: Every required platform is here
+        run: |
+          version="$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)"
+          cd dist
+          # A release without one of these is a mistake, not a release.
+          b="prosecraft-rs-$version"
+          missing=""
+          for arch in x86_64 aarch64; do
+            for ext in AppImage AppImage.zsync deb rpm tar.gz flatpak pkg.tar.zst; do
+              [ -f "$b-linux-$arch.$ext" ] || missing="$missing $b-linux-$arch.$ext"
+            done
+          done
+          for arch in x64 arm64; do
+            [ -f "$b-windows-$arch.msi" ] || missing="$missing $b-windows-$arch.msi"
+            [ -f "$b-windows-$arch-portable.zip" ] || missing="$missing $b-windows-$arch-portable.zip"
+          done
+          [ -f "$b-macos-universal.dmg" ] || missing="$missing $b-macos-universal.dmg"
+          ls -l
+          if [ -n "$missing" ]; then
+            echo "::error::missing release files:$missing"
+            exit 1
+          fi
+          {
+            echo "## Release files"
+            echo
+            echo '```'
+            ls -l
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  release:
+    name: release (draft)
+    # Doesn't wait for the untried FreeBSD and riscv64 builds (up to two hours): `late` adds them to
+    # the draft when they finish. Their artifacts are named `late-*`, so `release-*` never picks them up.
+    # No draft unless every file is there, every Linux package passed its install test and the
+    # tests passed on Windows. Never on a run by hand (no tag).
+    needs: [linux, flatpak, arch, macos, windows, files, package-test, windows-test]
+    if: >-
+      ${{ !cancelled() && startsWith(github.ref, 'refs/tags/v')
+      && needs.linux.result == 'success' && needs.flatpak.result == 'success' && needs.arch.result == 'success'
+      && needs.macos.result == 'success' && needs.windows.result == 'success' && needs.files.result == 'success'
+      && needs.package-test.result == 'success' && needs.windows-test.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # RELEASE_SIGNING_KEY lives in the `release` environment, which only `v*` tags may use, so no
+    # other workflow run (a pull request, a branch, a run by hand) can read it.
+    environment: release
+    permissions:
+      contents: write # the draft release
+      id-token: write # signing the attestations (Sigstore)
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+          fetch-depth: 0 # the commits since the previous release, for the notes
+      - name: The tag matches the version
+        id: v
+        shell: bash
+        run: |
+          version="$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)"
+          if [ "${GITHUB_REF_NAME}" != "v$version" ]; then
+            echo "::error::tag ${GITHUB_REF_NAME} but Cargo.toml says $version"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+      - name: Attest build provenance
+        # Free in public repositories; a private one needs GitHub Enterprise Cloud. Before the
+        # signatures and checksums are added: it covers the built files.
+        if: ${{ !github.event.repository.private }}
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: dist/*
+      - name: Import the release signing key
+        id: key
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+        run: |
+          # The public key people check the signatures with is the one in the repository: it must
+          # be there, and it must hold the key that signs.
+          if [ ! -s release-signing-key.asc ]; then
+            echo "::error::release-signing-key.asc is missing from the repository root; signing needs its public key (docs/RELEASING.md, The signing key)."
+            exit 1
+          fi
+          if [ -z "$RELEASE_SIGNING_KEY" ]; then
+            echo "::error::RELEASE_SIGNING_KEY is not set in the release environment, so this release can't be signed (docs/RELEASING.md)."
+            exit 1
+          fi
+          home="$RUNNER_TEMP/release-gnupg"
+          mkdir -m 700 "$home"
+          printf '%s\n' "$RELEASE_SIGNING_KEY" | gpg --homedir "$home" --batch --quiet --import
+          # The newest key or subkey that can sign, as gpg picks it for --local-user.
+          fpr="$(gpg --homedir "$home" --batch --with-colons --list-secret-keys \
+            | awk -F: '$1 == "sec" || $1 == "ssb" { usable = ($2 !~ /[erd]/ && ($12 ~ /s/ || $12 ~ /S/)) } $1 == "fpr" && usable { f = $10 } END { print f }')"
+          if [ -z "$fpr" ]; then
+            echo "::error::RELEASE_SIGNING_KEY has no secret key that can sign."
+            exit 1
+          fi
+          if ! printf 'check' | gpg --homedir "$home" --batch --pinentry-mode error --local-user "$fpr!" --detach-sign -o /dev/null 2>/dev/null; then
+            echo "::error::RELEASE_SIGNING_KEY can't sign without a passphrase. Store an unprotected signing subkey."
+            exit 1
+          fi
+          public="$(mktemp -d)"
+          gpg --homedir "$public" --batch --quiet --import release-signing-key.asc
+          if ! gpg --homedir "$public" --batch --with-colons --list-keys | awk -F: '$1 == "fpr" { print $10 }' | grep -qx "$fpr"; then
+            echo "::error::release-signing-key.asc doesn't hold the signing key $fpr from RELEASE_SIGNING_KEY; update one of them (docs/RELEASING.md)."
+            exit 1
+          fi
+          rm -rf "$public"
+          {
+            echo "fingerprint=$fpr"
+          } >> "$GITHUB_OUTPUT"
+          echo "GNUPGHOME=$home" >> "$GITHUB_ENV"
+          echo "Imported release signing key $fpr"
+      - name: Sign every file
+        working-directory: dist
+        env:
+          FPR: ${{ steps.key.outputs.fingerprint }}
+        run: |
+          cp ../release-signing-key.asc release-signing-key.asc
+          # Checked against the repository's public key alone, as a person downloading would.
+          verify_home="$(mktemp -d)"
+          gpg --homedir "$verify_home" --batch --quiet --import release-signing-key.asc
+          gpg --homedir "$verify_home" --batch --export > "$verify_home/trusted.gpg"
+          for f in prosecraft-rs-*; do
+            case "$f" in *.asc) continue ;; esac
+            gpg --batch --yes --local-user "$FPR!" --armor --detach-sign -o "$f.asc" "$f"
+            gpgv --quiet --keyring "$verify_home/trusted.gpg" "$f.asc" "$f"
+          done
+          rm -rf "$verify_home"
+      - name: Checksums
+        working-directory: dist
+        env:
+          FPR: ${{ steps.key.outputs.fingerprint }}
+        run: |
+          sha256sum -- * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+          gpg --batch --yes --local-user "$FPR!" --armor --detach-sign -o SHA256SUMS.txt.asc SHA256SUMS.txt
+          gpg --batch --verify SHA256SUMS.txt.asc SHA256SUMS.txt
+      - name: Release notes
+        env:
+          VERSION: ${{ steps.v.outputs.version }}
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The Craft apps' layout: GitHub's generated notes ("## What's Changed", one line per merged pull
+          # request with its author, then "**Full Changelog**"), plus a link to RELEASE-NOTES.md when it has a
+          # section for this version, so notes that need care when updating can't be missed.
+          tag="v$VERSION"
+          prev="$(git describe --tags --abbrev=0 --match 'v*' "$tag^" 2>/dev/null || true)"
+          args=(-f tag_name="$tag")
+          [ -n "$prev" ] && args+=(-f previous_tag_name="$prev")
+          gh api "repos/$REPO/releases/generate-notes" "${args[@]}" --jq .body > generated.md
+          link=""
+          if grep -q -x -E "## $VERSION( .*)?" docs/RELEASE-NOTES.md; then
+            link="Before updating, read the [release notes](https://github.com/$REPO/blob/$tag/docs/RELEASE-NOTES.md)."
+          fi
+          # The link goes right above "**Full Changelog**" (or at the end, if GitHub left that line out).
+          awk -v link="$link" '
+            /^\*\*Full Changelog\*\*/ && link != "" && !done { print link; print ""; done = 1 }
+            { print }
+            END { if (link != "" && !done) { print ""; print link } }
+          ' generated.md > notes.md
+          cat notes.md
+      - name: Draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.v.outputs.version }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --draft --verify-tag \
+            --title "ProseCraft-rs v$VERSION" \
+            --notes-file notes.md
+
+  # The untried builds, added to the draft once they finish, signed and checksummed like the rest.
+  # A failed one is left out with a warning; the release itself never waits for them.
+  late:
+    name: add FreeBSD and riscv64 to the draft
+    needs: [release, freebsd, linux-riscv64]
+    if: ${{ !cancelled() && needs.release.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: release # RELEASE_SIGNING_KEY, as in the release job
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+          sparse-checkout: release-signing-key.asc
+          sparse-checkout-cone-mode: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: late-*
+          path: late
+          merge-multiple: true
+      - name: Anything to add
+        id: any
+        run: |
+          mkdir -p late
+          for f in late/*; do [ -f "$f" ] && { echo "found=true" >> "$GITHUB_OUTPUT"; exit 0; }; done
+          echo "::warning::No FreeBSD or riscv64 build finished; the release has none."
+          echo "found=false" >> "$GITHUB_OUTPUT"
+      - name: Attest build provenance
+        if: ${{ steps.any.outputs.found == 'true' && !github.event.repository.private }}
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: late/*
+      - name: Sign, checksum and upload
+        if: steps.any.outputs.found == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+          REPO: ${{ github.repository }}
+        run: |
+          # The same key the release job used and checked (see its "Import the release signing key").
+          export GNUPGHOME="$RUNNER_TEMP/late-gnupg"
+          mkdir -m 700 "$GNUPGHOME"
+          printf '%s\n' "$RELEASE_SIGNING_KEY" | gpg --batch --quiet --import
+          fpr="$(gpg --batch --with-colons --list-secret-keys \
+            | awk -F: '$1 == "sec" || $1 == "ssb" { usable = ($2 !~ /[erd]/ && ($12 ~ /s/ || $12 ~ /S/)) } $1 == "fpr" && usable { f = $10 } END { print f }')"
+          verify_home="$(mktemp -d)"
+          gpg --homedir "$verify_home" --batch --quiet --import release-signing-key.asc
+          gpg --homedir "$verify_home" --batch --export > "$verify_home/trusted.gpg"
+          cd late
+          ls -l
+          # The draft's checksums, extended with these files.
+          gh release download "$GITHUB_REF_NAME" --repo "$REPO" --pattern SHA256SUMS.txt --dir ..
+          sha256sum -- prosecraft-rs-* >> ../SHA256SUMS.txt
+          mv ../SHA256SUMS.txt .
+          for f in prosecraft-rs-* SHA256SUMS.txt; do
+            gpg --batch --yes --local-user "$fpr!" --armor --detach-sign -o "$f.asc" "$f"
+            gpgv --quiet --keyring "$verify_home/trusted.gpg" "$f.asc" "$f"
+          done
+          gh release upload "$GITHUB_REF_NAME" --repo "$REPO" --clobber -- *

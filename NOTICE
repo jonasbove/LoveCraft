@@ -18,5 +18,15 @@ Copyright (c) 2011-2018 Christopher Jeffrey, distributed under the MIT licence, 
 carries the notice of Markdown, Copyright (c) 2004 John Gruber. Its LICENSE file is reproduced
 in licenses/marked.txt.
 
+The release packaging (packaging/, .github/workflows/release.yml and flake.nix) is adapted from
+CraftCloud (https://github.com/jonasbove/craftcloud), Copyright (c) 2026 the CraftCloud
+contributors, MIT OR Apache-2.0, whose packaging is in turn adapted from ArtCraft Launcher
+(https://github.com/storytold/craft-launcher), Copyright (c) 2026 ArtCraft Team and the ArtCraft
+Launcher contributors, MIT OR Apache-2.0, and from storytold/craft-common-actions (MIT OR
+Apache-2.0). No CraftCloud or ArtCraft logo, mark, icon or installer art is used.
+
+The ProseCraft-rs logo (packaging/icons/) is an engraved octopus, artwork provided by Jonas Bové
+for ProseCraft-rs; its background, crop and icon sizes are made in this repository.
+
 ProseCraft-rs is an independent project. It is not affiliated with or endorsed by the
 ProseCraft project or its author.

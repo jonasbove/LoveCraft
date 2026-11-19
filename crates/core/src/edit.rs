@@ -245,6 +245,21 @@ pub fn patch_tile_document(
         let sections = crate::chapter::split_chapter_html(&crate::html::sanitize_html(content));
         return crate::chapter::write_chapter_sections(project, chapter, &sections, None, None);
     }
+    patch_document(project, id, title, content)
+}
+
+/// `patchTileDocument` alone: the title and the text of one document (a scene edited on its
+/// own in a pane), a changed text dropping its Markdown source.
+pub fn patch_document(
+    project: &mut JsValue,
+    id: &str,
+    title: Option<&str>,
+    content: Option<&str>,
+) -> Result<(), EditError> {
+    let text_of = |v: Option<&JsValue>| {
+        v.and_then(JsValue::as_js_string)
+            .map(|s| s.to_string_lossy())
+    };
     let document = find_mut(project, "documents", id)?;
     if let Some(title) = title {
         document.insert("title", JsValue::str(title));

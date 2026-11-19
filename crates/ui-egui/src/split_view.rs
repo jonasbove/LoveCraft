@@ -292,6 +292,8 @@ pub(crate) struct Tile {
     emitted: String,
     /// When it was last typed in, while that edit hasn't been sent.
     changed_at: Option<f64>,
+    /// The stored text is held only in a simplified shape, written once it is typed in.
+    simplified: bool,
 }
 
 impl Tile {
@@ -308,6 +310,7 @@ impl Tile {
             source: source.to_owned(),
             emitted: String::new(),
             changed_at: None,
+            simplified: prosecraft_core::richtext::RichDoc::from_html(&document.content).is_none(),
         }
     }
 
@@ -317,6 +320,7 @@ impl Tile {
         self.emitted = html.clone();
         self.source = html.clone();
         self.changed_at = None;
+        self.simplified = false;
         if self.scene {
             asked.scenes.push((self.document.clone(), html));
         } else {
@@ -828,6 +832,14 @@ fn body_of(
         && clean != tile.doc.to_html()
     {
         *tile = Tile::new(document, held, &clean);
+    }
+    // Held only in a simplified shape, still untouched: said, as the editor says it.
+    if tile.simplified && tile.changed_at.is_none() {
+        ui.label(
+            RichText::new("Some of this scene's formatting is simplified once you edit it.")
+                .size(11.0)
+                .color(palette.text_muted),
+        );
     }
     let cache = std::cell::RefCell::new(Default::default());
     let cites = crate::views::CiteStyle {

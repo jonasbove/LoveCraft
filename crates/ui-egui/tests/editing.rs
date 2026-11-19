@@ -3139,6 +3139,62 @@ fn a_scene_pane_writes_its_chapter_back_and_leaves_text_it_cannot_hold_alone() {
 }
 
 #[test]
+fn a_pane_says_when_a_scene_is_simplified_once_edited() {
+    // The lighthouse scene with a fourth-level heading, which ProseCraft's sanitizer (and so
+    // this editor) writes as plain text once the scene is edited.
+    let bundle = fixture("bundle-plain.prosecraft").replace(
+        r#"<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>"#,
+        r#"<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p><h4>Night</h4>"#,
+    );
+    assert!(bundle.contains("<h4>Night</h4>"));
+    let memory = Memory::default();
+    let mut app =
+        ProseApp::with_library(ProjectLibrary::new("test".into()), Box::new(memory.clone()));
+    app.open_backup("bundle-plain.prosecraft", &bundle);
+    let mut harness = Harness::builder()
+        .with_max_steps(8)
+        .with_size([1700.0, 1000.0])
+        .build_ui_state(|ui, app: &mut ProseApp| app.show(ui), app);
+    prosecraft_ui_egui::setup_for_tests(&harness.ctx);
+    harness.run();
+    let note = "Some of this scene's formatting is simplified once you edit it.";
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Mara")
+        .click();
+    harness.run();
+    assert!(harness.query_by_label(note).is_none());
+    harness.get_by_label("Open split view").click();
+    harness.run();
+    harness.get_by_label("Show in this pane").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "  INT. LIGHTHOUSE - NIGHT")
+        .click();
+    harness.run();
+    harness.run_steps(12);
+    // Both scenes editable; only the simplified one says so.
+    assert_eq!(harness.get_all_by_label("Document text").count(), 2);
+    assert_eq!(harness.get_all_by_label(note).count(), 1);
+    // Typed into, it is stored simplified, and the note goes.
+    harness
+        .get_all_by_label("Document text")
+        .last()
+        .expect("the second scene")
+        .focus();
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::End);
+    harness
+        .get_all_by_label("Document text")
+        .last()
+        .expect("the second scene")
+        .type_text("!");
+    harness.step();
+    std::thread::sleep(std::time::Duration::from_millis(350));
+    harness.run_steps(12);
+    assert!(harness.query_by_label(note).is_none());
+}
+
+#[test]
 fn binder_rows_dropped_on_the_editor_open_beside_or_fill_a_pane() {
     let (mut harness, _memory) = app();
     harness.set_size(egui::vec2(1700.0, 1000.0));

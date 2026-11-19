@@ -46,6 +46,27 @@ pub enum Intent {
         target: String,
         after: bool,
     },
+    /// `moveWikiFolder`: a folder a place up or down among its siblings.
+    MoveWikiFolder {
+        id: String,
+        offset: isize,
+    },
+    /// `moveWikiFolderToTop`.
+    MoveWikiFolderToTop(String),
+    /// `moveWikiIntoFolder`: a Wiki row dropped into a folder, or the top level.
+    WikiIntoFolder {
+        kind: prosecraft_core::wiki::Kind,
+        id: String,
+        folder: Option<String>,
+    },
+    /// `moveWikiToRow`: a Wiki row dropped before or after another.
+    WikiToRow {
+        kind: prosecraft_core::wiki::Kind,
+        id: String,
+        target_kind: prosecraft_core::wiki::Kind,
+        target: String,
+        after: bool,
+    },
     MoveSceneToChapter {
         scene: String,
         chapter: String,
@@ -418,6 +439,20 @@ pub fn run(
         Intent::ReorderMoment { id, target, after } => {
             prosecraft_core::timeline::reorder(data, id, target, *after)
         }
+        Intent::MoveWikiFolder { id, offset } => {
+            prosecraft_core::wiki::move_folder(data, id, *offset)
+        }
+        Intent::MoveWikiFolderToTop(id) => prosecraft_core::wiki::move_folder_to_top(data, id),
+        Intent::WikiIntoFolder { kind, id, folder } => {
+            prosecraft_core::wiki::move_into_folder(data, *kind, id, folder.as_deref())
+        }
+        Intent::WikiToRow {
+            kind,
+            id,
+            target_kind,
+            target,
+            after,
+        } => prosecraft_core::wiki::move_to_row(data, (*kind, id), (*target_kind, target), *after),
         Intent::MoveSceneToChapter { scene, chapter } => {
             edit::move_scene_to_chapter_end(data, scene, chapter)
         }

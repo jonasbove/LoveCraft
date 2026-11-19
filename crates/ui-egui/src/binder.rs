@@ -741,6 +741,8 @@ fn chapters(
     chosen
 }
 
+use prosecraft_core::wiki::Kind;
+
 fn wiki(
     ui: &mut Ui,
     palette: &Palette,
@@ -791,6 +793,8 @@ fn wiki(
         .filter(|i| i.kind == WikiItemKind::Folder)
         .map(|i| (i.id.clone(), i.title.clone(), i.depth))
         .collect();
+    let mut drag_rows: Vec<(egui::Rect, WikiDragged)> = Vec::new();
+    let top = ui.cursor().top();
     for item in &items {
         indent(ui, item.depth, |ui| match item.kind {
             WikiItemKind::Page => {
@@ -801,6 +805,9 @@ fn wiki(
                     item.title.as_str()
                 };
                 let row = tree_row(ui, palette, title, item.depth + 1, selected);
+                if editable {
+                    wiki_drag_row(ui, &row, (Kind::Document, &item.id), &mut drag_rows);
+                }
                 if row.clicked() && ui.input(|i| i.modifiers.alt) {
                     intents.push(Intent::OpenBeside(prosecraft_core::split::doc_target(
                         &item.id,
@@ -889,6 +896,7 @@ fn wiki(
                     node.set_label(name);
                 });
                 if editable {
+                    wiki_drag_row(ui, &row, (Kind::Folder, &item.id), &mut drag_rows);
                     let parent_title = folders
                         .iter()
                         .rev()
@@ -924,6 +932,22 @@ fn wiki(
                                 *renaming = Some((item.id.clone(), item.title.clone()));
                                 ui.close();
                             }
+                            for (label, offset) in [("Move up", -1), ("Move down", 1)] {
+                                if ui.button(label).clicked() {
+                                    intents.push(Intent::MoveWikiFolder {
+                                        id: item.id.clone(),
+                                        offset,
+                                    });
+                                    ui.close();
+                                }
+                            }
+                            if ui
+                                .add_enabled(item.depth > 0, egui::Button::new("Move to top level"))
+                                .clicked()
+                            {
+                                intents.push(Intent::MoveWikiFolderToTop(item.id.clone()));
+                                ui.close();
+                            }
                             ui.menu_button(RichText::new("Remove folder").color(palette.danger), |ui| {
                             ui.label(format!("Remove “{}”? Its folders, pages, files, and links will move to {parent_title}.", item.title));
                             if ui.button(RichText::new("Remove").color(palette.danger)).clicked() {
@@ -939,7 +963,7 @@ fn wiki(
                 let Some(found) = project.research_items.iter().find(|r| r.id == item.id) else {
                     return;
                 };
-                research_row(
+                let row = research_row(
                     ui,
                     palette,
                     &found.item,
@@ -948,10 +972,122 @@ fn wiki(
                     &folders,
                     intents,
                 );
+                if editable {
+                    let kind = if item.kind == WikiItemKind::File {
+                        Kind::File
+                    } else {
+                        Kind::Link
+                    };
+                    wiki_drag_row(ui, &row, (kind, &item.id), &mut drag_rows);
+                }
             }
         });
     }
+    // `handleWikiRootDrop`: the rest of the Wiki's area takes a row to the top level.
+    let bottom = ui.cursor().top() + 16.0;
+    let root = egui::Rect::from_x_y_ranges(ui.max_rect().x_range(), top..=bottom);
+    wiki_drop(ui, palette, (&drag_rows, root), editable, intents);
     chosen
+}
+
+/// A Wiki row being dragged (`startWikiDrag`).
+type WikiDragged = (Kind, String);
+
+fn wiki_drag_id() -> egui::Id {
+    egui::Id::unique("wiki-drag")
+}
+
+/// A Wiki row's place this frame, and its drag starting.
+fn wiki_drag_row(
+    ui: &Ui,
+    row: &egui::Response,
+    (kind, id): (Kind, &str),
+    rows: &mut Vec<(egui::Rect, WikiDragged)>,
+) {
+    let row = row.interact(egui::Sense::drag());
+    if row.drag_started() {
+        ui.ctx()
+            .data_mut(|d| d.insert_temp(wiki_drag_id(), (kind, id.to_owned())));
+    }
+    rows.push((row.rect, (kind, id.to_owned())));
+}
+
+/// `handleWikiRowDragOver` and the drops: on a folder, into it (for a folder, only in its middle
+/// third; above or below that, beside it); on another row, before or after it (half way); on the
+/// rest of the Wiki, to the top level. Marked while dragging, made when the button is let go.
+fn wiki_drop(
+    ui: &Ui,
+    palette: &Palette,
+    (rows, root): (&[(egui::Rect, WikiDragged)], egui::Rect),
+    editable: bool,
+    intents: &mut Vec<Intent>,
+) {
+    let Some((kind, id)) = ui.ctx().data(|d| d.get_temp::<WikiDragged>(wiki_drag_id())) else {
+        return;
+    };
+    let released = ui.input(|i| i.pointer.any_released() || !i.pointer.any_down());
+    let painter = ui.painter();
+    let stroke = egui::Stroke::new(2.0, palette.accent);
+    let pos = ui.ctx().pointer_latest_pos();
+    let hit = pos.and_then(|p| {
+        rows.iter()
+            .find(|(r, _)| r.y_range().contains(p.y))
+            .map(|(r, target)| (p, *r, target.clone()))
+    });
+    let mut intent = None;
+    match hit {
+        Some((_, _, (_, target))) if target == id => {}
+        Some((p, rect, (target_kind, target))) => {
+            let ratio = (p.y - rect.top()) / rect.height().max(1.0);
+            let into = target_kind == Kind::Folder
+                && (kind != Kind::Folder || (1.0 / 3.0..2.0 / 3.0).contains(&ratio));
+            if into {
+                painter.rect_stroke(rect.expand(2.0), 4.0, stroke, egui::StrokeKind::Outside);
+                intent = Some(Intent::WikiIntoFolder {
+                    kind,
+                    id: id.clone(),
+                    folder: Some(target),
+                });
+            } else {
+                let after = p.y >= rect.center().y;
+                painter.hline(
+                    rect.x_range(),
+                    if after { rect.bottom() } else { rect.top() },
+                    stroke,
+                );
+                intent = Some(Intent::WikiToRow {
+                    kind,
+                    id: id.clone(),
+                    target_kind,
+                    target,
+                    after,
+                });
+            }
+        }
+        None if pos.is_some_and(|p| root.contains(p)) => {
+            painter.rect_stroke(
+                root,
+                4.0,
+                egui::Stroke::new(1.0, palette.accent),
+                egui::StrokeKind::Inside,
+            );
+            intent = Some(Intent::WikiIntoFolder {
+                kind,
+                id: id.clone(),
+                folder: None,
+            });
+        }
+        None => {}
+    }
+    if released {
+        ui.ctx()
+            .data_mut(|d| d.remove::<WikiDragged>(wiki_drag_id()));
+        if editable && let Some(intent) = intent {
+            intents.push(intent);
+        }
+    } else {
+        ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
+    }
 }
 
 /// A Wiki file or link: its mark and title (the size and type, or the address, on hover);
@@ -964,7 +1100,7 @@ fn research_row(
     editable: bool,
     folders: &[(String, String, usize)],
     intents: &mut Vec<Intent>,
-) {
+) -> egui::Response {
     use prosecraft_core::research::Item;
     let (id, mark, file) = match item {
         Item::File { id, mime_type, .. } if mime_type == "application/pdf" => (id, "PDF", true),
@@ -996,7 +1132,7 @@ fn research_row(
         intents.push(Intent::OpenWikiItem(id.clone()));
     }
     if !editable {
-        return;
+        return row;
     }
     row_menu(ui, &row, &format!("Actions for {title}"), |ui| {
         if ui
@@ -1059,6 +1195,7 @@ fn research_row(
             }
         });
     });
+    row
 }
 
 /// "Restore", named for its item so each button in the Trash can be told apart.

@@ -163,35 +163,11 @@ fn junk_is_refused_with_a_message_not_a_crash() {
 }
 
 #[test]
-fn the_status_line_goes_with_the_next_view() {
+fn a_read_only_backups_status_line_stays() {
+    // Nothing from it is saved, and the status line is the only place that says so.
     let mut harness = opened();
-    harness.get_by_label_contains("Opened bundle-plain.prosecraft");
-    harness
-        .get_by_role_and_label(Role::Tab, "Storyboard")
-        .focus();
-    harness.run();
-    harness.key_press(Key::Enter);
-    harness.run();
-    assert_eq!(harness.state().state().view(), WorkspaceView::Storyboard);
-    assert!(
-        harness
-            .query_by_label_contains("Opened bundle-plain.prosecraft")
-            .is_none()
-    );
-    assert!(harness.state().state().status().is_none());
-}
-
-#[test]
-fn the_status_line_fades_after_a_few_seconds() {
-    let mut harness = opened();
-    harness.get_by_label_contains("Opened bundle-plain.prosecraft");
-    // Ten seconds at the harness's quarter-second steps.
     harness.run_steps(40);
-    assert!(
-        harness
-            .query_by_label_contains("Opened bundle-plain.prosecraft")
-            .is_none()
-    );
+    harness.get_by_label_contains("Read-only: nothing is written back.");
 }
 
 #[test]
@@ -207,20 +183,22 @@ fn the_comment_count_keeps_the_sidebars_margin() {
     harness.run();
     harness.key_press(Key::Enter);
     harness.run();
-    // The sidebar is 300 points wide with an 18-point margin each side: its contents end 264
-    // points after they start (where "This chapter" starts).
+    // The count keeps the sidebar's margin: as far in from the pane's right edge as the
+    // heading is from its left edge.
+    let pane = harness.get_by_role_and_label(Role::Pane, "Sidebar").rect();
     let heading = harness.get_by_label("This chapter").rect();
-    let right = heading.left() + 300.0 - 2.0 * 18.0;
     let count = harness
         .get_all_by_label("1")
         .map(|n| n.rect())
         .find(|r| heading.y_range().contains(r.center().y))
         .expect("the comment count beside “This chapter”");
+    let margin = heading.left() - pane.left();
     assert!(
-        (count.right() - right).abs() <= 1.0,
-        "the count ends at {}, the margin at {right}",
-        count.right()
+        ((pane.right() - count.right()) - margin).abs() <= 1.0,
+        "the count is {} from the edge, the heading {margin}",
+        pane.right() - count.right()
     );
+    let right = pane.right() - margin;
     // The tabs above fit the sidebar too (when they ran past it, everything below widened).
     let tabs = harness.get_by_role_and_label(Role::Tab, "Footnotes").rect();
     assert!(tabs.right() <= right, "the tabs end at {}", tabs.right());

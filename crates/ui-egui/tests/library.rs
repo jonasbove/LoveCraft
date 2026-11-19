@@ -884,3 +884,46 @@ fn a_comment_in_a_markdown_scene_anchors_as_prosecraft_does() {
         ("line.".into(), "First line.\nSecond ".into(), "\n".into())
     );
 }
+
+fn library_app() -> Harness<'static, ProseApp> {
+    let library = ProjectLibrary::from_text(&fixture("bundle-plain.prosecraft"))
+        .expect("the backup reads as a library");
+    let mut harness = harness(ProseApp::with_library(library, Box::new(Memory::default())));
+    harness.run();
+    harness
+}
+
+#[test]
+fn the_status_line_goes_with_the_next_view() {
+    let mut harness = library_app();
+    harness.get_by_label_contains("Your library: 2 projects.");
+    harness
+        .get_by_role_and_label(Role::Tab, "Storyboard")
+        .focus();
+    harness.run();
+    harness.key_press(egui::Key::Enter);
+    harness.run();
+    assert_eq!(
+        harness.state().state().view(),
+        prosecraft_ui_egui::WorkspaceView::Storyboard
+    );
+    assert!(
+        harness
+            .query_by_label_contains("Your library: 2 projects.")
+            .is_none()
+    );
+    assert!(harness.state().state().status().is_none());
+}
+
+#[test]
+fn the_status_line_fades_after_a_few_seconds() {
+    let mut harness = library_app();
+    harness.get_by_label_contains("Your library: 2 projects.");
+    // Ten seconds at the harness's quarter-second steps.
+    harness.run_steps(40);
+    assert!(
+        harness
+            .query_by_label_contains("Your library: 2 projects.")
+            .is_none()
+    );
+}

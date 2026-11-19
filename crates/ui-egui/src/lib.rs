@@ -434,8 +434,9 @@ pub struct AppState {
     renaming_folder: Option<(String, String)>,
     /// A scene being renamed in the binder: its id and the title typed so far.
     renaming_scene: Option<(String, String)>,
-    /// Chapters shown or hidden with their chevron in the binder this session, by id.
-    chapter_open: std::collections::HashMap<String, bool>,
+    /// Chapters shown or hidden with their chevron in the binder this session, by project and
+    /// chapter id (projects copied from one another share chapter ids).
+    chapter_open: std::collections::HashMap<(String, String), bool>,
     /// The Find and replace dialog, while open.
     find: Option<find::FindState>,
     /// A footnote to open in the footnote editor (document, id), and the one open.

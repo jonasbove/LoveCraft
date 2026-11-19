@@ -1040,6 +1040,40 @@ mod tests {
     }
 
     #[test]
+    fn a_relation_label_moves_off_a_name_or_is_left_out() {
+        let edge = Edge {
+            id: "e".into(),
+            from: "a".into(),
+            to: "b".into(),
+            kind: "family".into(),
+            label: "In his debt".into(),
+            tension: None,
+            status: Status::Declared,
+            count: None,
+            lane: 0.0,
+            lane_count: 1,
+        };
+        let v = EdgeView {
+            edge: &edge,
+            a: Pos2::new(0.0, 0.0),
+            b: Pos2::new(200.0, 0.0),
+            mid: Pos2::new(100.0, 9.0),
+            dimmed: false,
+        };
+        let size = Vec2::new(50.0, 12.0);
+        // Nothing in the way: ProseCraft's place, beside the middle.
+        let free = edge_label_rect(&v, size, 1.0, &[]).expect("a place");
+        assert_eq!(free.center(), v.mid);
+        // A page name over the middle: somewhere else that is clear of it.
+        let name = Rect::from_center_size(v.mid, Vec2::new(70.0, 14.0));
+        let moved = edge_label_rect(&v, size, 1.0, &[name]).expect("another place");
+        assert!(!moved.intersects(name), "{moved:?}");
+        // Everything taken: no label.
+        let all = Rect::from_min_max(Pos2::new(-50.0, -50.0), Pos2::new(250.0, 50.0));
+        assert!(edge_label_rect(&v, size, 1.0, &[all]).is_none());
+    }
+
+    #[test]
     fn fit_keeps_the_lowest_name_inside_the_canvas() {
         // Two pages one above the other: Fit zooms in as far as it goes, and the lower page's
         // name below its circle fell outside the canvas when only the centres were framed.

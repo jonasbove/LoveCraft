@@ -137,7 +137,13 @@ const STATUS_SECONDS: f64 = 8.0;
 
 /// The status line is a passing note, as ProseCraft's status messages are: it goes with the next
 /// change of view or of what is open, or after a few seconds.
+///
+/// While nothing can be saved (a read-only backup, or a library from a newer version) the line
+/// stays: it is the only place that says so.
 fn expire_status(ui: &Ui, state: &mut AppState) {
+    if !state.editable {
+        return;
+    }
     let Some(message) = &state.status else {
         state.status_seen = None;
         return;

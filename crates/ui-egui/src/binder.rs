@@ -902,7 +902,7 @@ fn chapter_open(
     selection: Option<&Selection>,
     renaming: Option<&(String, String)>,
     filtered: bool,
-    open: &std::collections::HashMap<String, bool>,
+    open: &std::collections::HashMap<(String, String), bool>,
 ) -> (bool, bool) {
     let holds = |id: &str| {
         project
@@ -912,7 +912,8 @@ fn chapter_open(
     let locked = filtered
         || matches!(selection, Some(Selection::Document(id)) if holds(id))
         || renaming.is_some_and(|(id, _)| holds(id));
-    let shown = locked || open.get(&chapter.id).copied().unwrap_or(chapter.expanded);
+    let key = (project.id.clone(), chapter.id.clone());
+    let shown = locked || open.get(&key).copied().unwrap_or(chapter.expanded);
     (shown, locked)
 }
 
@@ -927,7 +928,7 @@ fn chapters(
     manage_labels: &mut bool,
     renaming: &mut Option<(String, String)>,
     filter: &mut Option<String>,
-    open: &mut std::collections::HashMap<String, bool>,
+    open: &mut std::collections::HashMap<(String, String), bool>,
     now_ms: f64,
 ) -> Option<Selection> {
     ui.horizontal(|ui| {
@@ -978,7 +979,7 @@ fn chapters(
             open,
         );
         if chapter_row(ui, &mut rows, chapter, is_open, locked) {
-            open.insert(chapter.id.clone(), !is_open);
+            open.insert((project.id.clone(), chapter.id.clone()), !is_open);
         }
         if !is_open {
             continue;

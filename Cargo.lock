@@ -3305,7 +3305,9 @@ version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2660c5e9157bf76d2db1294e4a9feba604ef610819a3b591088d0d8392a3290f"
 dependencies = [
+ "fontconfig-parser",
  "log",
+ "memmap2",
  "slotmap",
  "tinyvec",
 ]
@@ -6335,6 +6337,7 @@ dependencies = [
  "craft-atomic",
  "craft-dialogs",
  "eframe",
+ "fontdb 0.24.0",
  "prosecraft-core",
  "prosecraft-native",
  "prosecraft-ui-egui",

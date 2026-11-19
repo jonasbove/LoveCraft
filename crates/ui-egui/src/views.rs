@@ -1868,11 +1868,9 @@ pub(crate) fn layout_doc(
         let bold = heading || Mark::Bold.applies(marks);
         let italic = kind == LineKind::Quote || Mark::Italic.applies(marks);
         let font = match (bold, italic) {
-            (_, true) => fonts::serif_italic(size),
-            (true, false) => {
-                egui::FontId::new(size, egui::FontFamily::Name(fonts::SERIF_SEMIBOLD.into()))
-            }
-            _ => fonts::serif(size),
+            (_, true) => fonts::writing_italic(size),
+            (true, false) => fonts::writing_bold(size),
+            _ => fonts::writing(size),
         };
         let mut format = egui::TextFormat {
             font_id: font,
@@ -2717,7 +2715,7 @@ fn markdown_editor(
     let body_id = ui.make_persistent_id(("markdown-source", &document.id));
     let output = egui::TextEdit::multiline(source)
         .id(body_id)
-        .font(egui::FontId::monospace(15.0))
+        .font(fonts::markdown(15.0))
         .text_color(palette.text_body)
         .frame(egui::Frame::NONE)
         .hint_text("Start writing…")

@@ -376,6 +376,128 @@ fn the_theme_is_chosen_in_settings_and_remembered() {
     );
 }
 
+#[test]
+fn writing_fonts_are_chosen_in_settings_and_used() {
+    use prosecraft_ui_egui::editor_fonts::{FamilyFaces, InstalledFamily, InstalledFonts};
+    use prosecraft_ui_egui::fonts::Face;
+    struct Fonts(Vec<u8>);
+    impl InstalledFonts for Fonts {
+        fn families(&self) -> Option<Vec<InstalledFamily>> {
+            Some(vec![
+                InstalledFamily {
+                    family: "Literata".into(),
+                    monospaced: false,
+                },
+                InstalledFamily {
+                    family: "Plain Mono".into(),
+                    monospaced: true,
+                },
+            ])
+        }
+        fn faces(&self, family: &str) -> Option<FamilyFaces> {
+            ["Literata", "Plain Mono"]
+                .contains(&family)
+                .then(|| FamilyFaces {
+                    regular: Some(Face {
+                        bytes: self.0.clone(),
+                        index: 0,
+                    }),
+                    ..FamilyFaces::default()
+                })
+        }
+    }
+    type Saved = Vec<(String, Option<String>)>;
+    #[derive(Clone, Default)]
+    struct Settings(std::sync::Arc<std::sync::Mutex<Saved>>);
+    struct Store(Settings);
+    impl prosecraft_ui_egui::LibraryStore for Store {
+        fn save(&mut self, _text: &str) -> Result<(), String> {
+            Ok(())
+        }
+        fn now_ms(&self) -> f64 {
+            1_800_000_000_000.0
+        }
+        fn new_id(&mut self) -> String {
+            "id".into()
+        }
+        fn save_setting(&mut self, key: &str, value: Option<&str>) -> Result<(), String> {
+            self.0
+                .0
+                .lock()
+                .map_err(|e| e.to_string())?
+                .push((key.to_owned(), value.map(str::to_owned)));
+            Ok(())
+        }
+    }
+    let settings = Settings::default();
+    let mut app = ProseApp::with_library(
+        ProjectLibrary::new("d".into()),
+        Box::new(Store(settings.clone())),
+    );
+    // Any real face does: egui's own.
+    let defaults = egui::FontDefinitions::default();
+    let face = (*defaults.font_data["Hack"].font).as_ref().to_vec();
+    app.set_installed_fonts(std::sync::Arc::new(Fonts(face)));
+    let mut harness = Harness::builder()
+        .with_max_steps(8)
+        .with_size([1280.0, 850.0])
+        .build_ui_state(|ui, app: &mut ProseApp| app.show(ui), app);
+    prosecraft_ui_egui::setup_for_tests(&harness.ctx);
+    harness.run();
+    let has = |harness: &Harness<'_, ProseApp>, name: &str| {
+        harness
+            .ctx
+            .fonts(|f| f.definitions().font_data.contains_key(name))
+    };
+    // Georgia isn't installed: the bundled serif, nothing installed.
+    assert!(!has(&harness, "writing-regular"));
+    harness
+        .get_by_role_and_label(Role::Button, "Settings…")
+        .click_accesskit();
+    harness.run();
+    harness.get_by_label("Writing").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::ComboBox, "Writing font")
+        .click_accesskit();
+    harness.run();
+    harness
+        .get_all_by_role_and_label(Role::Button, "Literata")
+        .next()
+        .expect("the ProseCraft font")
+        .click();
+    harness.run();
+    let saved = |key: &str| {
+        settings
+            .0
+            .lock()
+            .expect("settings")
+            .iter()
+            .rev()
+            .find(|(k, _)| k == key)
+            .and_then(|(_, v)| v.clone())
+    };
+    assert_eq!(saved("prosecraft-editor-font").as_deref(), Some("literata"));
+    assert!(
+        has(&harness, "writing-regular"),
+        "Literata is installed: its face heads the writing font"
+    );
+    // The Markdown source: the installed monospaced family.
+    harness
+        .get_by_role_and_label(Role::ComboBox, "Markdown source font")
+        .click_accesskit();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Plain Mono")
+        .click();
+    harness.run();
+    assert_eq!(
+        saved("prosecraft-markdown-editor-system-font").as_deref(),
+        Some("Plain Mono")
+    );
+    assert!(has(&harness, "markdown-regular"));
+}
+
 /// Opens Settings, chooses the open folder (which asks for no passphrase) and syncs.
 fn sync_open(harness: &mut Harness<'_, ProseApp>) -> String {
     harness

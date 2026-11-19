@@ -66,6 +66,9 @@ impl ProseApp {
             .as_deref()
             .and_then(crate::settings::ThemePreference::from_id)
             .unwrap_or_default();
+        self.state.font_prefs =
+            crate::editor_fonts::FontPrefs::read(&mut |key| home.store.load_setting(key));
+        self.state.fonts_applied = None;
         // `isColorScheme`: an unknown value is ProseCraft's own.
         self.state.color_scheme = home
             .store

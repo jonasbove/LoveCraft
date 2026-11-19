@@ -365,6 +365,76 @@ impl Category {
 /// ProseCraft's Markdown editor preference (`prosecraft-markdown-editor-enabled`).
 pub const MARKDOWN_EDITOR_KEY: &str = "prosecraft-markdown-editor-enabled";
 
+/// The writing font pickers (`EditorFontPicker`), and a note for a chosen family this device
+/// doesn't have.
+fn fonts(ui: &mut Ui, state: &mut AppState) {
+    use crate::editor_fonts::{MARKDOWN_FONTS, RICH_TEXT_FONTS, Selection, missing, picker};
+    let palette = state.palette;
+    let families = state.installed_fonts.as_ref().and_then(|i| i.families());
+    let supported = state.installed_fonts.is_some();
+    let mut prefs = state.font_prefs.clone();
+    let warn = |ui: &mut Ui, family: &str| {
+        ui.label(
+            RichText::new(format!(
+                "“{family}” is not installed on this device; the ProseCraft fallback will be used."
+            ))
+            .size(11.0)
+            .color(palette.warning),
+        );
+    };
+    ui.label(
+        RichText::new("Writing font")
+            .size(12.0)
+            .color(palette.text_secondary),
+    );
+    match picker(
+        ui,
+        &palette,
+        ("rich-text-font-preference", "Writing font"),
+        &RICH_TEXT_FONTS,
+        (&prefs.rich, &prefs.rich_system),
+        (families.as_deref(), supported, false),
+    ) {
+        // `setRichTextFontPreference` clears the installed family.
+        Some(Selection::Builtin(id)) => {
+            prefs.rich = id;
+            prefs.rich_system.clear();
+        }
+        Some(Selection::System(family)) => prefs.rich_system = family,
+        None => {}
+    }
+    if missing(&prefs.rich_system, families.as_deref()) {
+        warn(ui, &prefs.rich_system);
+    }
+    ui.add_space(8.0);
+    ui.label(
+        RichText::new("Markdown source font")
+            .size(12.0)
+            .color(palette.text_secondary),
+    );
+    match picker(
+        ui,
+        &palette,
+        ("markdown-font-preference", "Markdown source font"),
+        &MARKDOWN_FONTS,
+        (&prefs.markdown, &prefs.markdown_system),
+        (families.as_deref(), supported, true),
+    ) {
+        Some(Selection::Builtin(id)) => {
+            prefs.markdown = id;
+            prefs.markdown_system.clear();
+        }
+        Some(Selection::System(family)) => prefs.markdown_system = family,
+        None => {}
+    }
+    if missing(&prefs.markdown_system, families.as_deref()) {
+        warn(ui, &prefs.markdown_system);
+    }
+    if prefs != state.font_prefs {
+        state.font_choice = Some(prefs);
+    }
+}
+
 /// The Writing category: text size, the writing experience (typewriter, fade, Zen), focus mode,
 /// the Markdown editor, and the Timeline view.
 fn writing(ui: &mut Ui, state: &mut AppState) {
@@ -374,6 +444,13 @@ fn writing(ui: &mut Ui, state: &mut AppState) {
         help(ui, &palette, text);
         ui.add_space(6.0);
     };
+    heading(
+        ui,
+        "Writing fonts",
+        "Choose typefaces for the writing area and Markdown source",
+    );
+    fonts(ui, state);
+    ui.add_space(14.0);
     let mut prefs = state.writing;
     heading(ui, "Text size", "Adjust the editor scale");
     let scale = craft_ui::ComboBox::from_id_salt("editor-scale")

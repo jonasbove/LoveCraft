@@ -15,6 +15,7 @@
     clippy::unreachable
 )]
 
+mod about_window;
 mod binder;
 mod citation_picker;
 mod cover_art;
@@ -52,6 +53,7 @@ mod zotero;
 
 pub use zotero::Transport as ZoteroTransport;
 mod wiki_files;
+pub use about_window::Platform;
 pub use wiki_files::WikiFileStore;
 
 /// A source of random bytes for keys and nonces, made where it is used.
@@ -423,6 +425,10 @@ pub struct AppState {
     scheme_choice: Option<String>,
     /// The writing fonts, a new choice to save, the host's installed fonts, and the choice the
     /// app's fonts were last built for.
+    /// The About window, while it is open, and where the app runs.
+    about: Option<about_window::About>,
+    about_wanted: bool,
+    platform: about_window::Platform,
     /// Settings > Data > Export encrypted, while its passphrase dialog is open.
     encrypt_export: Option<EncryptExport>,
     /// Where new keys and nonces come from (the web host's; the system's on the desktop).
@@ -1528,6 +1534,12 @@ impl ProseApp {
     }
 
     /// Gives the app the device's wiki file store (the desktop host's).
+    /// Where the app runs, for the About window's diagnostics (the web host's browser and
+    /// storage; the desktop's otherwise).
+    pub fn set_platform(&mut self, platform: about_window::Platform) {
+        self.state.platform = platform;
+    }
+
     /// Where keys and nonces come from (the browser's `crypto.getRandomValues` on the web; the
     /// system's random numbers on the desktop without this).
     pub fn set_random(&mut self, random: RandomFactory) {
@@ -2492,6 +2504,11 @@ impl ProseApp {
         }
         self.passphrase_dialog(ui);
         self.encrypt_export_dialog(ui);
+        if std::mem::take(&mut self.state.about_wanted) {
+            let now = self.home.as_ref().map_or(0.0, |h| h.store.now_ms());
+            about_window::open(&mut self.state, now);
+        }
+        about_window::show(ui.ctx(), &mut self.state);
         self.handle_sync_actions();
         self.save_custom_starters();
         if let Some(prefs) = self.state.proofread_choice.take() {

@@ -486,6 +486,68 @@ fn an_encrypted_backup_is_exported_with_a_passphrase() {
     assert!(harness.query_by_label("Encrypt & export").is_none());
 }
 
+#[test]
+fn the_about_window_reports_the_setup_and_never_the_writing() {
+    let (mut harness, _memory) = app();
+    harness
+        .get_by_label(&format!("About {}", prosecraft_core::about::APP_NAME))
+        .click();
+    harness.run();
+    let report = harness
+        .get_by_role_and_label(Role::MultilineTextInput, "Diagnostics report")
+        .value()
+        .unwrap_or_default();
+    assert!(
+        report.starts_with(&format!(
+            "app: {}",
+            prosecraft_core::about::name_and_version()
+        )),
+        "{report}"
+    );
+    for line in [
+        "projects: 2",
+        "chapters: 1",
+        "scenes: 2",
+        "wiki pages: 1",
+        "comments: 1",
+        "zen mode: off",
+        "proofreading: off",
+    ] {
+        assert!(report.lines().any(|l| l == line), "{line} in {report}");
+    }
+    // Nothing of the writing: not the project's name, its scenes, or the comment.
+    for private in ["The L", "Opening Scene", "Mara", "Darker", "dark"] {
+        assert!(!report.contains(private), "{private} in {report}");
+    }
+    harness.get_by_label("Copy diagnostics").click();
+    harness.run();
+    assert!(
+        harness
+            .get_all_by_role(Role::Status)
+            .any(|n| n.value().as_deref() == Some("Copied"))
+    );
+    harness.get_by_label("Done").click();
+    harness.run();
+    assert!(harness.query_by_label("Copy diagnostics").is_none());
+    // From Settings, as ProseCraft's About category has it.
+    harness
+        .get_by_role_and_label(Role::Button, "Settings…")
+        .click_accesskit();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Tab, "About")
+        .click_accesskit();
+    harness.run();
+    harness
+        .get_by_label_contains(&format!(
+            "About {} · version",
+            prosecraft_core::about::APP_NAME
+        ))
+        .click_accesskit();
+    harness.run();
+    harness.get_by_label("Copy diagnostics");
+}
+
 /// The stored content of a document.
 fn content(memory: &Memory, id: &str) -> String {
     let saved = memory.last();

@@ -182,6 +182,15 @@ mod web {
         };
         // Keys and nonces for encrypted backups: the browser's `crypto.getRandomValues`.
         app.set_random(|| Box::new(BrowserRandom));
+        // The About window's diagnostics: the browser's engine and system, never more of its
+        // user agent.
+        let agent = web_sys::window()
+            .and_then(|w| w.navigator().user_agent().ok())
+            .unwrap_or_default();
+        app.set_platform(prosecraft_ui_egui::Platform {
+            os: prosecraft_core::about::summarize_user_agent(&agent),
+            storage: "IndexedDB".into(),
+        });
         app
     }
 

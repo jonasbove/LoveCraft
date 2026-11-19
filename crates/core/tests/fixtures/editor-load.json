@@ -101,6 +101,84 @@
       "html": "<p>Unicode: café   tab\tend</p>",
       "sanitized": "<p>Unicode: café   tab\tend</p>",
       "saved": "<p>Unicode: café   tab\tend</p>"
+    },
+    {
+      "name": "div blocks",
+      "html": "<div>One</div><div><br></div><div>Two <em>it</em></div>",
+      "sanitized": "<div>One</div><div><br></div><div>Two <em>it</em></div>",
+      "saved": "<div>One</div><div><br></div><div>Two <em>it</em></div>"
+    },
+    {
+      "name": "nested and adjacent divs",
+      "html": "<div><div><p>a</p></div><p>b</p></div><div><p>c</p></div>",
+      "sanitized": "<div><div><p>a</p></div><p>b</p></div><div><p>c</p></div>",
+      "saved": "<div><div><p>a</p></div><p>b</p></div><div><p>c</p></div>"
+    },
+    {
+      "name": "a div in a blockquote",
+      "html": "<blockquote><div><p>q</p></div><p>r</p></blockquote>",
+      "sanitized": "<blockquote><div><p>q</p></div><p>r</p></blockquote>",
+      "saved": "<blockquote><div><p>q</p></div><p>r</p></blockquote>"
+    },
+    {
+      "name": "a div in a list item",
+      "html": "<ul><li><div>a</div></li><li>b</li></ul>",
+      "sanitized": "<ul><li><div>a</div></li><li>b</li></ul>",
+      "saved": "<ul><li><div>a</div></li><li>b</li></ul>"
+    },
+    {
+      "name": "a paragraph in a list item",
+      "html": "<ul><li><p>a</p></li></ul>",
+      "sanitized": "<ul><li><p>a</p></li></ul>",
+      "saved": "<ul><li><p>a</p></li></ul>"
+    },
+    {
+      "name": "text and a paragraph in a list item",
+      "html": "<ul><li>text<p>b</p></li></ul>",
+      "sanitized": "<ul><li>text<p>b</p></li></ul>",
+      "saved": "<ul><li>text<p>b</p></li></ul>"
+    },
+    {
+      "name": "a paragraph and a list in a list item",
+      "html": "<ul><li><p>a</p><ul><li>b</li></ul></li></ul>",
+      "sanitized": "<ul><li><p>a</p><ul><li>b</li></ul></li></ul>",
+      "saved": "<ul><li><p>a</p><ul><li>b</li></ul></li></ul>"
+    },
+    {
+      "name": "a paragraph straight in a list",
+      "html": "<ol><li>One</li><p>stray</p><li>Two</li></ol>",
+      "sanitized": "<ol><li>One</li><p>stray</p><li>Two</li></ol>",
+      "saved": "<ol><li>One</li><p>stray</p><li>Two</li></ol>"
+    },
+    {
+      "name": "a loose list",
+      "html": "<ul>\n<li><p>foo</p>\n<p>bar</p>\n</li>\n<li><p>baz</p>\n</li>\n</ul>\n",
+      "sanitized": "<ul>\n<li><p>foo</p>\n<p>bar</p>\n</li>\n<li><p>baz</p>\n</li>\n</ul>\n",
+      "saved": "<ul>\n<li><p>foo</p>\n<p>bar</p>\n</li>\n<li><p>baz</p>\n</li>\n</ul>\n"
+    },
+    {
+      "name": "a blockquote in a list item",
+      "html": "<ul><li><blockquote><p>q</p></blockquote></li></ul>",
+      "sanitized": "<ul><li><blockquote><p>q</p></blockquote></li></ul>",
+      "saved": "<ul><li><blockquote><p>q</p></blockquote></li></ul>"
+    },
+    {
+      "name": "an empty div and an empty item",
+      "html": "<div></div><ul><li></li></ul>",
+      "sanitized": "<div></div><ul><li></li></ul>",
+      "saved": "<div></div><ul><li></li></ul>"
+    },
+    {
+      "name": "a list item in no list",
+      "html": "<li>Lone item</li><p>after</p>",
+      "sanitized": "<li>Lone item</li><p>after</p>",
+      "saved": "<li>Lone item</li><p>after</p>"
+    },
+    {
+      "name": "fourth-level headings in a row",
+      "html": "<h4>One</h4><h4>Two</h4><p>Three</p>",
+      "sanitized": "OneTwo<p>Three</p>",
+      "saved": "OneTwo<p>Three</p>"
     }
   ]
 }

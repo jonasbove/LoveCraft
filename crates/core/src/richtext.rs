@@ -2,8 +2,9 @@
 //! footnote markers, citations and equations as single characters that keep their exact HTML.
 //!
 //! ProseCraft stores scenes as sanitized HTML (`src/lib/sanitize.ts`, upstream `7dae544`). An
-//! editor here works on a [`RichDoc`]: the text with one `\n` per block, each block's kind, each
-//! character's stack of inline tags, and the atoms. [`RichDoc::from_html`] reads a scene only if
+//! editor here works on a [`RichDoc`]: the text with one `\n` per block, each block's kind (and,
+//! where the kinds can't say it, the containers it sits in: a [`Frame`]), each character's stack
+//! of inline tags, and the atoms. [`RichDoc::from_html`] reads a scene only if
 //! [`RichDoc::to_html`] gives back **exactly** the same HTML, so editing can never drop or
 //! rewrite what the model doesn't understand. A scene it can't hold exactly may still open in a
 //! normalized shape ([`RichDoc::from_html_normalized`]: what ProseCraft's sanitizer stores, then
@@ -20,6 +21,20 @@ pub const SOFT_BREAK: char = '\u{2028}';
 /// A `<br>` inside a block (Shift+Enter in ProseCraft's editor). Like [`SOFT_BREAK`] it ends
 /// the row; unlike it, it isn't text (it adds nothing to the block's `textContent`).
 pub const HARD_BREAK: char = '\u{2029}';
+
+/// The characters the editor gives its own meaning. One of them in a scene's text is held as an
+/// atom whose HTML is that character, so it is written back as it was.
+const OWN_CHARS: [char; 3] = [ATOM, SOFT_BREAK, HARD_BREAK];
+
+/// The character a text atom stands for: one of the editor's own characters found in a scene's
+/// text (a line separator, say), which is text there, not the editor's break.
+pub fn text_atom(html: &str) -> Option<char> {
+    let mut chars = html.chars();
+    match (chars.next(), chars.next()) {
+        (Some(c), None) if OWN_CHARS.contains(&c) => Some(c),
+        _ => None,
+    }
+}
 
 /// What a line (block) is.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -48,9 +63,12 @@ pub enum LineKind {
     Block,
     /// A screenplay element: `<p data-sp="…">`. `bare` is an empty one written without the
     /// editor's `<br>` (as a new screenplay scene starts: `<p data-sp="scene-heading"></p>`).
+    /// `eyebrow` is one that is a caption too, `<p class="eyebrow" data-sp="…">` (a caption
+    /// given an element type in ProseCraft's screenplay editor keeps its class).
     Screenplay {
         kind: ScreenplayKind,
         bare: bool,
+        eyebrow: bool,
     },
     /// `<p></p>`: an empty paragraph written without the editor's `<br>` (as an import writes
     /// one). Typed into, it is a [`Self::Paragraph`].
@@ -191,6 +209,158 @@ impl LineKind {
     }
 }
 
+/// A container element a line sits in (see [`Frame`]).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ContainerTag {
+    Div,
+    Blockquote,
+    Ul,
+    Ol,
+    Li,
+}
+
+impl ContainerTag {
+    fn name(self) -> &'static str {
+        match self {
+            Self::Div => "div",
+            Self::Blockquote => "blockquote",
+            Self::Ul => "ul",
+            Self::Ol => "ol",
+            Self::Li => "li",
+        }
+    }
+
+    /// The container an element is (one without attributes, as ProseCraft's sanitizer keeps
+    /// them).
+    fn of(element: &Element) -> Option<Self> {
+        if !element.attrs.is_empty() || is_kept_div(element) {
+            return None;
+        }
+        Some(match element.name.as_str() {
+            "div" => Self::Div,
+            "blockquote" => Self::Blockquote,
+            "ul" => Self::Ul,
+            "ol" => Self::Ol,
+            "li" => Self::Li,
+            _ => return None,
+        })
+    }
+}
+
+/// One container element. Neighbouring lines whose containers have the same id at the same
+/// place sit in the same element.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct Container {
+    pub tag: ContainerTag,
+    pub id: u32,
+}
+
+/// How deep a line's containers can nest.
+const MAX_CONTAINERS: usize = 32;
+
+/// Where a line sits when its kind can't say it, in the shapes ProseCraft keeps: a `<div>` (a
+/// block WebKit's Enter makes, an import's wrapper), paragraphs and other blocks in a list
+/// item, a paragraph straight in a list, a `<div>` or a list in a blockquote.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Frame {
+    /// The containers, outermost first.
+    pub containers: Vec<Container>,
+    /// What the line is written as in them: a paragraph (or an empty one), a heading, a
+    /// caption, a screenplay element, a kept block, or inline content straight in the
+    /// innermost container ([`LineKind::Bare`]).
+    pub block: LineKind,
+    /// Empty inline content written as nothing (an empty container), not the editor's `<br>`.
+    pub no_br: bool,
+}
+
+impl Frame {
+    /// The kind the line looks like: a list item in a list, a quote in a blockquote.
+    pub fn shown(&self) -> LineKind {
+        if !matches!(
+            self.block,
+            LineKind::Paragraph | LineKind::EmptyParagraph | LineKind::Bare { .. }
+        ) {
+            return self.block;
+        }
+        let lists: Vec<bool> = self
+            .containers
+            .iter()
+            .filter_map(|c| match c.tag {
+                ContainerTag::Ul => Some(false),
+                ContainerTag::Ol => Some(true),
+                _ => None,
+            })
+            .collect();
+        let deepest = lists
+            .get(..lists.len().min(MAX_LIST_DEPTH))
+            .unwrap_or_default();
+        if let Some(kind) = LineKind::list_item(deepest) {
+            return kind;
+        }
+        if self
+            .containers
+            .iter()
+            .any(|c| c.tag == ContainerTag::Blockquote)
+        {
+            return LineKind::Quote;
+        }
+        self.block
+    }
+
+    /// The frame of a line Enter starts after this one: in a list item, the next item (with
+    /// the block that follows this one); in a `<div>` block holding text, the next `<div>` (as
+    /// WebKit's Enter makes it); else the next block in the same containers.
+    fn follow(&self, fresh: u32) -> Self {
+        let mut next = self.clone();
+        next.no_br = false;
+        let bare = matches!(self.block, LineKind::Bare { .. });
+        let split = match next.containers.last_mut() {
+            Some(last)
+                if last.tag == ContainerTag::Li || (bare && last.tag == ContainerTag::Div) =>
+            {
+                last.id = fresh;
+                true
+            }
+            _ => false,
+        };
+        if !(bare && split) {
+            next.block = follow_kind(self.block);
+        }
+        next
+    }
+
+    /// The same line, as a kept block, or as text (a kept block's line typed into).
+    fn with_block(&self, block: LineKind) -> Self {
+        Self {
+            containers: self.containers.clone(),
+            block,
+            no_br: false,
+        }
+    }
+}
+
+/// The kind of the line Enter starts after a line of `kind`.
+fn follow_kind(kind: LineKind) -> LineKind {
+    match kind {
+        LineKind::Heading1
+        | LineKind::Heading2
+        | LineKind::Heading3
+        | LineKind::Eyebrow
+        | LineKind::Block
+        | LineKind::EmptyParagraph
+        | LineKind::Bare { quote: false } => LineKind::Paragraph,
+        LineKind::Bare { quote: true } => LineKind::Quote,
+        // A new screenplay element is written as the editor writes it (with its `<br>`, and
+        // without a caption's class, as ProseCraft's Enter makes a plain `<p data-sp>`).
+        LineKind::Screenplay { kind, .. } => LineKind::Screenplay {
+            kind,
+            bare: false,
+            eyebrow: false,
+        },
+        other => other,
+    }
+}
+
 /// An inline element (`em`, `strong`, `a href=…`) wrapping a character.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Tag {
@@ -234,6 +404,9 @@ pub struct RichDoc {
     /// With newlines between blocks, none inside a blockquote or a list (as ProseCraft's EPUB
     /// import joins the blocks it reads).
     pub compact_containers: bool,
+    /// Each line's [`Frame`], for a scene with containers its kinds can't say; empty otherwise.
+    /// A line without one is written by its kind alone, outside them.
+    pub frames: Vec<Option<Frame>>,
 }
 
 /// The formatting buttons: each toggles one inline element (and its synonyms).
@@ -539,6 +712,12 @@ struct Reader {
     /// Inline content in no block gives up the newline that separates it from the blocks
     /// around it (a document whose blocks are joined by newlines).
     trim_bare: bool,
+    /// Every line is read with its containers ([`Frame`]).
+    framed: bool,
+    /// The containers open, outermost first.
+    path: Vec<Container>,
+    /// The last container's id.
+    next_id: u32,
 }
 
 impl Reader {
@@ -552,10 +731,16 @@ impl Reader {
             match node {
                 Node::Text(text) => {
                     for c in text.chars() {
-                        let c = if c == '\n' { SOFT_BREAK } else { c };
-                        if c == ATOM || c == HARD_BREAK || c == '\r' {
+                        // A browser reads a carriage return as a newline: not held.
+                        if c == '\r' {
                             return None;
                         }
+                        if OWN_CHARS.contains(&c) {
+                            self.doc.atoms.push(c.to_string());
+                            self.push_char(ATOM, stack);
+                            continue;
+                        }
+                        let c = if c == '\n' { SOFT_BREAK } else { c };
                         self.push_char(c, stack);
                     }
                 }
@@ -586,18 +771,30 @@ impl Reader {
         Some(())
     }
 
-    /// A `<p data-sp>` paragraph: a screenplay element (empty without a `<br>` too).
+    /// A `<p data-sp>` paragraph: a screenplay element (empty without a `<br>` too), a caption
+    /// too when its class is `eyebrow` (written first, as ProseCraft's sanitizer writes it).
     fn screenplay(&mut self, element: &Element) -> Option<()> {
-        let [(name, value)] = element.attrs.as_slice() else {
-            return None;
+        let (eyebrow, value) = match element.attrs.as_slice() {
+            [(name, value)] if name == "data-sp" => (false, value),
+            [(class, eyebrow), (name, value)]
+                if class == "class" && eyebrow == "eyebrow" && name == "data-sp" =>
+            {
+                (true, value)
+            }
+            _ => return None,
         };
-        let kind = (name == "data-sp")
-            .then(|| ScreenplayKind::from_name(value))
-            .flatten()?;
+        let kind = ScreenplayKind::from_name(value)?;
         let bare = element.children.is_empty();
         let mut plain = element.clone();
         plain.attrs.clear();
-        self.block(&plain, LineKind::Screenplay { kind, bare })
+        self.block(
+            &plain,
+            LineKind::Screenplay {
+                kind,
+                bare,
+                eyebrow,
+            },
+        )
     }
 
     /// A list (`ul` or `ol`) at the end of `path`: its items, and the lists inside them.
@@ -640,13 +837,45 @@ impl Reader {
         Some(())
     }
 
-    /// Starts a line of `kind`.
+    /// Starts a line of `kind` (in the containers open, when framed).
     fn new_line(&mut self, kind: LineKind) {
         if !self.doc.lines.is_empty() {
             self.doc.text.push('\n');
             self.doc.marks.push(Vec::new());
         }
-        self.doc.lines.push(kind);
+        if self.framed {
+            let frame = Frame {
+                containers: self.path.clone(),
+                block: kind,
+                no_br: false,
+            };
+            self.doc.lines.push(frame.shown());
+            self.doc.frames.push(Some(frame));
+        } else {
+            self.doc.lines.push(kind);
+        }
+    }
+
+    /// A container and what it holds; an empty one is a line with nothing in it.
+    fn container(&mut self, element: &Element, tag: ContainerTag) -> Option<()> {
+        if self.path.len() >= MAX_CONTAINERS {
+            return None;
+        }
+        self.next_id = self.next_id.saturating_add(1);
+        self.path.push(Container {
+            tag,
+            id: self.next_id,
+        });
+        let lines = self.doc.lines.len();
+        self.blocks(&element.children, false)?;
+        if self.doc.lines.len() == lines {
+            self.new_line(LineKind::Bare { quote: false });
+            if let Some(Some(frame)) = self.doc.frames.last_mut() {
+                frame.no_br = true;
+            }
+        }
+        self.path.pop();
+        Some(())
     }
 
     /// A block kept whole: one atom alone on its line.
@@ -674,6 +903,14 @@ impl Reader {
 
     /// Inline content in no block: one line of its own.
     fn bare(&mut self, nodes: &[Node], quote: bool) -> Option<()> {
+        // In a container, a `<br>` alone is the editor's empty line.
+        if self.framed
+            && !self.path.is_empty()
+            && matches!(nodes, [Node::Element(br)] if br.name == "br" && br.attrs.is_empty())
+        {
+            self.new_line(LineKind::Bare { quote });
+            return Some(());
+        }
         let mut nodes = nodes.to_vec();
         if self.trim_bare {
             if let Some(Node::Text(first)) = nodes.first_mut()
@@ -716,8 +953,13 @@ impl Reader {
         Some(())
     }
 
-    /// One block at the top of the scene.
+    /// One block at the top of the scene (or, framed, in a container).
     fn top_block(&mut self, element: &Element) -> Option<()> {
+        if self.framed
+            && let Some(tag) = ContainerTag::of(element)
+        {
+            return self.container(element, tag);
+        }
         match element.name.as_str() {
             "p" if element.attr("data-sp").is_some() => self.screenplay(element)?,
             "p" if element.attrs == [("class".to_owned(), "eyebrow".to_owned())] => {
@@ -880,16 +1122,32 @@ impl RichDoc {
             });
         }
         let nodes = parse_fragment(html);
+        // By kinds alone first; then with each line's containers.
+        [false, true]
+            .into_iter()
+            .find_map(|framed| Self::read_exactly(html, &nodes, framed))
+    }
+
+    /// [`Self::from_html`], read by kinds alone or `framed`.
+    fn read_exactly(html: &str, nodes: &[Node], framed: bool) -> Option<Self> {
         for trim_bare in [false, true] {
             let mut reader = Reader {
                 doc: RichDoc::default(),
                 trim_bare,
+                framed,
+                path: Vec::new(),
+                next_id: 0,
             };
-            if reader.blocks(&nodes, false).is_none() || reader.doc.lines.is_empty() {
+            if reader.blocks(nodes, false).is_none() || reader.doc.lines.is_empty() {
                 return None;
             }
             let mut doc = reader.doc;
-            let bare = doc.lines.iter().any(|k| matches!(k, LineKind::Bare { .. }));
+            let bare = doc.lines.iter().any(|k| matches!(k, LineKind::Bare { .. }))
+                || doc
+                    .frames
+                    .iter()
+                    .flatten()
+                    .any(|f| matches!(f.block, LineKind::Bare { .. }));
             for (newline_blocks, no_final_newline, compact_containers) in LAYOUTS {
                 if trim_bare && !newline_blocks {
                     continue;
@@ -909,10 +1167,78 @@ impl RichDoc {
         None
     }
 
+    /// After Enter split the innermost container of `own` (a list item, a `<div>` block) at
+    /// line `last` (the last new line), the lines after it still in that container go with it.
+    fn split_container(&mut self, own: &Frame, last: usize) {
+        let Some(depth) = own.containers.len().checked_sub(1) else {
+            return;
+        };
+        let Some(fresh) = self
+            .frame(last)
+            .and_then(|f| f.containers.get(depth))
+            .filter(|c| own.containers.get(depth) != Some(*c))
+            .map(|c| c.id)
+        else {
+            return;
+        };
+        let old = own.containers.clone();
+        for slot in self.frames.iter_mut().skip(last + 1) {
+            match slot {
+                Some(frame) if frame.containers.starts_with(&old) => {
+                    if let Some(container) = frame.containers.get_mut(depth) {
+                        container.id = fresh;
+                    }
+                }
+                _ => break,
+            }
+        }
+    }
+
+    /// Line `line`'s [`Frame`], if it has one.
+    pub fn frame(&self, line: usize) -> Option<&Frame> {
+        self.frames.get(line).and_then(Option::as_ref)
+    }
+
+    /// An id no container has.
+    fn fresh_id(&self) -> u32 {
+        self.frames
+            .iter()
+            .flatten()
+            .flat_map(|f| f.containers.iter().map(|c| c.id))
+            .max()
+            .unwrap_or(0)
+            .saturating_add(1)
+    }
+
+    /// Whether a list item's line starts its item (has its bullet or number): not a second
+    /// block in one item, nor a paragraph straight in a list.
+    pub fn starts_item(&self, line: usize) -> bool {
+        let Some(frame) = self.frame(line) else {
+            return true;
+        };
+        let is_list = |c: &Container| matches!(c.tag, ContainerTag::Ul | ContainerTag::Ol);
+        let item = frame
+            .containers
+            .iter()
+            .rposition(|c| c.tag == ContainerTag::Li);
+        let list = frame.containers.iter().rposition(is_list);
+        match (item, list) {
+            (Some(item), list) if list.is_none_or(|l| l < item) => {
+                let open = frame.containers.get(..=item).unwrap_or_default();
+                line == 0
+                    || !self
+                        .frame(line - 1)
+                        .is_some_and(|above| above.containers.starts_with(open))
+            }
+            _ => false,
+        }
+    }
+
     /// A scene [`Self::from_html`] can't hold, as a document that writes it in a shape it can:
     /// first as ProseCraft's sanitizer cleans it (what ProseCraft's editor stores once the
-    /// scene is edited), then with a `<div>` wrapper unwrapped and the paragraphs in a list
-    /// item (or straight in the list) made items of their own. Only if every character of
+    /// scene is edited), then (for containers nested deeper than a [`Frame`] holds) with a
+    /// `<div>` wrapper unwrapped and the paragraphs in a list item (or straight in the list)
+    /// made items of their own. Only if every character of
     /// text and every footnote, citation, equation, picture and kept block is still there, in
     /// order; else `None`.
     ///
@@ -980,12 +1306,23 @@ impl RichDoc {
             inner: if self.compact_containers { "" } else { nl },
             container: None,
             lists: Vec::new(),
+            framed: Vec::new(),
             atoms: self.atoms.iter(),
             chars: &chars,
             spans,
         };
         let mut previous: Option<LineKind> = None;
+        let mut previous_frame: Option<(Vec<Container>, LineKind)> = None;
         for (index, (start, end)) in self.line_ranges().into_iter().enumerate() {
+            if let Some(frame) = self.frame(index) {
+                let block = self.written_block(frame, previous_frame.as_ref(), start == end);
+                let nothing = frame.no_br && start == end && self.alone(index);
+                writer.framed_line(&frame.containers, (block, nothing), start..end, &self.marks);
+                previous = Some(frame.with_block(block).shown());
+                previous_frame = Some((frame.containers.clone(), block));
+                continue;
+            }
+            previous_frame = None;
             let stored = self
                 .lines
                 .get(index)
@@ -997,7 +1334,40 @@ impl RichDoc {
         }
         writer.close_lists(0);
         writer.set_container(None);
+        writer.close_framed(0);
         writer.out
+    }
+
+    /// How a framed line is written (as [`Self::written_kind`]): emptied inline content at the
+    /// top is a paragraph, and so is inline content that would run into the line before it in
+    /// the same container; an empty paragraph typed into is an ordinary one.
+    fn written_block(
+        &self,
+        frame: &Frame,
+        previous: Option<&(Vec<Container>, LineKind)>,
+        empty: bool,
+    ) -> LineKind {
+        let runs_on = previous.is_some_and(|(containers, block)| {
+            *containers == frame.containers && matches!(block, LineKind::Bare { .. })
+        }) && (!self.newline_blocks || !frame.containers.is_empty());
+        match frame.block {
+            LineKind::Bare { .. } if (empty && frame.containers.is_empty()) || runs_on => {
+                LineKind::Paragraph
+            }
+            LineKind::EmptyParagraph if !empty => LineKind::Paragraph,
+            block => block,
+        }
+    }
+
+    /// Whether line `line` is alone in its innermost container (no line beside it shares it).
+    fn alone(&self, line: usize) -> bool {
+        let Some(frame) = self.frame(line) else {
+            return false;
+        };
+        let shares = |other: Option<&Frame>| {
+            other.is_some_and(|o| o.containers.starts_with(&frame.containers))
+        };
+        !shares(line.checked_sub(1).and_then(|l| self.frame(l))) && !shares(self.frame(line + 1))
     }
 
     /// How a line of `kind` is written: inline content in no block that was emptied, or that
@@ -1030,6 +1400,8 @@ struct Writer<'a> {
     container: Option<&'static str>,
     /// The lists open, outermost first; each has an item open.
     lists: Vec<&'static str>,
+    /// The containers of framed lines open, outermost first.
+    framed: Vec<Container>,
     atoms: std::slice::Iter<'a, String>,
     chars: &'a [char],
     spans: &'a mut Vec<std::ops::Range<usize>>,
@@ -1063,6 +1435,89 @@ impl Writer<'_> {
         self.container = wanted;
     }
 
+    /// Closes framed lines' containers down to the first `keep`.
+    fn close_framed(&mut self, keep: usize) {
+        while self.framed.len() > keep {
+            if let Some(container) = self.framed.pop() {
+                let after = if self.framed.is_empty() {
+                    self.nl
+                } else {
+                    self.inner
+                };
+                self.out
+                    .push_str(&format!("</{}>{after}", container.tag.name()));
+            }
+        }
+    }
+
+    /// A framed line: its containers (those of the line above kept), then its block; inline
+    /// content straight in a container ends with it, and an empty one is the editor's `<br>`
+    /// unless it is written as `nothing`.
+    fn framed_line(
+        &mut self,
+        containers: &[Container],
+        (block, nothing): (LineKind, bool),
+        range: std::ops::Range<usize>,
+        marks: &[Vec<Tag>],
+    ) {
+        self.close_lists(0);
+        self.set_container(None);
+        let common = self
+            .framed
+            .iter()
+            .zip(containers)
+            .take_while(|(a, b)| a == b)
+            .count();
+        self.close_framed(common);
+        for container in containers.get(common..).unwrap_or_default() {
+            self.out.push_str(&format!("<{}>", container.tag.name()));
+            if container.tag != ContainerTag::Li {
+                self.out.push_str(self.inner);
+            }
+            self.framed.push(*container);
+        }
+        let after = if self.framed.is_empty() {
+            self.nl
+        } else {
+            self.inner
+        };
+        match block {
+            LineKind::Block => {
+                self.block_atoms(range);
+                self.out.push_str(after);
+            }
+            LineKind::Bare { .. } => {
+                if range.is_empty() && !nothing && !containers.is_empty() {
+                    self.out.push_str("<br>");
+                }
+                self.inline(range, marks);
+                if containers.is_empty() {
+                    self.out.push_str(self.nl);
+                }
+            }
+            _ => {
+                let (tag, _) = block.tags();
+                self.open_block(block, tag, range.is_empty());
+                self.inline(range, marks);
+                self.out.push_str(&format!("</{tag}>{after}"));
+            }
+        }
+    }
+
+    /// A kept block's atom.
+    fn block_atoms(&mut self, range: std::ops::Range<usize>) {
+        for i in range {
+            if self.chars.get(i) == Some(&ATOM) {
+                let from = self.out.len();
+                let html = self.atoms.next().map(String::as_str).unwrap_or_default();
+                self.out.push_str(html);
+                if let Some(span) = self.spans.get_mut(i) {
+                    *span = from..self.out.len();
+                }
+            }
+        }
+    }
+
     /// The newline after a block: inside its container's, else a top-level one.
     fn after_block(&self) -> &'static str {
         if self.container.is_some() {
@@ -1073,6 +1528,7 @@ impl Writer<'_> {
     }
 
     fn line(&mut self, kind: LineKind, range: std::ops::Range<usize>, marks: &[Vec<Tag>]) {
+        self.close_framed(0);
         let wanted_lists = kind.lists();
         if wanted_lists.is_empty() {
             self.close_lists(0);
@@ -1080,16 +1536,7 @@ impl Writer<'_> {
         let (block, wanted) = kind.tags();
         self.set_container(wanted);
         if kind == LineKind::Block {
-            for i in range {
-                if self.chars.get(i) == Some(&ATOM) {
-                    let from = self.out.len();
-                    let html = self.atoms.next().map(String::as_str).unwrap_or_default();
-                    self.out.push_str(html);
-                    if let Some(span) = self.spans.get_mut(i) {
-                        *span = from..self.out.len();
-                    }
-                }
-            }
+            self.block_atoms(range);
             self.out.push_str(self.nl);
             return;
         }
@@ -1138,9 +1585,14 @@ impl Writer<'_> {
                 self.out.push_str(r#"<p class="eyebrow">"#);
                 empty
             }
-            LineKind::Screenplay { kind, bare } => {
+            LineKind::Screenplay {
+                kind,
+                bare,
+                eyebrow,
+            } => {
+                let class = if eyebrow { r#" class="eyebrow""# } else { "" };
                 self.out
-                    .push_str(&format!(r#"<p data-sp="{}">"#, kind.as_str()));
+                    .push_str(&format!(r#"<p{class} data-sp="{}">"#, kind.as_str()));
                 empty && !bare
             }
             LineKind::EmptyParagraph => {
@@ -1274,6 +1726,9 @@ impl RichDoc {
                     let html = self.atoms.get(atom).map(String::as_str).unwrap_or_default();
                     if is_block_atom(html) {
                         text.extend(crate::comments::comment_text(html));
+                    } else if let Some(c) = text_atom(html) {
+                        let mut buf = [0u16; 2];
+                        text.extend_from_slice(c.encode_utf16(&mut buf));
                     }
                     atom += 1;
                 }
@@ -1302,6 +1757,7 @@ impl RichDoc {
         let mut text = Vec::new();
         let mut at = Vec::new();
         let mut written = 0;
+        let mut atom = 0;
         let newlines = |text: &mut Vec<char>, at: &mut Vec<Option<usize>>, html: &str| {
             for _ in 0..structural_newlines(html) {
                 text.push('\n');
@@ -1310,6 +1766,12 @@ impl RichDoc {
         };
         for (i, c) in chars.iter().enumerate() {
             let span = spans.get(i).cloned().unwrap_or(0..0);
+            let own = (*c == ATOM)
+                .then(|| text_atom(self.atoms.get(atom).map(String::as_str).unwrap_or_default()))
+                .flatten();
+            if *c == ATOM {
+                atom += 1;
+            }
             if *c == '\n' || span.is_empty() {
                 continue;
             }
@@ -1324,6 +1786,11 @@ impl RichDoc {
                 .get(i)
                 .is_some_and(|tags| tags.iter().any(|t| t.name == "a" || t.name == "code"));
             match *c {
+                // A text atom's character is text in a text node.
+                ATOM if !skipped && own.is_some() => {
+                    text.extend(own);
+                    at.push(Some(i));
+                }
                 ATOM | HARD_BREAK => {}
                 _ if skipped => {}
                 SOFT_BREAK => {
@@ -1437,22 +1904,23 @@ impl RichDoc {
         let kind = self.lines.get(line).copied().unwrap_or(LineKind::Paragraph);
         let end = (line + 1 + breaks_removed).min(self.lines.len());
         self.lines.drain((line + 1).min(end)..end);
-        let follow = match kind {
-            LineKind::Heading1
-            | LineKind::Heading2
-            | LineKind::Heading3
-            | LineKind::Eyebrow
-            | LineKind::Block
-            | LineKind::EmptyParagraph
-            | LineKind::Bare { quote: false } => LineKind::Paragraph,
-            LineKind::Bare { quote: true } => LineKind::Quote,
-            // A new screenplay element is written as the editor writes it (with its `<br>`).
-            LineKind::Screenplay { kind, .. } => LineKind::Screenplay { kind, bare: false },
-            other => other,
-        };
+        let framed = !self.frames.is_empty();
+        if framed {
+            let end = (line + 1 + breaks_removed).min(self.frames.len());
+            self.frames.drain((line + 1).min(end)..end);
+        }
+        let own = self.frame(line).cloned();
         let breaks_added = inserted.iter().filter(|c| **c == '\n').count();
         for _ in 0..breaks_added {
+            let frame = own.as_ref().map(|f| f.follow(self.fresh_id()));
+            let follow = frame.as_ref().map_or(follow_kind(kind), Frame::shown);
             self.lines.insert((line + 1).min(self.lines.len()), follow);
+            if framed {
+                self.frames.insert((line + 1).min(self.frames.len()), frame);
+            }
+        }
+        if let Some(own) = own {
+            self.split_container(&own, line + breaks_added);
         }
         // Formatting of the inserted characters.
         let inherit = if prefix > 0 && old.get(prefix - 1).is_some_and(|c| *c != '\n') {
@@ -1488,7 +1956,25 @@ impl RichDoc {
     /// inline content is a paragraph again, a typed-in empty paragraph an ordinary one.
     fn settle_lines(&mut self) {
         let mut previous = None;
+        let mut previous_frame: Option<(Vec<Container>, LineKind)> = None;
         for (index, (start, end)) in self.line_ranges().into_iter().enumerate() {
+            if let Some(frame) = self.frame(index) {
+                let block = self.written_block(frame, previous_frame.as_ref(), start == end);
+                let settled = Frame {
+                    block,
+                    ..frame.clone()
+                };
+                previous = Some(settled.shown());
+                previous_frame = Some((settled.containers.clone(), block));
+                if let Some(slot) = self.lines.get_mut(index) {
+                    *slot = settled.shown();
+                }
+                if let Some(slot) = self.frames.get_mut(index) {
+                    *slot = Some(settled);
+                }
+                continue;
+            }
+            previous_frame = None;
             if let Some(kind) = self.lines.get(index).copied() {
                 let written = self.written_kind(kind, previous, start == end);
                 if let Some(slot) = self.lines.get_mut(index) {
@@ -1529,12 +2015,16 @@ impl RichDoc {
         let mut text = String::new();
         let mut marks = Vec::new();
         let mut lines = Vec::new();
-        let mut push = |kind: LineKind, range: std::ops::Range<usize>, lines: &mut Vec<_>| {
+        let mut frames: Vec<Option<Frame>> = Vec::new();
+        let mut push = |(kind, frame): (LineKind, Option<Frame>),
+                        range: std::ops::Range<usize>,
+                        lines: &mut Vec<_>| {
             if !lines.is_empty() {
                 text.push('\n');
                 marks.push(Vec::new());
             }
             lines.push(kind);
+            frames.push(frame);
             for i in range {
                 text.push(chars[i]);
                 marks.push(if block[i] {
@@ -1549,24 +2039,38 @@ impl RichDoc {
                 Some(LineKind::Block) | None => LineKind::Paragraph,
                 Some(kind) => kind,
             };
+            let own = self.frame(line);
+            // The line's text, and its blocks, in its containers.
+            let text_line = match own {
+                Some(f) if f.block == LineKind::Block => {
+                    let f = f.with_block(LineKind::Paragraph);
+                    (f.shown(), Some(f))
+                }
+                Some(f) => (kind, Some(f.clone())),
+                None => (kind, None),
+            };
+            let block_line = (LineKind::Block, own.map(|f| f.with_block(LineKind::Block)));
             let mut from = start;
             let mut pieces = 0;
             for i in (start..end).filter(|i| block[*i]) {
                 if i > from {
-                    push(kind, from..i, &mut lines);
+                    push(text_line.clone(), from..i, &mut lines);
                     pieces += 1;
                 }
-                push(LineKind::Block, i..i + 1, &mut lines);
+                push(block_line.clone(), i..i + 1, &mut lines);
                 pieces += 1;
                 from = i + 1;
             }
             if end > from || pieces == 0 {
-                push(kind, from..end, &mut lines);
+                push(text_line, from..end, &mut lines);
             }
         }
         self.text = text;
         self.marks = marks;
         self.lines = lines;
+        if !self.frames.is_empty() {
+            self.frames = frames;
+        }
     }
 
     /// Puts an atom (its exact HTML, such as a footnote marker) at character `index`, formatted
@@ -1628,12 +2132,31 @@ impl RichDoc {
         if self.lines.is_empty() {
             self.lines.push(LineKind::Paragraph);
         }
+        // In the line's containers, if it has any.
+        let own = self.frame(line).cloned();
+        let block_frame = own.as_ref().map(|f| f.with_block(LineKind::Block));
+        let after_frame = own.as_ref().map(|f| f.with_block(LineKind::Paragraph));
+        let after = after_frame
+            .as_ref()
+            .map_or(LineKind::Paragraph, Frame::shown);
         if empty {
             self.lines[line] = LineKind::Block;
-            self.lines.insert(line + 1, LineKind::Paragraph);
+            self.lines.insert(line + 1, after);
         } else {
             self.lines.insert(line + 1, LineKind::Block);
-            self.lines.insert(line + 2, LineKind::Paragraph);
+            self.lines.insert(line + 2, after);
+        }
+        if !self.frames.is_empty() {
+            let at = (line + 1).min(self.frames.len());
+            if empty {
+                if let Some(slot) = self.frames.get_mut(line) {
+                    *slot = block_frame;
+                }
+                self.frames.insert(at, after_frame);
+            } else {
+                self.frames.insert(at, after_frame);
+                self.frames.insert(at, block_frame);
+            }
         }
         self.atoms
             .insert(atoms_before.min(self.atoms.len()), html.to_owned());
@@ -1741,6 +2264,29 @@ impl RichDoc {
         self.lines
             .extend(pasted.lines.iter().skip(1).map(|kind| kind.shown()));
         self.lines.extend(tail);
+        // Pasted blocks are written by their kinds; the caret's line keeps its containers, in
+        // the block pasted into an empty one (or none, for a list item or a quote).
+        if !self.frames.is_empty() {
+            let tail = self.frames.split_off((line + 1).min(self.frames.len()));
+            if let Some(slot) = self.frames.get_mut(line)
+                && let Some(frame) = slot.as_mut()
+                && first != own
+            {
+                match first {
+                    LineKind::Paragraph | LineKind::EmptyParagraph | LineKind::Bare { .. } => {}
+                    kind if kind.list_depth().is_some() || kind == LineKind::Quote => *slot = None,
+                    kind => frame.block = kind,
+                }
+                if let Some(frame) = slot.as_ref()
+                    && let Some(kind) = self.lines.get_mut(line)
+                {
+                    *kind = frame.shown();
+                }
+            }
+            self.frames
+                .extend(pasted.lines.iter().skip(1).map(|_| None));
+            self.frames.extend(tail);
+        }
         self.empty_source = false;
         self.keep_blocks_alone();
         let caret = at + pasted_chars;
@@ -1819,6 +2365,11 @@ impl RichDoc {
             let atoms_in = chars[start..end].iter().filter(|c| **c == ATOM).count();
             RichDoc {
                 text: chars[start..end].iter().collect(),
+                frames: if self.frames.is_empty() {
+                    Vec::new()
+                } else {
+                    lines.clone().map(|l| self.frame(l).cloned()).collect()
+                },
                 lines: lines
                     .clone()
                     .map(|l| self.lines.get(l).copied().unwrap_or(LineKind::Paragraph))
@@ -2011,6 +2562,23 @@ impl RichDoc {
             if let Some(slot) = self.lines.get_mut(line).filter(|k| **k != LineKind::Block) {
                 *slot = kind;
             }
+            // A framed line takes the block in its containers; made a list item or a quote, or
+            // taken out of the list or quote it is in, it is written by its kind alone.
+            if let Some(slot) = self.frames.get_mut(line)
+                && let Some(frame) = slot.as_mut()
+                && frame.block != LineKind::Block
+            {
+                let in_container = frame.shown() != frame.block;
+                let container_kind = kind.list_depth().is_some() || kind == LineKind::Quote;
+                if in_container && frame.shown() == kind {
+                    continue;
+                }
+                if in_container || container_kind {
+                    *slot = None;
+                } else {
+                    frame.block = kind;
+                }
+            }
         }
     }
 
@@ -2156,6 +2724,215 @@ mod tests {
     }
 
     #[test]
+    fn a_caption_that_is_a_screenplay_element_is_both() {
+        let html = r#"<p data-sp="scene-heading">INT. ROOM</p><p class="eyebrow" data-sp="dialogue">y</p><p class="eyebrow" data-sp="action"></p>"#;
+        let mut doc = RichDoc::from_html(html).unwrap_or_else(|| panic!("not read: {html}"));
+        assert_eq!(doc.to_html(), html);
+        assert_eq!(
+            doc.lines[1],
+            LineKind::Screenplay {
+                kind: super::ScreenplayKind::Dialogue,
+                bare: false,
+                eyebrow: true,
+            }
+        );
+        // Typed into, it keeps both; Enter starts a plain element, as ProseCraft's does.
+        doc.apply_text_at("INT. ROOM\nyz\n\n", Some(13));
+        assert_eq!(
+            doc.to_html(),
+            r#"<p data-sp="scene-heading">INT. ROOM</p><p class="eyebrow" data-sp="dialogue">yz</p><p data-sp="dialogue"><br></p><p class="eyebrow" data-sp="action"></p>"#
+        );
+    }
+
+    #[test]
+    fn the_editors_own_characters_in_the_text_are_kept() {
+        // A line separator is the editor's newline in the text; one in the text itself is
+        // held as an atom of its own, and so are the others the editor gives a meaning.
+        let html = "<p>Unicode: caf\u{e9} \u{2028} tab\tend\nnext</p>";
+        let doc = RichDoc::from_html(html).unwrap_or_else(|| panic!("not read: {html}"));
+        assert_eq!(doc.to_html(), html);
+        assert_eq!(
+            doc.text,
+            format!(
+                "Unicode: caf\u{e9} {ATOM} tab\tend{}next",
+                super::SOFT_BREAK
+            )
+        );
+        assert_eq!(doc.atoms, ["\u{2028}"]);
+        assert_eq!(super::text_atom(&doc.atoms[0]), Some(super::SOFT_BREAK));
+        for html in [
+            "<p>a\u{2029}b<br>c</p>",
+            "<p>a\u{fffc}b<sup class=\"footnote-ref\" data-footnote-id=\"n\" contenteditable=\"false\"></sup></p>",
+            "<ul><li><em>\u{2028}</em></li></ul>",
+        ] {
+            let doc = RichDoc::from_html(html).unwrap_or_else(|| panic!("not read: {html}"));
+            assert_eq!(doc.to_html(), html);
+            // It is text: in the comment text and in what proofreading checks.
+            assert_eq!(
+                doc.comment_map().text,
+                crate::comments::comment_text(html),
+                "{html}"
+            );
+        }
+        let doc = RichDoc::from_html("<p>a\u{2028}b</p>").unwrap_or_default();
+        let (text, at) = doc.proofread_map();
+        assert_eq!(text, ['a', '\u{2028}', 'b']);
+        assert_eq!(at, [Some(0), Some(1), Some(2)]);
+        // Typing beside it keeps it.
+        let mut doc = doc;
+        doc.apply_text_at(&format!("ax{ATOM}b"), Some(2));
+        assert_eq!(doc.to_html(), "<p>ax\u{2028}b</p>");
+    }
+
+    /// Container shapes ProseCraft keeps as they are (see `editor-load.json`).
+    const CONTAINERS: [&str; 14] = [
+        "<div>One</div><div><br></div><div>Two <em>it</em></div>",
+        "<div><div><p>a</p></div><p>b</p></div><div><p>c</p></div>",
+        "<blockquote><div><p>q</p></div><p>r</p></blockquote>",
+        "<ul><li><div>a</div></li><li>b</li></ul>",
+        "<ul><li><p>a</p></li></ul>",
+        "<ul><li>text<p>b</p></li></ul>",
+        "<ul><li><p>a</p><p>b</p><ul><li>c</li></ul></li><li>d</li></ul>",
+        "<ol><li>One</li><p>stray</p><li>Two</li></ol>",
+        "<ul>\n<li><p>foo</p>\n<p>bar</p>\n</li>\n<li><p>baz</p>\n</li>\n</ul>\n",
+        "<ul><li><blockquote><p>q</p></blockquote></li></ul>",
+        "<div></div><ul><li></li></ul>",
+        "<li>Lone item</li><p>after</p>",
+        "<ul><li><pre>code</pre></li><li>a<ul><li>b</li></ul>c</li></ul><blockquote><hr></blockquote>",
+        "<h2>Title</h2>\n<div><p class=\"eyebrow\">One</p><h3>Two</h3><p data-sp=\"action\">x</p></div>\n<p>end</p>",
+    ];
+
+    #[test]
+    fn containers_round_trip_as_prosecraft_keeps_them() {
+        for html in CONTAINERS {
+            let doc = RichDoc::from_html(html).unwrap_or_else(|| panic!("not read: {html}"));
+            assert_eq!(doc.to_html(), html);
+            assert_eq!(doc.frames.len(), doc.lines.len(), "{html}");
+        }
+        // Shapes the kinds say are read by them alone.
+        let doc = RichDoc::from_html(
+            "<ul><li>a<ul><li>b</li></ul></li></ul><blockquote><p>q</p></blockquote>",
+        )
+        .unwrap_or_default();
+        assert!(doc.frames.is_empty());
+        // What the lines look like: items in a list, a quote in a blockquote, and only an
+        // item's first line has its bullet.
+        let doc = RichDoc::from_html(CONTAINERS[6]).unwrap_or_default();
+        assert_eq!(
+            doc.lines,
+            [
+                LineKind::Bullet,
+                LineKind::Bullet,
+                LineKind::ListItem {
+                    depth: 1,
+                    ordered: 0
+                },
+                LineKind::Bullet
+            ]
+        );
+        let starts: Vec<bool> = (0..4).map(|l| doc.starts_item(l)).collect();
+        assert_eq!(starts, [true, false, true, true]);
+        let doc = RichDoc::from_html(CONTAINERS[7]).unwrap_or_default();
+        let starts: Vec<bool> = (0..3).map(|l| doc.starts_item(l)).collect();
+        assert_eq!(starts, [true, false, true]);
+        let doc = RichDoc::from_html(CONTAINERS[2]).unwrap_or_default();
+        assert_eq!(doc.lines, [LineKind::Quote; 2]);
+        let doc = RichDoc::from_html(CONTAINERS[0]).unwrap_or_default();
+        assert_eq!(doc.text, "One\n\nTwo it");
+    }
+
+    #[test]
+    fn typing_in_containers_changes_only_that_character() {
+        for html in CONTAINERS {
+            let doc = RichDoc::from_html(html).unwrap_or_default();
+            let chars: Vec<char> = doc.text.chars().collect();
+            for (line, (start, end)) in doc.line_ranges().into_iter().enumerate() {
+                // Typed beside a kept block, text is a line of its own.
+                if start == end || doc.lines[line] == LineKind::Block {
+                    continue;
+                }
+                for at in start..=end {
+                    let mut typed = doc.clone();
+                    let text: String = chars[..at]
+                        .iter()
+                        .chain(&['§'])
+                        .chain(&chars[at..])
+                        .collect();
+                    typed.apply_text_at(&text, Some(at + 1));
+                    let written = typed.to_html();
+                    assert_eq!(written.replacen('§', "", 1), html, "{at} in {written}");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn enter_in_containers_starts_the_next_block_or_item() {
+        let enter = |html: &str, at: usize| {
+            let mut doc = RichDoc::from_html(html).unwrap_or_default();
+            let chars: Vec<char> = doc.text.chars().collect();
+            let text: String = chars[..at]
+                .iter()
+                .chain(&['\n'])
+                .chain(&chars[at..])
+                .collect();
+            doc.apply_text_at(&text, Some(at + 1));
+            doc.to_html()
+        };
+        // A `<div>` block is followed by the next one (as WebKit's Enter makes it, which
+        // ProseCraft's editor allows for).
+        assert_eq!(
+            enter("<div>One</div><p>x</p>", 3),
+            "<div>One</div><div><br></div><p>x</p>"
+        );
+        // A paragraph in a `<div>` by the next paragraph there.
+        assert_eq!(
+            enter("<div><p>a</p></div>", 1),
+            "<div><p>a</p><p><br></p></div>"
+        );
+        // In a list item, the next item, with what follows in the item (a loose list grows).
+        assert_eq!(
+            enter("<ul><li><p>a</p></li></ul>", 1),
+            "<ul><li><p>a</p></li><li><p><br></p></li></ul>"
+        );
+        assert_eq!(
+            enter(
+                "<ol><li><p>ab</p><p>c</p><ul><li>d</li></ul></li><li><p>e</p></li></ol>",
+                1
+            ),
+            "<ol><li><p>a</p></li><li><p>b</p><p>c</p><ul><li>d</li></ul></li><li><p>e</p></li></ol>"
+        );
+        // Text in a list item by the next item.
+        assert_eq!(
+            enter("<ul><li>a</li><li>b</li></ul><div>x</div>", 1),
+            "<ul><li>a</li><li><br></li><li>b</li></ul><div>x</div>"
+        );
+    }
+
+    #[test]
+    fn a_line_in_containers_takes_a_kind() {
+        // A block kind in its containers.
+        let mut doc = RichDoc::from_html("<div><p>a</p><p>b</p></div>").unwrap_or_default();
+        doc.set_line_kind(0..0, LineKind::Heading2);
+        assert_eq!(doc.to_html(), "<div><h2>a</h2><p>b</p></div>");
+        // A list item or a quote, or out of its list, by its kind alone.
+        doc.set_line_kind(2..2, LineKind::Bullet);
+        assert_eq!(doc.to_html(), "<div><h2>a</h2></div><ul><li>b</li></ul>");
+        let mut doc = RichDoc::from_html("<ul><li><p>a</p><p>b</p></li></ul>").unwrap_or_default();
+        doc.set_line_kind(2..2, LineKind::Bullet);
+        assert_eq!(doc.to_html(), "<ul><li><p>a</p><p>b</p></li></ul>");
+        doc.set_line_kind(2..2, LineKind::Paragraph);
+        assert_eq!(doc.to_html(), "<ul><li><p>a</p></li></ul><p>b</p>");
+        // A kept block put in a list item stays in it.
+        let mut doc = RichDoc::from_html("<ul><li><p>a</p></li></ul>").unwrap_or_default();
+        doc.insert_block(1, r#"<div class="math-block" data-tex="x"></div>"#);
+        assert_eq!(
+            doc.to_html(),
+            r#"<ul><li><p>a</p><div class="math-block" data-tex="x"></div><p><br></p></li></ul>"#
+        );
+    }
+
+    #[test]
     fn keeps_atoms_and_kinds() {
         let doc = RichDoc::from_html(
             r#"<h1>T</h1><p>x<span class="math-inline" data-tex="x^2"></span>y</p>"#,
@@ -2174,17 +2951,15 @@ mod tests {
         for html in [
             r#"<p data-sp="action" class="x">x</p>"#,
             r#"<p data-sp="unknown">x</p>"#,
-            "<div>x</div>",
-            "<ul><li><pre>code</pre></li></ul>",
-            "<ul><li><p>a</p><ul><li>b</li></ul></li></ul>",
-            "<ul><li>a<ul><li>b</li></ul>c</li></ul>",
-            "<ul><li></li></ul>",
-            "<blockquote><hr></blockquote>",
+            r#"<blockquote class="x"><p>x</p></blockquote>"#,
+            "<ul><li class=\"x\">a</li></ul>",
+            // ProseCraft's sanitizer writes the class first.
+            r#"<p data-sp="action" class="eyebrow">x</p>"#,
+            r#"<p class="eyebrow big" data-sp="action">x</p>"#,
             r#"<div class="other">x</div>"#,
             r#"<p class="eyebrow big">x</p>"#,
             "<p>a</p>\n<p>b</p><p>c</p>",
             r#"<p>a<br class="x">b</p>"#,
-            "<p>a\u{2029}b</p>",
         ] {
             assert!(RichDoc::from_html(html).is_none(), "{html}");
         }
@@ -2246,19 +3021,22 @@ mod tests {
             normalized("<p>a</p><h4>Four</h4>").as_deref(),
             Some("<p>a</p>Four")
         );
-        // This editor's own: a `div` unwrapped, a list item's paragraphs made items.
+        // As ProseCraft's sanitizer balances a stray end tag: the paragraphs go in the list.
         assert_eq!(
-            normalized("<div><p>in</p></div><p>out</p>").as_deref(),
-            Some("<p>in</p><p>out</p>")
+            normalized("<ol><li>a</li></ul><p>b</p>").as_deref(),
+            Some("<ol><li>a</li><p>b</p></ol>")
         );
-        assert_eq!(
-            normalized("<ul><li><p>a</p><p>b</p><ul><li>c</li></ul></li><li>d</li></ul>")
-                .as_deref(),
-            Some("<ul><li>a</li><li>b<ul><li>c</li></ul></li><li>d</li></ul>")
+        // This editor's own, past the containers it holds: a `div` unwrapped.
+        let deep = format!("{}<p>in</p>{}", "<div>".repeat(40), "</div>".repeat(40));
+        assert_eq!(normalized(&deep).as_deref(), Some("<p>in</p>"));
+        // Refused: quotes nested deeper than it holds.
+        let deep = format!(
+            "{}<p>in</p>{}",
+            "<blockquote>".repeat(40),
+            "</blockquote>".repeat(40)
         );
-        // Refused: a character it would change, a block it can't hold.
-        assert_eq!(normalized("<p>a\u{2028}b</p>"), None);
-        assert_eq!(normalized("<ul><li><pre>code</pre></li></ul>"), None);
+        assert_eq!(RichDoc::from_html(&deep), None);
+        assert_eq!(normalized(&deep), None);
         // Refused: a picture or a footnote marker the sanitizer would drop.
         assert_eq!(
             normalized(r#"<h4>x</h4><p>a<img src="https://e.org/x.png" alt=""></p>"#),
@@ -2518,6 +3296,13 @@ mod tests {
             "<img src=\"data:image/png;base64,AA==\" alt=\"Map\">\n<img src=\"data:image/png;base64,AA==\" alt=\"\">Caption\n<p></p>\n<p></p>".to_owned(),
             "<em>a</em> b<p>x</p>Tail<blockquote>Quoted <b>bold</b><p>p</p></blockquote>".to_owned(),
             r#"<p>It was <em></em>.</p><p></p><div class="scene-break" contenteditable="false">* * *</div><p>Kept<a></a></p>"#.to_owned(),
+            // The editor's own characters in the text.
+            "<p>Unicode: caf\u{e9} \u{2028} tab\tend\nnext\u{2029}</p><p>\u{fffc}</p>".to_owned(),
+            // Containers the kinds can't say.
+            "<div>One</div><div><br></div><div><p>a</p><ul><li><p>b</p><p>c</p></li><li>d</li></ul></div>".to_owned(),
+            "<ul>\n<li><p>foo</p>\n<p>bar</p>\n</li>\n<li><p>baz</p>\n</li>\n</ul>\n<p>x</p>\n".to_owned(),
+            "<ol><li>One</li><p>stray</p><li>Two</li></ol><blockquote><div><p>q</p></div>r</blockquote>".to_owned(),
+            "<div></div><ul><li></li></ul><li>Lone</li><ul><li>a<hr>b<ul><li>c</li></ul>d</li></ul>".to_owned(),
         ];
         let mut seed: u64 = 0x2545_f491_4f6c_dd1d;
         let mut next = |n: usize| {
@@ -2543,7 +3328,7 @@ mod tests {
             for step in 0..400 {
                 let chars: Vec<char> = doc.text.chars().collect();
                 let at = next(chars.len() + 1);
-                match next(5) {
+                match next(7) {
                     0 | 1 => {
                         let c = ['a', ' ', '\n', HARD_BREAK, '&'][next(5)];
                         let text: String =
@@ -2556,12 +3341,28 @@ mod tests {
                         doc.apply_text_at(&text, Some(at));
                     }
                     3 => doc.toggle_mark(at..(at + next(6)), Mark::Italic),
-                    _ => doc.set_line_kind(at..at, kinds[next(kinds.len())]),
+                    4 => doc.set_line_kind(at..at, kinds[next(kinds.len())]),
+                    5 => {
+                        let pasted = [
+                            "<p>x</p><ul><li>y</li></ul>",
+                            "z<em>w</em>",
+                            "<div><p>q</p></div><h2>h</h2>",
+                        ][next(3)];
+                        let end = (at + next(3)).min(chars.len());
+                        doc.paste_html(at..end, pasted);
+                    }
+                    _ => {
+                        doc.insert_block(at, r#"<div class="math-block" data-tex="x"></div>"#);
+                    }
                 }
                 let html = doc.to_html();
                 let again = RichDoc::from_html(&html)
                     .unwrap_or_else(|| panic!("step {step}: not read back: {html}"));
                 assert_eq!(again.to_html(), html, "step {step}");
+                assert!(
+                    doc.frames.is_empty() || doc.frames.len() == doc.lines.len(),
+                    "step {step}"
+                );
                 // The comment text is ProseCraft's for the HTML, and each character's own
                 // text is where the map puts it.
                 let map = doc.comment_map();

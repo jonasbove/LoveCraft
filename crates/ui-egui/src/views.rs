@@ -2383,6 +2383,14 @@ pub(crate) fn layout_doc(
                 laid_out = PICTURE_CHAR;
                 format.extra_letter_spacing = laid.spacing;
             }
+            // A line separator in the text itself: it ends the row, as in ProseCraft.
+            if let Some(own @ (prosecraft_core::richtext::SOFT_BREAK | HARD_BREAK)) = doc
+                .atoms
+                .get(atom)
+                .and_then(|html| prosecraft_core::richtext::text_atom(html))
+            {
+                laid_out = own;
+            }
             let size = if laid.font > 0.0 {
                 laid.font
             } else {
@@ -2395,10 +2403,7 @@ pub(crate) fn layout_doc(
             format.color = egui::Color32::TRANSPARENT;
             atom += 1;
         }
-        if matches!(
-            c,
-            prosecraft_core::richtext::SOFT_BREAK | prosecraft_core::richtext::HARD_BREAK
-        ) {
+        if matches!(laid_out, prosecraft_core::richtext::SOFT_BREAK | HARD_BREAK) {
             // A line break: it ends the row (see `RowBreaks`) and shows nothing.
             format.color = egui::Color32::TRANSPARENT;
             format.font_id.size = 1.0;
@@ -3443,17 +3448,24 @@ pub(crate) fn paint_extras(
             .take_while(|((open, _), want)| open == *want)
             .count();
         lists.truncate(common);
+        // A second block in one item, or a paragraph straight in a list, has no marker and
+        // isn't counted.
+        let starts = doc.starts_item(line);
         if !wanted.is_empty() {
             if lists.len() == wanted.len() {
                 if let Some(last) = lists.last_mut() {
-                    last.1 += 1;
+                    last.1 += u32::from(starts);
                 }
             } else {
                 lists.extend(wanted[common..].iter().map(|l| (*l, 1)));
+                if let Some(last) = lists.last_mut() {
+                    last.1 = u32::from(starts);
+                }
             }
         }
         // The browser's markers: numbers, or a disc, circle and square by depth.
         let marker = match (kind.list_depth(), lists.last()) {
+            _ if !starts => None,
             (Some(_), Some(("ol", n))) => Some(format!("{n}.")),
             (Some(depth), Some(_)) => {
                 let at = egui::pos2(rect.min.x - 11.0, rect.center().y);

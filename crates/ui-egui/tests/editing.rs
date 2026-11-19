@@ -548,6 +548,97 @@ fn the_about_window_reports_the_setup_and_never_the_writing() {
     harness.get_by_label("Copy diagnostics");
 }
 
+/// Drags with the pointer from one point to another, as a person does.
+fn drag(harness: &mut Harness<'static, ProseApp>, from: egui::Pos2, to: egui::Pos2) {
+    let button = |pos, pressed| egui::Event::PointerButton {
+        pos,
+        button: egui::PointerButton::Primary,
+        pressed,
+        modifiers: egui::Modifiers::default(),
+    };
+    harness.event(egui::Event::PointerMoved(from));
+    harness.step();
+    harness.event(button(from, true));
+    harness.step();
+    for step in 1..=8 {
+        harness.event(egui::Event::PointerMoved(
+            from + (to - from) * (step as f32 / 8.0),
+        ));
+        harness.step();
+    }
+    harness.event(button(to, false));
+    harness.run_steps(8);
+}
+
+/// The middle of a node, and a point a quarter of the way down it.
+fn rows(harness: &Harness<'static, ProseApp>, name: &str) -> (egui::Pos2, egui::Pos2) {
+    let r = harness.get_by_role_and_label(Role::TreeItem, name).rect();
+    (
+        r.center(),
+        egui::pos2(r.center().x, r.top() + r.height() * 0.2),
+    )
+}
+
+#[test]
+fn binder_rows_are_dragged_into_place_as_prosecraft_drags_them() {
+    let (mut harness, memory) = app();
+    let order = |memory: &Memory, key: &str| -> Vec<String> {
+        let saved = memory.last();
+        project(&saved, "project-1")
+            .get("project")
+            .and_then(|p| p.get(key))
+            .and_then(JsValue::as_array)
+            .unwrap_or_default()
+            .iter()
+            .filter(|d| d.get("trashed") != Some(&JsValue::Bool(true)) && d.get("space").is_none())
+            .filter_map(|d| {
+                d.get("title")
+                    .and_then(JsValue::as_js_string)
+                    .map(|t| t.to_string_lossy())
+            })
+            .collect()
+    };
+    // A scene above the one before it.
+    let (lighthouse, _) = rows(&harness, "INT. LIGHTHOUSE - NIGHT");
+    let (_, opening_top) = rows(&harness, "Opening Scene");
+    drag(&mut harness, lighthouse, opening_top);
+    harness.run_steps(12);
+    assert_eq!(
+        order(&memory, "documents"),
+        ["INT. LIGHTHOUSE - NIGHT", "Opening Scene"]
+    );
+    // A new chapter, dragged above the first.
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("add")
+        .click();
+    harness.run_steps(12);
+    let chapters = order(&memory, "chapters");
+    assert_eq!(chapters.len(), 2, "{chapters:?}");
+    let (second, _) = rows(&harness, &chapters[1]);
+    let (_, first_top) = rows(&harness, &chapters[0]);
+    drag(&mut harness, second, first_top);
+    harness.run_steps(12);
+    assert_eq!(
+        order(&memory, "chapters"),
+        [chapters[1].clone(), chapters[0].clone()]
+    );
+    // A scene onto a chapter: the end of that chapter.
+    let (opening, _) = rows(&harness, "Opening Scene");
+    let (new_chapter, _) = rows(&harness, &chapters[1]);
+    drag(&mut harness, opening, new_chapter);
+    harness.run_steps(12);
+    let saved = memory.last();
+    let scene = document(project(&saved, "project-1"), "doc-1").expect("the opening scene");
+    let new_id = project(&saved, "project-1")
+        .get("project")
+        .and_then(|p| p.get("chapters"))
+        .and_then(JsValue::as_array)
+        .and_then(|c| c.first().and_then(|c| c.get("id")).cloned());
+    assert_eq!(scene.get("chapterId").cloned(), new_id);
+}
+
 /// The stored content of a document.
 fn content(memory: &Memory, id: &str) -> String {
     let saved = memory.last();

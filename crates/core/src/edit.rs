@@ -530,6 +530,76 @@ pub fn move_chapter(project: &mut JsValue, id: &str, offset: isize) -> Result<()
     Ok(())
 }
 
+/// `reorderChapter` (a chapter dragged in the binder): `id` before or after `target` among the
+/// live chapters; chapters in the trash keep their places.
+pub fn reorder_chapter(
+    project: &mut JsValue,
+    id: &str,
+    target: &str,
+    after: bool,
+) -> Result<(), EditError> {
+    if id == target {
+        return Ok(());
+    }
+    let chapters = list_mut(project, "chapters")?;
+    let live: Vec<usize> = (0..chapters.len())
+        .filter(|i| !is_trashed(&chapters[*i]))
+        .collect();
+    let mut reordered: Vec<JsValue> = live.iter().map(|i| chapters[*i].clone()).collect();
+    let Some(from) = reordered.iter().position(|c| has_id(c, id)) else {
+        return Ok(());
+    };
+    if !reordered.iter().any(|c| has_id(c, target)) {
+        return Ok(());
+    }
+    let source = reordered.remove(from);
+    let Some(at) = reordered.iter().position(|c| has_id(c, target)) else {
+        return Ok(());
+    };
+    reordered.insert(at + usize::from(after), source);
+    for (slot, chapter) in live.into_iter().zip(reordered) {
+        chapters[slot] = chapter;
+    }
+    Ok(())
+}
+
+/// `moveSceneToPosition` (a scene dragged onto another): before or after `target`, in its
+/// chapter.
+pub fn move_scene_to_position(
+    project: &mut JsValue,
+    id: &str,
+    target: &str,
+    after: bool,
+) -> Result<(), EditError> {
+    if id == target {
+        return Ok(());
+    }
+    let documents = list_mut(project, "documents")?;
+    let Some(from) = documents.iter().position(|d| has_id(d, id)) else {
+        return Ok(());
+    };
+    let Some(chapter) = documents
+        .iter()
+        .find(|d| has_id(d, target))
+        .map(chapter_of)
+        .filter(|c| !c.is_empty())
+    else {
+        return Ok(());
+    };
+    let mut scene = documents.remove(from);
+    let Some(at) = documents.iter().position(|d| has_id(d, target)) else {
+        documents.insert(from, scene);
+        return Ok(());
+    };
+    if chapter_of(&scene) != chapter
+        && let Some(object) = scene.as_object_mut()
+    {
+        object.insert("chapterId", JsValue::str(&chapter));
+    }
+    documents.insert(at + usize::from(after), scene);
+    Ok(())
+}
+
 /// `moveScene`: a scene a place up or down among its chapter's live scenes.
 pub fn move_scene(project: &mut JsValue, id: &str, offset: isize) -> Result<(), EditError> {
     let documents = list_mut(project, "documents")?;
@@ -1082,5 +1152,62 @@ mod tile_tests {
                 && out.contains(r#""id":"b","title":"B","content":"<p>two!</p>""#),
             "{out}"
         );
+    }
+}
+
+#[cfg(test)]
+mod drag_tests {
+    use super::{move_scene_to_position, reorder_chapter};
+    use crate::js::{parse, stringify};
+
+    fn ids(p: &crate::js::JsValue, key: &str) -> String {
+        p.get(key)
+            .and_then(crate::js::JsValue::as_array)
+            .unwrap_or_default()
+            .iter()
+            .map(|d| {
+                let id = stringify(d.get("id").unwrap_or(&crate::js::JsValue::Null));
+                let chapter = d.get("chapterId").map(stringify).unwrap_or_default();
+                format!(
+                    "{}{}",
+                    id.trim_matches('"'),
+                    if chapter.is_empty() {
+                        String::new()
+                    } else {
+                        format!("@{}", chapter.trim_matches('"'))
+                    }
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(" ")
+    }
+
+    #[test]
+    fn chapters_reorder_around_the_trash_as_reorderchapter_does() {
+        let mut p =
+            parse(r#"{"chapters":[{"id":"a"},{"id":"t","trashed":true},{"id":"b"},{"id":"c"}]}"#)
+                .expect("json");
+        reorder_chapter(&mut p, "c", "a", false).expect("move");
+        assert_eq!(ids(&p, "chapters"), "c t a b");
+        reorder_chapter(&mut p, "c", "b", true).expect("move");
+        assert_eq!(ids(&p, "chapters"), "a t b c");
+        reorder_chapter(&mut p, "a", "a", true).expect("same");
+        reorder_chapter(&mut p, "a", "missing", true).expect("missing");
+        assert_eq!(ids(&p, "chapters"), "a t b c");
+    }
+
+    #[test]
+    fn scenes_move_before_or_after_another_and_change_chapter() {
+        let mut p = parse(
+            r#"{"documents":[{"id":"1","chapterId":"x"},{"id":"2","chapterId":"x"},{"id":"w","space":"Wiki"},{"id":"3","chapterId":"y"}]}"#,
+        )
+        .expect("json");
+        move_scene_to_position(&mut p, "1", "2", true).expect("move");
+        assert_eq!(ids(&p, "documents"), "2@x 1@x w 3@y");
+        move_scene_to_position(&mut p, "1", "3", false).expect("move");
+        assert_eq!(ids(&p, "documents"), "2@x w 1@y 3@y");
+        // Onto a Wiki page (no chapter): nothing moves.
+        move_scene_to_position(&mut p, "2", "w", true).expect("move");
+        assert_eq!(ids(&p, "documents"), "2@x w 1@y 3@y");
     }
 }

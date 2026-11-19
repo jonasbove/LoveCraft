@@ -28,6 +28,18 @@ pub enum Intent {
         id: String,
         offset: isize,
     },
+    /// `reorderChapter`: a chapter dragged before or after another.
+    ReorderChapter {
+        id: String,
+        target: String,
+        after: bool,
+    },
+    /// `moveSceneToPosition`: a scene dragged before or after another.
+    MoveSceneToPosition {
+        scene: String,
+        target: String,
+        after: bool,
+    },
     MoveSceneToChapter {
         scene: String,
         chapter: String,
@@ -389,6 +401,14 @@ pub fn run(
             *blank,
         ),
         Intent::MoveScene { id, offset } => edit::move_scene(data, id, *offset),
+        Intent::ReorderChapter { id, target, after } => {
+            edit::reorder_chapter(data, id, target, *after)
+        }
+        Intent::MoveSceneToPosition {
+            scene,
+            target,
+            after,
+        } => edit::move_scene_to_position(data, scene, target, *after),
         Intent::MoveSceneToChapter { scene, chapter } => {
             edit::move_scene_to_chapter_end(data, scene, chapter)
         }

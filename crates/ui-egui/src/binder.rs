@@ -33,6 +33,108 @@ fn tree_row(
     response
 }
 
+/// A row being dragged in the binder (`startChapterDrag`, `startSceneDrag`).
+#[derive(Clone, Debug, PartialEq)]
+enum Dragged {
+    Chapter(String),
+    Scene(String),
+}
+
+fn drag_id() -> egui::Id {
+    egui::Id::unique("binder-drag")
+}
+
+/// A row's place this frame, for dropping on, and its drag starting.
+fn drag_row(
+    ui: &Ui,
+    row: &egui::Response,
+    dragged: Dragged,
+    rows: &mut Vec<(egui::Rect, Dragged)>,
+) {
+    let row = row.interact(egui::Sense::drag());
+    if row.drag_started() {
+        ui.ctx()
+            .data_mut(|d| d.insert_temp(drag_id(), dragged.clone()));
+    }
+    rows.push((row.rect, dragged));
+}
+
+/// The drop while a row is dragged: a chapter before or after another (35% down its row, as
+/// `updateChapterDropTarget`), a scene before or after another (half way, as
+/// `handleSceneDragOver`) or at the end of a chapter (`handleChapterSceneDrop`); marked while
+/// dragging, made when the button is let go.
+fn drop_rows(
+    ui: &Ui,
+    palette: &Palette,
+    rows: &[(egui::Rect, Dragged)],
+    editable: bool,
+    intents: &mut Vec<Intent>,
+) {
+    let Some(dragged) = ui.ctx().data(|d| d.get_temp::<Dragged>(drag_id())) else {
+        return;
+    };
+    let released = ui.input(|i| i.pointer.any_released() || !i.pointer.any_down());
+    let pos = ui.ctx().pointer_latest_pos();
+    let hit = pos.and_then(|p| {
+        rows.iter()
+            .filter(|(r, _)| r.y_range().contains(p.y))
+            .find(|(_, target)| {
+                matches!(
+                    (&dragged, target),
+                    (Dragged::Chapter(_), Dragged::Chapter(_)) | (Dragged::Scene(_), _)
+                )
+            })
+            .map(|(r, target)| (p, *r, target))
+    });
+    let mut intent = None;
+    if let Some((p, rect, target)) = hit {
+        let painter = ui.painter();
+        let line =
+            |y: f32| painter.hline(rect.x_range(), y, egui::Stroke::new(2.0, palette.accent));
+        match (&dragged, target) {
+            (Dragged::Chapter(id), Dragged::Chapter(over)) if id != over => {
+                let after = p.y >= rect.top() + rect.height() * 0.35;
+                line(if after { rect.bottom() } else { rect.top() });
+                intent = Some(Intent::ReorderChapter {
+                    id: id.clone(),
+                    target: over.clone(),
+                    after,
+                });
+            }
+            (Dragged::Scene(id), Dragged::Scene(over)) if id != over => {
+                let after = p.y >= rect.center().y;
+                line(if after { rect.bottom() } else { rect.top() });
+                intent = Some(Intent::MoveSceneToPosition {
+                    scene: id.clone(),
+                    target: over.clone(),
+                    after,
+                });
+            }
+            (Dragged::Scene(id), Dragged::Chapter(chapter)) => {
+                painter.rect_stroke(
+                    rect,
+                    4.0,
+                    egui::Stroke::new(1.5, palette.accent),
+                    egui::StrokeKind::Outside,
+                );
+                intent = Some(Intent::MoveSceneToChapter {
+                    scene: id.clone(),
+                    chapter: chapter.clone(),
+                });
+            }
+            _ => {}
+        }
+    }
+    if released {
+        ui.ctx().data_mut(|d| d.remove::<Dragged>(drag_id()));
+        if editable && let Some(intent) = intent {
+            intents.push(intent);
+        }
+    } else {
+        ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
+    }
+}
+
 /// A row's label as ProseCraft's coloured dot (with its name for screen readers).
 fn label_dot(ui: &mut Ui, palette: &Palette, project: &Project, label: Option<&str>) {
     if let Some(label) = label.and_then(|id| project.label(id)) {
@@ -393,6 +495,7 @@ fn chapters(
             .is_none_or(|l| scene.label_id.as_deref() == Some(l))
     };
     let mut any = false;
+    let mut drag_rows = Vec::new();
     for chapter in project.live_chapters() {
         if filter.is_some() && !project.scenes_in_chapter(&chapter.id).any(|s| shown(&s)) {
             continue;
@@ -432,6 +535,14 @@ fn chapters(
                 row
             })
             .inner;
+        if editable {
+            drag_row(
+                ui,
+                &row,
+                Dragged::Chapter(chapter.id.clone()),
+                &mut drag_rows,
+            );
+        }
         // `openBesideTarget` with Alt+Click: the chapter's first scene.
         if row.clicked() && ui.input(|i| i.modifiers.alt) {
             if let Some(first) = project.scenes_in_chapter(&chapter.id).next() {
@@ -531,6 +642,9 @@ fn chapters(
                 }
                 let row = tree_row(ui, palette, title, 2, selected);
                 label_dot(ui, palette, project, scene.label_id.as_deref());
+                if editable {
+                    drag_row(ui, &row, Dragged::Scene(scene.id.clone()), &mut drag_rows);
+                }
                 if row.clicked() && ui.input(|i| i.modifiers.alt) {
                     intents.push(Intent::OpenBeside(prosecraft_core::split::doc_target(
                         &scene.id,
@@ -615,6 +729,7 @@ fn chapters(
             });
         }
     }
+    drop_rows(ui, palette, &drag_rows, editable, intents);
     if !any {
         let empty = if filter.is_some() {
             "No scenes with this label"

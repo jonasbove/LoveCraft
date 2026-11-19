@@ -40,6 +40,12 @@ pub enum Intent {
         target: String,
         after: bool,
     },
+    /// `reorderToTarget`: a timeline moment dragged before or after another.
+    ReorderMoment {
+        id: String,
+        target: String,
+        after: bool,
+    },
     MoveSceneToChapter {
         scene: String,
         chapter: String,
@@ -409,6 +415,9 @@ pub fn run(
             target,
             after,
         } => edit::move_scene_to_position(data, scene, target, *after),
+        Intent::ReorderMoment { id, target, after } => {
+            prosecraft_core::timeline::reorder(data, id, target, *after)
+        }
         Intent::MoveSceneToChapter { scene, chapter } => {
             edit::move_scene_to_chapter_end(data, scene, chapter)
         }

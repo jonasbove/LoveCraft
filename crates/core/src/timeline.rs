@@ -103,6 +103,66 @@ pub fn move_node(project: &mut JsValue, id: &str, offset: isize) -> Result<(), E
     Ok(())
 }
 
+/// `reorderToTarget` and `reorderTimelineNodes` (a moment dragged onto another): before or
+/// after `target`.
+pub fn reorder(
+    project: &mut JsValue,
+    id: &str,
+    target: &str,
+    after: bool,
+) -> Result<(), EditError> {
+    let nodes = nodes_mut(project)?;
+    let (Some(from), Some(to)) = (
+        nodes.iter().position(|n| has_id(n, id)),
+        nodes.iter().position(|n| has_id(n, target)),
+    ) else {
+        return Ok(());
+    };
+    let mut insert = if after { to + 1 } else { to };
+    if insert > from {
+        insert -= 1;
+    }
+    if insert != from {
+        let node = nodes.remove(from);
+        nodes.insert(insert, node);
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod reorder_tests {
+    use super::reorder;
+    use crate::js::{JsValue, parse};
+
+    fn order(p: &JsValue) -> String {
+        p.get("timelineNodes")
+            .and_then(JsValue::as_array)
+            .unwrap_or_default()
+            .iter()
+            .filter_map(|n| {
+                n.get("id")
+                    .and_then(JsValue::as_js_string)
+                    .map(|s| s.to_string_lossy())
+            })
+            .collect()
+    }
+
+    #[test]
+    fn moments_go_before_or_after_the_one_dropped_on() {
+        let mut p = parse(r#"{"timelineNodes":[{"id":"a"},{"id":"b"},{"id":"c"},{"id":"d"}]}"#)
+            .expect("json");
+        reorder(&mut p, "a", "c", true).expect("reorder");
+        assert_eq!(order(&p), "bcad");
+        reorder(&mut p, "d", "b", false).expect("reorder");
+        assert_eq!(order(&p), "dbca");
+        // Onto its own neighbour's near side: no change.
+        reorder(&mut p, "b", "c", false).expect("reorder");
+        assert_eq!(order(&p), "dbca");
+        reorder(&mut p, "missing", "c", false).expect("reorder");
+        assert_eq!(order(&p), "dbca");
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{Field, add_node, move_node, remove_node, set_field};

@@ -2883,6 +2883,25 @@ fn timeline_moments_are_added_edited_moved_and_removed() {
         ("The storm", "Day 3", "Day One"),
         "{after:?}"
     );
+    // Dragged by its handle below the other moment (`reorderToTarget`).
+    let from = harness
+        .get_by_role_and_label(Role::Button, "Drag The storm to reorder")
+        .rect()
+        .center();
+    let below = harness
+        .get_by_role_and_label(Role::Button, "Drag Day One to reorder")
+        .rect()
+        .center()
+        + egui::vec2(0.0, 120.0);
+    drag(&mut harness, from, below);
+    harness.run_steps(12);
+    assert_eq!(
+        nodes(&memory)
+            .iter()
+            .map(|n| n.1.clone())
+            .collect::<Vec<_>>(),
+        ["Day One", "The storm"]
+    );
     harness
         .get_by_role_and_label(Role::Button, "Remove The storm")
         .click();

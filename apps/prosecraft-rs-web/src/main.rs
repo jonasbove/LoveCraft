@@ -14,6 +14,10 @@
 
 #[cfg(target_arch = "wasm32")]
 mod browser;
+#[cfg(target_arch = "wasm32")]
+mod clipboard;
+#[cfg(any(target_arch = "wasm32", test))]
+mod html_slot;
 
 #[cfg(target_arch = "wasm32")]
 mod web {
@@ -210,6 +214,9 @@ mod web {
                     eframe::WebOptions::default(),
                     Box::new(|cc| {
                         prosecraft_ui_egui::setup(&cc.egui_ctx);
+                        let mut app = app;
+                        // Without it, paste and copy in the editor are plain text.
+                        let _ = crate::clipboard::install(&mut app, &cc.egui_ctx);
                         Ok(Box::new(WebApp {
                             app,
                             inbox: Default::default(),

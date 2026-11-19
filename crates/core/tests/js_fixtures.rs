@@ -116,6 +116,139 @@ fn prosecraft_rich_html_round_trips_through_the_editor_model() {
     assert!(editable >= 14, "only {editable} editable");
 }
 
+/// The text of some HTML's text nodes without white space, for comparing shapes that hold the
+/// same text.
+fn bare_text(html: &str) -> String {
+    String::from_utf16_lossy(&prosecraft_core::comments::comment_text(html))
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .collect()
+}
+
+#[test]
+fn unusual_scenes_open_for_editing_as_prosecraft_keeps_them() {
+    use prosecraft_core::richtext::RichDoc;
+    let fx = fixture("editor-load.json");
+    let mut exact = Vec::new();
+    let mut as_saved = Vec::new();
+    let mut own = Vec::new();
+    let mut read_only = Vec::new();
+    for case in list(&fx, "cases") {
+        let (name, html, saved) = (
+            text(&case, "name"),
+            text(&case, "html"),
+            text(&case, "saved"),
+        );
+        assert_eq!(
+            prosecraft_core::html::sanitize_html(&html),
+            text(&case, "sanitized"),
+            "{name}"
+        );
+        if let Some(doc) = RichDoc::from_html(&html) {
+            // Held exactly, as ProseCraft's editor keeps it.
+            assert_eq!(doc.to_html(), html, "{name}");
+            assert_eq!(saved, html, "{name}: ProseCraft keeps it");
+            exact.push(name);
+            continue;
+        }
+        let Some(doc) = RichDoc::from_html_normalized(&html) else {
+            read_only.push(name);
+            continue;
+        };
+        let written = doc.to_html();
+        if RichDoc::from_html(&saved).is_some() {
+            // The shape ProseCraft's editor saves.
+            assert_eq!(written, saved, "{name}");
+            as_saved.push(name);
+        } else {
+            // A shape ProseCraft keeps and this editor can't: its own, with the same text.
+            assert_ne!(written, saved, "{name}");
+            assert_eq!(bare_text(&written), bare_text(&saved), "{name}");
+            own.push(name);
+        }
+    }
+    assert_eq!(exact.len(), 11, "{exact:?}");
+    assert_eq!(as_saved, ["a fourth-level heading"]);
+    assert_eq!(
+        own,
+        [
+            "a div wrapper",
+            "paragraphs in a list item",
+            "a stray end tag after a list"
+        ]
+    );
+    assert_eq!(
+        read_only,
+        ["an eyebrow screenplay element", "a line separator"]
+    );
+}
+
+/// Every scene HTML in the fixtures (`content` and the sanitizer's `full` output), once each.
+fn fixture_scenes() -> std::collections::BTreeSet<(String, String)> {
+    fn walk(value: &JsValue, file: &str, out: &mut std::collections::BTreeSet<(String, String)>) {
+        match value {
+            JsValue::Object(map) => {
+                for (key, child) in map.iter() {
+                    let key = key.to_string_lossy();
+                    if let Some(html) = child.as_js_string().and_then(|s| s.as_string())
+                        && (key == "content" || key == "full")
+                        && html.starts_with('<')
+                    {
+                        out.insert((file.to_owned(), html));
+                    }
+                    walk(child, file, out);
+                }
+            }
+            JsValue::Array(items) => items.iter().for_each(|child| walk(child, file, out)),
+            _ => {}
+        }
+    }
+    let dir = format!("{}/tests/fixtures", env!("CARGO_MANIFEST_DIR"));
+    let mut names: Vec<String> = std::fs::read_dir(&dir)
+        .unwrap_or_else(|e| panic!("{dir}: {e}"))
+        .filter_map(|entry| entry.ok()?.file_name().into_string().ok())
+        .filter(|name| name.ends_with(".json"))
+        .collect();
+    names.sort();
+    let mut out = std::collections::BTreeSet::new();
+    for name in names {
+        walk(&fixture(&name), &name, &mut out);
+    }
+    out
+}
+
+#[test]
+fn the_fixture_scenes_open_for_editing() {
+    use prosecraft_core::richtext::RichDoc;
+    let (mut exact, mut normalized, mut read_only) = (0, 0, Vec::new());
+    let scenes = fixture_scenes();
+    for (file, html) in &scenes {
+        if let Some(doc) = RichDoc::from_html(html) {
+            assert_eq!(doc.to_html(), *html, "{file}");
+            exact += 1;
+        } else if RichDoc::from_html_normalized(html).is_some() {
+            normalized += 1;
+        } else {
+            read_only.push(html.clone());
+        }
+    }
+    println!(
+        "{exact} exact, {normalized} normalized, {} read-only of {}",
+        read_only.len(),
+        scenes.len()
+    );
+    // What stays read-only: a screenplay element that is an eyebrow too, and a literal line
+    // separator (the editor's own soft line break).
+    assert_eq!(
+        read_only,
+        [
+            r#"<p data-sp="scene-heading">INT. ROOM</p><p>x</p><p class="eyebrow" data-sp="dialogue">y</p>"#,
+            "<p>Unicode: café 🌊 \u{2028} tab\tend</p>",
+        ],
+    );
+    assert_eq!(normalized, 6);
+}
+
 #[test]
 fn sanitizer_matches_prosecraft() {
     use prosecraft_core::html::{sanitize_html, sanitize_inline_html};

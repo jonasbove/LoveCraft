@@ -67,6 +67,19 @@ pub fn numbered_ids(html: &str) -> Vec<String> {
     seen
 }
 
+/// `handleInput`'s removed footnote ids: the ids of `before` (the markers' ids before an edit)
+/// that no marker in `after` refers to any more, each once. Their definitions go with them; a
+/// marker whose id is still referred to elsewhere keeps its definition.
+pub fn removed_ids(before: &[String], after: &[String]) -> Vec<String> {
+    let mut removed: Vec<String> = Vec::new();
+    for id in before {
+        if !after.contains(id) && !removed.contains(id) {
+            removed.push(id.clone());
+        }
+    }
+    removed
+}
+
 /// A referenced footnote: its number, and its definition's HTML (`None` when it has none).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NumberedFootnote {
@@ -436,5 +449,41 @@ mod tests {
             stringify(&p),
             r#"{"documents":[{"id":"d","content":"<p>One</p>"}]}"#
         );
+    }
+}
+
+#[cfg(test)]
+mod removed_tests {
+    use super::{extract_ids, marker_html, removed_ids};
+    use crate::richtext::{ATOM, RichDoc};
+
+    fn ids(doc: &RichDoc) -> Vec<String> {
+        doc.atoms.iter().flat_map(|a| extract_ids(a)).collect()
+    }
+
+    #[test]
+    fn a_marker_cut_away_takes_its_id_but_a_repeated_one_does_not() {
+        let (a, b) = (marker_html("fn-aaaaaa"), marker_html("fn-bbbbbb"));
+        let mut doc = RichDoc::from_html(&format!("<p>One{a} two{b} three{b}</p>")).expect("held");
+        let before = ids(&doc);
+        let chars: Vec<char> = doc.text.chars().collect();
+        let first = chars.iter().position(|c| *c == ATOM).expect("a marker");
+        // Cut "One" and its marker, and the first of the two "b" markers.
+        let second = first
+            + 1
+            + chars[first + 1..]
+                .iter()
+                .position(|c| *c == ATOM)
+                .expect("another");
+        let kept: String = chars
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| *i > first && *i != second)
+            .map(|(_, c)| c)
+            .collect();
+        doc.apply_text_at(&kept, Some(0));
+        assert_eq!(removed_ids(&before, &ids(&doc)), ["fn-aaaaaa"]);
+        assert!(removed_ids(&before, &before).is_empty());
+        assert_eq!(removed_ids(&before, &[]), ["fn-aaaaaa", "fn-bbbbbb"]);
     }
 }

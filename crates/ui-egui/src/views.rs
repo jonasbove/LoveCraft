@@ -1143,6 +1143,112 @@ fn paste(
     state.store(ui.ctx(), body_id);
 }
 
+/// A passage's comment anchor, in ProseCraft's comment text (the scene's text nodes, the newlines
+/// a Markdown scene has between its blocks included); none for whitespace alone.
+fn comment_anchor(
+    draft: &Draft,
+    range: std::ops::Range<usize>,
+) -> Option<prosecraft_core::comments::Anchor> {
+    let map = draft.doc.comment_map();
+    let (start, end) = (map.to_comment(range.start), map.to_comment(range.end));
+    prosecraft_core::comments::build_anchor(&map.text, start, end)
+}
+
+/// `updateCommentSelectionPopover`: the Comment button over a selection (above it when there is
+/// room, else below), as the toolbar's Comment does.
+fn comment_popover(
+    ui: &Ui,
+    (document, offered): (&str, bool),
+    draft: &Draft,
+    output: &egui::text_edit::TextEditOutput,
+    (pending, side_tab): (&mut Option<crate::PendingComment>, &mut crate::SideTab),
+) {
+    // The last one shown, kept while the pointer is on it: pressing its button takes the
+    // focus from the text (ProseCraft keeps it with `preventDefault`).
+    if !offered {
+        return;
+    }
+    let kept_id = egui::Id::unique("comment-selection-popover-kept");
+    let kept = ui
+        .data(|d| {
+            d.get_temp::<(prosecraft_core::comments::Anchor, egui::Pos2, egui::Rect)>(kept_id)
+        })
+        .filter(|(_, _, rect)| {
+            ui.ctx()
+                .pointer_latest_pos()
+                .is_some_and(|p| rect.expand(4.0).contains(p))
+        });
+    let fresh = output
+        .cursor_range
+        .filter(|r| !r.is_empty() && output.response.has_focus())
+        .filter(|_| !ui.input(|i| i.pointer.any_down()) && pending.is_none())
+        .and_then(|r| {
+            let (a, b) = (r.primary.index.0, r.secondary.index.0);
+            let range = a.min(b)..a.max(b);
+            let anchor = comment_anchor(draft, range.clone())?;
+            let origin = output.galley_pos.to_vec2();
+            let first = output
+                .galley
+                .pos_from_cursor(egui::text::CCursor::new(range.start))
+                .translate(origin);
+            let last = output
+                .galley
+                .pos_from_cursor(egui::text::CCursor::new(range.end))
+                .translate(origin);
+            let width = 108.0;
+            let above = first.top() - ui.clip_rect().top() > 52.0;
+            let center = if (first.top() - last.top()).abs() < 1.0 {
+                (first.left() + last.left()) / 2.0
+            } else {
+                first.left()
+            };
+            let at = egui::pos2(
+                center - width / 2.0,
+                if above {
+                    first.top() - 40.0
+                } else {
+                    last.bottom() + 10.0
+                },
+            );
+            Some((anchor, at))
+        });
+    let Some((anchor, at)) = fresh.or(kept.map(|(a, at, _)| (a, at))) else {
+        ui.data_mut(|d| {
+            d.remove::<(prosecraft_core::comments::Anchor, egui::Pos2, egui::Rect)>(kept_id)
+        });
+        return;
+    };
+    let area = egui::Area::new(egui::Id::unique("comment-selection-popover"))
+        .order(egui::Order::Foreground)
+        .fixed_pos(at)
+        .show(ui.ctx(), |ui| {
+            egui::Frame::popup(ui.style())
+                .show(ui, |ui| {
+                    let button = ui.button("💬 Comment").on_hover_text("Add comment");
+                    name_field(ui, &button, "Add comment");
+                    button.clicked()
+                })
+                .inner
+        });
+    ui.ctx().accesskit_node_builder(area.response.id, |node| {
+        node.set_role(egui::accesskit::Role::Toolbar);
+        node.set_label("Comment on selection");
+    });
+    if area.inner {
+        ui.data_mut(|d| {
+            d.remove::<(prosecraft_core::comments::Anchor, egui::Pos2, egui::Rect)>(kept_id)
+        });
+        *pending = Some(crate::PendingComment {
+            document: document.to_owned(),
+            anchor,
+        });
+        *side_tab = crate::SideTab::Comments;
+    } else {
+        let rect = area.response.rect;
+        ui.data_mut(|d| d.insert_temp(kept_id, (anchor, at, rect)));
+    }
+}
+
 /// The equation, diagram or calculation editor over the scene, and what it changed.
 fn rich_dialog(
     ui: &mut Ui,
@@ -2287,21 +2393,13 @@ fn editor(
             name_field(ui, &comment, "Comment");
             if comment.clicked()
                 && let Some(range) = selected
+                && let Some(anchor) = comment_anchor(draft, range)
             {
-                use prosecraft_core::comments::build_anchor;
-                // ProseCraft's comment text: the scene's text nodes, the newlines a Markdown
-                // scene has between its blocks included.
-                let map = draft.doc.comment_map();
-                let text = &map.text;
-                let (start, end) = (map.to_comment(range.start), map.to_comment(range.end));
-                // Whitespace alone has nothing to anchor to.
-                if let Some(anchor) = build_anchor(text, start, end) {
-                    *edit.pending_comment = Some(crate::PendingComment {
-                        document: document.id.clone(),
-                        anchor,
-                    });
-                    *edit.side_tab = crate::SideTab::Comments;
-                }
+                *edit.pending_comment = Some(crate::PendingComment {
+                    document: document.id.clone(),
+                    anchor,
+                });
+                *edit.side_tab = crate::SideTab::Comments;
             }
             // ProseCraft's Insert footnote (Ctrl+Alt+F): a marker after the selection, or at
             // the end of the text.
@@ -2583,6 +2681,13 @@ fn editor(
             }
         }
     }
+    comment_popover(
+        ui,
+        (&document.id, edit.editable && !screenplay),
+        draft,
+        &output,
+        (edit.pending_comment, edit.side_tab),
+    );
     text_marks(
         ui,
         palette,

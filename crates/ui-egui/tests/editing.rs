@@ -2655,6 +2655,34 @@ fn a_snapshot_is_taken_restored_and_deleted() {
 }
 
 #[test]
+fn a_selection_offers_its_comment_button() {
+    let (mut harness, _memory) = app();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    assert!(harness.query_by_label("Comment on selection").is_none());
+    for _ in 0..3 {
+        harness.key_press_modifiers(egui::Modifiers::NONE, egui::Key::ArrowUp);
+    }
+    harness.key_press_modifiers(egui::Modifiers::NONE, egui::Key::Home);
+    for _ in 0..4 {
+        harness.key_press_modifiers(egui::Modifiers::SHIFT, egui::Key::ArrowRight);
+    }
+    harness.run();
+    harness.get_by_label("Comment on selection");
+    harness
+        .get_by_role_and_label(Role::Button, "Add comment")
+        .click();
+    harness.run();
+    // As the toolbar's Comment: the comment form, for that passage.
+    harness.get_by_label("Comment text");
+    assert!(harness.query_by_label("Comment on selection").is_none());
+}
+
+#[test]
 fn a_comment_is_added_on_a_selection_resolved_and_found_again() {
     let (mut harness, memory) = app();
     harness

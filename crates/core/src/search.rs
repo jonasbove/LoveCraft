@@ -132,7 +132,7 @@ fn index_of(text: &[u16], needle: &[u16], from: usize) -> Option<usize> {
 }
 
 /// The non-overlapping matches, as `findMatches` and `findRanges` walk them.
-fn ranges(text: &[u16], needle: &[u16], whole_word: bool) -> Vec<usize> {
+pub fn ranges(text: &[u16], needle: &[u16], whole_word: bool) -> Vec<usize> {
     let mut out = Vec::new();
     let mut index = index_of(text, needle, 0);
     while let Some(i) = index {
@@ -145,7 +145,7 @@ fn ranges(text: &[u16], needle: &[u16], whole_word: bool) -> Vec<usize> {
 }
 
 /// `collapseWhitespace`: runs of whitespace become one space; the ends are trimmed.
-fn collapse_whitespace(value: &str) -> String {
+pub fn collapse_whitespace(value: &str) -> String {
     let mut out = String::new();
     let mut in_run = false;
     for c in value.chars() {
@@ -163,7 +163,7 @@ fn collapse_whitespace(value: &str) -> String {
 }
 
 /// `buildSnippet`: about 80 units around the match, "…" where it was cut.
-fn build_snippet(source: &[u16], start: usize, length: usize) -> (Vec<u16>, usize) {
+pub fn build_snippet(source: &[u16], start: usize, length: usize) -> (Vec<u16>, usize) {
     let mut from = start.saturating_sub(SNIPPET_CONTEXT_BEFORE);
     let mut to = source
         .len()

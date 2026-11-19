@@ -1,7 +1,7 @@
 [workspace]
 resolver = "3"
 members = ["crates/*", "apps/*", "xtask"]
-default-members = ["crates/*", "apps/prosecraft-rs", "xtask"]
+default-members = ["crates/*", "apps/prosecraft-rs", "apps/prosecraft-mcp", "xtask"]
 
 [workspace.package]
 version = "0.1.0"
@@ -30,6 +30,7 @@ craft-docx = { git = "https://github.com/storytold/craft-libs", rev = "8672aff3d
 craft-wordmodel = { git = "https://github.com/storytold/craft-libs", rev = "8672aff3d85ccad8f2a391304139d192a7d08dd5", version = "=0.1.0" }
 craft-pdf = { git = "https://github.com/storytold/craft-libs", rev = "8672aff3d85ccad8f2a391304139d192a7d08dd5", version = "=0.1.0", default-features = false }
 craft-menu = { git = "https://github.com/storytold/craft-libs", rev = "8672aff3d85ccad8f2a391304139d192a7d08dd5", version = "=0.1.0" }
+craft-mcp-server = { git = "https://github.com/storytold/craft-libs", rev = "8672aff3d85ccad8f2a391304139d192a7d08dd5", version = "=0.1.0" }
 
 # foundation
 thiserror = "2"

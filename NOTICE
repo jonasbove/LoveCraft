@@ -1,5 +1,5 @@
-prosecraft-rs
-Copyright (c) 2026 the prosecraft-rs contributors
+ProseCraft-rs
+Copyright (c) 2026 the ProseCraft-rs contributors
 Licensed under the MIT licence or the Apache License 2.0, at your option.
 
 This software is a Rust rewrite of ProseCraft (https://github.com/jennraeross/ProseCraft),
@@ -18,5 +18,5 @@ Copyright (c) 2011-2018 Christopher Jeffrey, distributed under the MIT licence, 
 carries the notice of Markdown, Copyright (c) 2004 John Gruber. Its LICENSE file is reproduced
 in licenses/marked.txt.
 
-prosecraft-rs is an independent project. It is not affiliated with or endorsed by the
+ProseCraft-rs is an independent project. It is not affiliated with or endorsed by the
 ProseCraft project or its author.

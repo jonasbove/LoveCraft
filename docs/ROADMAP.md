@@ -1,6 +1,6 @@
-# Roadmap: prosecraft-rs
+# Roadmap: ProseCraft-rs
 
-prosecraft-rs is a native Rust/egui rewrite of [ProseCraft](https://github.com/jennraeross/ProseCraft), the MIT-licensed novel-writing app by Jennifer Roylance and its contributors. The aim is the same app: outline, write, storyboard and publish. It would run natively on Linux, macOS, Windows and BSD and on the web, with no webview, TypeScript or Tauri, and would follow the Craft suite's house rules.
+ProseCraft-rs is a native Rust/egui rewrite of [ProseCraft](https://github.com/jennraeross/ProseCraft), the MIT-licensed novel-writing app by Jennifer Roylance and its contributors. The aim is the same app: outline, write, storyboard and publish. It would run natively on Linux, macOS, Windows and BSD and on the web, with no webview, TypeScript or Tauri, and would follow the Craft suite's house rules.
 
 Status: 0.1.0 has ProseCraft's feature set up to upstream `8cdc694` (v0.6.1). Cloud sync is planned through CraftCloud (P10). The rest of this document is the plan as it was written.
 
@@ -12,7 +12,7 @@ A manuscript must never be lost or corrupted. The design aims for:
 - Every save is atomic.
 - Compatibility with ProseCraft's backup (`.prosecraft`) and sync-folder formats is tested against fixtures made by the original app.
 
-The way to move work over: export a backup or set up folder sync in ProseCraft, then open that in prosecraft-rs.
+The way to move work over: export a backup or set up folder sync in ProseCraft, then open that in ProseCraft-rs.
 
 ## Proposed milestones
 | # | Milestone | Done when |
@@ -36,4 +36,4 @@ P5 was folded into P1b.
 Name and branding, the scope of the web and phone experience, and whether to keep diagram rendering and WebDAV.
 
 ## Credits
-ProseCraft © 2026 Jennifer Roylance, MIT licence. prosecraft-rs keeps that notice (see `NOTICE`) and is an independent project, not affiliated with or endorsed by ProseCraft.
+ProseCraft © 2026 Jennifer Roylance, MIT licence. ProseCraft-rs keeps that notice (see `NOTICE`) and is an independent project, not affiliated with or endorsed by ProseCraft.

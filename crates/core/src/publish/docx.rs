@@ -882,7 +882,7 @@ fn table_of_contents(book: &CompiledBook) -> Vec<Paragraph> {
 /// `exportDocx`: the book as a `.docx` file.
 pub fn export_docx(book: &CompiledBook, options: &PublishOptions) -> Result<Export, DocxError> {
     let doc = docx_document(book, options)?;
-    craft_docx::set_application_name("prosecraft-rs");
+    craft_docx::set_application_name(crate::about::APP_NAME);
     let bytes = craft_docx::write(&doc).map_err(|e| DocxError::Write(e.to_string()))?;
     Ok(Export {
         file_name: format!("{}.docx", slugify_filename(&book.title)),

@@ -496,7 +496,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
 
 fn welcome(ui: &mut Ui, palette: &Palette) {
     ui.add_space(64.0);
-    eyebrow(ui, palette, "prosecraft-rs");
+    eyebrow(ui, palette, prosecraft_core::about::APP_NAME);
     ui.label(
         RichText::new("Outline. Write. Publish.")
             .font(fonts::serif(38.0))

@@ -324,7 +324,7 @@ pub fn write_pdf(layout: &Layout) -> Result<Vec<u8>, PdfError> {
     }
     info.set(
         key("Creator"),
-        Object::String(PdfString::text("prosecraft-rs")),
+        Object::String(PdfString::text(crate::about::APP_NAME)),
     );
     let info = doc.add(Object::Dict(info));
     doc.trailer_mut().set(key("Info"), Object::Ref(info));

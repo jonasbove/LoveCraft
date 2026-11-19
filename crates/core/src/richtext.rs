@@ -1451,6 +1451,64 @@ impl RichDoc {
     /// `createLink`: the characters of `range` become a link to `href` (any link they were in
     /// replaced). With nothing selected the address itself goes in as the link's text, as the
     /// browser does.
+    /// The link the character at `index` (or just before it, for a caret at its end) is in:
+    /// its characters and its address (`currentLinkElement`).
+    pub fn link_at(&self, index: usize) -> Option<(std::ops::Range<usize>, String)> {
+        let href = |i: usize| {
+            self.marks.get(i).and_then(|stack| {
+                stack.iter().find(|t| t.name == "a").map(|t| {
+                    t.attrs
+                        .iter()
+                        .find(|(k, _)| k == "href")
+                        .map(|(_, v)| v.clone())
+                        .unwrap_or_default()
+                })
+            })
+        };
+        let at = [Some(index), index.checked_sub(1)]
+            .into_iter()
+            .flatten()
+            .find(|i| href(*i).is_some())?;
+        let address = href(at)?;
+        let same = |i: usize| href(i).as_deref() == Some(address.as_str());
+        let mut start = at;
+        while start > 0 && same(start - 1) {
+            start -= 1;
+        }
+        let mut end = at + 1;
+        while same(end) {
+            end += 1;
+        }
+        Some((start..end, address))
+    }
+
+    /// `removeLink`: the characters of `range` no longer in a link.
+    pub fn unlink(&mut self, range: std::ops::Range<usize>) -> String {
+        for i in range {
+            if let Some(stack) = self.marks.get_mut(i) {
+                stack.retain(|t| t.name != "a");
+            }
+        }
+        self.text.clone()
+    }
+
+    /// A link put in at a caret (`applyLink` with nothing selected): `text` linked to `href`,
+    /// and the caret after it.
+    pub fn insert_link(&mut self, at: usize, text: &str, href: &str) -> (String, usize) {
+        let chars: Vec<char> = self.text.chars().collect();
+        let at = at.min(chars.len());
+        let joined: String = chars[..at]
+            .iter()
+            .copied()
+            .chain(text.chars())
+            .chain(chars[at..].iter().copied())
+            .collect();
+        let end = at + text.chars().count();
+        self.apply_text_at(&joined, Some(end));
+        self.set_link(at..end, href);
+        (self.text.clone(), end)
+    }
+
     pub fn set_link(&mut self, range: std::ops::Range<usize>, href: &str) -> String {
         let tag = Tag {
             name: "a".to_owned(),
@@ -2046,5 +2104,29 @@ mod paste_tests {
             "{html}"
         );
         assert!(html.contains('!'), "{html}");
+    }
+}
+
+#[cfg(test)]
+mod link_tests {
+    use super::RichDoc;
+
+    #[test]
+    fn links_are_found_put_in_and_taken_away() {
+        let mut doc = RichDoc::from_html(r#"<p>See <a href="https://a.test/">the map</a> now</p>"#)
+            .expect("doc");
+        let (range, href) = doc.link_at(6).expect("in the link");
+        assert_eq!((range, href.as_str()), (4..11, "https://a.test/"));
+        // A caret at its end is in it too; one after the space isn't.
+        assert_eq!(doc.link_at(11).map(|l| l.0), Some(4..11));
+        assert!(doc.link_at(12).is_none());
+        doc.unlink(4..11);
+        assert_eq!(doc.to_html(), "<p>See the map now</p>");
+        let (_, caret) = doc.insert_link(0, "example.com", "https://example.com/");
+        assert_eq!(caret, 11);
+        assert_eq!(
+            doc.to_html(),
+            r#"<p><a href="https://example.com/">example.com</a>See the map now</p>"#
+        );
     }
 }

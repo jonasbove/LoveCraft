@@ -24,6 +24,45 @@ pub(crate) struct FootnoteEdit {
     caret: Option<usize>,
     /// The footnote's citation labels (ProseCraft labels a note's citations on their own).
     cite_labels: std::cell::RefCell<prosecraft_core::citations::labels::LabelCache>,
+    /// The link form (`linkEditorOpen`): the address typed, its error, and the passage it is
+    /// for (`savedRange`).
+    link: Option<LinkForm>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+struct LinkForm {
+    url: String,
+    error: Option<&'static str>,
+    range: std::ops::Range<usize>,
+    focus: bool,
+}
+
+/// `applyLink`: an address (`https://` added without a scheme; web and email only) for the
+/// passage, an existing link at the caret, or the address itself put in at the caret.
+fn apply_link(doc: &mut RichDoc, form: &LinkForm) -> Result<usize, &'static str> {
+    let entered = form.url.trim();
+    if entered.is_empty() {
+        return Err("Enter a link address.");
+    }
+    let href = prosecraft_core::richtext::link_href(entered)?;
+    let range = form.range.clone();
+    if !range.is_empty() {
+        doc.set_link(range.clone(), &href);
+        return Ok(range.end);
+    }
+    if let Some((existing, _)) = doc.link_at(range.start) {
+        doc.set_link(existing.clone(), &href);
+        return Ok(existing.end);
+    }
+    Ok(doc.insert_link(range.start, entered, &href).1)
+}
+
+/// `removeLink`: the link at the caret, or the links in the passage, undone.
+fn remove_link(doc: &mut RichDoc, range: std::ops::Range<usize>) {
+    match doc.link_at(range.start) {
+        Some((existing, _)) if range.is_empty() => doc.unlink(existing),
+        _ => doc.unlink(range),
+    };
 }
 
 impl FootnoteEdit {
@@ -44,6 +83,7 @@ impl FootnoteEdit {
             focus: true,
             caret: None,
             cite_labels: Default::default(),
+            link: None,
         }
     }
 
@@ -184,7 +224,10 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         .open(&mut open)
         .collapsible(false)
         .resizable(false)
-        .fixed_size(egui::vec2(380.0, 190.0))
+        .fixed_size(egui::vec2(
+            380.0,
+            if edit.link.is_some() { 240.0 } else { 190.0 },
+        ))
         .anchor(egui::Align2::CENTER_TOP, [0.0, 140.0])
         .show(ui.ctx(), |ui| {
             match edit.doc.as_mut() {
@@ -212,6 +255,35 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                                 ui.memory_mut(|m| m.request_focus(field_id));
                             }
                         }
+                        // `openLinkEditor` (Ctrl+K in the note too): pressed while the form is
+                        // open or the caret is in a link.
+                        let caret = selection.clone().unwrap_or(0..0);
+                        let inside = doc.link_at(caret.start).is_some();
+                        let link = ui
+                            .add_enabled(
+                                editable,
+                                egui::Button::selectable(edit.link.is_some() || inside, "Link"),
+                            )
+                            .on_hover_text("Add link");
+                        crate::views::name_field(ui, &link, "Add link");
+                        let keyed = ui.memory(|m| m.has_focus(field_id))
+                            && ui.input_mut(|i| {
+                                i.consume_key(egui::Modifiers::COMMAND, egui::Key::K)
+                            });
+                        if editable && (link.clicked() || keyed) {
+                            edit.link = if edit.link.is_some() {
+                                edit.focus = true;
+                                None
+                            } else {
+                                let url = doc.link_at(caret.start).map(|l| l.1).unwrap_or_default();
+                                Some(LinkForm {
+                                    url,
+                                    error: None,
+                                    range: caret,
+                                    focus: true,
+                                })
+                            };
+                        }
                         let cite = ui
                             .add_enabled(editable, egui::Button::new("Cite"))
                             .on_hover_text("Insert citation");
@@ -222,6 +294,55 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                         node.set_role(egui::accesskit::Role::Toolbar);
                         node.set_label("Footnote formatting");
                     });
+                    if let Some(form) = edit.link.as_mut() {
+                        let (mut apply, mut unlink, mut cancel) = (false, false, false);
+                        ui.horizontal(|ui| {
+                            let field = ui.add(
+                                egui::TextEdit::singleline(&mut form.url)
+                                    .hint_text("https://example.com")
+                                    .desired_width(190.0),
+                            );
+                            crate::views::name_field(ui, &field, "Link URL");
+                            if std::mem::take(&mut form.focus) {
+                                field.request_focus();
+                            }
+                            apply = ui.button("Apply").clicked()
+                                || (field.lost_focus()
+                                    && ui.input(|i| i.key_pressed(egui::Key::Enter)));
+                            if doc.link_at(form.range.start).is_some() || !form.range.is_empty() {
+                                unlink = ui.button("Unlink").clicked();
+                            }
+                            cancel = ui.button("Cancel").clicked()
+                                || (field.has_focus()
+                                    && ui.input(|i| i.key_pressed(egui::Key::Escape)));
+                        });
+                        if let Some(error) = form.error {
+                            let label = ui.colored_label(palette.danger, error);
+                            ui.ctx().accesskit_node_builder(label.id, move |node| {
+                                node.set_role(egui::accesskit::Role::Alert);
+                                node.set_label(error);
+                            });
+                        }
+                        if apply {
+                            match apply_link(doc, form) {
+                                Ok(caret) => {
+                                    edit.body = doc.text.clone();
+                                    edit.caret = Some(caret);
+                                    edit.focus = true;
+                                    edit.link = None;
+                                }
+                                Err(error) => form.error = Some(error),
+                            }
+                        } else if unlink {
+                            remove_link(doc, form.range.clone());
+                            edit.body = doc.text.clone();
+                            edit.focus = true;
+                            edit.link = None;
+                        } else if cancel {
+                            edit.focus = true;
+                            edit.link = None;
+                        }
+                    }
                     let cites = crate::views::CiteStyle {
                         items,
                         style: options.citation_style.clone(),

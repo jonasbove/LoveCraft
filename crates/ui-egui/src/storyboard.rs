@@ -470,10 +470,10 @@ pub(crate) fn show(
         }
     }
     let mut to_world = None;
-    // The Select and Pan tools pan with a drag on the background (Space + drag and the middle
-    // mouse always do); the drawing tools draw with it.
+    // `startStoryboardPan`: the Pan tool and Space + drag pan with the primary button, and the
+    // middle mouse always does; with Select, a drag on the background doesn't pan.
     let space = ui.input(|i| i.key_down(egui::Key::Space)) && !ui.ctx().text_edit_focused();
-    let pans = matches!(tools.tool, Tool::Select | Tool::Pan) || space;
+    let pans = tools.tool == Tool::Pan || space;
     let pan_buttons = if pans {
         egui::DragPanButtons::PRIMARY | egui::DragPanButtons::MIDDLE
     } else {

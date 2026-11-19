@@ -172,14 +172,17 @@ mod web {
                     .unwrap_or_else(|| "IndexedDB is unavailable".into())
             )),
         };
-        match library {
+        let mut app = match library {
             Ok(library) => ProseApp::with_library(library, Box::new(BrowserStore::new())),
             Err(why) => {
                 let mut app = ProseApp::new();
                 app.report(&why);
                 app
             }
-        }
+        };
+        // Keys and nonces for encrypted backups: the browser's `crypto.getRandomValues`.
+        app.set_random(|| Box::new(BrowserRandom));
+        app
     }
 
     pub fn start() {

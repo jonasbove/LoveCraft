@@ -74,6 +74,32 @@ impl Library {
         write_plain_bundle(&self.projects, saved_at, &self.device_id)
     }
 
+    /// `createEncryptedBundleText`: the library as an encrypted backup, sealed under a new
+    /// vault for `passphrase`, with its hint in clear text.
+    pub fn to_encrypted_text(
+        &self,
+        passphrase: &str,
+        hint: Option<&str>,
+        created_at: f64,
+        (options, random): (&crate::storage::crypto::VaultOptions, &mut dyn RandomSource),
+    ) -> Result<String, BundleError> {
+        let options = crate::storage::crypto::VaultOptions {
+            hint: hint.map(str::to_owned),
+            ..options.clone()
+        };
+        let (header, key) =
+            crate::storage::crypto::create_vault(&passphrase.into(), &options, random)?;
+        crate::storage::bundle::write_encrypted_bundle(
+            &self.projects,
+            &header,
+            &key,
+            &self.device_id,
+            created_at,
+            hint,
+            random,
+        )
+    }
+
     /// Whether this build must not write the library (a newer release's project is in it).
     pub fn is_read_only(&self) -> bool {
         self.read_only
@@ -246,6 +272,38 @@ mod tests {
             bytes.fill(0xab);
             Ok(())
         }
+    }
+
+    #[test]
+    fn an_encrypted_backup_opens_with_its_passphrase_and_shows_its_hint() {
+        use crate::storage::bundle::EncryptedBundle;
+        let mut library = Library::new("device".into());
+        library.merge(vec![project("p1", 5.0, 1.0, "Lighthouse")]);
+        // Small key-derivation settings, so the test is quick; the app uses ProseCraft's.
+        let options = crate::storage::crypto::VaultOptions {
+            memory_kib: Some(64),
+            iterations: Some(1),
+            parallelism: Some(1),
+            ..Default::default()
+        };
+        let text = library
+            .to_encrypted_text(
+                "correct horse",
+                Some("the stable"),
+                7.0,
+                (&options, &mut crate::storage::crypto::OsRandom),
+            )
+            .expect("encrypted");
+        assert!(!text.contains("Lighthouse"));
+        let bundle = EncryptedBundle::parse(&text).expect("parse");
+        assert_eq!(bundle.hint().as_deref(), Some("the stable"));
+        assert!(bundle.open(&"wrong passphrase".into()).is_err());
+        let (_, projects) = bundle.open(&"correct horse".into()).expect("open");
+        assert_eq!(projects.len(), 1);
+        assert_eq!(
+            projects[0].get("project").and_then(|p| p.get("name")),
+            Some(&JsValue::str("Lighthouse"))
+        );
     }
 
     #[test]

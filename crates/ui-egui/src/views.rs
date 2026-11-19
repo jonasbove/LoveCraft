@@ -1811,7 +1811,9 @@ fn drop_removed_footnotes(
     let others: Vec<&prosecraft_core::project::Document> = chapter
         .map(|c| c.before.iter().chain(&c.after).copied().collect())
         .unwrap_or_default();
-    // In the chapter view the chapter's other scenes are in the editor too.
+    // In the chapter view the chapter's other scenes are in the editor too. Only the open
+    // scene is ever being typed into: switching scenes saves the draft first, so the others'
+    // stored text is their live text (a marker just pasted into one of them counts).
     let elsewhere: Vec<String> = others
         .iter()
         .flat_map(|s| prosecraft_core::footnotes::extract_ids(&s.content))

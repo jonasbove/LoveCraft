@@ -1,0 +1,838 @@
+{
+  "format": "prosecraft.bundle",
+  "schemaVersion": 2,
+  "exportedAt": 1800000000000,
+  "deviceId": "showcase",
+  "projects": [
+    {
+      "schemaVersion": 2,
+      "id": "glass-orchard",
+      "createdAt": 1795000000000,
+      "updatedAt": 1800000000000,
+      "revision": 1,
+      "updatedBy": "showcase",
+      "deletedAt": null,
+      "project": {
+        "id": "glass-orchard",
+        "name": "The Glass Orchard",
+        "author": "Wren Halloway",
+        "kind": "novel",
+        "activeDocumentId": "s-fog",
+        "projectGoal": 3000,
+        "chapterGoals": {
+          "ch-ferry": 500,
+          "ch-sand": 500,
+          "ch-ledger": 500,
+          "ch-lantern": 500
+        },
+        "activity": {
+          "2026-12-14": {
+            "edits": 12,
+            "wordsAdded": 96
+          },
+          "2026-12-17": {
+            "edits": 20,
+            "wordsAdded": 141
+          },
+          "2026-12-20": {
+            "edits": 9,
+            "wordsAdded": 64
+          },
+          "2026-12-28": {
+            "edits": 15,
+            "wordsAdded": 118
+          },
+          "2027-01-02": {
+            "edits": 22,
+            "wordsAdded": 152
+          },
+          "2027-01-03": {
+            "edits": 14,
+            "wordsAdded": 88
+          },
+          "2027-01-05": {
+            "edits": 6,
+            "wordsAdded": 35
+          },
+          "2027-01-07": {
+            "edits": 18,
+            "wordsAdded": 120
+          },
+          "2027-01-08": {
+            "edits": 25,
+            "wordsAdded": 164
+          },
+          "2027-01-10": {
+            "edits": 10,
+            "wordsAdded": 57
+          },
+          "2027-01-11": {
+            "edits": 12,
+            "wordsAdded": 73
+          },
+          "2027-01-13": {
+            "edits": 19,
+            "wordsAdded": 131
+          },
+          "2027-01-14": {
+            "edits": 16,
+            "wordsAdded": 97
+          },
+          "2027-01-15": {
+            "edits": 8,
+            "wordsAdded": 46
+          }
+        },
+        "labels": [
+          {
+            "id": "label-draft",
+            "name": "Draft",
+            "color": "grey"
+          },
+          {
+            "id": "label-revised",
+            "name": "Revised",
+            "color": "amber"
+          },
+          {
+            "id": "label-final",
+            "name": "Final",
+            "color": "green"
+          },
+          {
+            "id": "label-twist",
+            "name": "Twist",
+            "color": "purple"
+          }
+        ],
+        "chapters": [
+          {
+            "id": "ch-ferry",
+            "title": "The Last Ferry",
+            "expanded": true,
+            "summary": "Ines comes home to Saltmarsh on the last boat of the season and finds the glassworks dark.",
+            "labelId": "label-revised"
+          },
+          {
+            "id": "ch-sand",
+            "title": "Sand and Fire",
+            "expanded": true,
+            "summary": "Delphine lets Ines back into the hot shop, on one condition she will not explain.",
+            "labelId": "label-draft"
+          },
+          {
+            "id": "ch-ledger",
+            "title": "The Ledger",
+            "expanded": false,
+            "summary": "A harbour clerk arrives with questions about orders that were paid for and never shipped.",
+            "labelId": "label-twist"
+          },
+          {
+            "id": "ch-lantern",
+            "title": "Lantern Night",
+            "expanded": false,
+            "summary": "The whole island climbs the hill, and the orchard is lit for the first time in eleven years.",
+            "labelId": "label-draft"
+          }
+        ],
+        "researchFolders": [
+          {
+            "id": "f-characters",
+            "title": "Characters",
+            "parentId": null
+          },
+          {
+            "id": "f-places",
+            "title": "Places",
+            "parentId": null
+          }
+        ],
+        "documents": [
+          {
+            "id": "s-fog",
+            "title": "Fog on the Quay",
+            "chapterId": "ch-ferry",
+            "labelId": "label-revised",
+            "content": "<p>The fog came in sideways that evening, low and quick, the way it only did in the last week of October, and by the time the ferry nosed against Saltmarsh Quay the island had been rubbed out to a few lamps and the smell of tar.</p><p>Ines Calder stood at the rail with her coat buttoned to the throat and her aunt’s letter folded in her glove. <em>Come home if you can,</em> it said. <em>The furnace misses you. So do I, though I would not say so to anyone else.</em> Seven words of feeling from Delphine, which was more than Ines had heard from her in the four years since she left.</p><p>Tobiah Marsh threw the rope before the hull had finished groaning. He looked older, or only tired; the ferryman’s season ended tonight, and after this crossing the boat would be hauled up the slip and left under canvas until April.<sup class=\"footnote-ref\" data-footnote-id=\"fn-season\" contenteditable=\"false\"></sup></p><p>“You came,” he said, as if he had lost a bet with himself.</p><p>“The letter said the furnace misses me.”</p><p>“The furnace has been cold since August.” He held out a hand to help her over the gap between the boat and the stones, and she took it, and neither of them let go quite as soon as they should have. “Nobody told you?”</p><p>Up the hill, where the glassworks should have been a smudge of orange against the dark, there was nothing at all. Ines had grown up under that glow. She had done her homework by it, and fallen asleep by it, and once, at nine, set her own sleeve alight in it. She had never once seen the orchard dark.</p><p>She picked up her bag. The fog closed behind her like a door.</p>",
+            "footnotes": [
+              {
+                "id": "fn-season",
+                "html": "Saltmarsh boats were laid up from the first of November, a rule older than the harbour office that still enforces it."
+              }
+            ],
+            "meta": {
+              "characters": [
+                "w-ines",
+                "w-tobiah",
+                "w-delphine"
+              ],
+              "place": "w-quay",
+              "storyDate": "1911-10-28"
+            }
+          },
+          {
+            "id": "s-orchard-night",
+            "title": "The Orchard at Night",
+            "chapterId": "ch-ferry",
+            "labelId": "label-draft",
+            "content": "<p>The workshop door was not locked. That frightened her more than the dark.</p><p>Inside, the glass trees stood where they had always stood, in rows along the long room, each one blown by a Calder hand and set on an iron trunk: apple boughs in green, pear in a yellow so pale it was nearly water, and at the far end Delphine’s plum tree, its fruit the colour of a bruise. In the light of Ines’s lamp they threw long, wavering shadows across the floor, and every leaf she brushed against rang very faintly, like a spoon on a cup.</p><p>“You took your time,” said Delphine, from the dark beside the cold furnace.</p><p>She was sitting on an upturned crate with a blanket round her shoulders. Her hands, which Ines remembered as never still, lay folded in her lap.</p><p>“I came as soon as the letter reached me.”</p><p>“I know.” Delphine looked at the furnace and not at her niece. “I meant the four years.”</p>",
+            "meta": {
+              "characters": [
+                "w-ines",
+                "w-delphine"
+              ],
+              "place": "w-orchard",
+              "storyDate": "1911-10-28"
+            }
+          },
+          {
+            "id": "s-first-gather",
+            "title": "First Gather",
+            "chapterId": "ch-sand",
+            "labelId": "label-draft",
+            "content": "<p>It took three days to bring the furnace back up to heat, and Delphine would not let her touch a blowpipe until the third.</p><p>When the moment came, Ines found that her hands remembered what her head had forgotten. She dipped the pipe, turned it, drew it out with a glowing gather on the end like a drop of honey, and rolled it on the steel marver until it was round and true. The heat pressed against her face. Somewhere behind her, Delphine made a small sound that might have been approval.</p><p>“Again,” her aunt said. “Slower. Glass is patient. You are not.”</p><p>By the end of the week she could pull a stem without it sagging, and by the end of the next she had made a leaf: thin as a fingernail, veined with a pair of tweezers while it was still soft, the green of new apples. Delphine held it up to the window for a long time.</p><p>“It will do,” she said, and put it in the annealer to cool overnight, and Ines lay awake until morning listening for the small, terrible tick of glass that has cooled too fast.</p>",
+            "meta": {
+              "characters": [
+                "w-ines",
+                "w-delphine"
+              ],
+              "place": "w-orchard",
+              "storyDate": "1911-11-01"
+            }
+          },
+          {
+            "id": "s-rule",
+            "title": "Delphine’s Rule",
+            "chapterId": "ch-sand",
+            "labelId": "label-draft",
+            "content": "<p>“One condition,” Delphine said, the night the first new leaf came out of the annealer whole. “You do not open the ledger. Whatever anyone asks you. Whoever asks.”</p><p>Ines looked at the book on the high shelf, its spine cracked, its corners soft with handling. She had never once been curious about it. She was now.</p>",
+            "meta": {
+              "characters": [
+                "w-ines",
+                "w-delphine"
+              ],
+              "place": "w-orchard",
+              "storyDate": "1911-11-04"
+            }
+          },
+          {
+            "id": "s-clerk",
+            "title": "A Clerk’s Visit",
+            "chapterId": "ch-ledger",
+            "labelId": "label-twist",
+            "content": "<p>Oren Lisle wore a harbour-office coat with every button done up and carried his own pencil, which he licked before he wrote anything down. He was polite to Delphine, and very polite to Ines, and he asked, three times and in three different ways, to see the order book for the summer of 1900.</p><p>“The office is tidying its records,” he said. “A formality. Some orders from that summer were paid for, you see, and the harbour has no note of them leaving.”</p><p>Delphine poured him tea and did not answer. Ines watched her aunt’s hands round the cup, perfectly steady, and knew without a word being said that the ledger on the high shelf was the reason her aunt had let the fire go out.</p>",
+            "meta": {
+              "characters": [
+                "w-oren",
+                "w-ines",
+                "w-delphine"
+              ],
+              "place": "w-orchard",
+              "storyDate": "1911-11-09"
+            }
+          },
+          {
+            "id": "s-numbers",
+            "title": "Numbers That Don’t Add Up",
+            "chapterId": "ch-ledger",
+            "labelId": "label-draft",
+            "content": "<p>Tobiah had kept every ferry manifest since his father’s time, in tea chests under the boathouse stairs. By lamplight, with the rain loud on the roof, he and Ines found the summer of 1900: forty crates booked out of the orchard, and not one of them carried across the water.</p><p>“Forty,” Tobiah said again, as if saying it twice would make it a smaller number. “That’s a year’s work. Where does a year’s work go on an island this size?”</p><p>Ines thought of the long room, and the rows of trees, and the plum tree at the end that nobody was allowed to touch. “Nowhere,” she said. “It stays.”</p>",
+            "meta": {
+              "characters": [
+                "w-tobiah",
+                "w-ines"
+              ],
+              "place": "w-quay",
+              "storyDate": "1911-11-12"
+            }
+          },
+          {
+            "id": "s-hill",
+            "title": "The Hill",
+            "chapterId": "ch-lantern",
+            "labelId": "label-draft",
+            "content": "<p>They carried the trees up Lantern Hill one at a time, wrapped in sacking, the whole island strung out along the path behind them with candles in jam jars.</p><p>At the top, Delphine set the plum tree down last, in the middle of the ring, and stood back from it with her hands in her coat pockets. Oren Lisle stood a little apart from everyone, his pencil for once put away.</p>",
+            "meta": {
+              "characters": [
+                "w-ines",
+                "w-tobiah",
+                "w-delphine",
+                "w-oren"
+              ],
+              "place": "w-hill",
+              "storyDate": "1911-11-30"
+            }
+          },
+          {
+            "id": "s-remembers",
+            "title": "What the Glass Remembers",
+            "chapterId": "ch-lantern",
+            "labelId": "label-draft",
+            "content": "<p>When the last lantern was lit inside the plum tree, the fruit glowed the colour of embers, and for a moment nobody on the hill said anything at all.</p>",
+            "meta": {
+              "characters": [
+                "w-ines",
+                "w-delphine"
+              ],
+              "place": "w-hill",
+              "storyDate": "1911-11-30"
+            }
+          },
+          {
+            "id": "w-ines",
+            "title": "Ines Calder",
+            "space": "Wiki",
+            "folderId": "f-characters",
+            "content": "<p>Nineteen, a glassblower’s apprentice who left Saltmarsh at fifteen to work in the city’s bottle factories and came back better at the work and worse at saying what she means.</p><p>She notices light before she notices people. When she is nervous she counts things: steps, panes, buttons.</p>",
+            "meta": {
+              "kind": "character",
+              "aliases": [
+                "Ines"
+              ],
+              "tags": [
+                "protagonist",
+                "Calder family"
+              ],
+              "sheetTemplate": "fantasy",
+              "sheet": {
+                "role": "Protagonist",
+                "age": "19",
+                "appearance": "Burn scar on the left wrist, cropped dark hair, always a little soot behind one ear.",
+                "voice": "Short sentences. Asks questions instead of answering them.",
+                "goals": "Relight the orchard. Find out why her aunt sent for her now.",
+                "flaws": "Proud; mistakes silence for agreement.",
+                "secret": "She was dismissed from the factory, not promoted.",
+                "occupation": "Glassblower",
+                "birthplace": "w-orchard"
+              },
+              "relations": [
+                {
+                  "id": "r-ines-delphine",
+                  "to": "w-delphine",
+                  "type": "family",
+                  "label": "Aunt",
+                  "tension": 3
+                },
+                {
+                  "id": "r-ines-tobiah",
+                  "to": "w-tobiah",
+                  "type": "love",
+                  "label": "Childhood friends",
+                  "tension": 2
+                },
+                {
+                  "id": "r-ines-oren",
+                  "to": "w-oren",
+                  "type": "rival",
+                  "label": "Wants the ledger",
+                  "tension": 4
+                }
+              ]
+            }
+          },
+          {
+            "id": "w-delphine",
+            "title": "Delphine Calder",
+            "space": "Wiki",
+            "folderId": "f-characters",
+            "content": "<p>Master of the Saltmarsh glassworks, sixty-one. Blew the plum tree herself the year Ines was born.</p>",
+            "meta": {
+              "kind": "character",
+              "aliases": [
+                "Delphine",
+                "Aunt Delphine"
+              ],
+              "sheetTemplate": "fantasy",
+              "sheet": {
+                "role": "Mentor",
+                "age": "61",
+                "goals": "Keep the ledger closed.",
+                "occupation": "Master glassblower"
+              },
+              "relations": [
+                {
+                  "id": "r-delphine-oren",
+                  "to": "w-oren",
+                  "type": "employer",
+                  "label": "In his debt",
+                  "tension": 5
+                }
+              ]
+            }
+          },
+          {
+            "id": "w-tobiah",
+            "title": "Tobiah Marsh",
+            "space": "Wiki",
+            "folderId": "f-characters",
+            "content": "<p>The ferryman, twenty-two. Keeps every manifest his family ever wrote.</p>",
+            "meta": {
+              "kind": "character",
+              "aliases": [
+                "Tobiah",
+                "Toby"
+              ],
+              "sheetTemplate": "fantasy",
+              "sheet": {
+                "role": "Ally",
+                "age": "22",
+                "occupation": "Ferryman"
+              }
+            }
+          },
+          {
+            "id": "w-oren",
+            "title": "Oren Lisle",
+            "space": "Wiki",
+            "folderId": "f-characters",
+            "content": "<p>Clerk at the harbour office. Patient, precise and much less dull than he lets people think.</p>",
+            "meta": {
+              "kind": "character",
+              "aliases": [
+                "Oren",
+                "Lisle"
+              ],
+              "sheetTemplate": "fantasy",
+              "sheet": {
+                "role": "Antagonist",
+                "age": "34",
+                "occupation": "Harbour clerk"
+              }
+            }
+          },
+          {
+            "id": "w-orchard",
+            "title": "The Orchard",
+            "space": "Wiki",
+            "folderId": "f-places",
+            "content": "<p>The Calder glassworks on the hill above the harbour: one long room of glass trees, a furnace at the far end and the annealing ovens behind it.</p><p>Glasshouses like it once stood on half the islands of the coast, most of them gone by 1900 <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;hartwell2019&quot;,&quot;locator&quot;:&quot;112&quot;}]\">(Hartwell 2019, 112)</span>.</p>",
+            "meta": {
+              "kind": "place",
+              "aliases": [
+                "the glassworks",
+                "the workshop"
+              ]
+            }
+          },
+          {
+            "id": "w-quay",
+            "title": "Saltmarsh Quay",
+            "space": "Wiki",
+            "folderId": "f-places",
+            "content": "<p>The island’s only landing: a stone quay, the ferry slip and the boathouse where Tobiah keeps the manifests.</p>",
+            "meta": {
+              "kind": "place",
+              "aliases": [
+                "the quay"
+              ]
+            }
+          },
+          {
+            "id": "w-hill",
+            "title": "Lantern Hill",
+            "space": "Wiki",
+            "folderId": "f-places",
+            "content": "<p>The bare hill at the island’s west end, where the lanterns are lit on the last night of November.</p>",
+            "meta": {
+              "kind": "place"
+            }
+          }
+        ],
+        "storyboardRows": [
+          {
+            "id": "row-1",
+            "title": "Act I"
+          }
+        ],
+        "storyboardCards": [
+          {
+            "id": "card-1",
+            "sourceId": "ch-ferry",
+            "rowId": "row-1",
+            "x": 20,
+            "y": 20,
+            "kind": "chapter",
+            "title": "The Last Ferry",
+            "note": "Homecoming. The orchard is dark."
+          },
+          {
+            "id": "card-2",
+            "sourceId": "ch-sand",
+            "rowId": "row-1",
+            "x": 280,
+            "y": 20,
+            "kind": "chapter",
+            "title": "Sand and Fire",
+            "note": "The furnace relit. Delphine’s one rule."
+          },
+          {
+            "id": "card-3",
+            "sourceId": "ch-ledger",
+            "rowId": "row-1",
+            "x": 20,
+            "y": 190,
+            "kind": "chapter",
+            "title": "The Ledger",
+            "note": "Forty crates that never crossed the water."
+          },
+          {
+            "id": "card-4",
+            "sourceId": "ch-lantern",
+            "rowId": "row-1",
+            "x": 280,
+            "y": 190,
+            "kind": "chapter",
+            "title": "Lantern Night",
+            "note": "The whole island climbs the hill."
+          },
+          {
+            "id": "card-5",
+            "sourceId": "w-ines",
+            "rowId": "row-1",
+            "x": 20,
+            "y": 380,
+            "kind": "Wiki",
+            "title": "Ines Calder",
+            "note": "Wants the truth more than the trade."
+          },
+          {
+            "id": "card-6",
+            "sourceId": "",
+            "rowId": "row-1",
+            "x": 40,
+            "y": 590,
+            "kind": "blank",
+            "title": "Midpoint",
+            "note": "Ines opens the ledger. Everything she believed about 1900 turns over."
+          },
+          {
+            "id": "card-7",
+            "sourceId": "w-delphine",
+            "rowId": "row-1",
+            "x": 280,
+            "y": 380,
+            "kind": "Wiki",
+            "title": "Delphine Calder",
+            "note": "Keeps the ledger closed, and why."
+          }
+        ],
+        "storyboardDrawings": [
+          {
+            "id": "d-1",
+            "type": "arrow",
+            "startX": 244,
+            "startY": 75,
+            "endX": 276,
+            "endY": 75
+          },
+          {
+            "id": "d-2",
+            "type": "arrow",
+            "startX": 390,
+            "startY": 136,
+            "endX": 130,
+            "endY": 186
+          },
+          {
+            "id": "d-3",
+            "type": "arrow",
+            "startX": 244,
+            "startY": 245,
+            "endX": 276,
+            "endY": 245
+          },
+          {
+            "id": "d-4",
+            "type": "box",
+            "x": 20,
+            "y": 570,
+            "width": 260,
+            "height": 180
+          },
+          {
+            "id": "d-5",
+            "type": "text",
+            "x": 300,
+            "y": 610,
+            "width": 220,
+            "height": 60,
+            "text": "The turn: what the ledger hides",
+            "fontSize": 18
+          }
+        ],
+        "timelineNodes": [
+          {
+            "id": "t-1",
+            "title": "Forty crates booked out",
+            "date": "1900-07-14",
+            "time": "",
+            "description": "The orchard’s best summer on paper. None of it reaches the mainland."
+          },
+          {
+            "id": "t-2",
+            "title": "Ines leaves Saltmarsh",
+            "date": "1907-09-02",
+            "time": "06:40",
+            "description": "On the first ferry, without saying goodbye to Delphine."
+          },
+          {
+            "id": "t-3",
+            "title": "The furnace goes cold",
+            "date": "1911-08-19",
+            "time": "",
+            "description": "Delphine lets the fire die and tells nobody why."
+          },
+          {
+            "id": "t-4",
+            "title": "The last ferry",
+            "date": "1911-10-28",
+            "time": "18:15",
+            "description": "Ines comes home in the fog."
+          },
+          {
+            "id": "t-5",
+            "title": "Oren asks for the order book",
+            "date": "1911-11-09",
+            "time": "10:00",
+            "description": "Three times, in three different ways."
+          },
+          {
+            "id": "t-6",
+            "title": "Lantern Night",
+            "date": "1911-11-30",
+            "time": "21:00",
+            "description": "The orchard is lit on the hill for the first time in eleven years."
+          }
+        ],
+        "comments": [
+          {
+            "id": "c-1",
+            "documentId": "s-fog",
+            "quote": "The fog came in sideways",
+            "prefix": "",
+            "suffix": " that evening",
+            "body": "Love this opening image. Could the fog come back on Lantern Night, so the book ends where it began?",
+            "author": "Editor",
+            "createdAt": 1799900000000,
+            "resolved": false
+          },
+          {
+            "id": "c-2",
+            "documentId": "s-fog",
+            "quote": "Seven words of feeling from Delphine",
+            "prefix": "would not say so to anyone else. ",
+            "suffix": ", which was",
+            "body": "Seven is right, I counted. Could Ines count them too? She counts things when she is nervous.",
+            "author": "Editor",
+            "createdAt": 1799950000000,
+            "resolved": false
+          }
+        ],
+        "snapshots": [
+          {
+            "id": "snap-1",
+            "documentId": "s-fog",
+            "createdAt": 1799000000000,
+            "title": "Fog on the Quay",
+            "content": "<p>The fog came in that evening, and by the time the ferry reached Saltmarsh Quay the island had gone.</p>",
+            "reason": "manual",
+            "note": "Before the second draft"
+          }
+        ],
+        "citations": [
+          {
+            "id": "hartwell2019",
+            "type": "book",
+            "title": "A Short History of Island Glass",
+            "author": [
+              {
+                "family": "Hartwell",
+                "given": "Mira"
+              }
+            ],
+            "publisher": "Harbour Press",
+            "issued": {
+              "date-parts": [
+                [
+                  2019
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "entities": {
+        "documents": {
+          "s-fog": {
+            "updatedAt": 1800000000000,
+            "revision": 1,
+            "updatedBy": "showcase",
+            "deletedAt": null
+          },
+          "s-orchard-night": {
+            "updatedAt": 1800000000000,
+            "revision": 1,
+            "updatedBy": "showcase",
+            "deletedAt": null
+          },
+          "s-first-gather": {
+            "updatedAt": 1800000000000,
+            "revision": 1,
+            "updatedBy": "showcase",
+            "deletedAt": null
+          },
+          "s-rule": {
+            "updatedAt": 1800000000000,
+            "revision": 1,
+            "updatedBy": "showcase",
+            "deletedAt": null
+          },
+          "s-clerk": {
+            "updatedAt": 1800000000000,
+            "revision": 1,
+            "updatedBy": "showcase",
+            "deletedAt": null
+          },
+          "s-numbers": {
+            "updatedAt": 1800000000000,
+            "revision": 1,
+            "updatedBy": "showcase",
+            "deletedAt": null
+          },
+          "s-hill": {
+            "updatedAt": 1800000000000,
+            "revision": 1,
+            "updatedBy": "showcase",
+            "deletedAt": null
+          },
+          "s-remembers": {
+            "updatedAt": 1800000000000,
+            "revision": 1,
+            "updatedBy": "showcase",
+            "deletedAt": null
+          },
+          "w-ines": {
+            "updatedAt": 1800000000000,
+            "revision": 1,
+            "updatedBy": "showcase",
+            "deletedAt": null
+          },
+          "w-delphine": {
+            "updatedAt": 1800000000000,
+            "revision": 1,
+            "updatedBy": "showcase",
+            "deletedAt": null
+          },
+          "w-tobiah": {
+            "updatedAt": 1800000000000,
+            "revision": 1,
+            "updatedBy": "showcase",
+            "deletedAt": null
+          },
+          "w-oren": {
+            "updatedAt": 1800000000000,
+            "revision": 1,
+            "updatedBy": "showcase",
+            "deletedAt": null
+          },
+          "w-orchard": {
+            "updatedAt": 1800000000000,
+            "revision": 1,
+            "updatedBy": "showcase",
+            "deletedAt": null
+          },
+          "w-quay": {
+            "updatedAt": 1800000000000,
+            "revision": 1,
+            "updatedBy": "showcase",
+            "deletedAt": null
+          },
+          "w-hill": {
+            "updatedAt": 1800000000000,
+            "revision": 1,
+            "updatedBy": "showcase",
+            "deletedAt": null
+          }
+        },
+        "chapters": {
+          "ch-ferry": {
+            "updatedAt": 1800000000000,
+            "revision": 1,
+            "updatedBy": "showcase",
+            "deletedAt": null
+          },
+          "ch-sand": {
+            "updatedAt": 1800000000000,
+            "revision": 1,
+            "updatedBy": "showcase",
+            "deletedAt": null
+          },
+          "ch-ledger": {
+            "updatedAt": 1800000000000,
+            "revision": 1,
+            "updatedBy": "showcase",
+            "deletedAt": null
+          },
+          "ch-lantern": {
+            "updatedAt": 1800000000000,
+            "revision": 1,
+            "updatedBy": "showcase",
+            "deletedAt": null
+          }
+        },
+        "storyboardRows": {
+          "row-1": {
+            "updatedAt": 1800000000000,
+            "revision": 1,
+            "updatedBy": "showcase",
+            "deletedAt": null
+          }
+        },
+        "storyboardCards": {
+          "card-1": {
+            "updatedAt": 1800000000000,
+            "revision": 1,
+            "updatedBy": "showcase",
+            "deletedAt": null
+          },
+          "card-2": {
+            "updatedAt": 1800000000000,
+            "revision": 1,
+            "updatedBy": "showcase",
+            "deletedAt": null
+          },
+          "card-3": {
+            "updatedAt": 1800000000000,
+            "revision": 1,
+            "updatedBy": "showcase",
+            "deletedAt": null
+          },
+          "card-4": {
+            "updatedAt": 1800000000000,
+            "revision": 1,
+            "updatedBy": "showcase",
+            "deletedAt": null
+          },
+          "card-5": {
+            "updatedAt": 1800000000000,
+            "revision": 1,
+            "updatedBy": "showcase",
+            "deletedAt": null
+          },
+          "card-6": {
+            "updatedAt": 1800000000000,
+            "revision": 1,
+            "updatedBy": "showcase",
+            "deletedAt": null
+          },
+          "card-7": {
+            "updatedAt": 1800000000000,
+            "revision": 1,
+            "updatedBy": "showcase",
+            "deletedAt": null
+          }
+        }
+      }
+    }
+  ]
+}

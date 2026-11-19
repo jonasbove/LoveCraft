@@ -1,5 +1,5 @@
 //! The tools: their names, descriptions and input schemas as the TypeScript server lists them
-//! (`index.ts`, schemas as zod 4 writes them), the argument checks with zod's messages, and the
+//! (`mcp/src/index.ts`, upstream `8cdc694`; schemas as zod 4 writes them), the argument checks with zod's messages, and the
 //! calls.
 
 use prosecraft_core::js::{self, JsObject, JsString, JsValue, number_to_string};

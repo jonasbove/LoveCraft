@@ -1,4 +1,4 @@
-//! The open folder as the TypeScript server's `openStore.ts` reads and writes it: the folder
+//! The open folder as the TypeScript server's `openStore.ts` (upstream `8cdc694`) reads and writes it: the folder
 //! marker, project headers, document files with YAML front matter, chapter files, the hashes the
 //! app checks, and the chapter and trash tools.
 

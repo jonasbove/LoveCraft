@@ -1,4 +1,4 @@
-//! The read-only Wiki, label, comment and snapshot tools (`readTools.ts`).
+//! The read-only Wiki, label, comment and snapshot tools (`mcp/src/readTools.ts`, upstream `8cdc694`).
 
 use std::collections::{HashMap, HashSet};
 

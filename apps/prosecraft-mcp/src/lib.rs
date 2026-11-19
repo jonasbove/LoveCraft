@@ -1,6 +1,6 @@
 //! prosecraft-mcp: a local MCP server over a ProseCraft open sync folder, on stdio.
 //!
-//! A port of ProseCraft's TypeScript server (`mcp/` upstream): the same tools, argument names,
+//! A port of ProseCraft's TypeScript server (`mcp/`, upstream `8cdc694`): the same tools, argument names,
 //! schemas, results, error messages and on-disk effects, so either server can serve the same
 //! folder and each excludes the other while it writes. `craft-mcp-server` speaks the protocol;
 //! calls to tools go through [`serve`] so their arguments are checked as the TypeScript server's

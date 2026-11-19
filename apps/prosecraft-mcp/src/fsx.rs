@@ -115,9 +115,13 @@ const MAX_FILE_BYTES: u64 = 512 * 1024 * 1024;
 pub fn read_text(path: &str) -> Result<String, String> {
     let file = File::open(path).map_err(|e| node_error(&e, "open", Some(path)))?;
     let mut bytes = Vec::new();
-    file.take(MAX_FILE_BYTES)
+    file.take(MAX_FILE_BYTES + 1)
         .read_to_end(&mut bytes)
         .map_err(|e| node_error(&e, "read", None))?;
+    // Refused rather than cut: a write tool would put the cut text back on disk.
+    if bytes.len() as u64 > MAX_FILE_BYTES {
+        return Err(format!("File is larger than 512 MiB: {path}"));
+    }
     Ok(String::from_utf8_lossy(&bytes).into_owned())
 }
 

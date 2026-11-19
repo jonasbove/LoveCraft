@@ -1,4 +1,4 @@
-//! The tools that write documents, labels and comments (`safeWrites.ts`): each under the write
+//! The tools that write documents, labels and comments (`mcp/src/safeWrites.ts`, upstream `8cdc694`): each under the write
 //! lock, through temp files, with `expectedRevision` checks, a snapshot before an overwrite, the
 //! revision bumped by "mcp" and the hashes the app checks.
 

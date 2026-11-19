@@ -1,4 +1,4 @@
-//! `search_documents` (`searchTools.ts`): the app's matching rules (`src/lib/search.ts`, ported in
+//! `search_documents` (`mcp/src/searchTools.ts`, upstream `8cdc694`): the app's matching rules (`src/lib/search.ts`, ported in
 //! `prosecraft_core::search`) over the titles and Markdown bodies in the open folder.
 
 use std::collections::HashMap;

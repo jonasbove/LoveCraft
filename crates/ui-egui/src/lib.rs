@@ -319,7 +319,12 @@ pub struct AppState {
     /// The input an Edit menu item stands for, for the field that had the keys, given next
     /// frame; and the field that last had them.
     menu_events: Vec<egui::Event>,
+    /// The text field (and its selection) that had the keys when a menu opened: an Edit item
+    /// is for it, or for the page when there was none. The one that had them last frame, and
+    /// whether a menu was open then.
     last_focus: Option<(egui::Id, Option<egui::text_edit::TextEditState>)>,
+    previous_focus: Option<(egui::Id, Option<egui::text_edit::TextEditState>)>,
+    menu_was_open: bool,
     /// The split view panes' editors.
     tiles: split_view::Tiles,
     wiki_store: Option<std::rc::Rc<dyn WikiFileStore>>,
@@ -944,21 +949,30 @@ impl ProseApp {
     /// The menu bar, the commands chosen in it, and an Edit item's input given to the text
     /// field that had the keys (with its selection, which clicking the menu collapsed).
     fn menu_bar(&mut self, ui: &mut Ui) {
+        // The text field with the keys now, with its selection (clicking the menu takes the
+        // focus and collapses it).
+        let ctx = ui.ctx().clone();
+        let focus_now = ctx
+            .memory(|m| m.focused())
+            .filter(|_| ctx.text_edit_focused())
+            .map(|id| (id, egui::TextEdit::load_state(&ctx, id)));
         let chosen = egui::Panel::top("menu-bar")
             .show(ui, |ui| app_menu::show(ui, &self.state))
             .inner;
+        let open = craft_menu::bar::is_open(&ctx);
+        if open && !self.state.menu_was_open {
+            // The click that opened it may already have taken the focus: last frame's field.
+            self.state.last_focus = focus_now
+                .clone()
+                .or_else(|| self.state.previous_focus.clone());
+        }
+        self.state.menu_was_open = open;
+        if !open {
+            self.state.previous_focus = focus_now;
+        }
         // An Edit menu item's input, to the field that had the keys before the menu took them.
         let events = std::mem::take(&mut self.state.menu_events);
-        if events.is_empty() {
-            // A text field (the menu bar's own keys take the focus while it is used).
-            // With its selection, which clicking the menu would collapse.
-            if ui.ctx().text_edit_focused()
-                && let Some(focused) = ui.ctx().memory(|m| m.focused())
-            {
-                let text = egui::TextEdit::load_state(ui.ctx(), focused);
-                self.state.last_focus = Some((focused, text));
-            }
-        } else {
+        if !events.is_empty() {
             if let Some((focus, text)) = self.state.last_focus.clone() {
                 ui.ctx().memory_mut(|m| m.request_focus(focus));
                 if let Some(text) = text {
@@ -984,6 +998,9 @@ impl ProseApp {
     fn app_shortcuts(&mut self, ctx: &egui::Context) {
         use egui::Modifiers as M;
         let typing = ctx.memory(|m| m.focused().is_some());
+        if ctx.input_mut(|i| i.consume_key(M::COMMAND, Key::Q)) {
+            self.run_command(ctx, "quit");
+        }
         let (sheet, question, escape, export, publish, settings, new) = ctx.input_mut(|i| {
             (
                 i.consume_key(M::COMMAND, Key::Slash),
@@ -1059,6 +1076,12 @@ impl ProseApp {
             "quit" => {
                 self.flush();
                 ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+            }
+            // With no text field: the page's history (`handleHistoryShortcut`).
+            "undo" | "redo" if self.state.last_focus.is_none() => {
+                self.state
+                    .intents
+                    .push(editing::Intent::PageHistory { undo: id == "undo" });
             }
             "undo" | "redo" | "cut" | "copy" | "paste" | "select-all" => {
                 let read = self.state.clipboard_text.clone();

@@ -655,6 +655,9 @@ fn menu(harness: &mut Harness<'static, ProseApp>, title: &str, item: &str) {
 fn the_menu_bar_runs_prosecrafts_menu_commands() {
     let (mut harness, memory) = app();
     harness
+        .state_mut()
+        .set_clipboard_text(std::sync::Arc::new(|| Some("Pasted".to_owned())));
+    harness
         .get_by_role_and_label(Role::TreeItem, "Opening Scene")
         .click();
     harness.run();
@@ -669,6 +672,23 @@ fn the_menu_bar_runs_prosecrafts_menu_commands() {
         .map(|d| d.iter().filter(|d| d.get("chapterId").is_some()).count())
         .unwrap_or_default();
     assert_eq!(scenes, 3);
+    // Edit > Undo with no text field: the page's last change.
+    menu(&mut harness, "Edit", "Undo");
+    harness.run_steps(12);
+    let saved = memory.last();
+    let scenes = project(&saved, "project-1")
+        .get("project")
+        .and_then(|p| p.get("documents"))
+        .and_then(JsValue::as_array)
+        .map(|d| {
+            d.iter()
+                .filter(|d| {
+                    d.get("chapterId").is_some() && d.get("trashed") != Some(&JsValue::Bool(true))
+                })
+                .count()
+        })
+        .unwrap_or_default();
+    assert_eq!(scenes, 2, "the new scene is taken back");
     // Edit > Select All, then Edit > Cut, in the scene that had the keys.
     harness
         .get_by_role_and_label(Role::TreeItem, "Opening Scene")
@@ -682,6 +702,13 @@ fn the_menu_bar_runs_prosecrafts_menu_commands() {
     assert_eq!(
         harness.get_by_label("Scene text").value().as_deref(),
         Some("")
+    );
+    // Edit > Paste: the clipboard's text, where the caret is.
+    menu(&mut harness, "Edit", "Paste");
+    harness.run_steps(12);
+    assert_eq!(
+        harness.get_by_label("Scene text").value().as_deref(),
+        Some("Pasted")
     );
     // View > Zen Mode: checked as the writing mode is.
     let zen = |harness: &mut Harness<'static, ProseApp>| {

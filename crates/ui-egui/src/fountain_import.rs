@@ -75,7 +75,8 @@ impl ProseApp {
             self.state.selection = Some(Selection::Document(scene));
             self.state.view = WorkspaceView::Write;
             self.state.settings_open = false;
-            self.state.status = Some(format!("Imported “{title}” as a screenplay scene."));
+            self.state
+                .info(format!("Imported “{title}” as a screenplay scene."));
         }
     }
 }

@@ -285,6 +285,9 @@ pub(crate) struct Tile {
     scene: bool,
     doc: prosecraft_core::richtext::RichDoc,
     body: String,
+    /// The (cleaned) stored text it was read from. A text this editor holds only in a
+    /// normalized shape writes different HTML, sent only once it is typed in.
+    source: String,
     /// The text this editor last sent, so its own echo doesn't reload it.
     emitted: String,
     /// When it was last typed in, while that edit hasn't been sent.
@@ -295,12 +298,14 @@ impl Tile {
     fn new(
         document: &prosecraft_core::project::Document,
         doc: prosecraft_core::richtext::RichDoc,
+        source: &str,
     ) -> Self {
         Self {
             document: document.id.clone(),
             scene: document.chapter_id.is_some(),
             body: doc.text.clone(),
             doc,
+            source: source.to_owned(),
             emitted: String::new(),
             changed_at: None,
         }
@@ -780,7 +785,11 @@ fn body_of(
     let key = tile_key(&pane.id, &document.id);
     let clean = prosecraft_core::html::sanitize_html(&document.content);
     let open_here = active == Some(document.id.as_str());
-    let held = prosecraft_core::richtext::RichDoc::from_html(&clean).filter(|_| !open_here);
+    // Text the editor can hold only in a normalized shape is edited in it too; that shape is
+    // sent only once the text is typed in.
+    let held = prosecraft_core::richtext::RichDoc::from_html(&clean)
+        .or_else(|| prosecraft_core::richtext::RichDoc::from_html_normalized(&clean))
+        .filter(|_| !open_here);
     let Some(held) = held else {
         // Its pending edit is sent before it stops being edited here.
         if let Some(mut tile) = tiles.remove(&key)
@@ -808,12 +817,16 @@ fn body_of(
     let focused = ui.memory(|m| m.has_focus(body_id));
     let tile = tiles
         .entry(key)
-        .or_insert_with(|| Tile::new(document, held.clone()));
+        .or_insert_with(|| Tile::new(document, held.clone(), &clean));
     // Changed from outside (another pane, the editor, an undo): shown, unless it is this
     // editor's own echo or it is being typed in.
-    if !focused && tile.changed_at.is_none() && clean != tile.emitted && clean != tile.doc.to_html()
+    if !focused
+        && tile.changed_at.is_none()
+        && clean != tile.emitted
+        && clean != tile.source
+        && clean != tile.doc.to_html()
     {
-        *tile = Tile::new(document, held);
+        *tile = Tile::new(document, held, &clean);
     }
     let cache = std::cell::RefCell::new(Default::default());
     let cites = crate::views::CiteStyle {

@@ -703,7 +703,11 @@ fn write(
                     markdown_editor(ui, palette, document, chapter, edit);
                     return;
                 }
-                match RichDoc::from_html(&document.content).filter(|_| edit.editable) {
+                // A scene the editor can hold only in a normalized shape opens in it too; that
+                // shape is stored only once the text is edited (see `Draft::source`).
+                let held = RichDoc::from_html(&document.content)
+                    .or_else(|| RichDoc::from_html_normalized(&document.content));
+                match held.filter(|_| edit.editable) {
                     Some(doc) => {
                         let chapter = chapter_view(project, document);
                         editor(ui, palette, document, doc, screenplay, chapter, edit);
@@ -1407,7 +1411,8 @@ pub(crate) fn read_only_html_cited(
     (style, locale): (&str, &str),
 ) {
     let cleaned = prosecraft_core::html::sanitize::sanitize_html(html);
-    let Some(doc) = RichDoc::from_html(&cleaned) else {
+    let held = RichDoc::from_html(&cleaned).or_else(|| RichDoc::from_html_normalized(&cleaned));
+    let Some(doc) = held else {
         let response = ui
             .scope(|ui| manuscript(ui, palette, &plain(&cleaned)))
             .response;
@@ -1508,7 +1513,9 @@ fn chapter_scene(
     } else {
         scene.title.as_str()
     };
-    let Some(doc) = RichDoc::from_html(&scene.content) else {
+    let held = RichDoc::from_html(&scene.content)
+        .or_else(|| RichDoc::from_html_normalized(&scene.content));
+    let Some(doc) = held else {
         // Content the rich editor can't hold: its text, read-only until the scene is opened.
         let response = ui
             .scope(|ui| manuscript(ui, palette, &plain(&scene.content)))
@@ -1583,7 +1590,8 @@ fn chapter_keys(
         return;
     };
     let (start, end) = ranges[line];
-    let empty_paragraph = start == end && draft.doc.lines.get(line) == Some(&LineKind::Paragraph);
+    let empty_paragraph =
+        start == end && draft.doc.lines.get(line).map(|k| k.shown()) == Some(LineKind::Paragraph);
     let leads = chapter.before.is_empty() && line == 0;
     if empty_paragraph
         && !leads
@@ -2141,7 +2149,12 @@ pub(crate) fn layout_doc(
         if c == '\n' {
             line += 1;
         }
-        let kind = doc.lines.get(line).copied().unwrap_or(LineKind::Paragraph);
+        let kind = doc
+            .lines
+            .get(line)
+            .copied()
+            .unwrap_or(LineKind::Paragraph)
+            .shown();
         let marks = doc.marks.get(i).map_or(&[][..], Vec::as_slice);
         let (size, heading) = match kind {
             LineKind::Heading1 => (32.0, true),
@@ -2288,7 +2301,7 @@ fn clears(doc: &RichDoc, text: &str, labels: &[AtomLabel]) -> Vec<bool> {
         .iter()
         .map(|kind| {
             matches!(
-                kind,
+                kind.shown(),
                 LineKind::Heading1
                     | LineKind::Heading2
                     | LineKind::Heading3
@@ -2322,6 +2335,50 @@ const QUOTE_INDENT: f32 = 17.0;
 /// as wide as its font size, like the atom character), which rows may end before and after.
 pub(crate) const PICTURE_CHAR: char = '\u{E000}';
 
+/// For a scene the editor holds only in a normalized shape, still untouched: said, with the
+/// Markdown editor that edits its source as it is stored (not for a screenplay, which keeps its
+/// own editor).
+fn normalized_note(
+    ui: &mut Ui,
+    palette: &Palette,
+    (draft, document, screenplay): (&Draft, &prosecraft_core::project::Document, bool),
+    (forced, switch): (&mut bool, &mut Option<bool>),
+) {
+    if screenplay
+        || draft.body_dirty
+        || draft.source != document.content
+        || draft.doc.to_html() == draft.source
+    {
+        return;
+    }
+    ui.horizontal_wrapped(|ui| {
+        ui.label(
+            RichText::new("Some of this scene's formatting is simplified once you edit it.")
+                .size(12.0)
+                .color(palette.text_muted),
+        );
+        let markdown = ui
+            .button("Edit as Markdown")
+            .on_hover_text("Open this scene in the Markdown editor");
+        if markdown.clicked() {
+            *forced = true;
+            *switch = Some(true);
+        }
+    });
+    ui.add_space(6.0);
+}
+
+/// A new draft when another document opens, or when the stored one changed underneath an
+/// untouched draft (an import of a newer copy). A draft held in a normalized shape writes other
+/// HTML than it was read from, so it is compared with that too.
+fn is_stale(draft: &Draft, document: &prosecraft_core::project::Document) -> bool {
+    draft.document != document.id
+        || draft.markdown.is_some()
+        || (!draft.is_dirty()
+            && (draft.title != document.title
+                || (draft.source != document.content && draft.doc.to_html() != document.content)))
+}
+
 /// The editor: the scene's title, ProseCraft's toolbar, and its formatted text.
 fn editor(
     ui: &mut Ui,
@@ -2332,20 +2389,14 @@ fn editor(
     chapter: Option<ChapterView<'_>>,
     edit: &mut Edit<'_>,
 ) {
-    // A new draft when another document opens, or when the stored one changed underneath an
-    // untouched draft (an import of a newer copy).
-    let stale = edit.draft.as_ref().is_none_or(|d| {
-        d.document != document.id
-            || d.markdown.is_some()
-            || (!d.is_dirty() && (d.title != document.title || d.doc.to_html() != document.content))
-    });
-    if stale {
+    if edit.draft.as_ref().is_none_or(|d| is_stale(d, document)) {
         *edit.draft = Some(Draft {
             document: document.id.clone(),
             title: document.title.clone(),
             words: prosecraft_core::html::html_word_count(&doc.to_html()),
             body: doc.text.clone(),
             doc,
+            source: document.content.clone(),
             title_dirty: false,
             body_dirty: false,
             changed_at: edit.now,
@@ -2486,6 +2537,12 @@ fn editor(
         }
         ui.add_space(6.0);
     }
+    normalized_note(
+        ui,
+        palette,
+        (draft, document, screenplay),
+        (edit.markdown_forced, edit.markdown_switch),
+    );
     // ProseCraft's formatting toolbar; it wraps onto more rows in a narrow column rather than
     // widening the column past the window.
     card(palette).show(ui, |ui| {
@@ -3035,6 +3092,7 @@ fn markdown_editor(
             words: markdown_words(&source),
             body: doc.text.clone(),
             doc,
+            source: document.content.clone(),
             title_dirty: false,
             body_dirty: false,
             changed_at: edit.now,
@@ -3180,7 +3238,12 @@ pub(crate) fn paint_extras(
     // The lists open (as the HTML nests them) and how many items each has had.
     let mut lists: Vec<(&str, u32)> = Vec::new();
     for (line, (start, end)) in doc.line_ranges().into_iter().enumerate() {
-        let kind = doc.lines.get(line).copied().unwrap_or(LineKind::Paragraph);
+        let kind = doc
+            .lines
+            .get(line)
+            .copied()
+            .unwrap_or(LineKind::Paragraph)
+            .shown();
         let rect = galley
             .pos_from_cursor(egui::text::CCursor::new(start))
             .translate(origin.to_vec2());

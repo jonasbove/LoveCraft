@@ -3095,6 +3095,105 @@ fn timeline_moments_are_added_edited_moved_and_removed() {
 }
 
 #[test]
+fn wiki_rows_are_dragged_into_folders_and_folders_moved() {
+    let (mut harness, memory) = app();
+    let data = |memory: &Memory| {
+        project(&memory.last(), "project-1")
+            .get("project")
+            .cloned()
+            .expect("data")
+    };
+    harness
+        .get_by_role_and_label(Role::Button, "Add to Wiki")
+        .click();
+    harness.run();
+    harness.get_by_label("Add folder").click();
+    harness.run_steps(4);
+    // It opens to be named: keep its name.
+    if harness.query_by_label("Folder name").is_some() {
+        harness.key_press(egui::Key::Enter);
+    }
+    harness.run_steps(12);
+    // Mara onto the folder: into it.
+    let mara = harness
+        .get_by_role_and_label(Role::TreeItem, "Mara")
+        .rect()
+        .center();
+    let folder = harness
+        .get_by_role_and_label(Role::TreeItem, "Untitled folder")
+        .rect()
+        .center();
+    drag(&mut harness, mara, folder);
+    harness.run_steps(12);
+    let folder_id = data(&memory)
+        .get("researchFolders")
+        .and_then(JsValue::as_array)
+        .and_then(|f| f.first().and_then(|f| f.get("id")).cloned());
+    let page = |memory: &Memory| {
+        data(memory)
+            .get("documents")
+            .and_then(JsValue::as_array)
+            .and_then(|d| {
+                d.iter()
+                    .find(|d| d.get("title") == Some(&JsValue::str("Mara")))
+                    .cloned()
+            })
+            .expect("Mara")
+    };
+    assert_eq!(page(&memory).get("folderId").cloned(), folder_id);
+    // And below the Wiki's last row: back to the top level.
+    let mara = harness.get_by_role_and_label(Role::TreeItem, "Mara").rect();
+    drag(
+        &mut harness,
+        mara.center(),
+        mara.center_bottom() + egui::vec2(0.0, 10.0),
+    );
+    harness.run_steps(12);
+    assert_eq!(page(&memory).get("folderId"), None);
+    // A subfolder, moved to the top level from its menu.
+    harness
+        .get_by_role_and_label(Role::Button, "Actions for folder Untitled folder")
+        .click();
+    harness.run();
+    harness.get_by_label("Add subfolder").click();
+    harness.run_steps(4);
+    if harness.query_by_label("Folder name").is_some() {
+        harness.key_press(egui::Key::Enter);
+    }
+    harness.run_steps(12);
+    let sub = harness
+        .get_all_by_role_and_label(Role::Button, "Actions for folder Untitled folder")
+        .last()
+        .expect("the subfolder's menu")
+        .rect()
+        .center();
+    harness.hover_at(sub);
+    harness.event(egui::Event::PointerButton {
+        pos: sub,
+        button: egui::PointerButton::Primary,
+        pressed: true,
+        modifiers: egui::Modifiers::NONE,
+    });
+    harness.event(egui::Event::PointerButton {
+        pos: sub,
+        button: egui::PointerButton::Primary,
+        pressed: false,
+        modifiers: egui::Modifiers::NONE,
+    });
+    harness.run();
+    harness.get_by_label("Move to top level").click();
+    harness.run_steps(12);
+    let parents: Vec<JsValue> = data(&memory)
+        .get("researchFolders")
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+        .iter()
+        .map(|f| f.get("parentId").cloned().unwrap_or(JsValue::Null))
+        .collect();
+    assert_eq!(parents, [JsValue::Null, JsValue::Null]);
+}
+
+#[test]
 fn wiki_folders_and_pages_are_added_renamed_and_removed() {
     let (mut harness, memory) = app();
     let data = |memory: &Memory| {

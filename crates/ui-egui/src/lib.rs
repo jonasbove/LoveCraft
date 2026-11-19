@@ -20,6 +20,7 @@ mod app_menu;
 mod binder;
 mod character_sheet;
 mod citation_picker;
+mod clipboard_keys;
 mod cover_art;
 mod device_sync;
 mod editing;
@@ -330,6 +331,15 @@ pub struct AppState {
     clipboard_text: Option<ClipboardHtml>,
     /// How the host puts HTML on the clipboard, for a rich copy.
     clipboard_write: Option<ClipboardWriter>,
+    /// The desktop host's clipboard HTML when its text is empty, when the host leaves the
+    /// clipboard keys to the app ([`clipboard_keys`]).
+    clipboard_keys: Option<ClipboardHtml>,
+    /// The web host's HTML of a paste that had no text, taken once.
+    html_paste_take: Option<ClipboardHtml>,
+    /// This frame's paste with HTML and no text, for the rich editor.
+    html_paste: clipboard_keys::HtmlPaste,
+    /// Edit > Paste asked for one, given with the menu's input next frame.
+    menu_html_paste: bool,
     /// The input an Edit menu item stands for, for the field that had the keys, given next
     /// frame; and the field that last had them.
     menu_events: Vec<egui::Event>,
@@ -600,6 +610,7 @@ impl egui::epaint::text::LineBreaker for RowBreaks {
 fn setup_with(ctx: &egui::Context, system_fonts: bool) {
     ctx.set_line_breaker(std::sync::Arc::new(RowBreaks));
     ctx.set_missing_glyph_policy(egui::MissingGlyphPolicy::Tofu);
+    ctx.add_glyph_rasterizer(views::atom_glyph());
     fonts::install(ctx, system_fonts);
     // Diagram labels are set in the interface's face (Inter, else egui's own).
     let faces: Vec<&[u8]> = ["Inter-Regular", "Inter-SemiBold"]
@@ -774,7 +785,13 @@ impl ProseApp {
     /// in-window bar stays.
     #[cfg(target_os = "macos")]
     pub fn install_native_menu(&mut self, ctx: &egui::Context) {
-        self.native_menu = craft_menu::mac::install(ctx, &app_menu::mac_layout(&self.state).bar);
+        let menu = craft_menu::mac::install(ctx, &app_menu::mac_layout(&self.state).bar);
+        // With the clipboard keys the app's (`set_clipboard_keys`), ⌘C, ⌘X and ⌘V reach it as
+        // keys too.
+        self.native_menu = match self.state.clipboard_keys {
+            Some(_) => menu.map(|m| m.clipboard_keys(craft_menu::ClipboardKeys::Raw)),
+            None => menu,
+        };
     }
 
     /// Before egui reads a frame's input (`eframe::App::raw_input_hook`): the native menu's key
@@ -1035,7 +1052,11 @@ impl ProseApp {
         }
         // An Edit menu item's input, to the field that had the keys before the menu took them.
         let events = std::mem::take(&mut self.state.menu_events);
-        if !events.is_empty() {
+        let menu_html = std::mem::take(&mut self.state.menu_html_paste);
+        if menu_html {
+            self.state.html_paste = clipboard_keys::HtmlPaste::Asked;
+        }
+        if !events.is_empty() || menu_html {
             if let Some((focus, text)) = self.state.last_focus.clone() {
                 ui.ctx().memory_mut(|m| m.request_focus(focus));
                 if let Some(text) = text {
@@ -1052,6 +1073,21 @@ impl ProseApp {
         }
         for command in chosen {
             self.run_command(ui.ctx(), &command.id);
+        }
+    }
+
+    /// This frame's clipboard keys (on the desktop) and paste with HTML but no text
+    /// ([`clipboard_keys`]).
+    fn clipboard_keys(&mut self, ctx: &egui::Context) {
+        self.state.html_paste = clipboard_keys::HtmlPaste::None;
+        if self.state.clipboard_keys.is_some()
+            && ctx.input_mut(|i| clipboard_keys::translate(&mut i.events))
+        {
+            ctx.send_viewport_cmd(egui::ViewportCommand::RequestPaste);
+            self.state.html_paste = clipboard_keys::HtmlPaste::Asked;
+        }
+        if let Some(html) = self.state.html_paste_take.as_ref().and_then(|take| take()) {
+            self.state.html_paste = clipboard_keys::HtmlPaste::Held(html);
         }
     }
 
@@ -1149,6 +1185,8 @@ impl ProseApp {
             "undo" | "redo" | "cut" | "copy" | "paste" | "select-all" => {
                 let read = self.state.clipboard_text.clone();
                 self.state.menu_events = app_menu::edit_events(id, || read.and_then(|r| r()));
+                // With no text, the clipboard's HTML (a footnote marker copied alone).
+                self.state.menu_html_paste = id == "paste" && self.state.clipboard_keys.is_some();
             }
             _ => {
                 if let Some(project) = id.strip_prefix(app_menu::SWITCH_PROJECT)
@@ -1770,6 +1808,20 @@ impl ProseApp {
     /// How the host reads the clipboard's HTML, for rich paste (egui's paste is its text).
     pub fn set_clipboard_html(&mut self, read: ClipboardHtml) {
         self.state.clipboard_html = Some(read);
+    }
+
+    /// The desktop host leaves the clipboard keys to the app (`NativeOptions::clipboard_shortcuts`
+    /// off): Cmd/Ctrl+X and C become cut and copy, and Cmd/Ctrl+V asks the host to paste
+    /// (`ViewportCommand::RequestPaste`). `read` is the clipboard's HTML when its text is
+    /// empty, as after a copy of a footnote marker alone, which egui-winit sends no paste for.
+    pub fn set_clipboard_keys(&mut self, read: ClipboardHtml) {
+        self.state.clipboard_keys = Some(read);
+    }
+
+    /// How the web host hands over the HTML of a paste that had no text (eframe sends no paste
+    /// event for one): taken once, each frame.
+    pub fn set_html_paste(&mut self, take: ClipboardHtml) {
+        self.state.html_paste_take = Some(take);
     }
 
     pub fn set_wiki_files(&mut self, store: Box<dyn WikiFileStore>) {
@@ -2629,6 +2681,7 @@ impl ProseApp {
         }
         self.state.now = ui.ctx().input(|i| i.time);
         self.state.now_ms = self.home.as_ref().map_or(0.0, |h| h.store.now_ms());
+        self.clipboard_keys(ui.ctx());
         // Drawn only while publishing, so other views use no ids.
         if self.state.book_id.is_none()
             && self.state.view == WorkspaceView::Publish

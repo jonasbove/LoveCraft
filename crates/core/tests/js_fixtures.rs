@@ -171,22 +171,12 @@ fn unusual_scenes_open_for_editing_as_prosecraft_keeps_them() {
             own.push(name);
         }
     }
-    assert_eq!(exact.len(), 11, "{exact:?}");
-    // The fourth-level heading, the one shape stored as ProseCraft saves it, is checked in
-    // `minor_headings_stay_blocks` instead.
-    assert!(as_saved.is_empty(), "{as_saved:?}");
-    assert_eq!(
-        own,
-        [
-            "a div wrapper",
-            "paragraphs in a list item",
-            "a stray end tag after a list"
-        ]
-    );
-    assert_eq!(
-        read_only,
-        ["an eyebrow screenplay element", "a line separator"]
-    );
+    assert_eq!(exact.len(), 27, "{exact:?}");
+    // Only what ProseCraft's own sanitizer changes on save is simplified. The h4–h6 shapes are
+    // checked in `minor_headings_stay_blocks` instead (a deliberate difference).
+    assert_eq!(as_saved, ["a stray end tag after a list"]);
+    assert!(own.is_empty(), "{own:?}");
+    assert!(read_only.is_empty(), "{read_only:?}");
 }
 
 /// Every scene HTML in the fixtures (`content` and the sanitizer's `full` output), once each.
@@ -233,6 +223,9 @@ fn the_fixture_scenes_open_for_editing() {
             assert_eq!(doc.to_html(), *html, "{file}");
             exact += 1;
         } else if RichDoc::from_html_normalized(html).is_some() {
+            // Only what ProseCraft's sanitizer would change too (a fourth-level heading, a
+            // stray end tag).
+            assert_ne!(prosecraft_core::html::sanitize_html(html), *html, "{file}");
             normalized += 1;
         } else {
             read_only.push(html.clone());
@@ -243,16 +236,8 @@ fn the_fixture_scenes_open_for_editing() {
         read_only.len(),
         scenes.len()
     );
-    // What stays read-only: a screenplay element that is an eyebrow too, and a literal line
-    // separator (the editor's own soft line break).
-    assert_eq!(
-        read_only,
-        [
-            r#"<p data-sp="scene-heading">INT. ROOM</p><p>x</p><p class="eyebrow" data-sp="dialogue">y</p>"#,
-            "<p>Unicode: café 🌊 \u{2028} tab\tend</p>",
-        ],
-    );
-    assert_eq!(normalized, 6);
+    assert!(read_only.is_empty(), "{read_only:?}");
+    assert_eq!(normalized, 5);
 }
 
 #[test]

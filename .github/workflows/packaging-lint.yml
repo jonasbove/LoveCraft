@@ -1,0 +1,25 @@
+# Quick static checks for the release pipeline (seconds, no Rust build), through the suite's shared
+# packaging lint in craft-common-actions: actionlint for the workflows, shellcheck for the
+# packaging scripts, the PowerShell scripts' syntax, the FreeBSD package layout (dry run), the
+# desktop entry, AppStream file, Info.plist, MIME type and MSI sources, and the icons
+# (packaging/check-icons.sh).
+name: Packaging lint
+
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/**", "packaging/**", "apps/prosecraft-rs/assets/**", "apps/prosecraft-rs-web/assets/**"]
+  pull_request:
+    paths: [".github/workflows/**", "packaging/**", "apps/prosecraft-rs/assets/**", "apps/prosecraft-rs-web/assets/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: packaging-lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    uses: storytold/craft-common-actions/.github/workflows/packaging-lint.yml@main

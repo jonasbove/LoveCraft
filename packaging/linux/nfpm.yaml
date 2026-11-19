@@ -1,0 +1,89 @@
+# .deb and .rpm packages (nfpm: https://nfpm.goreleaser.com). Run by package.sh, which stages
+# the file tree, substitutes its path for ${STAGE} (nfpm doesn't expand env vars in `src`) and
+# exports VERSION, NFPM_ARCH, GLIBC_FLOOR (the build host's glibc) and PROSECRAFT_MAINTAINER.
+# Adapted from CraftCloud's packaging/linux/nfpm.yaml, itself adapted from craft-launcher's
+# (MIT OR Apache-2.0; see NOTICE).
+name: prosecraft-rs
+arch: ${NFPM_ARCH}
+platform: linux
+version: ${VERSION}
+# semver: 0.2.0-rc.1 becomes 0.2.0~rc.1 in deb/rpm, so pre-releases sort before the release.
+version_schema: semver
+release: 1
+section: editors
+priority: optional
+maintainer: ${PROSECRAFT_MAINTAINER}
+vendor: ProseCraft-rs
+homepage: https://github.com/jonasbove/ProseCraft-rs
+license: MIT OR Apache-2.0
+description: |-
+  Novel-writing app: outline, write and publish
+  ProseCraft-rs plans, writes and publishes a book in one native window:
+  chapters and scenes, a wiki, outline, storyboard and timeline, a rich-text
+  editor with footnotes, citations and proofreading, and publishing to PDF,
+  EPUB, DOCX and more. An independent Rust rewrite of ProseCraft; it opens
+  ProseCraft backups and sync folders. Also ships prosecraft-mcp, an MCP
+  server for a ProseCraft open sync folder.
+
+# The binary links only glibc and libgcc_s directly. Windowing (X11/Wayland, xkbcommon) and
+# OpenGL (egui's glow renderer, through EGL on Wayland and GLX or EGL on X11) are loaded at
+# runtime with dlopen, so they aren't ELF NEEDED entries and the package tools can't find them:
+# list them here. The file dialogs go through the XDG desktop portal over the session bus in pure
+# Rust (zbus), so there is no GTK or libdbus dependency; xdg-utils opens links and wiki files.
+overrides:
+  deb:
+    depends:
+      - libc6 (>= ${GLIBC_FLOOR})
+      - libgcc-s1
+      - libxkbcommon0
+      - libxkbcommon-x11-0
+      - libwayland-client0
+      - libwayland-egl1
+      - libx11-6
+      - libx11-xcb1
+      - libxcb1
+      - libxcursor1
+      - libxi6
+      - libxrandr2
+      - libegl1
+      - libgl1
+    recommends:
+      - libegl-mesa0
+      - libgl1-mesa-dri
+      - xdg-desktop-portal
+      - xdg-utils
+  rpm:
+    # Soname provides, so the same requirements resolve on Fedora/RHEL and openSUSE.
+    depends:
+      - glibc >= ${GLIBC_FLOOR}
+      - libxkbcommon.so.0()(64bit)
+      - libxkbcommon-x11.so.0()(64bit)
+      - libwayland-client.so.0()(64bit)
+      - libwayland-egl.so.1()(64bit)
+      - libX11.so.6()(64bit)
+      - libX11-xcb.so.1()(64bit)
+      - libxcb.so.1()(64bit)
+      - libXcursor.so.1()(64bit)
+      - libXi.so.6()(64bit)
+      - libXrandr.so.2()(64bit)
+      - libEGL.so.1()(64bit)
+      - libGL.so.1()(64bit)
+    recommends:
+      - mesa-dri-drivers
+      - xdg-desktop-portal
+      - xdg-utils
+
+contents:
+  - src: ${STAGE}/usr/bin/prosecraft-rs
+    dst: /usr/bin/prosecraft-rs
+    file_info: { mode: 0755 }
+  - src: ${STAGE}/usr/bin/prosecraft-mcp
+    dst: /usr/bin/prosecraft-mcp
+    file_info: { mode: 0755 }
+  - src: ${STAGE}/usr/share/
+    dst: /usr/share/
+    type: tree
+
+scripts:
+  postinstall: packaging/linux/postinst.sh
+  postremove: packaging/linux/postinst.sh

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="packaging/linux/icons/hicolor/256x256/apps/io.github.jonasbove.prosecraft_rs.png" width="128" height="128" alt="ProseCraft-rs icon: an engraved octopus on an oxblood rounded square">
+</p>
+
 <h1 align="center">ProseCraft-rs</h1>
 
 <p align="center">
@@ -26,6 +30,7 @@
 </p>
 
 <p align="center">
+  <a href="#downloads"><b>Downloads</b></a> ·
   <a href="#build-from-source"><b>Build from source</b></a> ·
   <a href="design/README.md"><b>The design</b></a> ·
   <a href="https://getartcraft.com/apps">The Craft App Suite</a>
@@ -173,6 +178,87 @@ not, and cloud sync is planned through [CraftCloud](https://github.com/jonasbove
 
 > [!IMPORTANT]
 > Keep a backup of your book, and keep your ProseCraft copy until you trust ProseCraft-rs with it.
+
+## Downloads
+Every release from the one after 0.1.1 on the [releases page](https://github.com/jonasbove/ProseCraft-rs/releases) has
+packages for every system, each with the app and the MCP server (`prosecraft-mcp`). The app also comes from the
+Nix flake or from source. `<ver>` is the version number, for example `0.2.0`.
+
+The builds are **not code-signed** by Apple or Microsoft yet, so your system asks once before the first start.
+
+**Windows** (10 and 11, x64 and arm64)
+
+| File | What it is |
+|---|---|
+| `prosecraft-rs-<ver>-windows-{x64,arm64}.msi` | Installer, for you only (no administrator rights). SmartScreen: **More info › Run anyway**. Adds ProseCraft-rs to the Start menu and to "Open with" for `.prosecraft` backups, and puts `prosecraft-mcp` on your PATH |
+| `prosecraft-rs-<ver>-windows-{x64,arm64}-portable.zip` | The same `prosecraft-rs.exe` and `prosecraft-mcp.exe`, to run without installing |
+
+**macOS** (11 or later, Apple silicon and Intel)
+
+| File | What it is |
+|---|---|
+| `prosecraft-rs-<ver>-macos-universal.dmg` | Drag `ProseCraft-rs.app` to Applications, then **right-click › Open › Open** the first time (or `xattr -dr com.apple.quarantine /Applications/ProseCraft-rs.app`). The MCP server is `ProseCraft-rs.app/Contents/MacOS/prosecraft-mcp` |
+
+**Linux** (x86_64 and aarch64)
+
+| File | What it is |
+|---|---|
+| `prosecraft-rs-<ver>-linux-<arch>.deb` | Debian, Ubuntu, Mint, Pop!_OS (`sudo apt install ./prosecraft-rs-….deb`) |
+| `prosecraft-rs-<ver>-linux-<arch>.rpm` | Fedora, openSUSE, RHEL (`sudo dnf install ./prosecraft-rs-….rpm`) |
+| `prosecraft-rs-<ver>-linux-<arch>.pkg.tar.zst` | Arch Linux (`sudo pacman -U prosecraft-rs-….pkg.tar.zst`); AUR recipes are in `packaging/arch/` |
+| `prosecraft-rs-<ver>-linux-<arch>.flatpak` | Flatpak (`flatpak install --user prosecraft-rs-….flatpak`); the MCP server is `flatpak run --command=prosecraft-mcp io.github.jonasbove.prosecraft_rs` |
+| `prosecraft-rs-<ver>-linux-<arch>.AppImage` | Any distro: make it executable and run it; with `--mcp` first it runs the MCP server. The `.zsync` next to it lets AppImage updaters fetch only what changed |
+| `prosecraft-rs-<ver>-linux-<arch>.tar.gz` | The binaries, menu entry, file type, icons and `install.sh` |
+
+```sh
+tar xzf prosecraft-rs-<ver>-linux-x86_64.tar.gz
+cd prosecraft-rs-<ver>-linux-x86_64
+./install.sh            # to ~/.local, no root; ./install.sh --remove undoes it
+```
+
+The packages register ProseCraft-rs for `.prosecraft` backups, so the file manager opens them with it.
+FreeBSD (`prosecraft-rs-<ver>-freebsd-{x86_64,aarch64}.tar.gz`) and Linux riscv64 (`.deb`, `.rpm`, `.tar.gz`)
+builds are attempted too, but ProseCraft-rs has never been tried there; a release may come without them.
+Installing, updating or removing a package never touches your library.
+
+**Checking a download**
+
+Every release has `SHA256SUMS.txt`. Check the files you downloaded against it:
+
+```sh
+sha256sum -c SHA256SUMS.txt --ignore-missing              # macOS: shasum -a 256 -c SHA256SUMS.txt --ignore-missing
+```
+
+Every file also has a GPG signature (`.asc`) next to it, made with the ProseCraft-rs release key
+`29E57E45001D294F72E2EC80C42E3F3BDD6A7FF4` ("ProseCraft-rs releases"; its signing subkey is
+`F518B82ABC37347A5ADF0CB322B89C26692F6185`, valid until 2028-11-18). Its public key is `release-signing-key.asc`,
+on every release and in this repository. Import it once and check that the fingerprint matches, then:
+
+```sh
+gpg --import release-signing-key.asc
+gpg --verify SHA256SUMS.txt.asc SHA256SUMS.txt
+gpg --verify prosecraft-rs-<ver>-linux-x86_64.AppImage.asc prosecraft-rs-<ver>-linux-x86_64.AppImage
+```
+
+Each file also carries a signed build-provenance attestation that ties it to this repository's release workflow
+and the commit it was built from ([GitHub CLI](https://cli.github.com)):
+
+```sh
+gh attestation verify prosecraft-rs-<ver>-macos-universal.dmg --repo jonasbove/ProseCraft-rs
+```
+
+**Nix and NixOS**
+
+```sh
+nix run github:jonasbove/ProseCraft-rs                  # the app
+nix run github:jonasbove/ProseCraft-rs#prosecraft-mcp   # the MCP server
+```
+
+To keep it installed, add the flake as an input and install its package
+(`inputs.prosecraft-rs.packages.${pkgs.stdenv.hostPlatform.system}.default`, in `environment.systemPackages` or
+Home Manager's `home.packages`). It brings its own menu entry, file type and icons.
+
+How a release is made: [docs/RELEASING.md](docs/RELEASING.md). What changed: [docs/RELEASE-NOTES.md](docs/RELEASE-NOTES.md).
 
 ## Build from source
 

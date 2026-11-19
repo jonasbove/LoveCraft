@@ -18,5 +18,7 @@ eframe = { workspace = true, features = ["wayland", "x11"] }
 prosecraft-native = { workspace = true }
 craft-dialogs = { workspace = true }
 craft-atomic = { workspace = true }
+# Rich paste: the clipboard's HTML, which egui's paste leaves out (as egui-winit builds it).
+arboard = { version = "3.6", default-features = false, features = ["wayland-data-control"] }
 # The clock for the library's save times (desktop only).
 chrono = { workspace = true, features = ["clock"] }

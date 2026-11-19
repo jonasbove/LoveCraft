@@ -72,6 +72,8 @@ fn column(ui: &mut Ui, add: impl FnOnce(&mut Ui)) {
 /// The parts of the state a view changes, borrowed apart from the project it shows.
 struct Edit<'a> {
     editable: bool,
+    /// The host's clipboard HTML, for rich paste.
+    clipboard_html: Option<&'a crate::ClipboardHtml>,
     /// The comments and Wiki articles highlighted in the text.
     marks: crate::text_marks::Sources<'a>,
     draft: &'a mut Option<Draft>,
@@ -201,6 +203,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         split,
         wiki_store,
         wiki_root,
+        clipboard_html,
         ..
     } = state;
     let entry = library.as_ref().and_then(|l| l.projects().get(*active));
@@ -241,6 +244,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
     );
     let mut edit = Edit {
         editable: *editable,
+        clipboard_html: clipboard_html.as_ref(),
         marks: crate::text_marks::Sources {
             comments: &project.comments,
             documents: &project.documents,
@@ -955,6 +959,112 @@ fn text_marks(
             intents.push(Intent::ResolveComment { id, resolved: true });
         }
     }
+}
+
+/// The words of a text, without spaces and punctuation: a pasted text and the clipboard's
+/// HTML hold the same passage when these match.
+fn words_of(text: &str) -> String {
+    text.chars().filter(|c| c.is_alphanumeric()).collect()
+}
+
+/// Paste into the rich editor as ProseCraft's browser editor pastes: the clipboard's HTML,
+/// cleaned, with its formatting (egui's own paste is the plain text), and an image as a picture
+/// (`handleImagePaste`).
+fn paste(
+    ui: &mut Ui,
+    body_id: egui::Id,
+    document: &str,
+    draft: &mut Draft,
+    (clipboard_html, intents, now, screenplay): (
+        Option<&crate::ClipboardHtml>,
+        &mut Vec<Intent>,
+        f64,
+        bool,
+    ),
+) {
+    if screenplay || !ui.memory(|m| m.has_focus(body_id)) {
+        return;
+    }
+    let range = egui::TextEdit::load_state(ui.ctx(), body_id)
+        .and_then(|s| s.cursor.char_range())
+        .map(|r| {
+            let (a, b) = (r.primary.index.0, r.secondary.index.0);
+            a.min(b)..a.max(b)
+        })
+        .unwrap_or_else(|| {
+            let end = draft.body.chars().count();
+            end..end
+        });
+    let image = ui.input_mut(|i| {
+        let found = i.events.iter().find_map(|e| match e {
+            egui::Event::PasteImage(image) => Some(image.clone()),
+            _ => None,
+        });
+        if found.is_some() {
+            i.events
+                .retain(|e| !matches!(e, egui::Event::PasteImage(_)));
+        }
+        found
+    });
+    if let Some(image) = image {
+        let [w, h] = image.size;
+        let pixels: Vec<u8> = image
+            .pixels
+            .iter()
+            .flat_map(|p| p.to_srgba_unmultiplied())
+            .collect();
+        let png = craft_image_codecs::Image::from_u8(
+            w as u32,
+            h as u32,
+            craft_image_codecs::ChannelLayout::Rgba,
+            pixels,
+        )
+        .ok()
+        .and_then(|i| {
+            craft_image_codecs::encode(&i, craft_image_codecs::Format::Png, &Default::default())
+                .ok()
+        });
+        if let Some(png) = png {
+            intents.push(Intent::PastePicture {
+                document: document.to_owned(),
+                at: range.start,
+                png,
+            });
+        }
+        return;
+    }
+    let Some(read) = clipboard_html else {
+        return;
+    };
+    let text = ui.input(|i| {
+        i.events.iter().find_map(|e| match e {
+            egui::Event::Paste(text) => Some(text.clone()),
+            _ => None,
+        })
+    });
+    let Some(text) = text else {
+        return;
+    };
+    let Some(html) = read().filter(|html| {
+        let plain = prosecraft_core::html::html_to_plain_text(html, &Default::default());
+        !words_of(&text).is_empty() && words_of(&plain) == words_of(&text)
+    }) else {
+        return;
+    };
+    ui.input_mut(|i| i.events.retain(|e| !matches!(e, egui::Event::Paste(_))));
+    let (body, caret) = draft.doc.paste_html(range, &html);
+    draft.body = body;
+    draft.body_dirty = true;
+    draft.changed_at = now;
+    draft.caret = Some(caret);
+    draft.words = prosecraft_core::html::html_word_count(&draft.doc.to_html());
+    let mut state = egui::TextEdit::load_state(ui.ctx(), body_id).unwrap_or_default();
+    state
+        .cursor
+        .set_char_range(Some(egui::text::CCursorRange::one(
+            egui::text::CCursor::new(caret),
+        )));
+    state.store(ui.ctx(), body_id);
 }
 
 /// The equation, diagram or calculation editor over the scene, and what it changed.
@@ -2230,6 +2340,13 @@ fn editor(
         })
     };
     link_prompt(ui, draft, now);
+    paste(
+        ui,
+        body_id,
+        &document.id,
+        draft,
+        (edit.clipboard_html, edit.intents, now, screenplay),
+    );
     history_keys(ui, body_id, &document.id, edit.intents);
     let output = egui::TextEdit::multiline(&mut draft.body)
         .id(body_id)

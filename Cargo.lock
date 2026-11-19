@@ -6330,6 +6330,7 @@ dependencies = [
 name = "prosecraft-rs"
 version = "0.1.0"
 dependencies = [
+ "arboard",
  "chrono",
  "craft-atomic",
  "craft-dialogs",

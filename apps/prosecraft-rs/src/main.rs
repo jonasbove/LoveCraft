@@ -594,6 +594,10 @@ fn main() -> ExitCode {
     }
     let (mut app, problem) = start();
     app.set_wiki_files(Box::new(WikiFiles));
+    // Rich paste: the clipboard's HTML, as a browser hands a page's selection over.
+    app.set_clipboard_html(Arc::new(|| {
+        arboard::Clipboard::new().ok()?.get().html().ok()
+    }));
     // Zotero on this computer, through its local HTTP server.
     app.set_zotero(Arc::new(prosecraft_core::citations::zotero::request));
     if let Some(problem) = problem {

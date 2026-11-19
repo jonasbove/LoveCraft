@@ -377,6 +377,53 @@ fn a_selected_picture_is_laid_out_from_its_toolbar() {
     assert!(harness.query_by_label("Selected image tools").is_none());
 }
 
+#[test]
+fn pasting_keeps_the_clipboards_formatting_and_pictures() {
+    let (mut harness, memory) = app();
+    let html = std::sync::Arc::new(std::sync::Mutex::new(String::new()));
+    let reader = html.clone();
+    harness
+        .state_mut()
+        .set_clipboard_html(std::sync::Arc::new(move || {
+            Some(reader.lock().expect("clipboard").clone()).filter(|h| !h.is_empty())
+        }));
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("an add button")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Scene 1")
+        .click();
+    harness.run();
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    // A page's selection: its HTML kept, cleaned.
+    *html.lock().expect("clipboard") =
+        r#"<meta charset="utf-8"><span style="font-size: 20px">A <b>bold</b> <a href="https://example.com/">link</a>.</span>"#.to_owned();
+    harness.event(egui::Event::Paste("A bold link.".into()));
+    harness.run_steps(12);
+    assert_eq!(
+        content(&memory, "new-1"),
+        r#"<p>A <b>bold</b> <a href="https://example.com/">link</a>.</p>"#
+    );
+    // HTML left from an earlier copy isn't what is pasted: the text is.
+    *html.lock().expect("clipboard") = "<p>Something else</p>".to_owned();
+    harness.event(egui::Event::Paste(" More".into()));
+    harness.run_steps(12);
+    assert_eq!(
+        content(&memory, "new-1"),
+        r#"<p>A <b>bold</b> <a href="https://example.com/">link</a>. More</p>"#
+    );
+    // An image: a picture, named as the browser names a pasted image.
+    let image = egui::ColorImage::new([6, 4], vec![egui::Color32::from_rgb(10, 120, 200); 24]);
+    harness.event(egui::Event::PasteImage(std::sync::Arc::new(image)));
+    harness.run_steps(12);
+    let stored = content(&memory, "new-1");
+    assert!(stored.contains(r#"" alt="image">"#), "{stored}");
+}
+
 /// The stored content of a document.
 fn content(memory: &Memory, id: &str) -> String {
     let saved = memory.last();

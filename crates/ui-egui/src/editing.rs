@@ -233,6 +233,12 @@ pub enum Intent {
         document: String,
         at: usize,
     },
+    /// An image pasted into the open scene (`handleImagePaste`): its PNG, for a character.
+    PastePicture {
+        document: String,
+        at: usize,
+        png: Vec<u8>,
+    },
     SetFootnote {
         document: String,
         id: String,
@@ -513,6 +519,7 @@ pub fn run(
         | Intent::RestoreProject(_)
         | Intent::DeleteProject(_)
         | Intent::InsertPicture { .. }
+        | Intent::PastePicture { .. }
         | Intent::ChooseCover
         | Intent::AddWikiFiles(_)
         | Intent::OpenBeside(_)

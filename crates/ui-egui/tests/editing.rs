@@ -1010,8 +1010,9 @@ fn a_footnote_marker_copied_alone_pastes_back() {
 fn a_footnote_marker_pastes_back_from_the_edit_menu() {
     let (mut harness, memory, board) = app_with_clipboard();
     let reader = board.clone();
+    // As the desktop host reads it: no text at all for the marker.
     harness.state_mut().set_clipboard_text(Arc::new(move || {
-        Some(reader.lock().expect("board").1.clone())
+        Some(reader.lock().expect("board").1.clone()).filter(|t| !t.is_empty())
     }));
     select_the_footnote_marker(&mut harness);
     menu(&mut harness, "Edit", "Copy");
@@ -1021,6 +1022,21 @@ fn a_footnote_marker_pastes_back_from_the_edit_menu() {
     harness.run();
     to_the_end(&mut harness);
     menu(&mut harness, "Edit", "Paste");
+    harness.run_steps(12);
+    assert_marker_pasted_at_the_end(&memory);
+}
+
+#[test]
+fn the_paste_keys_paste_at_the_caret_after_a_menu_was_used() {
+    // A field's state kept when a menu opened is the menu's: the paste keys leave the caret.
+    let (mut harness, memory, _board) = app_with_clipboard();
+    select_the_footnote_marker(&mut harness);
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::C);
+    harness.run();
+    menu(&mut harness, "Edit", "Select All");
+    harness.run();
+    to_the_end(&mut harness);
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::V);
     harness.run_steps(12);
     assert_marker_pasted_at_the_end(&memory);
 }

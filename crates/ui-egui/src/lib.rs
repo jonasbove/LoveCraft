@@ -784,7 +784,13 @@ impl ProseApp {
     /// in-window bar stays.
     #[cfg(target_os = "macos")]
     pub fn install_native_menu(&mut self, ctx: &egui::Context) {
-        self.native_menu = craft_menu::mac::install(ctx, &app_menu::mac_layout(&self.state).bar);
+        let menu = craft_menu::mac::install(ctx, &app_menu::mac_layout(&self.state).bar);
+        // With the clipboard keys the app's (`set_clipboard_keys`), ⌘C, ⌘X and ⌘V reach it as
+        // keys too.
+        self.native_menu = match self.state.clipboard_keys {
+            Some(_) => menu.map(|m| m.clipboard_keys(craft_menu::ClipboardKeys::Raw)),
+            None => menu,
+        };
     }
 
     /// Before egui reads a frame's input (`eframe::App::raw_input_hook`): the native menu's key
@@ -1045,10 +1051,11 @@ impl ProseApp {
         }
         // An Edit menu item's input, to the field that had the keys before the menu took them.
         let events = std::mem::take(&mut self.state.menu_events);
-        if std::mem::take(&mut self.state.menu_html_paste) {
+        let menu_html = std::mem::take(&mut self.state.menu_html_paste);
+        if menu_html {
             self.state.html_paste = clipboard_keys::HtmlPaste::Asked;
         }
-        if !events.is_empty() || self.state.html_paste == clipboard_keys::HtmlPaste::Asked {
+        if !events.is_empty() || menu_html {
             if let Some((focus, text)) = self.state.last_focus.clone() {
                 ui.ctx().memory_mut(|m| m.request_focus(focus));
                 if let Some(text) = text {

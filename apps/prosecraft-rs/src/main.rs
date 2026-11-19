@@ -626,10 +626,15 @@ fn main() -> ExitCode {
     // has HTML but no text, which egui-winit sends nothing for, reads the HTML here.
     app.set_clipboard_keys(Arc::new(|| {
         let mut clipboard = arboard::Clipboard::new().ok()?;
-        if clipboard.get_text().is_ok_and(|text| !text.is_empty()) {
-            return None;
-        }
-        clipboard.get().html().ok().filter(|html| !html.is_empty())
+        // HTML first: egui's own copies (from a title field) offer none, so its text, which
+        // egui-winit serves, isn't asked for on every paste.
+        let html = clipboard
+            .get()
+            .html()
+            .ok()
+            .filter(|html| !html.is_empty())?;
+        let text = clipboard.get_text().unwrap_or_default();
+        text.is_empty().then_some(html)
     }));
     // Zotero on this computer, through its local HTTP server.
     app.set_zotero(Arc::new(prosecraft_core::citations::zotero::request));

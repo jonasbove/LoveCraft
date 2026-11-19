@@ -385,3 +385,49 @@ fn render_network() {
     harness.get_by_label("Story data").click();
     save(&mut harness, "story-data");
 }
+
+/// `updatePinch`: two fingers moving together zoom the graph out around them.
+#[test]
+fn two_fingers_pinch_the_graph() {
+    use egui::{Event, TouchDeviceId, TouchId, TouchPhase};
+    let (mut harness, _) = app();
+    harness.get_by_role_and_label(Role::Tab, "Network").click();
+    harness.run();
+    assert!(
+        harness.query_by_label("300%").is_some(),
+        "two pages fit at the largest zoom"
+    );
+    let centre = harness
+        .get_all_by_label_contains("Relationship network of")
+        .next()
+        .expect("canvas")
+        .rect()
+        .center();
+    let touch = |id: u64, phase: TouchPhase, pos: egui::Pos2| Event::Touch {
+        device_id: TouchDeviceId(1),
+        id: TouchId(id),
+        phase,
+        pos,
+        force: None,
+    };
+    let (a, b) = (
+        centre - egui::vec2(120.0, 0.0),
+        centre + egui::vec2(120.0, 0.0),
+    );
+    harness.event(touch(1, TouchPhase::Start, a));
+    harness.event(touch(2, TouchPhase::Start, b));
+    harness.step();
+    for k in 1..=6 {
+        let d = egui::vec2(15.0 * k as f32, 0.0);
+        harness.event(touch(1, TouchPhase::Move, a + d));
+        harness.event(touch(2, TouchPhase::Move, b - d));
+        harness.step();
+    }
+    harness.event(touch(1, TouchPhase::End, a + egui::vec2(90.0, 0.0)));
+    harness.event(touch(2, TouchPhase::End, b - egui::vec2(90.0, 0.0)));
+    harness.run();
+    assert!(
+        harness.query_by_label("300%").is_none(),
+        "pinching in zooms out"
+    );
+}

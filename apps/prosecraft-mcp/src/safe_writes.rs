@@ -107,20 +107,17 @@ fn is_comment(value: &JsValue) -> bool {
         && matches!(jsx::get(value, "resolved"), Some(JsValue::Bool(_)))
 }
 
-/// `readSnapshots` / `readComments`: the entries that pass `guard`. Entries that fail it are not
-/// written back, as in the TypeScript server.
-fn read_list(
-    header: &JsValue,
-    key: &str,
-    guard: fn(&JsValue) -> bool,
-) -> Result<Vec<JsValue>, String> {
+/// Every entry of a project list, the ones `readSnapshots` / `readComments` would skip too.
+///
+/// One difference from the TypeScript server, which writes back only the entries that pass its
+/// shape guard (`isSnapshot`, `isComment`): entries it doesn't recognise (a newer app's, a
+/// hand-edited one) are kept as they are, as this repository keeps what it doesn't understand.
+/// The tools still act only on the entries that pass the guard.
+fn read_all(header: &JsValue, key: &str) -> Result<Vec<JsValue>, String> {
     Ok(project_data(header, key)?
         .and_then(JsValue::as_array)
         .unwrap_or_default()
-        .iter()
-        .filter(|v| guard(v))
-        .cloned()
-        .collect())
+        .to_vec())
 }
 
 fn set_project_list(header: &mut JsValue, key: &str, list: Vec<JsValue>) -> Result<(), String> {
@@ -140,7 +137,9 @@ fn id_of(entry: &JsValue) -> Option<&JsString> {
 /// `addSnapshot`: adds `snapshot` and drops its document's oldest beyond the cap.
 fn add_snapshot(snapshots: Vec<JsValue>, snapshot: JsValue) -> Vec<JsValue> {
     let document = jsx::get(&snapshot, "documentId").cloned();
-    let same_document = |entry: &JsValue| jsx::get(entry, "documentId") == document.as_ref();
+    // Only recognised snapshots count toward the cap; others are never dropped.
+    let same_document =
+        |entry: &JsValue| is_snapshot(entry) && jsx::get(entry, "documentId") == document.as_ref();
     let mut own: Vec<&JsValue> = snapshots
         .iter()
         .filter(|e| same_document(e))
@@ -180,7 +179,7 @@ fn before_write_snapshot(
 }
 
 fn take_snapshot(header: &mut JsValue, snapshot: JsValue) -> Result<(), String> {
-    let snapshots = read_list(header, "snapshots", is_snapshot)?;
+    let snapshots = read_all(header, "snapshots")?;
     set_project_list(header, "snapshots", add_snapshot(snapshots, snapshot))
 }
 
@@ -674,7 +673,7 @@ pub fn add_comment(
             ("createdAt", JsValue::Number(created_at)),
             ("resolved", JsValue::Bool(false)),
         ]);
-        let mut comments = read_list(&header, "comments", is_comment)?;
+        let mut comments = read_all(&header, "comments")?;
         comments.push(comment.clone());
         set_project_list(&mut header, "comments", comments)?;
         bump_project_header(&mut header, created_at)?;
@@ -692,9 +691,10 @@ pub fn resolve_comment(
 ) -> Result<JsValue, String> {
     fsx::with_lock(root, env, |env| {
         let Found { dir, mut header } = find_project_dir(root, project_id)?;
-        let comments = read_list(&header, "comments", is_comment)?;
+        let comments = read_all(&header, "comments")?;
         let Some(found) = comments
             .iter()
+            .filter(|c| is_comment(c))
             .find(|c| jsx::is_str(jsx::get(c, "id"), comment_id))
             .cloned()
         else {
@@ -704,7 +704,7 @@ pub fn resolve_comment(
         let resolved = comments
             .into_iter()
             .map(|entry| {
-                if jsx::is_str(jsx::get(&entry, "id"), comment_id) {
+                if is_comment(&entry) && jsx::is_str(jsx::get(&entry, "id"), comment_id) {
                     let mut next = jsx::spread(Some(&entry));
                     next.insert("resolved", JsValue::Bool(true));
                     JsValue::Object(next)

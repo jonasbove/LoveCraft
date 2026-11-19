@@ -1565,6 +1565,10 @@ impl ProseApp {
             .unwrap_or_default();
         self.change(|data, _| editing::commit_draft(&draft, data, &today));
         if let Some(current) = self.state.draft.as_mut() {
+            // What the scene now holds, when its text was written.
+            if draft.body_dirty && draft.markdown.is_none() {
+                current.source = draft.doc.to_html();
+            }
             current.title_dirty = false;
             current.body_dirty = false;
             current.edits = 0;

@@ -428,3 +428,37 @@ fn resolve_comment_marks_it_resolved() {
         .expect("comment");
     assert_eq!(entry.get("resolved"), Some(&JsValue::Bool(true)));
 }
+
+/// Unlike the TypeScript server, comments and snapshots it doesn't recognise (a newer app's
+/// fields, a hand-edited entry) stay in the project when a tool writes it.
+#[test]
+fn writes_keep_comments_and_snapshots_the_server_does_not_recognise() {
+    let lists = r#"[{"id": "snap-odd", "documentId": "doc-1", "title": "Opening Scene", "content": "<p>Old</p>", "createdAt": 1, "reason": "future-reason"}],
+  "comments": [{"id": "c-odd", "documentId": "doc-3", "quote": "grey", "body": "x", "createdAt": 1, "resolved": "maybe"}]"#;
+    let root = make_root(&stored(&project_fixture(Some(lists))));
+    let added = add_comment(
+        &root.path,
+        &mut env(),
+        "project-1",
+        &comment("was grey", "Nice image.", None),
+    )
+    .expect("add");
+    write_scene(
+        &root.path,
+        &mut env(),
+        "project-1",
+        &overwrite("doc-1", "It was bright."),
+    )
+    .expect("write");
+    resolve_comment(&root.path, &mut env(), "project-1", &str_of(&added, "id")).expect("resolve");
+    let error =
+        resolve_comment(&root.path, &mut env(), "project-1", "c-odd").expect_err("unrecognised");
+    assert!(error.contains("Comment not found"));
+    let project = root.project_section();
+    let comments: Vec<String> = project.get("comments").map(ids).unwrap_or_default();
+    assert_eq!(comments, vec!["c-odd".to_owned(), str_of(&added, "id")]);
+    let snapshots = snapshots(&root);
+    assert_eq!(snapshots.len(), 2);
+    assert_eq!(str_of(&snapshots[0], "id"), "snap-odd");
+    assert_eq!(str_of(&snapshots[0], "reason"), "future-reason");
+}

@@ -2212,7 +2212,7 @@ impl RichDoc {
             .chain(&chars[end.max(start)..])
             .collect();
         self.apply_text_at(&without, Some(start));
-        let cleaned = crate::html::sanitize::sanitize_html(html);
+        let cleaned = crate::html::sanitize::sanitize_html(&unwrap_normal_bold(html));
         let Some(pasted) = Self::pasted(&cleaned) else {
             let plain = crate::html::html_to_plain_text(&cleaned, &Default::default());
             let plain = plain.trim_end_matches('\n');
@@ -3061,6 +3061,22 @@ mod tests {
     }
 
     #[test]
+    fn a_google_docs_paste_is_not_all_bold() {
+        let mut doc = RichDoc::from_html("<p>a</p>").unwrap_or_default();
+        doc.paste_html(
+            1..1,
+            r#"<meta charset="utf-8"><b style="font-weight:normal;" id="docs-internal-guid-1a2b"><span style="font-weight:400">Plain </span><span style="font-weight:700">heavy</span> <b>real</b></b>"#,
+        );
+        assert_eq!(doc.to_html(), "<p>aPlain heavy <b>real</b></p>");
+        let mut doc = RichDoc::from_html("<p>a</p>").unwrap_or_default();
+        doc.paste_html(
+            1..1,
+            r#"<strong style="font-weight: 400">x</strong><strong>y</strong>"#,
+        );
+        assert_eq!(doc.to_html(), "<p>ax<strong>y</strong></p>");
+    }
+
+    #[test]
     fn typing_in_imported_shapes_writes_what_the_browser_keeps() {
         // Typed into, an empty paragraph is an ordinary one; text in no block stays so.
         let mut doc = RichDoc::from_html("<p></p><em>a</em> b").unwrap_or_default();
@@ -3612,4 +3628,55 @@ mod atom_paste_tests {
             2
         );
     }
+}
+
+/// Google Docs wraps a whole copy in `<b style="font-weight:normal" id="docs-internal-guid-…">`
+/// (a `<b>` that isn't bold); the sanitizer keeps the `<b>` and drops the style, so the whole
+/// paste would turn bold. Such a wrapper (any `<b>` or `<strong>` whose weight is normal or
+/// 400, or with a `docs-internal-guid-` id) is unwrapped before a paste. Real bold stays.
+fn unwrap_normal_bold(html: &str) -> String {
+    use crate::html::{Node, parse_fragment, serialize};
+    fn not_bold(e: &crate::html::Element) -> bool {
+        if !matches!(e.name.as_str(), "b" | "strong") {
+            return false;
+        }
+        let guid = e
+            .attr("id")
+            .is_some_and(|i| i.starts_with("docs-internal-guid-"));
+        let style = e.attr("style").unwrap_or_default().to_ascii_lowercase();
+        let normal = style.split(';').any(|d| {
+            let mut kv = d.splitn(2, ':');
+            let (k, v) = (
+                kv.next().unwrap_or("").trim(),
+                kv.next().unwrap_or("").trim(),
+            );
+            k == "font-weight" && matches!(v, "normal" | "400")
+        });
+        guid || normal
+    }
+    fn walk(nodes: Vec<Node>, depth: usize) -> Vec<Node> {
+        let mut out = Vec::new();
+        for node in nodes {
+            match node {
+                Node::Element(mut e) if depth < 256 => {
+                    let children = walk(std::mem::take(&mut e.children), depth + 1);
+                    if not_bold(&e) {
+                        out.extend(children);
+                    } else {
+                        e.children = children;
+                        out.push(Node::Element(e));
+                    }
+                }
+                other => out.push(other),
+            }
+        }
+        out
+    }
+    if !html.contains("<b")
+        && !html.contains("<B")
+        && !html.to_ascii_lowercase().contains("<strong")
+    {
+        return html.to_owned();
+    }
+    serialize(&walk(parse_fragment(html), 0))
 }

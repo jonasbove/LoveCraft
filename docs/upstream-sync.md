@@ -8,4 +8,4 @@ ProseCraft is active. prosecraft-rs ports from a fixed upstream commit and catch
 
 | Upstream commit | What changed | prosecraft-rs |
 |---|---|---|
-| *(none yet)* | | |
+| `8cdc694` | The local MCP server (`mcp/`) as of this commit | Ported as `apps/prosecraft-mcp` |

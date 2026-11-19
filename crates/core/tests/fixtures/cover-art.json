@@ -84,7 +84,7 @@
           "text": "The",
           "x": 800,
           "y": 826.0000000000001,
-          "font": "italic 400 52px Georgia, 'Iowan Old Style', 'Times New Roman', serif",
+          "font": "normal 400 172px Georgia, 'Iowan Old Style', 'Times New Roman', serif",
           "align": "center",
           "baseline": "middle",
           "fill": "#f1eadb"
@@ -94,7 +94,7 @@
           "text": "Lighthouse",
           "x": 800,
           "y": 1015.2000000000002,
-          "font": "italic 400 52px Georgia, 'Iowan Old Style', 'Times New Roman', serif",
+          "font": "normal 400 172px Georgia, 'Iowan Old Style', 'Times New Roman', serif",
           "align": "center",
           "baseline": "middle",
           "fill": "#f1eadb"
@@ -104,7 +104,7 @@
           "text": "Keeper",
           "x": 800,
           "y": 1204.4,
-          "font": "italic 400 52px Georgia, 'Iowan Old Style', 'Times New Roman', serif",
+          "font": "normal 400 172px Georgia, 'Iowan Old Style', 'Times New Roman', serif",
           "align": "center",
           "baseline": "middle",
           "fill": "#f1eadb"
@@ -474,7 +474,7 @@
           "text": "Two",
           "x": 800,
           "y": 886.8000000000001,
-          "font": "italic 400 52px Georgia, 'Iowan Old Style', 'Times New Roman', serif",
+          "font": "normal 400 172px Georgia, 'Iowan Old Style', 'Times New Roman', serif",
           "align": "center",
           "baseline": "middle",
           "fill": "#fff1e3"
@@ -484,7 +484,7 @@
           "text": "Lines",
           "x": 800,
           "y": 1076,
-          "font": "italic 400 52px Georgia, 'Iowan Old Style', 'Times New Roman', serif",
+          "font": "normal 400 172px Georgia, 'Iowan Old Style', 'Times New Roman', serif",
           "align": "center",
           "baseline": "middle",
           "fill": "#fff1e3"
@@ -2741,7 +2741,7 @@
           "text": "The Lighthouse",
           "x": 800,
           "y": 950.27,
-          "font": "italic 400 46px Georgia, 'Iowan Old Style', 'Times New Roman', serif",
+          "font": "normal 400 128px Georgia, 'Iowan Old Style', 'Times New Roman', serif",
           "align": "center",
           "baseline": "middle",
           "fill": "#eef6f5"
@@ -2751,7 +2751,7 @@
           "text": "Keeper",
           "x": 800,
           "y": 1093.63,
-          "font": "italic 400 46px Georgia, 'Iowan Old Style', 'Times New Roman', serif",
+          "font": "normal 400 128px Georgia, 'Iowan Old Style', 'Times New Roman', serif",
           "align": "center",
           "baseline": "middle",
           "fill": "#eef6f5"
@@ -3045,7 +3045,7 @@
           "text": "Two",
           "x": 800,
           "y": 919.22,
-          "font": "italic 400 46px Georgia, 'Iowan Old Style', 'Times New Roman', serif",
+          "font": "normal 400 128px Georgia, 'Iowan Old Style', 'Times New Roman', serif",
           "align": "center",
           "baseline": "middle",
           "fill": "#f1eadb"
@@ -3055,7 +3055,7 @@
           "text": "Lines",
           "x": 800,
           "y": 1062.58,
-          "font": "italic 400 46px Georgia, 'Iowan Old Style', 'Times New Roman', serif",
+          "font": "normal 400 128px Georgia, 'Iowan Old Style', 'Times New Roman', serif",
           "align": "center",
           "baseline": "middle",
           "fill": "#f1eadb"

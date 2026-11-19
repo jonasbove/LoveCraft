@@ -69,12 +69,24 @@ fn column(ui: &mut Ui, add: impl FnOnce(&mut Ui)) {
     });
 }
 
+/// A paste with HTML and no text in this frame, and the desktop host's reader for it.
+type HtmlPasteFor<'a> = (
+    &'a crate::clipboard_keys::HtmlPaste,
+    Option<&'a crate::ClipboardHtml>,
+);
+
 /// The parts of the state a view changes, borrowed apart from the project it shows.
 struct Edit<'a> {
+    /// The project as stored, for the story data panel.
+    stored: &'a prosecraft_core::js::JsValue,
+    /// The story data panel open, for every scene.
+    story_open: &'a mut bool,
     editable: bool,
     /// The host's clipboard HTML, for rich paste, and its writer, for rich copy.
     clipboard_html: Option<&'a crate::ClipboardHtml>,
     clipboard_write: Option<&'a crate::ClipboardWriter>,
+    /// This frame's paste with HTML and no text, and the desktop host's reader for it.
+    html_paste: HtmlPasteFor<'a>,
     /// The comments and Wiki articles highlighted in the text.
     marks: crate::text_marks::Sources<'a>,
     draft: &'a mut Option<Draft>,
@@ -250,7 +262,12 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         wiki_root,
         clipboard_html,
         clipboard_write,
+        clipboard_keys,
+        html_paste,
         tiles,
+        network,
+        fresh_ids,
+        story_data_open,
         ..
     } = state;
     let entry = library.as_ref().and_then(|l| l.projects().get(*active));
@@ -265,6 +282,33 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
             .get("project")
             .unwrap_or(&prosecraft_core::js::JsValue::Null);
         crate::storyboard::show(ui, &palette, data, project, *editable, intents);
+        return;
+    }
+    if *view == WorkspaceView::Network {
+        let derived = crate::graph_tile::derived(ui.ctx(), &entry.stored);
+        let data = entry
+            .stored
+            .get("project")
+            .unwrap_or(&prosecraft_core::js::JsValue::Null);
+        let mut out = crate::network_view::Out {
+            editable: *editable,
+            intents,
+            ids: fresh_ids,
+            open: None,
+        };
+        // Full width, as ProseCraft's network view (not the writing column).
+        egui::ScrollArea::vertical()
+            .auto_shrink([false, false])
+            .show(ui, |ui| {
+                egui::Frame::new()
+                    .inner_margin(egui::Margin::symmetric(24, 0))
+                    .show(ui, |ui| {
+                        crate::network_view::show(ui, &palette, data, &derived, network, &mut out);
+                    });
+            });
+        if let Some(selection) = out.open {
+            state.select(selection);
+        }
         return;
     }
     if *view == WorkspaceView::Publish {
@@ -290,9 +334,15 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
             .and_then(|p| p.get("publishOptions")),
     );
     let mut edit = Edit {
+        stored: entry
+            .stored
+            .get("project")
+            .unwrap_or(&prosecraft_core::js::JsValue::Null),
+        story_open: story_data_open,
         editable: *editable,
         clipboard_html: clipboard_html.as_ref(),
         clipboard_write: clipboard_write.as_ref(),
+        html_paste: (html_paste, clipboard_keys.as_ref()),
         marks: crate::text_marks::Sources {
             comments: &project.comments,
             documents: &project.documents,
@@ -359,6 +409,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                             // Shown above, as a full-width canvas.
                             WorkspaceView::Storyboard => {}
                             WorkspaceView::Timeline => timeline(ui, &palette, project, &mut edit),
+                            WorkspaceView::Network => {}
                             // Shown above, in its own two-column layout.
                             WorkspaceView::Publish => {}
                         });
@@ -389,6 +440,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                         ),
                         citation_style: options.citation_style.clone(),
                         citation_locale: options.citation_locale.clone(),
+                        stored: &entry.stored,
                     };
                     let active = edit.draft.as_ref().map(|d| d.document.clone());
                     let asked = crate::split_view::show(
@@ -403,6 +455,16 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                         tiles,
                     );
                     from_split = asked.open;
+                    if let (Some(page), Some(scene)) = (&asked.confirm, active.as_deref()) {
+                        edit.intents.push(Intent::ConfirmCharacter {
+                            scene: scene.to_owned(),
+                            page: page.clone(),
+                        });
+                    }
+                    if let Some(page) = &asked.beside {
+                        edit.intents
+                            .push(Intent::OpenBeside(prosecraft_core::split::doc_target(page)));
+                    }
                     if let Some(file) = asked.open_file {
                         edit.intents.push(Intent::OpenWikiFileExternally(file));
                     }
@@ -572,11 +634,19 @@ fn body_format(palette: &Palette) -> egui::TextFormat {
     }
 }
 
+/// The base direction of every paragraph of scene text. ProseCraft's editor sets no `dir`, so a
+/// browser gives each paragraph the page's left-to-right base direction and aligns it to the
+/// left: Arabic or Hebrew words are ordered right-to-left within the line, and a line mixing
+/// them with left-to-right words orders its runs left to right (UAX #9 with paragraph level 0).
+pub(crate) const SCENE_DIRECTION: egui::epaint::text::TextDirection =
+    egui::epaint::text::TextDirection::LeftToRight;
+
 /// The manuscript text, read-only: serif, ProseCraft's 1.85 line spacing, a gap between paragraphs.
 fn manuscript(ui: &mut Ui, palette: &Palette, text: &str) {
     for paragraph in text.split("\n\n") {
         let mut job = egui::text::LayoutJob::default();
         job.wrap.max_width = ui.available_width();
+        job.direction = SCENE_DIRECTION;
         job.append(paragraph, 0.0, body_format(palette));
         ui.label(job);
         ui.add_space(8.0);
@@ -652,7 +722,11 @@ fn write(
                     markdown_editor(ui, palette, document, chapter, edit);
                     return;
                 }
-                match RichDoc::from_html(&document.content).filter(|_| edit.editable) {
+                // A scene the editor can hold only in a normalized shape opens in it too; that
+                // shape is stored only once the text is edited (see `Draft::source`).
+                let held = RichDoc::from_html(&document.content)
+                    .or_else(|| RichDoc::from_html_normalized(&document.content));
+                match held.filter(|_| edit.editable) {
                     Some(doc) => {
                         let chapter = chapter_view(project, document);
                         editor(ui, palette, document, doc, screenplay, chapter, edit);
@@ -1078,8 +1152,7 @@ fn copy(
         return;
     };
     let html = prosecraft_core::html::sanitize_html(&draft.doc.slice_html(range.clone()));
-    let text = prosecraft_core::html::html_to_plain_text(&html, &Default::default());
-    write(&html, text.trim_end_matches('\n'));
+    write(&html, &clipboard_text(&html));
     ui.input_mut(|i| {
         i.events
             .retain(|e| !matches!(e, egui::Event::Copy | egui::Event::Cut))
@@ -1105,6 +1178,81 @@ fn copy(
     }
 }
 
+/// The plain text a copy puts beside its HTML, as the browser writes it for a selection in
+/// ProseCraft's editor: the text, an equation's or a diagram's source; for atoms with no text
+/// of their own, a picture's description (its `alt`), a newline for a rule, and nothing for a
+/// footnote marker or a citation (whose label is drawn, not text).
+fn clipboard_text(html: &str) -> String {
+    let plain = prosecraft_core::html::html_to_plain_text(html, &Default::default());
+    let plain = plain.trim_end_matches('\n');
+    if !plain.trim().is_empty() {
+        return plain.to_owned();
+    }
+    let nodes = prosecraft_core::html::parse_fragment(html);
+    let mut alts = Vec::new();
+    let mut rule = false;
+    let mut stack: Vec<&prosecraft_core::html::Node> = nodes.iter().rev().collect();
+    while let Some(node) = stack.pop() {
+        if let prosecraft_core::html::Node::Element(e) = node {
+            match e.name.as_str() {
+                "img" => alts.extend(e.attr("alt").map(str::trim).filter(|a| !a.is_empty())),
+                "hr" => rule = true,
+                _ => {}
+            }
+            stack.extend(e.children.iter().rev());
+        }
+    }
+    if !alts.is_empty() {
+        alts.join(" ")
+    } else if rule {
+        "\n".to_owned()
+    } else {
+        String::new()
+    }
+}
+
+/// Whether the clipboard's HTML is the passage whose text was pasted (not HTML left from an
+/// earlier copy): the same words as [`clipboard_text`] gives it; for a text with no words (a
+/// rule's newline, or the object characters earlier builds wrote for atoms), HTML of atoms
+/// alone.
+fn clipboard_holds(text: &str, html: &str) -> bool {
+    let words = words_of(text);
+    if !words.is_empty() {
+        return words_of(&clipboard_text(html)) == words;
+    }
+    words_of(&clipboard_text(html)).is_empty()
+        && prosecraft_core::richtext::RichDoc::paste_atom_count(html) > 0
+}
+
+/// The text earlier builds copied for atoms alone: an object character for each.
+fn is_atom_text(text: &str) -> bool {
+    text.contains(prosecraft_core::richtext::ATOM)
+        && text
+            .chars()
+            .all(|c| c == prosecraft_core::richtext::ATOM || c.is_whitespace())
+}
+
+/// Outside the rich editor a copy of atoms alone made by an earlier build pastes nothing, as an
+/// empty plain text does in ProseCraft; an object character in Markdown would leave the scene
+/// read-only.
+fn drop_atom_paste(ui: &Ui) {
+    ui.input_mut(|i| {
+        i.events
+            .retain(|e| !matches!(e, egui::Event::Paste(text) if is_atom_text(text)))
+    });
+}
+
+/// Whether pasting `html` puts something in the editor: words or atoms (HTML of a picture on
+/// the web, which the editor can't keep, pastes nothing).
+fn html_pastes(html: &str) -> bool {
+    prosecraft_core::richtext::RichDoc::paste_atom_count(html) > 0
+        || !words_of(&prosecraft_core::html::html_to_plain_text(
+            &prosecraft_core::html::sanitize_html(html),
+            &Default::default(),
+        ))
+        .is_empty()
+}
+
 /// The words of a text, without spaces and punctuation: a pasted text and the clipboard's
 /// HTML hold the same passage when these match.
 fn words_of(text: &str) -> String {
@@ -1113,18 +1261,20 @@ fn words_of(text: &str) -> String {
 
 /// Paste into the rich editor as ProseCraft's browser editor pastes: the clipboard's HTML,
 /// cleaned, with its formatting (egui's own paste is the plain text), and an image as a picture
-/// (`handleImagePaste`).
+/// (`handleImagePaste`). A clipboard with HTML and no text (a footnote marker copied alone),
+/// which no paste event comes for, pastes its HTML too.
 fn paste(
     ui: &mut Ui,
     body_id: egui::Id,
     document: &str,
     draft: &mut Draft,
-    (clipboard_html, intents, now, screenplay): (
+    (clipboard_html, html_paste, intents, now): (
         Option<&crate::ClipboardHtml>,
+        HtmlPasteFor<'_>,
         &mut Vec<Intent>,
         f64,
-        bool,
     ),
+    screenplay: bool,
 ) {
     if screenplay || !ui.memory(|m| m.has_focus(body_id)) {
         return;
@@ -1177,25 +1327,32 @@ fn paste(
         }
         return;
     }
-    let Some(read) = clipboard_html else {
-        return;
-    };
     let text = ui.input(|i| {
         i.events.iter().find_map(|e| match e {
             egui::Event::Paste(text) => Some(text.clone()),
             _ => None,
         })
     });
-    let Some(text) = text else {
-        return;
+    let html = match text {
+        Some(text) => {
+            let Some(html) = clipboard_html
+                .and_then(|read| read())
+                .filter(|html| clipboard_holds(&text, html))
+            else {
+                return;
+            };
+            ui.input_mut(|i| i.events.retain(|e| !matches!(e, egui::Event::Paste(_))));
+            html
+        }
+        // No text, so no paste event: the HTML, if the editor can hold something of it.
+        None => {
+            let (asked, read) = html_paste;
+            match asked.html(read) {
+                Some(html) if html_pastes(&html) => html,
+                _ => return,
+            }
+        }
     };
-    let Some(html) = read().filter(|html| {
-        let plain = prosecraft_core::html::html_to_plain_text(html, &Default::default());
-        !words_of(&text).is_empty() && words_of(&plain) == words_of(&text)
-    }) else {
-        return;
-    };
-    ui.input_mut(|i| i.events.retain(|e| !matches!(e, egui::Event::Paste(_))));
     let (body, caret) = draft.doc.paste_html(range, &html);
     draft.body = body;
     draft.body_dirty = true;
@@ -1356,7 +1513,8 @@ pub(crate) fn read_only_html_cited(
     (style, locale): (&str, &str),
 ) {
     let cleaned = prosecraft_core::html::sanitize::sanitize_html(html);
-    let Some(doc) = RichDoc::from_html(&cleaned) else {
+    let held = RichDoc::from_html(&cleaned).or_else(|| RichDoc::from_html_normalized(&cleaned));
+    let Some(doc) = held else {
         let response = ui
             .scope(|ui| manuscript(ui, palette, &plain(&cleaned)))
             .response;
@@ -1373,10 +1531,7 @@ pub(crate) fn read_only_html_cited(
     let labels = atom_labels(&doc, &cites);
     let wrap = ui.available_width().max(1.0);
     let look = Look::default();
-    let galley = ui.fonts_mut(|f| {
-        let spacing = atom_sizes(f, &labels, wrap);
-        f.layout_job(layout_doc(&doc, &doc.text, palette, wrap, &spacing, &look))
-    });
+    let galley = ui.fonts_mut(|f| doc_galley(f, (&doc, &doc.text), palette, wrap, &labels, &look));
     let (rect, response) = ui.allocate_exact_size(
         galley.size().max(egui::vec2(wrap, 24.0)),
         egui::Sense::hover(),
@@ -1405,16 +1560,14 @@ pub(crate) fn tile_body(
     let layout_palette = *palette;
     let mut layouter = move |ui: &Ui, text: &dyn egui::TextBuffer, wrap_width: f32| {
         ui.fonts_mut(|f| {
-            let spacing = atom_sizes(f, &layout_labels, wrap_width);
-            let look = Look::default();
-            f.layout_job(layout_doc(
-                &doc_for_layout,
-                text.as_str(),
+            doc_galley(
+                f,
+                (&doc_for_layout, text.as_str()),
                 &layout_palette,
                 wrap_width,
-                &spacing,
-                &look,
-            ))
+                &layout_labels,
+                &Look::default(),
+            )
         })
     };
     let output = egui::TextEdit::multiline(body)
@@ -1462,7 +1615,9 @@ fn chapter_scene(
     } else {
         scene.title.as_str()
     };
-    let Some(doc) = RichDoc::from_html(&scene.content) else {
+    let held = RichDoc::from_html(&scene.content)
+        .or_else(|| RichDoc::from_html_normalized(&scene.content));
+    let Some(doc) = held else {
         // Content the rich editor can't hold: its text, read-only until the scene is opened.
         let response = ui
             .scope(|ui| manuscript(ui, palette, &plain(&scene.content)))
@@ -1482,10 +1637,7 @@ fn chapter_scene(
     let galley = if screenplay {
         crate::screenplay_editor::galley(ui, &doc, &doc.text, palette, wrap)
     } else {
-        ui.fonts_mut(|f| {
-            let spacing = atom_sizes(f, &labels, wrap);
-            f.layout_job(layout_doc(&doc, &doc.text, palette, wrap, &spacing, look))
-        })
+        ui.fonts_mut(|f| doc_galley(f, (&doc, &doc.text), palette, wrap, &labels, look))
     };
     let (rect, response) = ui.allocate_exact_size(
         egui::vec2(width, galley.size().y.max(24.0)),
@@ -1540,7 +1692,8 @@ fn chapter_keys(
         return;
     };
     let (start, end) = ranges[line];
-    let empty_paragraph = start == end && draft.doc.lines.get(line) == Some(&LineKind::Paragraph);
+    let empty_paragraph =
+        start == end && draft.doc.lines.get(line).map(|k| k.shown()) == Some(LineKind::Paragraph);
     let leads = chapter.before.is_empty() && line == 0;
     if empty_paragraph
         && !leads
@@ -1673,17 +1826,69 @@ struct UndoAt<'a> {
     now_ms: f64,
 }
 
+/// The ids of a scene's footnote markers, in order.
+fn footnote_ids(doc: &RichDoc) -> Vec<String> {
+    doc.atoms
+        .iter()
+        .filter(|a| is_footnote(a))
+        .flat_map(|a| prosecraft_core::footnotes::extract_ids(a))
+        .collect()
+}
+
+/// `handleInput`: a footnote whose last marker an edit took away (a cut, Backspace or Delete,
+/// typing or pasting over it) loses its definition in the scene, or the chapter, it belongs
+/// to. Undo brings it back with the marker (the step before holds both). Returns those ids.
+fn drop_removed_footnotes(
+    before: &[String],
+    draft: &Draft,
+    (document, chapter): (
+        &prosecraft_core::project::Document,
+        Option<&ChapterView<'_>>,
+    ),
+    intents: &mut Vec<Intent>,
+) -> Vec<String> {
+    let after = footnote_ids(&draft.doc);
+    if before == after.as_slice() {
+        return Vec::new();
+    }
+    let others: Vec<&prosecraft_core::project::Document> = chapter
+        .map(|c| c.before.iter().chain(&c.after).copied().collect())
+        .unwrap_or_default();
+    // In the chapter view the chapter's other scenes are in the editor too. Only the open
+    // scene is ever being typed into: switching scenes saves the draft first, so the others'
+    // stored text is their live text (a marker just pasted into one of them counts).
+    let elsewhere: Vec<String> = others
+        .iter()
+        .flat_map(|s| prosecraft_core::footnotes::extract_ids(&s.content))
+        .collect();
+    let mut removed = prosecraft_core::footnotes::removed_ids(before, &after);
+    removed.retain(|id| !elsewhere.contains(id));
+    for id in &removed {
+        for scene in std::iter::once(document).chain(others.iter().copied()) {
+            if scene.footnotes.iter().any(|f| f.id == *id) {
+                intents.push(Intent::RemoveFootnote {
+                    document: scene.id.clone(),
+                    id: id.clone(),
+                });
+            }
+        }
+    }
+    removed
+}
+
 fn record_body_history(
     edit: UndoAt<'_>,
-    document: &prosecraft_core::project::Document,
+    (document, dropped): (&prosecraft_core::project::Document, &[String]),
     draft: &mut Draft,
     cursor: Option<egui::text::CCursorRange>,
 ) {
     use prosecraft_core::undo::{Edit as UndoEdit, EditKind, decode_body, encode_body};
     let key = format!("{}/body:{}", edit.project, document.id);
+    // The definitions as they are after this edit (those it dropped are going).
     let notes: Vec<(String, String)> = document
         .footnotes
         .iter()
+        .filter(|f| !dropped.contains(&f.id))
         .map(|f| (f.id.clone(), f.html.clone()))
         .collect();
     let value = encode_body(&draft.doc.to_html(), &document.id, &notes);
@@ -1989,6 +2194,15 @@ pub(crate) fn atom_sizes(
                     ..AtomBox::default()
                 }
             }
+            // A wrapped picture: the text flows beside it (see `picture_flow`), its character
+            // all but invisible where it stands.
+            AtomLabel::Picture(picture) if picture.layout.wrap != "block" && wrap.is_finite() => {
+                AtomBox {
+                    font: 1.0,
+                    picture: true,
+                    ..AtomBox::default()
+                }
+            }
             // As wide as the column, so the picture has its row to itself.
             AtomLabel::Picture(picture) => AtomBox {
                 spacing: if wrap.is_finite() {
@@ -2006,6 +2220,28 @@ pub(crate) fn atom_sizes(
 }
 
 const ATOM_FONT: f32 = 12.0;
+
+/// The atom character's glyph, the same in every build: an invisible box half an em wide. No
+/// installed font has U+FFFC, so egui asks its fallbacks, and on the web eframe's asks the
+/// browser, which draws nothing for it and measures it as nothing; the character then had no
+/// width to scale (see [`atom_sizes`]), and a citation's label lay over the text after it.
+pub(crate) fn atom_glyph() -> egui::GlyphRasterizer {
+    egui::GlyphRasterizer::new("prosecraft::atom_glyph", |request| {
+        let mut chars = request.cluster.chars();
+        if chars.next() != Some(ATOM) || chars.next().is_some() {
+            return None;
+        }
+        Some(egui::RasterizedGlyph {
+            bitmap: egui::GlyphBitmap {
+                image: egui::ColorImage::filled([1, 1], egui::Color32::TRANSPARENT),
+                offset_px: egui::Vec2::ZERO,
+                is_color: false,
+            },
+            advance_px: request.font_size_px * 0.5,
+        })
+    })
+    .with_priority(egui::FontPriority::Highest)
+}
 
 /// The text formats the editor lays the scene out with.
 /// How the editor's text looks beyond its formatting: the text size (`--editor-scale`), and
@@ -2081,6 +2317,7 @@ pub(crate) fn layout_doc(
 ) -> egui::text::LayoutJob {
     let mut job = egui::text::LayoutJob::default();
     job.wrap.max_width = wrap;
+    job.direction = SCENE_DIRECTION;
     let mut line = 0;
     let mut atom = 0;
     let mut previous = None;
@@ -2089,7 +2326,12 @@ pub(crate) fn layout_doc(
         if c == '\n' {
             line += 1;
         }
-        let kind = doc.lines.get(line).copied().unwrap_or(LineKind::Paragraph);
+        let kind = doc
+            .lines
+            .get(line)
+            .copied()
+            .unwrap_or(LineKind::Paragraph)
+            .shown();
         let marks = doc.marks.get(i).map_or(&[][..], Vec::as_slice);
         let (size, heading) = match kind {
             LineKind::Heading1 => (32.0, true),
@@ -2141,6 +2383,14 @@ pub(crate) fn layout_doc(
                 laid_out = PICTURE_CHAR;
                 format.extra_letter_spacing = laid.spacing;
             }
+            // A line separator in the text itself: it ends the row, as in ProseCraft.
+            if let Some(own @ (prosecraft_core::richtext::SOFT_BREAK | HARD_BREAK)) = doc
+                .atoms
+                .get(atom)
+                .and_then(|html| prosecraft_core::richtext::text_atom(html))
+            {
+                laid_out = own;
+            }
             let size = if laid.font > 0.0 {
                 laid.font
             } else {
@@ -2153,10 +2403,7 @@ pub(crate) fn layout_doc(
             format.color = egui::Color32::TRANSPARENT;
             atom += 1;
         }
-        if matches!(
-            c,
-            prosecraft_core::richtext::SOFT_BREAK | prosecraft_core::richtext::HARD_BREAK
-        ) {
+        if matches!(laid_out, prosecraft_core::richtext::SOFT_BREAK | HARD_BREAK) {
             // A line break: it ends the row (see `RowBreaks`) and shows nothing.
             format.color = egui::Color32::TRANSPARENT;
             format.font_id.size = 1.0;
@@ -2181,6 +2428,86 @@ pub(crate) fn layout_doc(
     job
 }
 
+/// The scene's text laid out as the editor shows it: [`layout_doc`], with the text beside its
+/// wrapped pictures.
+pub(crate) fn doc_galley(
+    fonts: &mut egui::epaint::FontsView<'_>,
+    (doc, text): (&RichDoc, &str),
+    palette: &Palette,
+    wrap: f32,
+    labels: &[AtomLabel],
+    look: &Look,
+) -> std::sync::Arc<egui::Galley> {
+    let sizes = atom_sizes(fonts, labels, wrap);
+    let job = layout_doc(doc, text, palette, wrap, &sizes, look);
+    let floats = floats(text, labels, wrap);
+    if floats.is_empty() {
+        return fonts.layout_job(job);
+    }
+    crate::picture_flow::flow(fonts, job, &floats, &clears(doc, text, labels))
+}
+
+/// The wrapped pictures in `text`, drawn in a column `column` wide.
+pub(crate) fn floats(
+    text: &str,
+    labels: &[AtomLabel],
+    column: f32,
+) -> Vec<crate::picture_flow::Float> {
+    // Without a column to wrap in, a picture keeps its row (see `atom_sizes`).
+    if !column.is_finite() {
+        return Vec::new();
+    }
+    text.chars()
+        .enumerate()
+        .filter(|(_, c)| *c == ATOM)
+        .zip(labels.iter().enumerate())
+        .filter_map(|((index, _), (atom, label))| match label {
+            AtomLabel::Picture(picture) if picture.layout.wrap != "block" => {
+                Some(crate::picture_flow::Float {
+                    index,
+                    atom,
+                    left: picture.layout.wrap == "wrap-left",
+                    size: picture.drawn(column),
+                })
+            }
+            _ => None,
+        })
+        .collect()
+}
+
+/// Which lines start below the wrapped pictures (ProseCraft's `clear: both`): headings, quotes
+/// and kept blocks, and here a line holding a picture on its own row.
+fn clears(doc: &RichDoc, text: &str, labels: &[AtomLabel]) -> Vec<bool> {
+    let mut out: Vec<bool> = doc
+        .lines
+        .iter()
+        .map(|kind| {
+            matches!(
+                kind.shown(),
+                LineKind::Heading1
+                    | LineKind::Heading2
+                    | LineKind::Heading3
+                    | LineKind::Quote
+                    | LineKind::Block
+            )
+        })
+        .collect();
+    let mut line = 0;
+    let mut atoms = labels.iter();
+    for c in text.chars() {
+        if c == '\n' {
+            line += 1;
+        } else if c == ATOM
+            && let Some(AtomLabel::Picture(picture)) = atoms.next()
+            && picture.layout.wrap == "block"
+            && let Some(clear) = out.get_mut(line)
+        {
+            *clear = true;
+        }
+    }
+    out
+}
+
 /// `.editor-content ul, ol { padding-left: 24px }`.
 const LIST_INDENT: f32 = 24.0;
 /// `.editor-content blockquote { padding: 2px 0 2px 17px }`.
@@ -2189,6 +2516,50 @@ const QUOTE_INDENT: f32 = 17.0;
 /// What a picture's character is laid out as: a character no font has (drawn as an empty box,
 /// as wide as its font size, like the atom character), which rows may end before and after.
 pub(crate) const PICTURE_CHAR: char = '\u{E000}';
+
+/// For a scene the editor holds only in a normalized shape, still untouched: said, with the
+/// Markdown editor that edits its source as it is stored (not for a screenplay, which keeps its
+/// own editor).
+fn normalized_note(
+    ui: &mut Ui,
+    palette: &Palette,
+    (draft, document, screenplay): (&Draft, &prosecraft_core::project::Document, bool),
+    (forced, switch): (&mut bool, &mut Option<bool>),
+) {
+    if screenplay
+        || draft.body_dirty
+        || draft.source != document.content
+        || draft.doc.to_html() == draft.source
+    {
+        return;
+    }
+    ui.horizontal_wrapped(|ui| {
+        ui.label(
+            RichText::new("Some of this scene's formatting is simplified once you edit it.")
+                .size(12.0)
+                .color(palette.text_muted),
+        );
+        let markdown = ui
+            .button("Edit as Markdown")
+            .on_hover_text("Open this scene in the Markdown editor");
+        if markdown.clicked() {
+            *forced = true;
+            *switch = Some(true);
+        }
+    });
+    ui.add_space(6.0);
+}
+
+/// A new draft when another document opens, or when the stored one changed underneath an
+/// untouched draft (an import of a newer copy). A draft held in a normalized shape writes other
+/// HTML than it was read from, so it is compared with that too.
+fn is_stale(draft: &Draft, document: &prosecraft_core::project::Document) -> bool {
+    draft.document != document.id
+        || draft.markdown.is_some()
+        || (!draft.is_dirty()
+            && (draft.title != document.title
+                || (draft.source != document.content && draft.doc.to_html() != document.content)))
+}
 
 /// The editor: the scene's title, ProseCraft's toolbar, and its formatted text.
 fn editor(
@@ -2200,20 +2571,14 @@ fn editor(
     chapter: Option<ChapterView<'_>>,
     edit: &mut Edit<'_>,
 ) {
-    // A new draft when another document opens, or when the stored one changed underneath an
-    // untouched draft (an import of a newer copy).
-    let stale = edit.draft.as_ref().is_none_or(|d| {
-        d.document != document.id
-            || d.markdown.is_some()
-            || (!d.is_dirty() && (d.title != document.title || d.doc.to_html() != document.content))
-    });
-    if stale {
+    if edit.draft.as_ref().is_none_or(|d| is_stale(d, document)) {
         *edit.draft = Some(Draft {
             document: document.id.clone(),
             title: document.title.clone(),
             words: prosecraft_core::html::html_word_count(&doc.to_html()),
             body: doc.text.clone(),
             doc,
+            source: document.content.clone(),
             title_dirty: false,
             body_dirty: false,
             changed_at: edit.now,
@@ -2257,6 +2622,15 @@ fn editor(
         }
     }
     ui.add_space(10.0);
+    crate::story_data::show(
+        ui,
+        palette,
+        edit.stored,
+        &document.id,
+        edit.story_open,
+        edit.editable,
+        edit.intents,
+    );
 
     let body_id = body_id(&document.id);
     let selection = egui::TextEdit::load_state(ui.ctx(), body_id)
@@ -2345,6 +2719,12 @@ fn editor(
         }
         ui.add_space(6.0);
     }
+    normalized_note(
+        ui,
+        palette,
+        (draft, document, screenplay),
+        (edit.markdown_forced, edit.markdown_switch),
+    );
     // ProseCraft's formatting toolbar; it wraps onto more rows in a narrow column rather than
     // widening the column past the window.
     card(palette).show(ui, |ui| {
@@ -2623,19 +3003,18 @@ fn editor(
             );
         }
         ui.fonts_mut(|f| {
-            let spacing = atom_sizes(f, &layout_labels, wrap_width);
-            let job = layout_doc(
-                &doc_for_layout,
-                text.as_str(),
+            doc_galley(
+                f,
+                (&doc_for_layout, text.as_str()),
                 &layout_palette,
                 wrap_width,
-                &spacing,
+                &layout_labels,
                 &look,
-            );
-            f.layout_job(job)
+            )
         })
     };
     link_prompt(ui, draft, now);
+    let footnotes_before = footnote_ids(&draft.doc);
     copy(
         ui,
         body_id,
@@ -2648,7 +3027,8 @@ fn editor(
         body_id,
         &document.id,
         draft,
-        (edit.clipboard_html, edit.intents, now, screenplay),
+        (edit.clipboard_html, edit.html_paste, edit.intents, now),
+        screenplay,
     );
     history_keys(ui, body_id, &document.id, edit.intents);
     let output = egui::TextEdit::multiline(&mut draft.body)
@@ -2689,6 +3069,12 @@ fn editor(
         draft.words = words;
     }
     after_typing(ui, edit.writing, edit.editor_rect, edit.intents, &output);
+    let dropped = drop_removed_footnotes(
+        &footnotes_before,
+        draft,
+        (document, chapter.as_ref()),
+        edit.intents,
+    );
     record_body_history(
         UndoAt {
             undo: edit.undo,
@@ -2696,7 +3082,7 @@ fn editor(
             page: &edit.undo_page,
             now_ms: edit.now_ms,
         },
-        document,
+        (document, &dropped),
         draft,
         output.cursor_range,
     );
@@ -2896,6 +3282,7 @@ fn markdown_editor(
             words: markdown_words(&source),
             body: doc.text.clone(),
             doc,
+            source: document.content.clone(),
             title_dirty: false,
             body_dirty: false,
             changed_at: edit.now,
@@ -2913,6 +3300,7 @@ fn markdown_editor(
     let Some(draft) = edit.draft.as_mut() else {
         return;
     };
+    drop_atom_paste(ui);
     if let Some(chapter) = &chapter {
         chapter_title(
             ui,
@@ -3041,7 +3429,12 @@ pub(crate) fn paint_extras(
     // The lists open (as the HTML nests them) and how many items each has had.
     let mut lists: Vec<(&str, u32)> = Vec::new();
     for (line, (start, end)) in doc.line_ranges().into_iter().enumerate() {
-        let kind = doc.lines.get(line).copied().unwrap_or(LineKind::Paragraph);
+        let kind = doc
+            .lines
+            .get(line)
+            .copied()
+            .unwrap_or(LineKind::Paragraph)
+            .shown();
         let rect = galley
             .pos_from_cursor(egui::text::CCursor::new(start))
             .translate(origin.to_vec2());
@@ -3055,17 +3448,24 @@ pub(crate) fn paint_extras(
             .take_while(|((open, _), want)| open == *want)
             .count();
         lists.truncate(common);
+        // A second block in one item, or a paragraph straight in a list, has no marker and
+        // isn't counted.
+        let starts = doc.starts_item(line);
         if !wanted.is_empty() {
             if lists.len() == wanted.len() {
                 if let Some(last) = lists.last_mut() {
-                    last.1 += 1;
+                    last.1 += u32::from(starts);
                 }
             } else {
                 lists.extend(wanted[common..].iter().map(|l| (*l, 1)));
+                if let Some(last) = lists.last_mut() {
+                    last.1 = u32::from(starts);
+                }
             }
         }
         // The browser's markers: numbers, or a disc, circle and square by depth.
         let marker = match (kind.list_depth(), lists.last()) {
+            _ if !starts => None,
             (Some(_), Some(("ol", n))) => Some(format!("{n}.")),
             (Some(depth), Some(_)) => {
                 let at = egui::pos2(rect.min.x - 11.0, rect.center().y);
@@ -3211,6 +3611,18 @@ fn paint_picture(
         _ => left,
     };
     let rect = egui::Rect::from_min_size(egui::pos2(x, row.min.y + crate::pictures::MARGIN), size);
+    draw_picture(painter, palette, html, picture, rect);
+    rect
+}
+
+/// A picture's image in `rect`, or its alternative text in a frame when it can't be drawn.
+fn draw_picture(
+    painter: &egui::Painter,
+    palette: &Palette,
+    html: &str,
+    picture: &crate::pictures::PictureInfo,
+    rect: egui::Rect,
+) {
     match crate::pictures::texture(painter.ctx(), html, picture) {
         Some(texture) => {
             painter.image(
@@ -3236,7 +3648,6 @@ fn paint_picture(
             );
         }
     }
-    rect
 }
 
 /// Each atom's label, painted in its character's box (footnote numbers, citation labels,
@@ -3251,6 +3662,13 @@ pub(crate) fn paint_atoms(
     right_edge: f32,
 ) -> Vec<(egui::Rect, Clicked)> {
     let mut markers = Vec::new();
+    // The wrapped pictures, where the layout put them (see `picture_flow`).
+    let floats = floats(&doc.text, labels, galley.job.wrap.max_width);
+    let wrapped: Vec<(usize, egui::Rect)> = floats
+        .iter()
+        .map(|f| f.atom)
+        .zip(crate::picture_flow::placed(galley, &floats))
+        .collect();
     let atoms = doc
         .text
         .chars()
@@ -3340,6 +3758,13 @@ pub(crate) fn paint_atoms(
                         Clicked::Rich(atom),
                     ));
                 }
+            }
+            AtomLabel::Picture(picture)
+                if let Some((_, rect)) = wrapped.iter().find(|(a, _)| *a == atom) =>
+            {
+                let rect = rect.translate(origin.to_vec2());
+                draw_picture(painter, palette, html, picture, rect);
+                markers.push((rect, Clicked::Picture(atom)));
             }
             AtomLabel::Picture(picture) => {
                 // Its own glyph's cell: at a row break the caret before it is at the end of the
@@ -3698,7 +4123,126 @@ fn timeline(ui: &mut Ui, palette: &Palette, project: &Project, edit: &mut Edit<'
 
 #[cfg(test)]
 mod tests {
-    use super::grouped;
+    use super::{Look, doc_galley, grouped};
+    use crate::theme::Palette;
+    use egui::text::CCursor;
+    use prosecraft_core::richtext::RichDoc;
+
+    const HEBREW: &str = "הגאות עלתה על הבוץ בזמן שהפנסים נדלקו לאורך חומת הנמל, אחד אחד, \
+        עד שכל העיר הוארה והסירות שכבו בשקט.";
+
+    #[test]
+    fn a_citation_label_has_its_room_where_the_browser_measures_the_atom_as_nothing() {
+        // eframe's web fallback asks the browser for glyphs no font has; Chromium draws
+        // nothing for U+FFFC and measures it as nothing. Here a fallback that does the same.
+        use super::{AtomLabel, glyph_rect};
+        let browser = egui::GlyphRasterizer::new("test::browser", |request| {
+            (request.cluster == "\u{FFFC}").then(|| egui::RasterizedGlyph {
+                bitmap: egui::GlyphBitmap {
+                    image: egui::ColorImage::filled([1, 1], egui::Color32::TRANSPARENT),
+                    offset_px: egui::Vec2::ZERO,
+                    is_color: false,
+                },
+                advance_px: 0.0,
+            })
+        });
+        let doc = RichDoc::from_html(
+            r#"<p>Then <span class="cite-ref" data-cites="[{&quot;id&quot;:&quot;smith2020&quot;}]">(Smith 2020)</span>.</p>"#,
+        )
+        .expect("doc");
+        let labels = [AtomLabel::Cite("(Smith, 2020)".into())];
+        let ctx = egui::Context::default();
+        crate::setup_for_tests(&ctx);
+        ctx.add_glyph_rasterizer(browser);
+        ctx.begin_pass(egui::RawInput::default());
+        let (galley, label) = ctx.fonts_mut(|f| {
+            let galley = doc_galley(
+                f,
+                (&doc, &doc.text),
+                &Palette::LIGHT,
+                600.0,
+                &labels,
+                &Look::default(),
+            );
+            let label = f
+                .layout_no_wrap(
+                    "(Smith, 2020)".into(),
+                    super::cite_font(),
+                    egui::Color32::WHITE,
+                )
+                .size()
+                .x;
+            (galley, label)
+        });
+        ctx.end_pass().textures_delta.clear();
+        let at = doc
+            .text
+            .chars()
+            .position(|c| c == super::ATOM)
+            .expect("the citation");
+        let cell = glyph_rect(&galley, at).expect("its cell");
+        let then = glyph_rect(&galley, at - 1).expect("the space before it");
+        let stop = glyph_rect(&galley, at + 1).expect("the full stop");
+        // As wide as its label and padding, after "Then " and before the full stop.
+        assert!(
+            cell.width() >= label + 11.0,
+            "{cell:?} for a label {label} wide"
+        );
+        assert!(then.max.x <= cell.min.x + 1.0, "{then:?} {cell:?}");
+        assert!(cell.max.x <= stop.min.x + 1.0, "{cell:?} {stop:?}");
+    }
+
+    #[test]
+    fn right_to_left_paragraphs_are_set_as_prosecraft_shows_them() {
+        // ProseCraft sets no `dir`: every paragraph is left-to-right at its base and set on the
+        // left, its Arabic or Hebrew words still ordered right-to-left.
+        let html = format!("<p>{HEBREW} {HEBREW}</p><p>שלום abc def אבג</p><p>Plain words.</p>");
+        let doc = RichDoc::from_html(&html).expect("doc");
+        let ctx = egui::Context::default();
+        crate::setup_for_tests(&ctx);
+        ctx.begin_pass(egui::RawInput::default());
+        let galley = ctx.fonts_mut(|f| {
+            doc_galley(
+                f,
+                (&doc, &doc.text),
+                &Palette::LIGHT,
+                400.0,
+                &[],
+                &Look::default(),
+            )
+        });
+        ctx.end_pass().textures_delta.clear();
+        assert!(galley.rows.len() >= 4);
+        for row in &galley.rows {
+            assert!(!row.rtl_paragraph);
+            assert!(row.rect().left().abs() < 0.5, "{:?}", row.rect());
+        }
+        // Within a row of Hebrew, the first letter is on the right.
+        let first = &galley.rows[0];
+        let x = |i: usize| first.glyphs[i].pos.x;
+        assert!(x(0) > x(4), "{} {}", x(0), x(4));
+        // A mixed line orders its runs left to right: "שלום" first, "abc def", then "אבג".
+        let mixed = galley
+            .rows
+            .iter()
+            .find(|r| r.glyphs.first().is_some_and(|g| g.chr == 'ש') && r.glyphs.len() < 20)
+            .expect("the mixed line");
+        let at = |c: char| {
+            mixed
+                .glyphs
+                .iter()
+                .find(|g| g.chr == c)
+                .map_or(f32::NAN, |g| g.pos.x)
+        };
+        assert!(at('ש') < at('a') && at('a') < at('f') && at('f') < at('א'));
+        // Every caret position maps back from where it is drawn.
+        let count = doc.text.chars().count();
+        for i in 0..=count {
+            let rect = galley.pos_from_cursor(CCursor::new(i));
+            let back = galley.cursor_from_pos(rect.center().to_vec2()).index.0;
+            assert!(back <= count);
+        }
+    }
 
     #[test]
     fn groups_thousands() {
@@ -3706,5 +4250,38 @@ mod tests {
         assert_eq!(grouped(999), "999");
         assert_eq!(grouped(80_000), "80,000");
         assert_eq!(grouped(1_234_567), "1,234,567");
+    }
+
+    #[test]
+    fn atoms_alone_copy_as_the_browser_writes_them_and_paste_back() {
+        use super::{clipboard_holds, clipboard_text, is_atom_text};
+        let note = r#"<p><sup class="footnote-ref" data-footnote-id="fn-abc123" contenteditable="false"></sup></p>"#;
+        let cite = r#"<p><span class="cite-ref" data-cites="[{&quot;id&quot;:&quot;smith2020&quot;}]" contenteditable="false"></span></p>"#;
+        let picture = r#"<p><img src="data:image/png;base64,AA==" alt="A goat"></p>"#;
+        let bare = r#"<p><img src="data:image/png;base64,AA=="></p>"#;
+        // What Chromium writes as text/plain for these alone in ProseCraft's editor.
+        assert_eq!(clipboard_text(note), "");
+        assert_eq!(clipboard_text(cite), "");
+        assert_eq!(clipboard_text(picture), "A goat");
+        assert_eq!(clipboard_text(bare), "");
+        assert_eq!(clipboard_text("<hr>"), "\n");
+        assert_eq!(clipboard_text("<p><em>dark</em></p>"), "dark");
+        assert_eq!(
+            clipboard_text(r#"<p><span class="math-inline" data-tex="x^2"></span></p>"#),
+            "$x^2$"
+        );
+        // A text pasted with them is theirs: a picture's description, a rule's newline.
+        assert!(clipboard_holds("A goat", picture));
+        assert!(!clipboard_holds("A sheep", picture));
+        assert!(clipboard_holds("\n", "<hr>"));
+        assert!(!clipboard_holds("\n", "<p>Something else</p>"));
+        assert!(clipboard_holds("dark", "<p><em>dark</em></p>"));
+        assert!(!clipboard_holds("light", "<p><em>dark</em></p>"));
+        // The object characters earlier builds wrote still paste their atoms back.
+        assert!(is_atom_text("\u{FFFC}\u{FFFC}\n"));
+        assert!(!is_atom_text("\u{FFFC} and words"));
+        assert!(!is_atom_text(" "));
+        assert!(clipboard_holds("\u{FFFC}", note));
+        assert!(!clipboard_holds("\u{FFFC}", "<p>Something else</p>"));
     }
 }

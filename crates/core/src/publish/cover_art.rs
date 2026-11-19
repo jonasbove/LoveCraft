@@ -166,9 +166,9 @@ pub enum Op {
 }
 
 /// The canvas being drawn on: the calls so far, and the font it is set to. As on a canvas, the
-/// font stays as last set: `drawFittedText` doesn't set it, so a Classic or Minimal title with a
-/// subtitle is drawn in the subtitle's fitted font, as ProseCraft draws it
-/// (jennraeross/ProseCraft#61; the fix, #62, sets the font in `drawFittedText`).
+/// font stays as last set; `drawFittedText` sets the one its text was fitted in (since
+/// jennraeross/ProseCraft#62: before it, a Classic or Minimal title was drawn in the subtitle's
+/// fitted font).
 struct Canvas<'a> {
     ops: Vec<Op>,
     font: Font,
@@ -268,6 +268,7 @@ impl Canvas<'_> {
             return Fitted {
                 lines: Vec::new(),
                 line_height: 0.0,
+                font: self.font.clone(),
             };
         }
         let mut size = max_size;
@@ -280,7 +281,11 @@ impl Canvas<'_> {
                 && lines.len() <= max_lines
                 && lines.len() as f64 * line_height <= max_height
             {
-                return Fitted { lines, line_height };
+                return Fitted {
+                    lines,
+                    line_height,
+                    font: self.font.clone(),
+                };
             }
             size -= 4.0;
         }
@@ -290,11 +295,17 @@ impl Canvas<'_> {
         Fitted {
             lines,
             line_height: min_size * line_ratio,
+            font: self.font.clone(),
         }
     }
 
-    /// `drawFittedText`: the lines centred on `center_y`, in the current font.
+    /// `drawFittedText`: the lines centred on `center_y`, in the font they were fitted in (another
+    /// text may have been fitted since).
     fn draw_fitted(&mut self, fitted: &Fitted, x: f64, center_y: f64, align: Align, color: &str) {
+        if fitted.lines.is_empty() {
+            return;
+        }
+        self.font = fitted.font.clone();
         let block = fitted.lines.len() as f64 * fitted.line_height;
         let first = center_y - block / 2.0 + fitted.line_height / 2.0;
         for (index, line) in fitted.lines.iter().enumerate() {
@@ -604,10 +615,11 @@ impl Canvas<'_> {
     }
 }
 
-/// `FittedText` (the font is the canvas's).
+/// `FittedText`, and the font its lines were fitted in.
 struct Fitted {
     lines: Vec<String>,
     line_height: f64,
+    font: Font,
 }
 
 /// What the cover shows.

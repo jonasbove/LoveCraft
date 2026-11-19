@@ -1,0 +1,184 @@
+{
+  "cases": [
+    {
+      "name": "text in no block",
+      "html": "<em>a</em> b",
+      "sanitized": "<em>a</em> b",
+      "saved": "<em>a</em> b"
+    },
+    {
+      "name": "text after a paragraph",
+      "html": "<p>Upper</p><em>loud</em>",
+      "sanitized": "<p>Upper</p><em>loud</em>",
+      "saved": "<p>Upper</p><em>loud</em>"
+    },
+    {
+      "name": "text after headings",
+      "html": "<h1>One</h1><h2>Two</h2><h3>Three</h3>FourFive",
+      "sanitized": "<h1>One</h1><h2>Two</h2><h3>Three</h3>FourFive",
+      "saved": "<h1>One</h1><h2>Two</h2><h3>Three</h3>FourFive"
+    },
+    {
+      "name": "style text left as text",
+      "html": "<p>after</p>p{}",
+      "sanitized": "<p>after</p>p{}",
+      "saved": "<p>after</p>p{}"
+    },
+    {
+      "name": "a picture in no block",
+      "html": "<img src=\"data:image/png;base64,iVBORw0KGgoAAQI=\" alt=\"Map\">\n<img src=\"data:image/png;base64,iVBORw0KGgoAAQI=\" alt=\"Map\">\n<p></p>\n<p></p>",
+      "sanitized": "<img src=\"data:image/png;base64,iVBORw0KGgoAAQI=\" alt=\"Map\">\n<img src=\"data:image/png;base64,iVBORw0KGgoAAQI=\" alt=\"Map\">\n<p></p>\n<p></p>",
+      "saved": "<img src=\"data:image/png;base64,iVBORw0KGgoAAQI=\" alt=\"Map\">\n<img src=\"data:image/png;base64,iVBORw0KGgoAAQI=\" alt=\"Map\">\n<p></p>\n<p></p>"
+    },
+    {
+      "name": "a picture and a caption in no block",
+      "html": "<p>Before <img src=\"data:image/png;base64,iVBORw0KGgoAAQI=\" alt=\"Map\"> after.</p>\n<img src=\"data:image/png;base64,iVBORw0KGgoAAQI=\" alt=\"Map\">Caption\n<p>Kept text<a></a></p>",
+      "sanitized": "<p>Before <img src=\"data:image/png;base64,iVBORw0KGgoAAQI=\" alt=\"Map\"> after.</p>\n<img src=\"data:image/png;base64,iVBORw0KGgoAAQI=\" alt=\"Map\">Caption\n<p>Kept text<a></a></p>",
+      "saved": "<p>Before <img src=\"data:image/png;base64,iVBORw0KGgoAAQI=\" alt=\"Map\"> after.</p>\n<img src=\"data:image/png;base64,iVBORw0KGgoAAQI=\" alt=\"Map\">Caption\n<p>Kept text<a></a></p>"
+    },
+    {
+      "name": "a blockquote holding text",
+      "html": "<p>Second&nbsp;half text.</p>\n<blockquote>Quoted <b>bold</b></blockquote>",
+      "sanitized": "<p>Second&nbsp;half text.</p>\n<blockquote>Quoted <b>bold</b></blockquote>",
+      "saved": "<p>Second&nbsp;half text.</p>\n<blockquote>Quoted <b>bold</b></blockquote>"
+    },
+    {
+      "name": "an import's newlines",
+      "html": "<h3>Morning</h3>\n<p>The sea was calm.<a href=\"#fn-2\">2</a></p>\n<ul><li>bread</li><li>salt</li></ul>\n<p>Then.</p>",
+      "sanitized": "<h3>Morning</h3>\n<p>The sea was calm.<a href=\"#fn-2\">2</a></p>\n<ul><li>bread</li><li>salt</li></ul>\n<p>Then.</p>",
+      "saved": "<h3>Morning</h3>\n<p>The sea was calm.<a href=\"#fn-2\">2</a></p>\n<ul><li>bread</li><li>salt</li></ul>\n<p>Then.</p>"
+    },
+    {
+      "name": "empty paragraphs",
+      "html": "<p>a<br>b</p><p></p><p><br></p>",
+      "sanitized": "<p>a<br>b</p><p></p><p><br></p>",
+      "saved": "<p>a<br>b</p><p></p><p><br></p>"
+    },
+    {
+      "name": "an empty mark",
+      "html": "<p>It was <em></em>.</p>",
+      "sanitized": "<p>It was <em></em>.</p>",
+      "saved": "<p>It was <em></em>.</p>"
+    },
+    {
+      "name": "scene breaks",
+      "html": "<div class=\"scene-break scene-break-line\" contenteditable=\"false\">* * *</div><div class=\"scene-break\" contenteditable=\"false\"><b>#</b></div>",
+      "sanitized": "<div class=\"scene-break scene-break-line\" contenteditable=\"false\">* * *</div><div class=\"scene-break\" contenteditable=\"false\"><b>#</b></div>",
+      "saved": "<div class=\"scene-break scene-break-line\" contenteditable=\"false\">* * *</div><div class=\"scene-break\" contenteditable=\"false\"><b>#</b></div>"
+    },
+    {
+      "name": "a div wrapper",
+      "html": "<div><p>in div</p></div><p>in section</p>",
+      "sanitized": "<div><p>in div</p></div><p>in section</p>",
+      "saved": "<div><p>in div</p></div><p>in section</p>"
+    },
+    {
+      "name": "a fourth-level heading",
+      "html": "<p>Before</p><h4>Fourth level</h4><p>After</p>",
+      "sanitized": "<p>Before</p>Fourth level<p>After</p>",
+      "saved": "<p>Before</p>Fourth level<p>After</p>"
+    },
+    {
+      "name": "paragraphs in a list item",
+      "html": "<ul><li><p>a</p><p>b</p></li><li>c</li></ul>",
+      "sanitized": "<ul><li><p>a</p><p>b</p></li><li>c</li></ul>",
+      "saved": "<ul><li><p>a</p><p>b</p></li><li>c</li></ul>"
+    },
+    {
+      "name": "a stray end tag after a list",
+      "html": "<ol><li>One.</li><li>Two.</li></ul><p>Three <img src=\"data:image/png;base64,iVBORw0KGgoAAQI=\" alt=\"Map\">.</p><p>Four.</p>",
+      "sanitized": "<ol><li>One.</li><li>Two.</li><p>Three <img src=\"data:image/png;base64,iVBORw0KGgoAAQI=\" alt=\"Map\">.</p><p>Four.</p></ol>",
+      "saved": "<ol><li>One.</li><li>Two.</li><p>Three <img src=\"data:image/png;base64,iVBORw0KGgoAAQI=\" alt=\"Map\">.</p><p>Four.</p></ol>"
+    },
+    {
+      "name": "an eyebrow screenplay element",
+      "html": "<p data-sp=\"scene-heading\">INT. ROOM</p><p>x</p><p class=\"eyebrow\" data-sp=\"dialogue\">y</p>",
+      "sanitized": "<p data-sp=\"scene-heading\">INT. ROOM</p><p>x</p><p class=\"eyebrow\" data-sp=\"dialogue\">y</p>",
+      "saved": "<p data-sp=\"scene-heading\">INT. ROOM</p><p>x</p><p class=\"eyebrow\" data-sp=\"dialogue\">y</p>"
+    },
+    {
+      "name": "a line separator",
+      "html": "<p>Unicode: café   tab\tend</p>",
+      "sanitized": "<p>Unicode: café   tab\tend</p>",
+      "saved": "<p>Unicode: café   tab\tend</p>"
+    },
+    {
+      "name": "div blocks",
+      "html": "<div>One</div><div><br></div><div>Two <em>it</em></div>",
+      "sanitized": "<div>One</div><div><br></div><div>Two <em>it</em></div>",
+      "saved": "<div>One</div><div><br></div><div>Two <em>it</em></div>"
+    },
+    {
+      "name": "nested and adjacent divs",
+      "html": "<div><div><p>a</p></div><p>b</p></div><div><p>c</p></div>",
+      "sanitized": "<div><div><p>a</p></div><p>b</p></div><div><p>c</p></div>",
+      "saved": "<div><div><p>a</p></div><p>b</p></div><div><p>c</p></div>"
+    },
+    {
+      "name": "a div in a blockquote",
+      "html": "<blockquote><div><p>q</p></div><p>r</p></blockquote>",
+      "sanitized": "<blockquote><div><p>q</p></div><p>r</p></blockquote>",
+      "saved": "<blockquote><div><p>q</p></div><p>r</p></blockquote>"
+    },
+    {
+      "name": "a div in a list item",
+      "html": "<ul><li><div>a</div></li><li>b</li></ul>",
+      "sanitized": "<ul><li><div>a</div></li><li>b</li></ul>",
+      "saved": "<ul><li><div>a</div></li><li>b</li></ul>"
+    },
+    {
+      "name": "a paragraph in a list item",
+      "html": "<ul><li><p>a</p></li></ul>",
+      "sanitized": "<ul><li><p>a</p></li></ul>",
+      "saved": "<ul><li><p>a</p></li></ul>"
+    },
+    {
+      "name": "text and a paragraph in a list item",
+      "html": "<ul><li>text<p>b</p></li></ul>",
+      "sanitized": "<ul><li>text<p>b</p></li></ul>",
+      "saved": "<ul><li>text<p>b</p></li></ul>"
+    },
+    {
+      "name": "a paragraph and a list in a list item",
+      "html": "<ul><li><p>a</p><ul><li>b</li></ul></li></ul>",
+      "sanitized": "<ul><li><p>a</p><ul><li>b</li></ul></li></ul>",
+      "saved": "<ul><li><p>a</p><ul><li>b</li></ul></li></ul>"
+    },
+    {
+      "name": "a paragraph straight in a list",
+      "html": "<ol><li>One</li><p>stray</p><li>Two</li></ol>",
+      "sanitized": "<ol><li>One</li><p>stray</p><li>Two</li></ol>",
+      "saved": "<ol><li>One</li><p>stray</p><li>Two</li></ol>"
+    },
+    {
+      "name": "a loose list",
+      "html": "<ul>\n<li><p>foo</p>\n<p>bar</p>\n</li>\n<li><p>baz</p>\n</li>\n</ul>\n",
+      "sanitized": "<ul>\n<li><p>foo</p>\n<p>bar</p>\n</li>\n<li><p>baz</p>\n</li>\n</ul>\n",
+      "saved": "<ul>\n<li><p>foo</p>\n<p>bar</p>\n</li>\n<li><p>baz</p>\n</li>\n</ul>\n"
+    },
+    {
+      "name": "a blockquote in a list item",
+      "html": "<ul><li><blockquote><p>q</p></blockquote></li></ul>",
+      "sanitized": "<ul><li><blockquote><p>q</p></blockquote></li></ul>",
+      "saved": "<ul><li><blockquote><p>q</p></blockquote></li></ul>"
+    },
+    {
+      "name": "an empty div and an empty item",
+      "html": "<div></div><ul><li></li></ul>",
+      "sanitized": "<div></div><ul><li></li></ul>",
+      "saved": "<div></div><ul><li></li></ul>"
+    },
+    {
+      "name": "a list item in no list",
+      "html": "<li>Lone item</li><p>after</p>",
+      "sanitized": "<li>Lone item</li><p>after</p>",
+      "saved": "<li>Lone item</li><p>after</p>"
+    },
+    {
+      "name": "fourth-level headings in a row",
+      "html": "<h4>One</h4><h4>Two</h4><p>Three</p>",
+      "sanitized": "OneTwo<p>Three</p>",
+      "saved": "OneTwo<p>Three</p>"
+    }
+  ]
+}

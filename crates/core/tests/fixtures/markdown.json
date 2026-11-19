@@ -134,9 +134,9 @@
     },
     {
       "html": "<table><tr><th>H</th><td>c</td></tr></table><div>div text</div>",
-      "markdown": "H\n\nc\n\ndiv text",
+      "markdown": "<table><tbody><tr><th>H</th><td>c</td></tr></tbody></table>\n\ndiv text",
       "inline": "Hcdiv text",
-      "withNotes": "H\n\nc\n\ndiv text\n\n[^n1]: A _note_ over lines.\n[^n2]:"
+      "withNotes": "<table><tbody><tr><th>H</th><td>c</td></tr></tbody></table>\n\ndiv text\n\n[^n1]: A _note_ over lines.\n[^n2]:"
     },
     {
       "html": "<p>a&nbsp;b &amp; c &lt;d&gt;</p><p> lead nbsp</p><p><br></p><p></p>",

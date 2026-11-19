@@ -757,7 +757,8 @@ fn evaluate(
     depth: usize,
 ) -> Result<Quantity> {
     match node {
-        Node::Number(_, value) => Ok(Quantity {
+        // A literal too large for a double ("1e400") is infinite.
+        Node::Number(_, value) => finite(Quantity {
             value: *value,
             dims: DIMENSIONLESS,
         }),
@@ -1362,7 +1363,11 @@ fn format_result(
     if unit.value == 0.0 {
         return fail(format!("{unit_text} can't be used as a display unit."));
     }
-    let value = result.value / unit.value;
+    let value = finite(Quantity {
+        value: result.value / unit.value,
+        dims: result.dims,
+    })?
+    .value;
     let unit_latex = to_latex(&unit_node.node, &unit_node.chains, classify);
     let degree = unit_text == "°";
     Ok((

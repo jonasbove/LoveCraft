@@ -289,9 +289,12 @@ pub(crate) fn handle(
     let dragged = response.total_drag_delta().map_or(0.0, |d| d.x);
     let percent =
         start.map(|s| image_layout::clamp_width(f64::from(s + dragged / column.max(1.0) * 100.0)));
+    // The width as last dragged: on the frame the drag stops, it has no delta any more.
+    let last_id = start_id.with("last");
     if response.dragged()
         && let Some(percent) = percent
     {
+        ui.ctx().data_mut(|d| d.insert_temp(last_id, percent));
         let height = picture_rect.height() * (percent as f32 * column / 100.0)
             / picture_rect.width().max(1.0);
         outline = egui::Rect::from_min_size(
@@ -300,6 +303,7 @@ pub(crate) fn handle(
         );
     }
     if response.drag_stopped() {
+        let percent = ui.ctx().data(|d| d.get_temp::<u32>(last_id)).or(percent);
         if let Some(percent) = percent
             && let Some(picture) = crate::pictures::info(&html)
         {
@@ -315,7 +319,10 @@ pub(crate) fn handle(
                 now,
             );
         }
-        ui.ctx().data_mut(|d| d.remove::<f32>(start_id));
+        ui.ctx().data_mut(|d| {
+            d.remove::<f32>(start_id);
+            d.remove::<u32>(last_id);
+        });
     }
     painter.rect_stroke(
         outline.expand(3.0),

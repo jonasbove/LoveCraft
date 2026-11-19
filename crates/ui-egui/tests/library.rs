@@ -705,7 +705,7 @@ fn a_table_and_code_stay_as_they_are_while_the_text_around_them_is_edited() {
 }
 
 #[test]
-fn a_scene_the_rich_editor_cannot_hold_opens_as_markdown() {
+fn a_loose_list_is_edited_as_it_is() {
     use prosecraft_core::import::markdown_folder::MarkdownFile;
     let memory = Memory::default();
     let app = ProseApp::with_library(
@@ -714,7 +714,7 @@ fn a_scene_the_rich_editor_cannot_hold_opens_as_markdown() {
     );
     let mut harness = harness(app);
     harness.run();
-    // A loose list (paragraphs in its items), which the rich editor can't hold yet.
+    // A loose list: a paragraph in each item, as ProseCraft keeps it.
     harness.state_mut().import_markdown_folder(
         "Vault",
         vec![MarkdownFile {
@@ -735,7 +735,56 @@ fn a_scene_the_rich_editor_cannot_hold_opens_as_markdown() {
         .expect("the scene")
         .click();
     harness.run();
-    assert!(harness.query_by_label("Scene text").is_none());
+    // Held as it is: nothing to say.
+    assert!(
+        harness
+            .query_by_label("Some of this scene's formatting is simplified once you edit it.")
+            .is_none()
+    );
+    let body = harness.get_by_label("Scene text");
+    body.focus();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::End);
+    harness.get_by_label("Scene text").type_text(" more");
+    // Enter starts the next item.
+    harness.key_press(egui::Key::Enter);
+    harness.get_by_label("Scene text").type_text("c");
+    harness.run_steps(12);
+    let saved = memory
+        .saved
+        .lock()
+        .map(|s| s.last().cloned())
+        .ok()
+        .flatten()
+        .expect("saved after typing");
+    assert!(
+        saved.contains(
+            "<li><p>a</p>\\n</li>\\n<li><p>b more</p>\\n</li>\\n<li><p>c</p>\\n</li>\\n</ul>"
+        ),
+        "{saved}"
+    );
+}
+
+#[test]
+fn a_scene_the_rich_editor_holds_only_simplified_still_opens_as_markdown() {
+    let memory = Memory::default();
+    // A fourth-level heading, which the rich editor holds only simplified (as the sanitizer
+    // writes it: a paragraph) and stores so only once it is edited. In the app's own library:
+    // a backup opened from outside would be sanitized on import.
+    let opening = r#"<p>It was <em>dark</em>.<sup class=\"footnote-ref\" data-footnote-id=\"fn-1\" contenteditable=\"false\"></sup></p><p>Then <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020&quot;}]\">(Smith 2020)</span>.</p>"#;
+    let bundle = fixture("bundle-plain.prosecraft").replace(opening, "<h4>One</h4><p>a</p>");
+    assert!(bundle.contains("<h4>One</h4>"));
+    let app = ProseApp::with_library(
+        ProjectLibrary::from_text(&bundle).expect("library"),
+        Box::new(memory.clone()),
+    );
+    let mut harness = harness(app);
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness.get_by_label("Scene text");
+    harness.get_by_label("Some of this scene's formatting is simplified once you edit it.");
     harness
         .get_by_role_and_label(Role::Button, "Edit as Markdown")
         .click();
@@ -743,7 +792,7 @@ fn a_scene_the_rich_editor_cannot_hold_opens_as_markdown() {
     let source = harness.get_by_label("Markdown source");
     assert_eq!(
         source.accesskit_node().value().as_deref(),
-        Some("-   a\n    \n-   b")
+        Some("#### One\n\na\n\n[^fn-1]: A note with _emphasis_.")
     );
     // The preference stays off; Rich text editor goes back.
     harness

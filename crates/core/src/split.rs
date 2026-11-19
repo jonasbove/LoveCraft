@@ -25,6 +25,8 @@ impl Pane {
 pub enum Target {
     Doc(String),
     File(String),
+    /// The graph tile (ProseCraft#31): of the scene being written (`None`) or of one Wiki page.
+    Graph(Option<String>),
 }
 
 /// `docTarget`, `fileTarget`.
@@ -36,8 +38,25 @@ pub fn file_target(id: &str) -> String {
     format!("file:{id}")
 }
 
+/// `graphTarget`: `graph:scene`, or `graph:page:<id>` for one Wiki page.
+pub fn graph_target(page: Option<&str>) -> String {
+    match page {
+        Some(id) => format!("graph:page:{id}"),
+        None => "graph:scene".to_owned(),
+    }
+}
+
 /// `parseSplitTarget`.
 pub fn parse_target(target: &str) -> Option<Target> {
+    if target == "graph:scene" {
+        return Some(Target::Graph(None));
+    }
+    if let Some(id) = target
+        .strip_prefix("graph:page:")
+        .filter(|id| !id.is_empty())
+    {
+        return Some(Target::Graph(Some(id.to_owned())));
+    }
     if let Some(id) = target.strip_prefix("doc:").filter(|id| !id.is_empty()) {
         return Some(Target::Doc(id.to_owned()));
     }
@@ -170,6 +189,12 @@ mod tests {
         );
         assert_eq!(parse_target(""), None);
         assert_eq!(parse_target("doc:"), None);
+        assert_eq!(parse_target("graph:scene"), Some(Target::Graph(None)));
+        assert_eq!(
+            parse_target(&graph_target(Some("p"))),
+            Some(Target::Graph(Some("p".into())))
+        );
+        assert_eq!(parse_target("graph:page:"), None);
         assert_eq!(parse_target("other:1"), None);
         let mut list = Vec::new();
         for i in 0..MAX_PANES + 2 {

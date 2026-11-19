@@ -116,6 +116,130 @@ fn prosecraft_rich_html_round_trips_through_the_editor_model() {
     assert!(editable >= 14, "only {editable} editable");
 }
 
+/// The text of some HTML's text nodes without white space, for comparing shapes that hold the
+/// same text.
+fn bare_text(html: &str) -> String {
+    String::from_utf16_lossy(&prosecraft_core::comments::comment_text(html))
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .collect()
+}
+
+#[test]
+fn unusual_scenes_open_for_editing_as_prosecraft_keeps_them() {
+    use prosecraft_core::richtext::RichDoc;
+    let fx = fixture("editor-load.json");
+    let mut exact = Vec::new();
+    let mut as_saved = Vec::new();
+    let mut own = Vec::new();
+    let mut read_only = Vec::new();
+    for case in list(&fx, "cases") {
+        let (name, html, saved) = (
+            text(&case, "name"),
+            text(&case, "html"),
+            text(&case, "saved"),
+        );
+        // h4–h6 are a deliberate difference (`minor_headings_stay_blocks`).
+        if has_minor_heading(&html) {
+            continue;
+        }
+        assert_eq!(
+            prosecraft_core::html::sanitize_html(&html),
+            text(&case, "sanitized"),
+            "{name}"
+        );
+        if let Some(doc) = RichDoc::from_html(&html) {
+            // Held exactly, as ProseCraft's editor keeps it.
+            assert_eq!(doc.to_html(), html, "{name}");
+            assert_eq!(saved, html, "{name}: ProseCraft keeps it");
+            exact.push(name);
+            continue;
+        }
+        let Some(doc) = RichDoc::from_html_normalized(&html) else {
+            read_only.push(name);
+            continue;
+        };
+        let written = doc.to_html();
+        if RichDoc::from_html(&saved).is_some() {
+            // The shape ProseCraft's editor saves.
+            assert_eq!(written, saved, "{name}");
+            as_saved.push(name);
+        } else {
+            // A shape ProseCraft keeps and this editor can't: its own, with the same text.
+            assert_ne!(written, saved, "{name}");
+            assert_eq!(bare_text(&written), bare_text(&saved), "{name}");
+            own.push(name);
+        }
+    }
+    assert_eq!(exact.len(), 27, "{exact:?}");
+    // Only what ProseCraft's own sanitizer changes on save is simplified. The h4–h6 shapes are
+    // checked in `minor_headings_stay_blocks` instead (a deliberate difference).
+    assert_eq!(as_saved, ["a stray end tag after a list"]);
+    assert!(own.is_empty(), "{own:?}");
+    assert!(read_only.is_empty(), "{read_only:?}");
+}
+
+/// Every scene HTML in the fixtures (`content` and the sanitizer's `full` output), once each.
+fn fixture_scenes() -> std::collections::BTreeSet<(String, String)> {
+    fn walk(value: &JsValue, file: &str, out: &mut std::collections::BTreeSet<(String, String)>) {
+        match value {
+            JsValue::Object(map) => {
+                for (key, child) in map.iter() {
+                    let key = key.to_string_lossy();
+                    if let Some(html) = child.as_js_string().and_then(|s| s.as_string())
+                        && (key == "content" || key == "full")
+                        && html.starts_with('<')
+                    {
+                        out.insert((file.to_owned(), html));
+                    }
+                    walk(child, file, out);
+                }
+            }
+            JsValue::Array(items) => items.iter().for_each(|child| walk(child, file, out)),
+            _ => {}
+        }
+    }
+    let dir = format!("{}/tests/fixtures", env!("CARGO_MANIFEST_DIR"));
+    let mut names: Vec<String> = std::fs::read_dir(&dir)
+        .unwrap_or_else(|e| panic!("{dir}: {e}"))
+        .filter_map(|entry| entry.ok()?.file_name().into_string().ok())
+        .filter(|name| name.ends_with(".json"))
+        .collect();
+    names.sort();
+    let mut out = std::collections::BTreeSet::new();
+    for name in names {
+        walk(&fixture(&name), &name, &mut out);
+    }
+    out
+}
+
+#[test]
+fn the_fixture_scenes_open_for_editing() {
+    use prosecraft_core::richtext::RichDoc;
+    let (mut exact, mut normalized, mut read_only) = (0, 0, Vec::new());
+    let scenes = fixture_scenes();
+    for (file, html) in &scenes {
+        if let Some(doc) = RichDoc::from_html(html) {
+            assert_eq!(doc.to_html(), *html, "{file}");
+            exact += 1;
+        } else if RichDoc::from_html_normalized(html).is_some() {
+            // Only what ProseCraft's sanitizer would change too (a fourth-level heading, a
+            // stray end tag).
+            assert_ne!(prosecraft_core::html::sanitize_html(html), *html, "{file}");
+            normalized += 1;
+        } else {
+            read_only.push(html.clone());
+        }
+    }
+    println!(
+        "{exact} exact, {normalized} normalized, {} read-only of {}",
+        read_only.len(),
+        scenes.len()
+    );
+    assert!(read_only.is_empty(), "{read_only:?}");
+    assert_eq!(normalized, 5);
+}
+
 #[test]
 fn sanitizer_matches_prosecraft() {
     use prosecraft_core::html::{sanitize_html, sanitize_inline_html};
@@ -129,6 +253,11 @@ fn sanitizer_matches_prosecraft() {
         let html = text(case, "html");
         // The one deliberate difference: script and style content is dropped wherever it is.
         if html.contains("<style>") {
+            continue;
+        }
+        // Deliberate too: h4–h6 become paragraphs (`minor_headings_stay_blocks`), where
+        // ProseCraft's sanitizer runs them together as bare text (jennraeross/ProseCraft#70).
+        if has_minor_heading(&html) {
             continue;
         }
         for (got, key) in [
@@ -1300,4 +1429,80 @@ fn pdf_text_is_measured_and_split_as_jspdf_does() {
     assert_eq!(measured.len(), 540);
     assert_eq!(splits.len(), 40);
     assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+fn has_minor_heading(html: &str) -> bool {
+    ["<h4", "<h5", "<h6"].iter().any(|t| html.contains(t))
+}
+
+/// h4–h6 become paragraphs, so headings in a row stay apart. ProseCraft's sanitizer unwraps
+/// them to bare text ("FourFive"); this follows the fix proposed for jennraeross/ProseCraft#70.
+/// The editor opens such a scene exactly once it is sanitized.
+#[test]
+fn minor_headings_stay_blocks() {
+    use prosecraft_core::html::{sanitize_html, sanitize_inline_html};
+    use prosecraft_core::richtext::RichDoc;
+    assert_eq!(
+        sanitize_html("<h1>One</h1><h2>Two</h2><h3>Three</h3><h4>Four</h4><h5>Five</h5>"),
+        "<h1>One</h1><h2>Two</h2><h3>Three</h3><p>Four</p><p>Five</p>"
+    );
+    assert_eq!(
+        sanitize_html("<h4>One</h4><h6>Two <em>more</em></h6><p>Three</p>"),
+        "<p>One</p><p>Two <em>more</em></p><p>Three</p>"
+    );
+    // Only inline content is wrapped, so sanitizing again changes nothing; an empty heading
+    // goes.
+    for html in [
+        "<h4><div>a</div><div>b</div></h4>",
+        "<h4><p>x</p></h4>",
+        "<h5>a <b>b</b></h5>",
+    ] {
+        let once = sanitize_html(html);
+        assert_eq!(sanitize_html(&once), once, "{html}");
+    }
+    assert_eq!(sanitize_html("<h4><p>x</p></h4>"), "<p>x</p>");
+    assert_eq!(
+        sanitize_html("<p>a</p><h4> </h4><p>b</p>"),
+        "<p>a</p><p>b</p>"
+    );
+    // Footnotes keep headings as inline text, as before.
+    assert_eq!(sanitize_inline_html("<h4>Note</h4>"), "Note");
+    let html = "<p>Before</p><h4>Fourth level</h4><p>After</p>";
+    assert!(RichDoc::from_html(html).is_none());
+    assert_eq!(
+        RichDoc::from_html_normalized(html)
+            .map(|d| d.to_html())
+            .as_deref(),
+        Some("<p>Before</p><p>Fourth level</p><p>After</p>")
+    );
+}
+
+/// Markdown passes raw HTML through: a `<script>`, `<style>` or `<template>` that is never
+/// closed would take the rest of the scene with it. The writing after it stays; a closed one
+/// is still dropped with its content.
+#[test]
+fn an_unclosed_script_or_style_keeps_the_writing_after_it() {
+    use prosecraft_core::html::sanitize_html;
+    use prosecraft_core::markdown::markdown_to_html;
+    let clean = |md: &str| sanitize_html(&markdown_to_html(md));
+    assert_eq!(
+        clean("She wrote <script> on the board.\n\nNext paragraph."),
+        "<p>She wrote  on the board.</p>\n<p>Next paragraph.</p>\n"
+    );
+    assert_eq!(
+        clean("A <template> tag.\n\nAfter."),
+        "<p>A  tag.</p>\n<p>After.</p>\n"
+    );
+    assert_eq!(
+        clean("Raw <style>.a{}</style> inline\n\nAfter."),
+        "<p>Raw  inline</p>\n<p>After.</p>\n"
+    );
+    assert_eq!(
+        sanitize_html("<p>x<script>bad()</script>y</p>"),
+        "<p>xy</p>"
+    );
+    assert_eq!(
+        sanitize_html("<p>a<STYLE type=x>b{}</Style>c</p><p>d<script"),
+        "<p>ac</p><p>d</p>"
+    );
 }

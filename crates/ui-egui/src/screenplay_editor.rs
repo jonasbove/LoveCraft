@@ -47,13 +47,21 @@ fn set_line(draft: &mut Draft, line: usize, kind: &str, cursor: usize) -> usize 
         return cursor;
     };
     let (start, end) = draft.doc.line_ranges().get(line).copied().unwrap_or((0, 0));
-    let bare = matches!(
-        draft.doc.lines.get(line),
-        Some(LineKind::Screenplay { bare: true, .. })
-    ) && start == end;
-    draft
-        .doc
-        .set_line_kind(start..start, LineKind::Screenplay { kind: sp, bare });
+    let current = draft.doc.lines.get(line).copied();
+    let bare = matches!(current, Some(LineKind::Screenplay { bare: true, .. })) && start == end;
+    // A caption given an element type keeps its class (`setAttribute("data-sp", …)`).
+    let eyebrow = matches!(
+        current,
+        Some(LineKind::Eyebrow | LineKind::Screenplay { eyebrow: true, .. })
+    );
+    draft.doc.set_line_kind(
+        start..start,
+        LineKind::Screenplay {
+            kind: sp,
+            bare,
+            eyebrow,
+        },
+    );
     let text = line_text(&draft.doc, line);
     let cased = auto_case(kind, &text);
     if cased == text {
@@ -173,6 +181,7 @@ pub(crate) fn handle_keys(
             LineKind::Screenplay {
                 kind: sp,
                 bare: false,
+                eyebrow: false,
             },
         );
     }
@@ -303,6 +312,7 @@ pub(crate) fn galley(
         let width = (wrap * share).max(40.0);
         let mut job = LayoutJob::default();
         job.wrap.max_width = width;
+        job.direction = crate::views::SCENE_DIRECTION;
         for c in part.chars() {
             let format = format_for(doc, index, kind, palette);
             let mut buf = [0u8; 4];

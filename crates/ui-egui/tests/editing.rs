@@ -377,6 +377,482 @@ fn a_selected_picture_is_laid_out_from_its_toolbar() {
     assert!(harness.query_by_label("Selected image tools").is_none());
 }
 
+/// What was copied: its HTML and its text.
+type Board = Arc<Mutex<(String, String)>>;
+
+/// A new scene with a 2:1 picture laid out by `wrap` ("left" or "right") and three paragraphs
+/// after it; the harness, its store and a clipboard copied to.
+fn wrapped_picture(wrap: &str) -> (Harness<'static, ProseApp>, Memory, Board) {
+    let (mut harness, memory) = app();
+    let board: Board = Default::default();
+    let writer = board.clone();
+    harness
+        .state_mut()
+        .set_clipboard_writer(Arc::new(move |html: &str, text: &str| {
+            *writer.lock().expect("board") = (html.to_owned(), text.to_owned());
+        }));
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("an add button")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Scene 1")
+        .click();
+    harness.run();
+    let pixels = craft_image_codecs::Image::from_u8(
+        40,
+        20,
+        craft_image_codecs::ChannelLayout::Rgba,
+        vec![200; 40 * 20 * 4],
+    )
+    .expect("pixels");
+    let png = craft_image_codecs::encode(
+        &pixels,
+        craft_image_codecs::Format::Png,
+        &craft_image_codecs::EncodeOptions::default(),
+    )
+    .expect("png");
+    harness.state_mut().insert_picture("Coast map.png", &png);
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Image, "Coast map")
+        .click();
+    harness.run();
+    harness
+        .get_by_label(&format!("Wrap text beside {wrap}-aligned image"))
+        .click();
+    harness.run_steps(12);
+    assert!(
+        content(&memory, "new-1").contains(&format!(r#"data-wrap="wrap-{wrap}""#)),
+        "{}",
+        content(&memory, "new-1")
+    );
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::End);
+    let words = "The tide came in over the mud while the lamps went on along the harbour wall, \
+        one by one, until the whole town was lit and the boats lay still. ";
+    for _ in 0..3 {
+        harness
+            .get_by_label("Scene text")
+            .type_text(&words.repeat(2));
+        harness.key_press(egui::Key::Enter);
+    }
+    harness.run_steps(12);
+    (harness, memory, board)
+}
+
+/// A click of the pointer at `pos`.
+fn click_at(harness: &mut Harness<'static, ProseApp>, pos: egui::Pos2) {
+    let button = |pressed| egui::Event::PointerButton {
+        pos,
+        button: egui::PointerButton::Primary,
+        pressed,
+        modifiers: egui::Modifiers::default(),
+    };
+    harness.event(egui::Event::PointerMoved(pos));
+    harness.step();
+    harness.event(button(true));
+    harness.step();
+    harness.event(button(false));
+    harness.run();
+}
+
+/// The scene text's rows with words in them: each one's bounds and text.
+fn text_rows(harness: &Harness<'static, ProseApp>) -> Vec<(egui::Rect, String)> {
+    harness
+        .get_by_label("Scene text")
+        .children_recursive()
+        .filter(|n| n.accesskit_node().role() == Role::TextRun)
+        .map(|n| {
+            (
+                n.rect(),
+                n.accesskit_node().value().unwrap_or_default().to_owned(),
+            )
+        })
+        .filter(|(_, text)| text.chars().any(char::is_alphabetic))
+        .collect()
+}
+
+#[test]
+fn text_flows_beside_a_picture_wrapped_left() {
+    let (mut harness, memory, board) = wrapped_picture("left");
+    let picture = harness
+        .get_by_role_and_label(Role::Image, "Coast map")
+        .rect();
+    let rows = text_rows(&harness);
+    // The text's left edge.
+    let margin = rows
+        .iter()
+        .map(|(r, _)| r.left())
+        .fold(f32::INFINITY, f32::min);
+    assert!(
+        (picture.left() - margin).abs() < 1.0,
+        "{picture:?} {margin}"
+    );
+    // ProseCraft's `margin: 4px 18px 14px 0`.
+    let bottom = picture.bottom() + 14.0;
+    let beside: Vec<_> = rows.iter().filter(|(r, _)| r.top() < bottom).collect();
+    let below: Vec<_> = rows.iter().filter(|(r, _)| r.top() >= bottom).collect();
+    assert!(beside.len() >= 3, "{rows:?} {picture:?}");
+    assert!(!below.is_empty());
+    for (row, text) in &beside {
+        assert!(
+            row.left() >= picture.right() + 17.5,
+            "{text} {row:?} {picture:?}"
+        );
+    }
+    for (row, text) in &below {
+        assert!((row.left() - margin).abs() < 1.0, "{text} {row:?}");
+    }
+
+    // A click at the start of the second row beside the picture puts the caret there.
+    let (row, text) = beside[1].clone();
+    click_at(&mut harness, egui::pos2(row.left() + 0.5, row.center().y));
+    harness.run();
+    harness.get_by_label("Scene text").type_text("Q");
+    harness.run_steps(12);
+    let first = text.split_whitespace().next().expect("a word");
+    assert!(
+        content(&memory, "new-1").contains(&format!("Q{first}")),
+        "Q{first}: {}",
+        content(&memory, "new-1")
+    );
+    // Selecting to the end of that row takes the row's words, as laid out beside the picture.
+    let rows = text_rows(&harness);
+    let (row, text) = rows
+        .iter()
+        .filter(|(r, _)| r.top() < bottom)
+        .nth(1)
+        .cloned()
+        .expect("the row");
+    assert!(text.starts_with('Q'), "{text}");
+    click_at(&mut harness, egui::pos2(row.left() + 0.5, row.center().y));
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::SHIFT, egui::Key::End);
+    harness.run();
+    harness.event(egui::Event::Copy);
+    harness.run();
+    assert_eq!(board.lock().expect("board").1.trim(), text.trim());
+
+    // Below the picture, too.
+    let (row, text) = text_rows(&harness)
+        .into_iter()
+        .find(|(r, _)| r.top() >= bottom)
+        .expect("a row below");
+    click_at(&mut harness, egui::pos2(row.left() + 0.5, row.center().y));
+    harness.run();
+    harness.get_by_label("Scene text").type_text("Z");
+    harness.run_steps(12);
+    let first = text.split_whitespace().next().expect("a word");
+    assert!(
+        content(&memory, "new-1").contains(&format!("Z{first}")),
+        "Z{first}: {}",
+        content(&memory, "new-1")
+    );
+    // The picture is still picked by a click, its tools shown, and its corner resizes it.
+    harness
+        .get_by_role_and_label(Role::Image, "Coast map")
+        .click();
+    harness.run();
+    harness.get_by_label("Selected image tools");
+    let corner = harness.get_by_label("Resize image").rect().center();
+    drag(&mut harness, corner, corner - egui::vec2(120.0, 0.0));
+    harness.run_steps(12);
+    let stored = content(&memory, "new-1");
+    assert!(
+        stored.contains(r#"data-size="custom""#) && stored.contains(r#"data-wrap="wrap-left""#),
+        "{}",
+        &stored[stored.find("alt=").unwrap_or(0)..][..120]
+    );
+    let smaller = harness
+        .get_by_role_and_label(Role::Image, "Coast map")
+        .rect();
+    assert!(
+        smaller.width() < picture.width() - 60.0,
+        "{smaller:?} {}",
+        &stored[stored.find("alt=").unwrap_or(0)..][..90]
+    );
+    // The text follows the picture's new edge.
+    let (row, _) = text_rows(&harness)
+        .into_iter()
+        .find(|(r, _)| r.top() < smaller.bottom())
+        .expect("a row beside");
+    assert!(
+        (row.left() - (smaller.right() + 18.0)).abs() < 1.0,
+        "{row:?} {smaller:?}"
+    );
+}
+
+#[test]
+fn text_flows_beside_a_picture_wrapped_right() {
+    let (mut harness, memory, _) = wrapped_picture("right");
+    let picture = harness
+        .get_by_role_and_label(Role::Image, "Coast map")
+        .rect();
+    let rows = text_rows(&harness);
+    let margin = rows
+        .iter()
+        .map(|(r, _)| r.left())
+        .fold(f32::INFINITY, f32::min);
+    let bottom = picture.bottom() + 14.0;
+    let beside: Vec<_> = rows.iter().filter(|(r, _)| r.top() < bottom).collect();
+    assert!(beside.len() >= 3, "{rows:?} {picture:?}");
+    for (row, text) in &beside {
+        assert!((row.left() - margin).abs() < 1.0, "{text} {row:?}");
+        assert!(
+            row.right() <= picture.left() - 17.5,
+            "{text} {row:?} {picture:?}"
+        );
+    }
+    // Below it, a full row reaches past where the picture's left edge was.
+    assert!(
+        rows.iter()
+            .any(|(r, _)| r.top() >= bottom && r.right() > picture.left()),
+        "{rows:?}"
+    );
+    // A click at the end of a row beside the picture puts the caret after its last word.
+    let (row, text) = beside[1].clone();
+    click_at(&mut harness, egui::pos2(row.right() - 0.5, row.center().y));
+    harness.get_by_label("Scene text").type_text("Q");
+    harness.run_steps(12);
+    let last = text.split_whitespace().last().expect("a word");
+    assert!(
+        content(&memory, "new-1").contains(&format!("{last} Q")),
+        "{last} Q: {text}"
+    );
+}
+
+/// A new scene with the 2:1 pictures `names` (in that order), each made small and wrapped
+/// `wrap` ("left" or "right"), then `paragraphs` typed in after them.
+fn small_pictures(
+    names: &[(&str, &str)],
+    paragraphs: &[&str],
+) -> (Harness<'static, ProseApp>, Memory) {
+    let (mut harness, memory) = app();
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("an add button")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Scene 1")
+        .click();
+    harness.run();
+    let pixels = craft_image_codecs::Image::from_u8(
+        40,
+        20,
+        craft_image_codecs::ChannelLayout::Rgba,
+        vec![200; 40 * 20 * 4],
+    )
+    .expect("pixels");
+    let png = craft_image_codecs::encode(
+        &pixels,
+        craft_image_codecs::Format::Png,
+        &craft_image_codecs::EncodeOptions::default(),
+    )
+    .expect("png");
+    for (name, _) in names {
+        harness
+            .state_mut()
+            .insert_picture(&format!("{name}.png"), &png);
+        harness.run();
+    }
+    for (name, wrap) in names {
+        harness.get_by_role_and_label(Role::Image, name).click();
+        harness.run();
+        harness.get_by_label("Small image size").click();
+        harness.run_steps(12);
+        harness
+            .get_by_label(&format!("Wrap text beside {wrap}-aligned image"))
+            .click();
+        harness.run_steps(12);
+    }
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::End);
+    harness.key_press(egui::Key::Enter);
+    for paragraph in paragraphs {
+        harness.get_by_label("Scene text").type_text(paragraph);
+        harness.key_press(egui::Key::Enter);
+    }
+    harness.run_steps(12);
+    (harness, memory)
+}
+
+#[test]
+fn small_wrapped_pictures_sit_side_by_side() {
+    let words = "The tide came in over the mud while the lamps went on along the harbour wall, \
+        one by one, until the whole town was lit and the boats lay still. ";
+    let text = words.repeat(3);
+    let (harness, memory) = small_pictures(
+        &[
+            ("Coast map", "left"),
+            ("Harbour", "left"),
+            ("Lighthouse", "right"),
+        ],
+        &[&text],
+    );
+    let stored = content(&memory, "new-1");
+    assert_eq!(
+        stored.matches(r#"data-wrap="wrap-left""#).count(),
+        2,
+        "{stored:.300}"
+    );
+    let rect = |name| harness.get_by_role_and_label(Role::Image, name).rect();
+    let (first, second, right) = (rect("Coast map"), rect("Harbour"), rect("Lighthouse"));
+    // ProseCraft's `margin: 4px 18px 14px 0`: the second beside the first, as CSS floats go.
+    assert!(
+        (second.left() - (first.right() + 18.0)).abs() < 1.0,
+        "{first:?} {second:?}"
+    );
+    assert!(second.top() >= first.top() - 0.5 && second.top() < first.bottom());
+    // The right one on the right, level with the second or lower, and clear of both.
+    assert!(right.left() > second.right() + 18.0, "{second:?} {right:?}");
+    assert!(right.top() >= second.top() - 0.5 && right.top() < first.bottom());
+    // The text beside them runs between them.
+    let bottom = right.bottom().min(second.bottom());
+    let beside: Vec<_> = text_rows(&harness)
+        .into_iter()
+        .filter(|(r, _)| r.top() < bottom)
+        .collect();
+    assert!(
+        !beside.is_empty(),
+        "{:?} {first:?} {second:?} {right:?}",
+        text_rows(&harness)
+    );
+    for (row, text) in &beside {
+        assert!(row.left() >= second.right() + 17.5, "{text} {row:?}");
+        assert!(row.right() <= right.left() - 17.5, "{text} {row:?}");
+    }
+}
+
+#[test]
+fn right_to_left_text_flows_beside_a_wrapped_picture() {
+    // As in ProseCraft (no `dir`): the rows start on the left, beside the picture and below it.
+    let hebrew = "הגאות עלתה על הבוץ בזמן שהפנסים נדלקו לאורך חומת הנמל, אחד אחד, עד שכל העיר \
+        הוארה והסירות שכבו בשקט. ";
+    let text = hebrew.repeat(4);
+    for wrap in ["left", "right"] {
+        let (mut harness, memory) = small_pictures(&[("Coast map", wrap)], &[&text]);
+        let picture = harness
+            .get_by_role_and_label(Role::Image, "Coast map")
+            .rect();
+        let rows = text_rows(&harness);
+        let bottom = picture.bottom() + 14.0;
+        let beside: Vec<_> = rows.iter().filter(|(r, _)| r.top() < bottom).collect();
+        let below: Vec<_> = rows.iter().filter(|(r, _)| r.top() >= bottom).collect();
+        assert!(
+            beside.len() >= 2 && !below.is_empty(),
+            "{rows:?} {picture:?}"
+        );
+        let margin = if wrap == "left" {
+            picture.left()
+        } else {
+            below[0].0.left()
+        };
+        for (row, text) in &below {
+            assert!((row.left() - margin).abs() < 1.0, "{text} {row:?} {margin}");
+        }
+        for (row, text) in &beside {
+            if wrap == "left" {
+                assert!(
+                    (row.left() - (picture.right() + 18.0)).abs() < 1.0,
+                    "{text} {row:?} {picture:?}"
+                );
+            } else {
+                assert!((row.left() - margin).abs() < 1.0, "{text} {row:?}");
+                assert!(row.right() <= picture.left() - 17.5, "{text} {row:?}");
+            }
+        }
+        // A click in a row beside the picture puts the caret among that row's words.
+        let (row, text) = beside[1].clone();
+        click_at(&mut harness, row.center());
+        harness.get_by_label("Scene text").type_text("Q");
+        harness.run_steps(12);
+        let stored = content(&memory, "new-1");
+        let (before, after) = around(&stored, 'Q');
+        assert!(
+            text.contains(&format!("{before}{after}")),
+            "{before}|Q|{after} in {text}"
+        );
+    }
+}
+
+#[test]
+fn right_to_left_paragraphs_start_on_the_left_as_in_prosecraft() {
+    let (mut harness, memory) = app();
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("an add button")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Scene 1")
+        .click();
+    harness.run();
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    let english = "The tide came in over the mud while the lamps went on along the wall. ";
+    let hebrew = "הגאות עלתה על הבוץ בזמן שהפנסים נדלקו לאורך חומת הנמל, אחד אחד. ";
+    for paragraph in [english.repeat(3), hebrew.repeat(3), "שלום".to_owned()] {
+        harness.get_by_label("Scene text").type_text(&paragraph);
+        harness.key_press(egui::Key::Enter);
+    }
+    harness.run_steps(12);
+    let rows = text_rows(&harness);
+    let margin = rows[0].0.left();
+    assert!(rows.len() >= 6, "{rows:?}");
+    for (row, text) in &rows {
+        assert!((row.left() - margin).abs() < 1.0, "{text} {row:?} {margin}");
+    }
+    // A short one too: on the left, not across the column.
+    let (short, _) = rows
+        .iter()
+        .rfind(|(_, t)| t.contains("שלום"))
+        .expect("short");
+    assert!(short.width() < 100.0, "{short:?}");
+    // A click on a Hebrew row puts the caret among its words.
+    let (row, text) = rows
+        .iter()
+        .find(|(_, t)| t.contains("הגאות"))
+        .cloned()
+        .expect("a Hebrew row");
+    click_at(&mut harness, row.center());
+    harness.get_by_label("Scene text").type_text("Q");
+    harness.run_steps(12);
+    let (before, after) = around(&content(&memory, "new-1"), 'Q');
+    assert!(
+        text.contains(&format!("{before}{after}")),
+        "{before}|Q|{after} in {text}"
+    );
+}
+
+/// The four characters of text before and after `mark` in the text of `stored` (its markup
+/// left out).
+fn around(stored: &str, mark: char) -> (String, String) {
+    let mut chars = Vec::new();
+    let mut in_tag = false;
+    for c in stored.chars() {
+        match c {
+            '<' => in_tag = true,
+            '>' => in_tag = false,
+            _ if !in_tag => chars.push(c),
+            _ => {}
+        }
+    }
+    let at = chars.iter().position(|c| *c == mark).unwrap_or(0);
+    let before = chars[at.saturating_sub(4)..at].iter().collect();
+    let after = chars[(at + 1).min(chars.len())..(at + 5).min(chars.len())]
+        .iter()
+        .collect();
+    (before, after)
+}
+
 #[test]
 fn copying_keeps_formatting_for_pasting_back() {
     let (mut harness, memory) = app();
@@ -446,6 +922,252 @@ fn copying_keeps_formatting_for_pasting_back() {
     let stored = content(&memory, "doc-1");
     assert_eq!(stored.matches("footnote-ref").count(), 2, "{stored}");
     assert_eq!(stored.matches("cite-ref").count(), 2, "{stored}");
+}
+
+/// The app with a clipboard for its copies, read back as the desktop host reads it: its HTML
+/// for rich paste, and with the clipboard keys the app's, its HTML when its text is empty.
+fn app_with_clipboard() -> (Harness<'static, ProseApp>, Memory, Board) {
+    let (mut harness, memory) = app();
+    let board: Board = Default::default();
+    let (writer, reader, keys) = (board.clone(), board.clone(), board.clone());
+    let app = harness.state_mut();
+    app.set_clipboard_writer(Arc::new(move |html: &str, text: &str| {
+        *writer.lock().expect("board") = (html.to_owned(), text.to_owned());
+    }));
+    app.set_clipboard_html(Arc::new(move || {
+        Some(reader.lock().expect("board").0.clone()).filter(|h| !h.is_empty())
+    }));
+    app.set_clipboard_keys(Arc::new(move || {
+        let (html, text) = keys.lock().expect("board").clone();
+        Some(html).filter(|h| !h.is_empty() && text.is_empty())
+    }));
+    (harness, memory, board)
+}
+
+/// Selects the footnote marker after "It was dark." in the opening scene.
+fn select_the_footnote_marker(harness: &mut Harness<'static, ProseApp>) {
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    // Twelve right from the start, one with Shift.
+    for _ in 0..3 {
+        harness.key_press(egui::Key::ArrowUp);
+    }
+    harness.key_press(egui::Key::Home);
+    for _ in 0..12 {
+        harness.key_press(egui::Key::ArrowRight);
+    }
+    harness.key_press_modifiers(egui::Modifiers::SHIFT, egui::Key::ArrowRight);
+    harness.run();
+}
+
+/// The end of the opening scene.
+fn to_the_end(harness: &mut Harness<'static, ProseApp>) {
+    for _ in 0..3 {
+        harness.key_press(egui::Key::ArrowDown);
+    }
+    harness.key_press(egui::Key::End);
+    harness.run();
+}
+
+/// The scene ends with the marker pasted again (the same footnote, as ProseCraft pastes it).
+fn assert_marker_pasted_at_the_end(memory: &Memory) {
+    let stored = content(memory, "doc-1");
+    assert_eq!(
+        stored.matches(r#"data-footnote-id="fn-1""#).count(),
+        2,
+        "{stored}"
+    );
+    assert!(
+        stored.ends_with(r#"</span>.<sup class="footnote-ref" data-footnote-id="fn-1" contenteditable="false"></sup></p>"#),
+        "{stored}"
+    );
+    assert!(!stored.contains('\u{FFFC}'), "{stored}");
+}
+
+#[test]
+fn a_footnote_marker_copied_alone_pastes_back() {
+    let (mut harness, memory, board) = app_with_clipboard();
+    select_the_footnote_marker(&mut harness);
+    // Ctrl+C, the app's own key on the desktop.
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::C);
+    harness.run();
+    let (html, text) = board.lock().expect("board").clone();
+    assert!(html.contains(r#"data-footnote-id="fn-1""#), "{html}");
+    // No text, as the browser writes none for the marker: nothing in another app's field.
+    assert_eq!(text, "");
+    to_the_end(&mut harness);
+    // Ctrl+V: no paste event comes for an empty text; the app reads the HTML itself.
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::V);
+    harness.run_steps(12);
+    assert_marker_pasted_at_the_end(&memory);
+}
+
+#[test]
+fn a_footnote_marker_pastes_back_from_the_edit_menu() {
+    let (mut harness, memory, board) = app_with_clipboard();
+    let reader = board.clone();
+    // As the desktop host reads it: no text at all for the marker.
+    harness.state_mut().set_clipboard_text(Arc::new(move || {
+        Some(reader.lock().expect("board").1.clone()).filter(|t| !t.is_empty())
+    }));
+    select_the_footnote_marker(&mut harness);
+    menu(&mut harness, "Edit", "Copy");
+    harness.run();
+    assert_eq!(board.lock().expect("board").1, "");
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    to_the_end(&mut harness);
+    menu(&mut harness, "Edit", "Paste");
+    harness.run_steps(12);
+    assert_marker_pasted_at_the_end(&memory);
+}
+
+#[test]
+fn the_paste_keys_paste_at_the_caret_after_a_menu_was_used() {
+    // A field's state kept when a menu opened is the menu's: the paste keys leave the caret.
+    let (mut harness, memory, _board) = app_with_clipboard();
+    select_the_footnote_marker(&mut harness);
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::C);
+    harness.run();
+    menu(&mut harness, "Edit", "Select All");
+    harness.run();
+    to_the_end(&mut harness);
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::V);
+    harness.run_steps(12);
+    assert_marker_pasted_at_the_end(&memory);
+}
+
+#[test]
+fn a_footnote_marker_pastes_back_from_a_page_paste_with_no_text() {
+    // The browser hands over a paste's HTML with no text itself (eframe sends no paste event).
+    let (mut harness, memory, board) = app_with_clipboard();
+    let page: Arc<Mutex<Option<String>>> = Default::default();
+    let taken = page.clone();
+    harness
+        .state_mut()
+        .set_html_paste(Arc::new(move || taken.lock().expect("page").take()));
+    select_the_footnote_marker(&mut harness);
+    harness.event(egui::Event::Copy);
+    harness.run();
+    to_the_end(&mut harness);
+    *page.lock().expect("page") = Some(board.lock().expect("board").0.clone());
+    harness.run_steps(12);
+    assert_marker_pasted_at_the_end(&memory);
+    // Taken once: the next frames paste nothing more.
+    harness.run_steps(4);
+    assert_eq!(content(&memory, "doc-1").matches("footnote-ref").count(), 2);
+}
+
+#[test]
+fn a_picture_copied_alone_pastes_back_as_a_picture() {
+    // Its text is its description, as the browser writes it; pasted back with the HTML, the
+    // picture returns, not the words.
+    let (mut harness, memory, board) = app_with_clipboard();
+    let picture = r#"<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==" alt="A goat"></p>"#;
+    *board.lock().expect("board") = (picture.to_owned(), "A goat".to_owned());
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    to_the_end(&mut harness);
+    harness.event(egui::Event::Paste("A goat".into()));
+    harness.run_steps(12);
+    let stored = content(&memory, "doc-1");
+    assert!(stored.contains(r#"alt="A goat""#), "{stored}");
+    assert!(!stored.contains("A goat</"), "{stored}");
+}
+
+/// The stored footnote definitions' ids of a document.
+fn footnote_ids(memory: &Memory, id: &str) -> Vec<String> {
+    let saved = memory.last();
+    document(project(&saved, "project-1"), id)
+        .and_then(|d| d.get("footnotes"))
+        .and_then(JsValue::as_array)
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|f| f.get("id").and_then(JsValue::as_js_string))
+        .map(|i| i.to_string_lossy())
+        .collect()
+}
+
+#[test]
+fn a_footnote_marker_cut_takes_its_definition_until_undone() {
+    let (mut harness, memory) = app();
+    let board: Board = Default::default();
+    let (writer, reader) = (board.clone(), board.clone());
+    harness
+        .state_mut()
+        .set_clipboard_writer(Arc::new(move |html: &str, text: &str| {
+            *writer.lock().expect("board") = (html.to_owned(), text.to_owned());
+        }));
+    harness.state_mut().set_clipboard_html(Arc::new(move || {
+        Some(reader.lock().expect("board").0.clone()).filter(|h| !h.is_empty())
+    }));
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    assert_eq!(footnote_ids(&memory, "doc-1"), ["fn-1"]);
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    // "dark." and the marker after it, cut.
+    for _ in 0..3 {
+        harness.key_press(egui::Key::ArrowUp);
+    }
+    harness.key_press(egui::Key::Home);
+    for _ in 0..7 {
+        harness.key_press(egui::Key::ArrowRight);
+    }
+    for _ in 0..6 {
+        harness.key_press_modifiers(egui::Modifiers::SHIFT, egui::Key::ArrowRight);
+    }
+    harness.run();
+    harness.event(egui::Event::Cut);
+    harness.run_steps(12);
+    let stored = content(&memory, "doc-1");
+    assert!(stored.starts_with("<p>It was </p>"), "{stored}");
+    // As in ProseCraft, the definition goes with its last marker.
+    assert!(footnote_ids(&memory, "doc-1").is_empty());
+    // Undo brings both back.
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::Z);
+    harness.run_steps(12);
+    assert!(
+        content(&memory, "doc-1").contains(r#"data-footnote-id="fn-1""#),
+        "{}",
+        content(&memory, "doc-1")
+    );
+    assert_eq!(footnote_ids(&memory, "doc-1"), ["fn-1"]);
+    // Cut again and pasted back: the marker returns without its text, as in ProseCraft.
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    for _ in 0..3 {
+        harness.key_press(egui::Key::ArrowUp);
+    }
+    harness.key_press(egui::Key::Home);
+    for _ in 0..7 {
+        harness.key_press(egui::Key::ArrowRight);
+    }
+    for _ in 0..6 {
+        harness.key_press_modifiers(egui::Modifiers::SHIFT, egui::Key::ArrowRight);
+    }
+    harness.run();
+    harness.event(egui::Event::Cut);
+    harness.run_steps(12);
+    let text = board.lock().expect("board").1.clone();
+    harness.event(egui::Event::Paste(text));
+    harness.run_steps(12);
+    assert!(
+        content(&memory, "doc-1").contains(r#"data-footnote-id="fn-1""#),
+        "{}",
+        content(&memory, "doc-1")
+    );
+    assert!(footnote_ids(&memory, "doc-1").is_empty());
 }
 
 #[test]
@@ -1689,7 +2411,8 @@ fn typing_into_a_formatted_scene_keeps_its_emphasis_footnote_and_citation() {
         .unwrap_or_default();
     assert_eq!(
         content,
-        r#"<p>It was <em>dark</em>.<sup class="footnote-ref" data-footnote-id="fn-1" contenteditable="false"></sup></p><p>Then <span class="cite-ref" data-cites="[{&quot;id&quot;:&quot;smith2020&quot;}]">(Smith 2020)</span>. It rained.</p>"#
+        // The backup's citation as ProseCraft's sanitizer stores it on import.
+        r#"<p>It was <em>dark</em>.<sup class="footnote-ref" data-footnote-id="fn-1" contenteditable="false"></sup></p><p>Then <span class="cite-ref" data-cites="[{&quot;id&quot;:&quot;smith2020&quot;}]" contenteditable="false"></span>. It rained.</p>"#
     );
 }
 
@@ -1784,9 +2507,12 @@ fn comments_and_wiki_mentions_are_highlighted_with_cards_on_hover() {
         "<p>Mara said it was <em>dark</em>.",
     );
     let memory = Memory::default();
-    let mut app =
-        ProseApp::with_library(ProjectLibrary::new("test".into()), Box::new(memory.clone()));
-    app.open_backup("bundle-plain.prosecraft", &bundle);
+    // In the app's own library, as stored: a backup opened from outside would be sanitized
+    // on import, and the heading would already be a paragraph.
+    let app = ProseApp::with_library(
+        ProjectLibrary::from_text(&bundle).expect("library"),
+        Box::new(memory.clone()),
+    );
     let mut harness = Harness::builder()
         .with_max_steps(8)
         .with_size([1280.0, 850.0])
@@ -2428,9 +3154,13 @@ fn a_pane_edits_its_document_as_prosecrafts_tile_editor_does() {
 
 #[test]
 fn a_scene_pane_writes_its_chapter_back_and_leaves_text_it_cannot_hold_alone() {
-    // Mara's page as bare text, which the editor can't hold.
-    let bundle = fixture("bundle-plain.prosecraft")
-        .replace("<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>", "Loose notes about Mara");
+    // Mara's page with its notes in quotes nested deeper than the editor holds.
+    let deep = format!(
+        "{}<p>Notes about Mara</p>{}",
+        "<blockquote>".repeat(40),
+        "</blockquote>".repeat(40)
+    );
+    let bundle = fixture("bundle-plain.prosecraft").replace("<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>", &deep);
     let memory = Memory::default();
     let mut app =
         ProseApp::with_library(ProjectLibrary::new("test".into()), Box::new(memory.clone()));
@@ -2507,10 +3237,68 @@ fn a_scene_pane_writes_its_chapter_back_and_leaves_text_it_cannot_hold_alone() {
     // As the Wiki migration left it (its profile above the text), not edited.
     let mara = stored(&memory, "doc-2");
     assert!(
-        mara.starts_with("<h2>Character profile</h2>")
-            && mara.ends_with("<hr>\nLoose notes about Mara"),
+        mara.starts_with("<h2>Character profile</h2>") && mara.ends_with(&deep),
         "{mara}"
     );
+}
+
+#[test]
+fn a_pane_says_when_a_scene_is_simplified_once_edited() {
+    // The lighthouse scene with a fourth-level heading, which the sanitizer writes as a
+    // paragraph once the scene is edited.
+    let bundle = fixture("bundle-plain.prosecraft").replace(
+        r#"<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>"#,
+        r#"<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p><h4>Night</h4>"#,
+    );
+    assert!(bundle.contains("<h4>Night</h4>"));
+    let memory = Memory::default();
+    // In the app's own library, as stored: a backup opened from outside would be sanitized
+    // on import, and the heading would already be a paragraph.
+    let app = ProseApp::with_library(
+        ProjectLibrary::from_text(&bundle).expect("library"),
+        Box::new(memory.clone()),
+    );
+    let mut harness = Harness::builder()
+        .with_max_steps(8)
+        .with_size([1700.0, 1000.0])
+        .build_ui_state(|ui, app: &mut ProseApp| app.show(ui), app);
+    prosecraft_ui_egui::setup_for_tests(&harness.ctx);
+    harness.run();
+    let note = "Some of this scene's formatting is simplified once you edit it.";
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Mara")
+        .click();
+    harness.run();
+    assert!(harness.query_by_label(note).is_none());
+    harness.get_by_label("Open split view").click();
+    harness.run();
+    harness.get_by_label("Show in this pane").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "  INT. LIGHTHOUSE - NIGHT")
+        .click();
+    harness.run();
+    harness.run_steps(12);
+    // Both scenes editable; only the simplified one says so.
+    assert_eq!(harness.get_all_by_label("Document text").count(), 2);
+    assert_eq!(harness.get_all_by_label(note).count(), 1);
+    // Typed into, it is stored simplified, and the note goes.
+    harness
+        .get_all_by_label("Document text")
+        .last()
+        .expect("the second scene")
+        .focus();
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::End);
+    harness
+        .get_all_by_label("Document text")
+        .last()
+        .expect("the second scene")
+        .type_text("!");
+    harness.step();
+    std::thread::sleep(std::time::Duration::from_millis(350));
+    harness.run_steps(12);
+    assert!(harness.query_by_label(note).is_none());
 }
 
 #[test]
@@ -4117,7 +4905,8 @@ fn footnotes_are_inserted_written_removed_and_cleaned_up() {
         std::slice::from_ref(&new_id)
     );
 
-    // Deleting the marker in the text leaves an unused definition; Clean up drops it.
+    // Deleting the marker in the text takes its definition too (ProseCraft's `handleInput`):
+    // no unused definition is left to clean up.
     let at = content(&after);
     assert!(at.contains(&new_id));
     harness.get_by_label("Scene text").focus();
@@ -4127,10 +4916,7 @@ fn footnotes_are_inserted_written_removed_and_cleaned_up() {
     harness.key_press(egui::Key::End);
     harness.key_press(egui::Key::Backspace);
     harness.run_steps(12);
-    harness
-        .get_by_role_and_label(Role::Button, "Clean up 1 orphan")
-        .click();
-    harness.run_steps(12);
+    assert!(harness.query_by_label("Clean up 1 orphan").is_none());
     let after = doc(&memory);
     assert!(
         !content(&after).contains("footnote-ref"),
@@ -5453,4 +6239,291 @@ fn a_screenplay_pdf_exports_from_the_publish_view() {
     };
     assert!(file_name.ends_with(".pdf"), "{file_name}");
     assert!(bytes.starts_with(b"%PDF-"));
+}
+
+/// The app with the fixture backup, the first scene's text wrapped in a `<div>` (as an import
+/// may leave it): HTML the editor holds only in a normalized shape.
+/// The opening scene after a fourth-level heading, which the sanitizer writes as a paragraph
+/// once the scene is edited.
+fn app_with_simplified_scene() -> (Harness<'static, ProseApp>, Memory) {
+    let bundle = fixture("bundle-plain.prosecraft").replace(
+        "<p>It was <em>dark</em>.",
+        "<h4>Before</h4><p>It was <em>dark</em>.",
+    );
+    let memory = Memory::default();
+    // In the app's own library, as stored: a backup opened from outside would be sanitized
+    // on import, and the heading would already be a paragraph.
+    let app = ProseApp::with_library(
+        ProjectLibrary::from_text(&bundle).expect("library"),
+        Box::new(memory.clone()),
+    );
+    let mut harness = Harness::builder()
+        .with_max_steps(8)
+        .with_size([1700.0, 1000.0])
+        .build_ui_state(|ui, app: &mut ProseApp| app.show(ui), app);
+    prosecraft_ui_egui::setup_for_tests(&harness.ctx);
+    harness.run();
+    (harness, memory)
+}
+
+/// The project as last saved (`None` before the first save).
+fn saved_project(memory: &Memory) -> Option<String> {
+    let text = memory.saved.lock().ok()?.last()?.clone();
+    let library = js::parse(&text).ok()?;
+    Some(js::stringify(project(&library, "project-1")))
+}
+
+fn saved_content(memory: &Memory, id: &str) -> String {
+    let saved = memory.last();
+    document(project(&saved, "project-1"), id)
+        .and_then(|d| d.get("content"))
+        .and_then(JsValue::as_js_string)
+        .map(|c| c.to_string_lossy())
+        .unwrap_or_default()
+}
+
+/// Waits out the pane's pause before it sends an edit, and the save after it.
+fn settle(harness: &mut Harness<'static, ProseApp>) {
+    harness.step();
+    std::thread::sleep(std::time::Duration::from_millis(350));
+    harness.run_steps(12);
+}
+
+#[test]
+fn a_pane_edits_a_scene_it_holds_only_normalized_and_stores_it_only_once_typed_in() {
+    let (mut harness, memory) = app_with_simplified_scene();
+    let heading = "<h4>Before</h4>";
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Mara")
+        .click();
+    harness.run();
+    let before = saved_project(&memory);
+    harness.get_by_label("Open split view").click();
+    harness.run();
+    harness.get_by_label("Show in this pane").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "  INT. LIGHTHOUSE - NIGHT")
+        .click();
+    harness.run_steps(12);
+    // Both scenes of the chapter editable, the simplified one too (it was shown read-only).
+    assert_eq!(harness.get_all_by_label("Document text").count(), 2);
+    assert!(
+        harness
+            .query_by_label("Open in the editor to change this text.")
+            .is_none()
+    );
+    // Opened, focused, the caret moved, then left: nothing is stored.
+    harness
+        .get_all_by_label("Document text")
+        .next()
+        .expect("the first scene")
+        .focus();
+    harness.run();
+    harness.key_press(egui::Key::ArrowRight);
+    harness.key_press(egui::Key::ArrowDown);
+    harness.run();
+    harness
+        .get_all_by_label("Document text")
+        .last()
+        .expect("the second scene")
+        .focus();
+    settle(&mut harness);
+    assert_eq!(saved_project(&memory), before, "opening changed nothing");
+    // Typed in: stored, in the shape the editor holds it.
+    harness
+        .get_all_by_label("Document text")
+        .next()
+        .expect("the first scene")
+        .focus();
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::End);
+    harness
+        .get_all_by_label("Document text")
+        .next()
+        .expect("the first scene")
+        .type_text(" Later.");
+    settle(&mut harness);
+    let content = saved_content(&memory, "doc-1");
+    assert!(!content.contains(heading), "{content}");
+    assert!(
+        content.starts_with("<p>Before</p><p>It was <em>dark</em>.<sup")
+            && content.ends_with(". Later.</p>"),
+        "{content}"
+    );
+}
+
+#[test]
+fn the_editor_opens_a_scene_it_holds_only_normalized_without_storing_it() {
+    let (mut harness, memory) = app_with_simplified_scene();
+    let before = saved_project(&memory);
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    // Editable, with the Markdown editor still offered for the scene as stored.
+    harness.get_by_label("Scene text");
+    harness.get_by_role_and_label(Role::Button, "Edit as Markdown");
+    let body = harness.get_by_label("Scene text");
+    body.focus();
+    harness.run();
+    harness.key_press(egui::Key::ArrowRight);
+    harness.run_steps(12);
+    assert_eq!(saved_project(&memory), before, "opening changed nothing");
+    // Typed in: stored as the editor holds it.
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::End);
+    harness.get_by_label("Scene text").type_text(" Later.");
+    harness.run_steps(12);
+    let content = saved_content(&memory, "doc-1");
+    assert!(
+        content.starts_with("<p>Before</p><p>It was <em>dark</em>.<sup")
+            && content.ends_with(". Later.</p>"),
+        "{content}"
+    );
+    assert!(
+        harness
+            .query_by_role_and_label(Role::Button, "Edit as Markdown")
+            .is_none()
+    );
+}
+
+#[test]
+fn a_pane_shows_its_text_put_back_as_it_was_opened() {
+    let (mut harness, memory) = app();
+    harness.set_size(egui::vec2(1700.0, 1000.0));
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness.get_by_label("Open split view").click();
+    harness.run();
+    // Mara's page in two panes.
+    for _ in 0..2 {
+        harness
+            .get_all_by_label("Show in this pane")
+            .last()
+            .expect("a pane")
+            .click();
+        harness.run();
+        harness
+            .get_by_role_and_label(Role::Button, "  Mara")
+            .click();
+        harness.run();
+        if harness.get_all_by_label("Close this pane").count() < 2 {
+            harness.get_by_label("Add another pane").click();
+            harness.run();
+        }
+    }
+    assert_eq!(harness.get_all_by_label("Document text").count(), 2);
+    let pane = |harness: &Harness<'static, ProseApp>, n: usize| {
+        harness
+            .get_all_by_label("Document text")
+            .nth(n)
+            .and_then(|t| t.value())
+            .unwrap_or_default()
+    };
+    let opened = pane(&harness, 0);
+    // Typed in the first pane, then taken back in the second.
+    harness
+        .get_all_by_label("Document text")
+        .next()
+        .expect("the first pane")
+        .focus();
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::End);
+    harness
+        .get_all_by_label("Document text")
+        .next()
+        .expect("the first pane")
+        .type_text(" X");
+    settle(&mut harness);
+    assert!(saved_content(&memory, "doc-2").ends_with("𝔐𝔞𝔯𝔞 X</p>"));
+    harness
+        .get_all_by_label("Document text")
+        .last()
+        .expect("the second pane")
+        .focus();
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::End);
+    harness.key_press(egui::Key::Backspace);
+    harness.key_press(egui::Key::Backspace);
+    settle(&mut harness);
+    assert!(saved_content(&memory, "doc-2").ends_with("𝔐𝔞𝔯𝔞</p>"));
+    // The first pane shows the text as it is now, as it was opened.
+    assert_eq!(pane(&harness, 0), opened);
+}
+
+/// In the chapter view a footnote is still in use while another scene of the chapter holds its
+/// marker, also one pasted there a moment ago and not saved yet: cutting the original keeps
+/// the definition.
+#[test]
+fn a_footnote_used_in_another_scene_of_the_chapter_keeps_its_text() {
+    let (mut harness, memory) = app();
+    let board: Board = Default::default();
+    let (writer, reader) = (board.clone(), board.clone());
+    harness
+        .state_mut()
+        .set_clipboard_writer(Arc::new(move |html: &str, text: &str| {
+            *writer.lock().expect("board") = (html.to_owned(), text.to_owned());
+        }));
+    harness.state_mut().set_clipboard_html(Arc::new(move || {
+        Some(reader.lock().expect("board").0.clone()).filter(|h| !h.is_empty())
+    }));
+    let select_marker = |harness: &mut Harness<'static, ProseApp>| {
+        harness.get_by_label("Scene text").focus();
+        harness.run();
+        for _ in 0..3 {
+            harness.key_press(egui::Key::ArrowUp);
+        }
+        harness.key_press(egui::Key::Home);
+        for _ in 0..12 {
+            harness.key_press(egui::Key::ArrowRight);
+        }
+        harness.key_press_modifiers(egui::Modifiers::SHIFT, egui::Key::ArrowRight);
+        harness.run();
+    };
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    select_marker(&mut harness);
+    harness.event(egui::Event::Copy);
+    harness.run();
+    assert!(board.lock().expect("board").0.contains("fn-1"));
+    harness
+        .get_by_role_and_label(Role::Button, "Actions for Chapter One")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Add scene")
+        .click();
+    harness.run_steps(4);
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Scene 3")
+        .click();
+    harness.run();
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    let text = board.lock().expect("board").1.clone();
+    harness.event(egui::Event::Paste(text));
+    // Straight back to the first scene, before the typing pause would save the paste.
+    harness.step();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    select_marker(&mut harness);
+    harness.event(egui::Event::Cut);
+    harness.run_steps(12);
+    assert!(
+        !content(&memory, "doc-1").contains("fn-1"),
+        "the marker was cut"
+    );
+    assert_eq!(
+        footnote_ids(&memory, "doc-1"),
+        ["fn-1"],
+        "still used in Scene 3"
+    );
 }

@@ -73,7 +73,10 @@ impl FootnoteEdit {
         } else {
             format!("<p>{html}</p>")
         };
-        let doc = RichDoc::from_html(&source);
+        // Only a definition that is one paragraph's inline content (its HTML is written back
+        // without the paragraph).
+        let doc = RichDoc::from_html(&source)
+            .filter(|d| d.lines == [prosecraft_core::richtext::LineKind::Paragraph]);
         Self {
             document: document.to_owned(),
             id: id.to_owned(),
@@ -353,16 +356,14 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                     let layout_doc = doc.clone();
                     let mut layouter = move |ui: &Ui, text: &dyn egui::TextBuffer, wrap: f32| {
                         ui.fonts_mut(|f| {
-                            let sizes = crate::views::atom_sizes(f, &layout_labels, wrap);
-                            let job = crate::views::layout_doc(
-                                &layout_doc,
-                                text.as_str(),
+                            crate::views::doc_galley(
+                                f,
+                                (&layout_doc, text.as_str()),
                                 &palette,
                                 wrap,
-                                &sizes,
+                                &layout_labels,
                                 &crate::views::Look::default(),
-                            );
-                            f.layout_job(job)
+                            )
                         })
                     };
                     if let Some(at) = edit.caret.take() {

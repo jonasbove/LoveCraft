@@ -99,6 +99,8 @@ pub(crate) struct Files<'a> {
     /// The project's citation style and locale, for scenes' citations.
     pub citation_style: String,
     pub citation_locale: String,
+    /// The library's record of the project, for the graph tile.
+    pub stored: &'a prosecraft_core::js::JsValue,
 }
 
 /// `splitGroups`: each chapter's scenes, the wiki pages, the wiki files.
@@ -124,6 +126,10 @@ fn groups(project: &Project) -> Vec<(String, Vec<(String, String)>)> {
     if !wiki.is_empty() {
         out.push(("Wiki pages".into(), wiki));
     }
+    out.push((
+        "Graph".into(),
+        vec![(split::graph_target(None), "Characters graph".into())],
+    ));
     let files: Vec<(String, String)> = project
         .research_items
         .iter()
@@ -279,24 +285,32 @@ pub(crate) struct Tile {
     scene: bool,
     doc: prosecraft_core::richtext::RichDoc,
     body: String,
+    /// The (cleaned) stored text it was read from. A text this editor holds only in a
+    /// normalized shape writes different HTML, sent only once it is typed in.
+    source: String,
     /// The text this editor last sent, so its own echo doesn't reload it.
     emitted: String,
     /// When it was last typed in, while that edit hasn't been sent.
     changed_at: Option<f64>,
+    /// The stored text is held only in a simplified shape, written once it is typed in.
+    simplified: bool,
 }
 
 impl Tile {
     fn new(
         document: &prosecraft_core::project::Document,
         doc: prosecraft_core::richtext::RichDoc,
+        source: &str,
     ) -> Self {
         Self {
             document: document.id.clone(),
             scene: document.chapter_id.is_some(),
             body: doc.text.clone(),
             doc,
+            source: source.to_owned(),
             emitted: String::new(),
             changed_at: None,
+            simplified: prosecraft_core::richtext::RichDoc::from_html(&document.content).is_none(),
         }
     }
 
@@ -304,7 +318,9 @@ impl Tile {
     fn emit(&mut self, asked: &mut Asked) {
         let html = prosecraft_core::html::sanitize_html(&self.doc.to_html());
         self.emitted = html.clone();
+        self.source = html.clone();
         self.changed_at = None;
+        self.simplified = false;
         if self.scene {
             asked.scenes.push((self.document.clone(), html));
         } else {
@@ -334,6 +350,10 @@ pub(crate) struct Asked {
     pub open: Option<Selection>,
     /// A wiki file to open with its app.
     pub open_file: Option<String>,
+    /// A detected character the graph tile confirmed for the open scene.
+    pub confirm: Option<String>,
+    /// A page to open beside, from the graph tile.
+    pub beside: Option<String>,
 }
 
 /// The panes, as a grid of `tileColumns` columns.
@@ -355,6 +375,8 @@ pub(crate) fn show(
         chapter_titles: Vec::new(),
         open: None,
         open_file: None,
+        confirm: None,
+        beside: None,
     };
     // `onDestroy(flush)`: a closed pane's pending edit is sent.
     let open: std::collections::HashSet<&str> = panes.iter().map(|p| p.id.as_str()).collect();
@@ -375,10 +397,18 @@ pub(crate) fn show(
     }
     let groups = groups(project);
     // `pruneSplitTargets`.
-    let valid: std::collections::HashSet<String> = groups
+    let mut valid: std::collections::HashSet<String> = groups
         .iter()
         .flat_map(|(_, o)| o.iter().map(|(v, _)| v.clone()))
         .collect();
+    // Page-centred graph tiles come from the Network view and the character card.
+    valid.extend(
+        project
+            .documents
+            .iter()
+            .filter(|d| d.space.as_deref() == Some("Wiki") && !d.trashed)
+            .map(|d| split::graph_target(Some(&d.id))),
+    );
     *panes = split::prune(panes, &valid);
     let total = ui.max_rect().width();
     let columns = split::tile_columns(panes.len(), f64::from(total), 300.0);
@@ -460,7 +490,12 @@ fn header(
             .iter()
             .flat_map(|(_, o)| o.iter())
             .find(|(v, _)| *v == pane.target)
-            .map_or("Choose something to show…".to_owned(), |(_, l)| l.clone());
+            .map(|(_, l)| l.clone())
+            .or_else(|| {
+                matches!(split::parse_target(&pane.target), Some(Target::Graph(_)))
+                    .then(|| "Characters graph".to_owned())
+            })
+            .unwrap_or_else(|| "Choose something to show…".to_owned());
         let mut target = pane.target.clone();
         let combo = craft_ui::ComboBox::from_id_salt(("split-target", pane.id.as_str()))
             .selected_text(current)
@@ -602,6 +637,26 @@ fn body(
                     (asked, tiles),
                 );
             }
+            Some(Target::Graph(page)) => {
+                let got = crate::graph_tile::show(
+                    ui,
+                    palette,
+                    files.stored,
+                    &pane.id,
+                    active,
+                    page.as_deref(),
+                    height,
+                );
+                if got.confirm.is_some() {
+                    asked.confirm = got.confirm;
+                }
+                if let Some(id) = got.open {
+                    asked.open = Some(Selection::Document(id));
+                }
+                if got.beside.is_some() {
+                    asked.beside = got.beside;
+                }
+            }
             Some(Target::File(id)) => {
                 let Some(item) = project.research_items.iter().find(|r| r.id == id) else {
                     note(
@@ -735,7 +790,11 @@ fn body_of(
     let key = tile_key(&pane.id, &document.id);
     let clean = prosecraft_core::html::sanitize_html(&document.content);
     let open_here = active == Some(document.id.as_str());
-    let held = prosecraft_core::richtext::RichDoc::from_html(&clean).filter(|_| !open_here);
+    // Text the editor can hold only in a normalized shape is edited in it too; that shape is
+    // sent only once the text is typed in.
+    let held = prosecraft_core::richtext::RichDoc::from_html(&clean)
+        .or_else(|| prosecraft_core::richtext::RichDoc::from_html_normalized(&clean))
+        .filter(|_| !open_here);
     let Some(held) = held else {
         // Its pending edit is sent before it stops being edited here.
         if let Some(mut tile) = tiles.remove(&key)
@@ -763,12 +822,24 @@ fn body_of(
     let focused = ui.memory(|m| m.has_focus(body_id));
     let tile = tiles
         .entry(key)
-        .or_insert_with(|| Tile::new(document, held.clone()));
+        .or_insert_with(|| Tile::new(document, held.clone(), &clean));
     // Changed from outside (another pane, the editor, an undo): shown, unless it is this
     // editor's own echo or it is being typed in.
-    if !focused && tile.changed_at.is_none() && clean != tile.emitted && clean != tile.doc.to_html()
+    if !focused
+        && tile.changed_at.is_none()
+        && clean != tile.emitted
+        && clean != tile.source
+        && clean != tile.doc.to_html()
     {
-        *tile = Tile::new(document, held);
+        *tile = Tile::new(document, held, &clean);
+    }
+    // Held only in a simplified shape, still untouched: said, as the editor says it.
+    if tile.simplified && tile.changed_at.is_none() {
+        ui.label(
+            RichText::new("Some of this scene's formatting is simplified once you edit it.")
+                .size(11.0)
+                .color(palette.text_muted),
+        );
     }
     let cache = std::cell::RefCell::new(Default::default());
     let cites = crate::views::CiteStyle {

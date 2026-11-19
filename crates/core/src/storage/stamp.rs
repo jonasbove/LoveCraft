@@ -27,10 +27,9 @@ fn kind_of(project: &JsValue) -> &'static str {
 /// `projectContentKey`: the fields that take part in sync, so that opening a scene (the active
 /// document) is not a change.
 ///
-/// One difference from ProseCraft 7dae544: a project in the trash adds `"trashed": true`, so
-/// trashing or restoring a whole project counts as a change and syncs (ProseCraft#44, fixed by
-/// ProseCraft#40). The key is only compared in memory, never stored, and an untrashed project's
-/// key is exactly ProseCraft's.
+/// As in ProseCraft since #40 (`c033cca`), the key holds `trashed`, so trashing or restoring a
+/// whole project counts as a change and syncs; since #31 (`bcb884d`) it holds the project's
+/// sheet templates and dismissed relation suggestions too.
 pub fn project_content_key(project: &JsValue) -> String {
     let get = |key: &str| project.get(key);
     let mut key = JsObject::new();
@@ -44,9 +43,10 @@ pub fn project_content_key(project: &JsValue) -> String {
     key.insert("kind", JsValue::str(kind_of(project)));
     plain(&mut key, "name");
     plain(&mut key, "author");
-    if matches!(get("trashed"), Some(JsValue::Bool(true))) {
-        key.insert("trashed", JsValue::Bool(true));
-    }
+    key.insert(
+        "trashed",
+        JsValue::Bool(matches!(get("trashed"), Some(JsValue::Bool(true)))),
+    );
     for (field, default) in [
         ("documents", JsValue::Array(Vec::new())),
         ("chapters", JsValue::Array(Vec::new())),
@@ -65,6 +65,8 @@ pub fn project_content_key(project: &JsValue) -> String {
         ("comments", JsValue::Array(Vec::new())),
         ("snapshots", JsValue::Array(Vec::new())),
         ("labels", JsValue::Array(Vec::new())),
+        ("sheetTemplates", JsValue::Array(Vec::new())),
+        ("dismissedSuggestions", JsValue::Array(Vec::new())),
         ("citations", JsValue::Array(Vec::new())),
     ] {
         // The first five are plain reads in ProseCraft (`project.documents`); undefined there

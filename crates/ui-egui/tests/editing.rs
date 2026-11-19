@@ -3654,6 +3654,102 @@ fn a_footnote_keeps_its_formatting_when_edited() {
 }
 
 #[test]
+fn a_footnote_gets_and_loses_a_link() {
+    let (mut harness, memory) = app();
+    let note = |memory: &Memory| {
+        let saved = memory.last();
+        project(&saved, "project-1")
+            .get("project")
+            .and_then(|p| p.get("documents"))
+            .and_then(JsValue::as_array)
+            .and_then(|d| d.first().cloned())
+            .and_then(|d| {
+                d.get("footnotes")
+                    .and_then(JsValue::as_array)
+                    .and_then(|f| f.first().cloned())
+            })
+            .and_then(|f| {
+                f.get("html")
+                    .and_then(JsValue::as_js_string)
+                    .map(|s| s.to_string_lossy())
+            })
+            .unwrap_or_default()
+    };
+    let open = |harness: &mut Harness<'static, ProseApp>| {
+        harness
+            .get_by_role_and_label(Role::Tab, "Footnotes")
+            .click();
+        harness.run();
+        harness.get_by_role_and_label(Role::Button, "Edit").click();
+        harness.run_steps(3);
+    };
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    open(&mut harness);
+    // At the end of the note: nothing typed is an error; an address goes in as itself.
+    harness.get_by_label("Footnote text").focus();
+    harness.run();
+    harness.key_press(egui::Key::End);
+    harness.get_by_label("Footnote text").type_text(" See ");
+    harness.run();
+    harness
+        .get_all_by_label("Add link")
+        .last()
+        .expect("the footnote's")
+        .click();
+    harness.run();
+    harness.get_by_label("Apply").click();
+    harness.run();
+    harness.get_by_label("Enter a link address.");
+    harness.get_by_label("Link URL").focus();
+    harness.run();
+    harness
+        .get_by_label("Link URL")
+        .type_text("ftp://files.test");
+    harness.get_by_label("Apply").click();
+    harness.run();
+    harness.get_by_label("Please use a web link or email address.");
+    harness.get_by_label("Link URL").focus();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    harness.get_by_label("Link URL").type_text("example.com");
+    harness.get_by_label("Apply").click();
+    harness.run();
+    harness.get_by_role_and_label(Role::Button, "Done").click();
+    harness.run_steps(12);
+    assert_eq!(
+        note(&memory),
+        r#"A note with <em>emphasis</em>. See <a href="https://example.com/">example.com</a>"#
+    );
+    // In the link: Unlink.
+    open(&mut harness);
+    harness.get_by_label("Footnote text").focus();
+    harness.run();
+    harness.key_press(egui::Key::End);
+    harness.key_press(egui::Key::ArrowLeft);
+    harness.run();
+    harness
+        .get_all_by_label("Add link")
+        .last()
+        .expect("the footnote's")
+        .click();
+    harness.run();
+    assert_eq!(
+        harness.get_by_label("Link URL").value().as_deref(),
+        Some("https://example.com/")
+    );
+    harness.get_by_label("Unlink").click();
+    harness.run();
+    harness.get_by_role_and_label(Role::Button, "Done").click();
+    harness.run_steps(12);
+    assert_eq!(
+        note(&memory),
+        "A note with <em>emphasis</em>. See example.com"
+    );
+}
+
+#[test]
 fn a_fountain_screenplay_joins_the_open_chapter() {
     let (mut harness, memory) = app();
     harness

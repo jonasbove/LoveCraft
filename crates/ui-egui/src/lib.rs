@@ -42,6 +42,7 @@ mod sources;
 mod split_view;
 mod starter;
 mod storyboard;
+mod text_marks;
 pub mod theme;
 mod views;
 mod widgets;

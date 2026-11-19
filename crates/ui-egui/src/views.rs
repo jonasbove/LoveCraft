@@ -72,6 +72,8 @@ fn column(ui: &mut Ui, add: impl FnOnce(&mut Ui)) {
 /// The parts of the state a view changes, borrowed apart from the project it shows.
 struct Edit<'a> {
     editable: bool,
+    /// The comments and Wiki articles highlighted in the text.
+    marks: crate::text_marks::Sources<'a>,
     draft: &'a mut Option<Draft>,
     intents: &'a mut Vec<Intent>,
     save_state: &'a SaveState,
@@ -239,6 +241,10 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
     );
     let mut edit = Edit {
         editable: *editable,
+        marks: crate::text_marks::Sources {
+            comments: &project.comments,
+            documents: &project.documents,
+        },
         draft,
         intents,
         save_state,
@@ -2218,6 +2224,25 @@ fn editor(
                 picker.pos = Some(rect.left_bottom() + egui::vec2(0.0, 6.0));
                 *edit.citation_picker = Some(picker);
             }
+        }
+    }
+    match crate::text_marks::show(
+        ui,
+        palette,
+        &edit.marks,
+        &document.id,
+        &draft.doc,
+        &draft.body,
+        &output,
+        ui.input(|i| i.time),
+    ) {
+        crate::text_marks::Asked::None => {}
+        crate::text_marks::Asked::GoTo(start, end) => {
+            *edit.comment_goto = Some((document.id.clone(), start, end));
+        }
+        crate::text_marks::Asked::Resolve(id) => {
+            edit.intents
+                .push(Intent::ResolveComment { id, resolved: true });
         }
     }
     proofreading_marks(

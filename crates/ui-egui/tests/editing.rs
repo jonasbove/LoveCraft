@@ -1119,6 +1119,66 @@ fn a_scene_goes_to_the_trash_and_comes_back() {
     harness.get_by_role_and_label(Role::TreeItem, "INT. LIGHTHOUSE - NIGHT");
 }
 
+/// Moves the pointer along the scene's first lines until `found` turns up.
+fn hover_until(
+    harness: &mut Harness<'static, ProseApp>,
+    found: impl Fn(&Harness<'static, ProseApp>) -> bool,
+) -> bool {
+    let rect = harness.get_by_label("Scene text").rect();
+    let mut y = rect.top() + 4.0;
+    while y < rect.top() + 120.0 {
+        let mut x = rect.left() + 2.0;
+        while x < rect.right().min(rect.left() + 400.0) {
+            harness.hover_at(egui::pos2(x, y));
+            harness.run_steps(2);
+            if found(harness) {
+                return true;
+            }
+            x += 6.0;
+        }
+        y += 8.0;
+    }
+    false
+}
+
+#[test]
+fn comments_and_wiki_mentions_are_highlighted_with_cards_on_hover() {
+    let bundle = fixture("bundle-plain.prosecraft").replace(
+        "<p>It was <em>dark</em>.",
+        "<p>Mara said it was <em>dark</em>.",
+    );
+    let memory = Memory::default();
+    let mut app =
+        ProseApp::with_library(ProjectLibrary::new("test".into()), Box::new(memory.clone()));
+    app.open_backup("bundle-plain.prosecraft", &bundle);
+    let mut harness = Harness::builder()
+        .with_max_steps(8)
+        .with_size([1280.0, 850.0])
+        .build_ui_state(|ui, app: &mut ProseApp| app.show(ui), app);
+    prosecraft_ui_egui::setup_for_tests(&harness.ctx);
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    // The Wiki article "Mara" is named: hovering it shows the article.
+    assert!(hover_until(&mut harness, |h| h
+        .query_by_label("Wiki article Mara")
+        .is_some()));
+    harness.get_by_label_contains("Notes about Mara.");
+    // The comment on "dark": its card, then Resolve.
+    assert!(hover_until(&mut harness, |h| h
+        .query_by_label("Comment on this text")
+        .is_some()));
+    harness.get_by_label("Darker?");
+    harness.get_by_label("Resolve").click();
+    harness.run_steps(8);
+    assert!(harness.query_by_label("Comment on this text").is_none());
+    assert!(!hover_until(&mut harness, |h| h
+        .query_by_label("Comment on this text")
+        .is_some()));
+}
+
 #[test]
 fn a_backup_opened_without_a_library_offers_no_editing() {
     let mut app = ProseApp::new();

@@ -325,6 +325,9 @@ pub struct AppState {
     last_focus: Option<(egui::Id, Option<egui::text_edit::TextEditState>)>,
     previous_focus: Option<(egui::Id, Option<egui::text_edit::TextEditState>)>,
     menu_was_open: bool,
+    /// ProseCraft's Chapters and Progress toggles: the binder and the progress sidebar hidden.
+    binder_hidden: bool,
+    sidebar_hidden: bool,
     /// The split view panes' editors.
     tiles: split_view::Tiles,
     wiki_store: Option<std::rc::Rc<dyn WikiFileStore>>,
@@ -2590,12 +2593,18 @@ impl ProseApp {
         self.app_shortcuts(ui.ctx());
         self.writing_modes(ui.ctx());
         // Zen and focus mode hide the panes around the text.
-        let hidden: Vec<Pane> = Vec::new();
-        let open = if self.state.zen_hidden {
-            &hidden
-        } else {
-            &self.open
-        };
+        // Zen and focus mode hide both; the toggles hide each (not on the Storyboard, which
+        // has no toggles).
+        let storyboard = self.state.view == WorkspaceView::Storyboard;
+        let shown: Vec<Pane> = self
+            .open
+            .iter()
+            .copied()
+            .filter(|_| !self.state.zen_hidden)
+            .filter(|p| storyboard || !(*p == Pane::Binder && self.state.binder_hidden))
+            .filter(|p| storyboard || !(*p == Pane::Sidebar && self.state.sidebar_hidden))
+            .collect();
+        let open = &shown;
         let output = PaneHost::new(Id::unique("prosecraft-panes"))
             .frame(frame)
             .body_margin(egui::Margin::symmetric(18, 16))

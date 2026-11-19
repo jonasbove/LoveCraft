@@ -625,6 +625,234 @@ fn text_flows_beside_a_picture_wrapped_right() {
     );
 }
 
+/// A new scene with the 2:1 pictures `names` (in that order), each made small and wrapped
+/// `wrap` ("left" or "right"), then `paragraphs` typed in after them.
+fn small_pictures(
+    names: &[(&str, &str)],
+    paragraphs: &[&str],
+) -> (Harness<'static, ProseApp>, Memory) {
+    let (mut harness, memory) = app();
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("an add button")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Scene 1")
+        .click();
+    harness.run();
+    let pixels = craft_image_codecs::Image::from_u8(
+        40,
+        20,
+        craft_image_codecs::ChannelLayout::Rgba,
+        vec![200; 40 * 20 * 4],
+    )
+    .expect("pixels");
+    let png = craft_image_codecs::encode(
+        &pixels,
+        craft_image_codecs::Format::Png,
+        &craft_image_codecs::EncodeOptions::default(),
+    )
+    .expect("png");
+    for (name, _) in names {
+        harness
+            .state_mut()
+            .insert_picture(&format!("{name}.png"), &png);
+        harness.run();
+    }
+    for (name, wrap) in names {
+        harness.get_by_role_and_label(Role::Image, name).click();
+        harness.run();
+        harness.get_by_label("Small image size").click();
+        harness.run_steps(12);
+        harness
+            .get_by_label(&format!("Wrap text beside {wrap}-aligned image"))
+            .click();
+        harness.run_steps(12);
+    }
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::End);
+    harness.key_press(egui::Key::Enter);
+    for paragraph in paragraphs {
+        harness.get_by_label("Scene text").type_text(paragraph);
+        harness.key_press(egui::Key::Enter);
+    }
+    harness.run_steps(12);
+    (harness, memory)
+}
+
+#[test]
+fn small_wrapped_pictures_sit_side_by_side() {
+    let words = "The tide came in over the mud while the lamps went on along the harbour wall, \
+        one by one, until the whole town was lit and the boats lay still. ";
+    let text = words.repeat(3);
+    let (harness, memory) = small_pictures(
+        &[
+            ("Coast map", "left"),
+            ("Harbour", "left"),
+            ("Lighthouse", "right"),
+        ],
+        &[&text],
+    );
+    let stored = content(&memory, "new-1");
+    assert_eq!(
+        stored.matches(r#"data-wrap="wrap-left""#).count(),
+        2,
+        "{stored:.300}"
+    );
+    let rect = |name| harness.get_by_role_and_label(Role::Image, name).rect();
+    let (first, second, right) = (rect("Coast map"), rect("Harbour"), rect("Lighthouse"));
+    // ProseCraft's `margin: 4px 18px 14px 0`: the second beside the first, as CSS floats go.
+    assert!(
+        (second.left() - (first.right() + 18.0)).abs() < 1.0,
+        "{first:?} {second:?}"
+    );
+    assert!(second.top() >= first.top() - 0.5 && second.top() < first.bottom());
+    // The right one on the right, level with the second or lower, and clear of both.
+    assert!(right.left() > second.right() + 18.0, "{second:?} {right:?}");
+    assert!(right.top() >= second.top() - 0.5 && right.top() < first.bottom());
+    // The text beside them runs between them.
+    let bottom = right.bottom().min(second.bottom());
+    let beside: Vec<_> = text_rows(&harness)
+        .into_iter()
+        .filter(|(r, _)| r.top() < bottom)
+        .collect();
+    assert!(
+        !beside.is_empty(),
+        "{:?} {first:?} {second:?} {right:?}",
+        text_rows(&harness)
+    );
+    for (row, text) in &beside {
+        assert!(row.left() >= second.right() + 17.5, "{text} {row:?}");
+        assert!(row.right() <= right.left() - 17.5, "{text} {row:?}");
+    }
+}
+
+#[test]
+fn right_to_left_text_flows_beside_a_wrapped_picture() {
+    // As in ProseCraft (no `dir`): the rows start on the left, beside the picture and below it.
+    let hebrew = "הגאות עלתה על הבוץ בזמן שהפנסים נדלקו לאורך חומת הנמל, אחד אחד, עד שכל העיר \
+        הוארה והסירות שכבו בשקט. ";
+    let text = hebrew.repeat(4);
+    for wrap in ["left", "right"] {
+        let (mut harness, memory) = small_pictures(&[("Coast map", wrap)], &[&text]);
+        let picture = harness
+            .get_by_role_and_label(Role::Image, "Coast map")
+            .rect();
+        let rows = text_rows(&harness);
+        let bottom = picture.bottom() + 14.0;
+        let beside: Vec<_> = rows.iter().filter(|(r, _)| r.top() < bottom).collect();
+        let below: Vec<_> = rows.iter().filter(|(r, _)| r.top() >= bottom).collect();
+        assert!(
+            beside.len() >= 2 && !below.is_empty(),
+            "{rows:?} {picture:?}"
+        );
+        let margin = if wrap == "left" {
+            picture.left()
+        } else {
+            below[0].0.left()
+        };
+        for (row, text) in &below {
+            assert!((row.left() - margin).abs() < 1.0, "{text} {row:?} {margin}");
+        }
+        for (row, text) in &beside {
+            if wrap == "left" {
+                assert!(
+                    (row.left() - (picture.right() + 18.0)).abs() < 1.0,
+                    "{text} {row:?} {picture:?}"
+                );
+            } else {
+                assert!((row.left() - margin).abs() < 1.0, "{text} {row:?}");
+                assert!(row.right() <= picture.left() - 17.5, "{text} {row:?}");
+            }
+        }
+        // A click in a row beside the picture puts the caret among that row's words.
+        let (row, text) = beside[1].clone();
+        click_at(&mut harness, row.center());
+        harness.get_by_label("Scene text").type_text("Q");
+        harness.run_steps(12);
+        let stored = content(&memory, "new-1");
+        let (before, after) = around(&stored, 'Q');
+        assert!(
+            text.contains(&format!("{before}{after}")),
+            "{before}|Q|{after} in {text}"
+        );
+    }
+}
+
+#[test]
+fn right_to_left_paragraphs_start_on_the_left_as_in_prosecraft() {
+    let (mut harness, memory) = app();
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("an add button")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Scene 1")
+        .click();
+    harness.run();
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    let english = "The tide came in over the mud while the lamps went on along the wall. ";
+    let hebrew = "הגאות עלתה על הבוץ בזמן שהפנסים נדלקו לאורך חומת הנמל, אחד אחד. ";
+    for paragraph in [english.repeat(3), hebrew.repeat(3), "שלום".to_owned()] {
+        harness.get_by_label("Scene text").type_text(&paragraph);
+        harness.key_press(egui::Key::Enter);
+    }
+    harness.run_steps(12);
+    let rows = text_rows(&harness);
+    let margin = rows[0].0.left();
+    assert!(rows.len() >= 6, "{rows:?}");
+    for (row, text) in &rows {
+        assert!((row.left() - margin).abs() < 1.0, "{text} {row:?} {margin}");
+    }
+    // A short one too: on the left, not across the column.
+    let (short, _) = rows
+        .iter()
+        .rfind(|(_, t)| t.contains("שלום"))
+        .expect("short");
+    assert!(short.width() < 100.0, "{short:?}");
+    // A click on a Hebrew row puts the caret among its words.
+    let (row, text) = rows
+        .iter()
+        .find(|(_, t)| t.contains("הגאות"))
+        .cloned()
+        .expect("a Hebrew row");
+    click_at(&mut harness, row.center());
+    harness.get_by_label("Scene text").type_text("Q");
+    harness.run_steps(12);
+    let (before, after) = around(&content(&memory, "new-1"), 'Q');
+    assert!(
+        text.contains(&format!("{before}{after}")),
+        "{before}|Q|{after} in {text}"
+    );
+}
+
+/// The four characters of text before and after `mark` in the text of `stored` (its markup
+/// left out).
+fn around(stored: &str, mark: char) -> (String, String) {
+    let mut chars = Vec::new();
+    let mut in_tag = false;
+    for c in stored.chars() {
+        match c {
+            '<' => in_tag = true,
+            '>' => in_tag = false,
+            _ if !in_tag => chars.push(c),
+            _ => {}
+        }
+    }
+    let at = chars.iter().position(|c| *c == mark).unwrap_or(0);
+    let before = chars[at.saturating_sub(4)..at].iter().collect();
+    let after = chars[(at + 1).min(chars.len())..(at + 5).min(chars.len())]
+        .iter()
+        .collect();
+    (before, after)
+}
+
 #[test]
 fn copying_keeps_formatting_for_pasting_back() {
     let (mut harness, memory) = app();

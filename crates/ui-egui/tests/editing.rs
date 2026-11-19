@@ -2309,7 +2309,8 @@ fn typing_into_a_formatted_scene_keeps_its_emphasis_footnote_and_citation() {
         .unwrap_or_default();
     assert_eq!(
         content,
-        r#"<p>It was <em>dark</em>.<sup class="footnote-ref" data-footnote-id="fn-1" contenteditable="false"></sup></p><p>Then <span class="cite-ref" data-cites="[{&quot;id&quot;:&quot;smith2020&quot;}]">(Smith 2020)</span>. It rained.</p>"#
+        // The backup's citation as ProseCraft's sanitizer stores it on import.
+        r#"<p>It was <em>dark</em>.<sup class="footnote-ref" data-footnote-id="fn-1" contenteditable="false"></sup></p><p>Then <span class="cite-ref" data-cites="[{&quot;id&quot;:&quot;smith2020&quot;}]" contenteditable="false"></span>. It rained.</p>"#
     );
 }
 

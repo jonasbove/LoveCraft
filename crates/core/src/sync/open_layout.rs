@@ -112,7 +112,7 @@ fn normalize_body(body: &str) -> String {
 
 /// `normalizeFootnotes`: valid, unique footnote definitions with their HTML sanitized; none
 /// when the value is not a list.
-fn normalize_footnotes(value: Option<&JsValue>) -> Option<JsValue> {
+pub(crate) fn normalize_footnotes(value: Option<&JsValue>) -> Option<JsValue> {
     let list = value?.as_array()?;
     let mut seen = HashSet::new();
     let mut out = Vec::new();

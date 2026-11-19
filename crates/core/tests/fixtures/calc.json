@@ -658,16 +658,14 @@
       "source": "x := 1e400\nx =\ny := 1e-400\ny =\nz := 2^0.5 =\nn := -8\nn^(1/3) =\n10^-3 =\n2^3^2 =\n-2^2 =\n(-2)^2 =",
       "lines": [
         {
-          "kind": "math",
+          "kind": "error",
           "source": "x := 1e400",
-          "latex": "x \\mathrel{:=} 1\\cdot 10^{400}",
-          "plain": "x := 1e400"
+          "message": "The result is undefined or infinite."
         },
         {
-          "kind": "math",
+          "kind": "error",
           "source": "x =",
-          "latex": "x = Infinity\\cdot 10^{NaN}",
-          "plain": "x = Infinity·10^NaN"
+          "message": "x is not defined."
         },
         {
           "kind": "math",
@@ -724,8 +722,8 @@
         }
       ],
       "error": null,
-      "latex": "\\begin{array}{l}\\displaystyle x \\mathrel{:=} 1\\cdot 10^{400}\\\\[0.4em]\\displaystyle x = Infinity\\cdot 10^{NaN}\\\\[0.4em]\\displaystyle y \\mathrel{:=} 1\\cdot 10^{-400}\\\\[0.4em]\\displaystyle y = 0\\\\[0.4em]\\displaystyle z \\mathrel{:=} {2}^{0.5} = 1.414\\\\[0.4em]\\displaystyle n \\mathrel{:=} -8\\\\[0.4em]\\text{nˆ(1/3) =}\\quad\\color{#c0392b}{\\text{The result is undefined or infinite.}}\\\\[0.4em]\\displaystyle {10}^{-3} = 0.001\\\\[0.4em]\\displaystyle {2}^{{3}^{2}} = 512\\\\[0.4em]\\displaystyle -{2}^{2} = -4\\\\[0.4em]\\displaystyle {\\left(-2\\right)}^{2} = 4\\end{array}",
-      "plain": "x := 1e400\nx = Infinity·10^NaN\ny := 1e-400\ny = 0\nz := 2^0.5 = 1.414\nn := -8\nn^(1/3) =  [The result is undefined or infinite.]\n10^-3 = 0.001\n2^3^2 = 512\n-2^2 = -4\n(-2)^2 = 4"
+      "latex": "\\begin{array}{l}\\text{x := 1e400}\\quad\\color{#c0392b}{\\text{The result is undefined or infinite.}}\\\\[0.4em]\\text{x =}\\quad\\color{#c0392b}{\\text{x is not defined.}}\\\\[0.4em]\\displaystyle y \\mathrel{:=} 1\\cdot 10^{-400}\\\\[0.4em]\\displaystyle y = 0\\\\[0.4em]\\displaystyle z \\mathrel{:=} {2}^{0.5} = 1.414\\\\[0.4em]\\displaystyle n \\mathrel{:=} -8\\\\[0.4em]\\text{nˆ(1/3) =}\\quad\\color{#c0392b}{\\text{The result is undefined or infinite.}}\\\\[0.4em]\\displaystyle {10}^{-3} = 0.001\\\\[0.4em]\\displaystyle {2}^{{3}^{2}} = 512\\\\[0.4em]\\displaystyle -{2}^{2} = -4\\\\[0.4em]\\displaystyle {\\left(-2\\right)}^{2} = 4\\end{array}",
+      "plain": "x := 1e400  [The result is undefined or infinite.]\nx =  [x is not defined.]\ny := 1e-400\ny = 0\nz := 2^0.5 = 1.414\nn := -8\nn^(1/3) =  [The result is undefined or infinite.]\n10^-3 = 0.001\n2^3^2 = 512\n-2^2 = -4\n(-2)^2 = 4"
     },
     {
       "source": "a := 3·4 =\nb := 6×7 =\nc := 9−4 =\nlength := 2 ft + 3 in =\nlength = cm\nT := 300 K\nT = K\nn := 2 mol\nlum := 1 cd\nk := 1 \nk =",

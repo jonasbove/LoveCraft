@@ -102,7 +102,8 @@ pub fn read_markdown(
     if !path
         .extension()
         .and_then(|e| e.to_str())
-        .is_some_and(|e| e.eq_ignore_ascii_case("md"))
+        // `.md` and `.markdown`, as `openResearchFile` sends both (jennraeross/ProseCraft#64).
+        .is_some_and(|e| e.eq_ignore_ascii_case("md") || e.eq_ignore_ascii_case("markdown"))
     {
         return Err("Only Markdown research files can be previewed.".to_owned());
     }
@@ -190,6 +191,14 @@ mod tests {
             read_markdown(root_dir, "Novel (abc)", key).as_deref(),
             Ok("# Notes\n\nSome *text*.")
         );
+        // A .markdown file previews too (jennraeross/ProseCraft#64).
+        let long = "research/abc-2/notes.markdown";
+        assert_eq!(import(root_dir, "Novel (abc)", long, &source), Ok(21));
+        assert_eq!(
+            read_markdown(root_dir, "Novel (abc)", long).as_deref(),
+            Ok("# Notes\n\nSome *text*.")
+        );
+        delete(root_dir, "Novel (abc)", long).expect("deleted");
         delete(root_dir, "Novel (abc)", key).expect("deleted");
         assert!(!stored.exists() && !stored.parent().expect("id folder").exists());
         assert!(

@@ -774,6 +774,14 @@ fn content_of(html: &str) -> (String, Vec<String>) {
     (text, atoms)
 }
 
+/// What an atom or kept block is, whatever its attributes: its element and classes.
+fn atom_kind(html: &str) -> String {
+    match parse_fragment(html).first() {
+        Some(Node::Element(e)) => format!("{} {}", e.name, e.attr("class").unwrap_or_default()),
+        _ => String::new(),
+    }
+}
+
 /// [`RichDoc::from_html_normalized`]'s own changes: a `<div>` that isn't a kept block gives
 /// way to its children, and a paragraph in a list (in an item, or straight in the list)
 /// becomes an item of its own.
@@ -914,8 +922,14 @@ impl RichDoc {
         let sanitized = crate::html::sanitize_html(html);
         let unwrapped = crate::html::serialize(&normalize_nodes(parse_fragment(&sanitized)));
         // The text as it was; the atoms as the sanitizer keeps them (it drops attributes
-        // ProseCraft doesn't keep, as its editor does on any edit).
-        let want = (content_of(html).0, content_of(&sanitized).1);
+        // ProseCraft doesn't keep, as its editor does on any edit), but every one of them.
+        let (text, atoms) = content_of(html);
+        let want = (text, content_of(&sanitized).1);
+        let kinds =
+            |atoms: &[String]| -> Vec<String> { atoms.iter().map(|a| atom_kind(a)).collect() };
+        if kinds(&atoms) != kinds(&want.1) {
+            return None;
+        }
         [sanitized, unwrapped].into_iter().find_map(|candidate| {
             Self::from_html(&candidate)
                 .filter(|doc| !doc.empty_source && content_of(&doc.to_html()) == want)
@@ -1706,13 +1720,16 @@ impl RichDoc {
         }
         let line = line.min(self.lines.len() - 1);
         let own = self.lines[line];
+        // Pasted text in no block (or an empty paragraph without its `<br>`) is a paragraph's,
+        // as the browser puts it in the caret's block.
         let first = match pasted.lines.first() {
-            Some(kind) if line_empty => *kind,
+            Some(kind) if line_empty => kind.shown(),
             _ => own,
         };
         let tail = self.lines.split_off(line + 1);
         self.lines[line] = first;
-        self.lines.extend(pasted.lines.iter().skip(1).copied());
+        self.lines
+            .extend(pasted.lines.iter().skip(1).map(|kind| kind.shown()));
         self.lines.extend(tail);
         self.empty_source = false;
         self.keep_blocks_alone();
@@ -2232,6 +2249,27 @@ mod tests {
         // Refused: a character it would change, a block it can't hold.
         assert_eq!(normalized("<p>a\u{2028}b</p>"), None);
         assert_eq!(normalized("<ul><li><pre>code</pre></li></ul>"), None);
+        // Refused: a picture or a footnote marker the sanitizer would drop.
+        assert_eq!(
+            normalized(r#"<h4>x</h4><p>a<img src="https://e.org/x.png" alt=""></p>"#),
+            None
+        );
+        assert_eq!(
+            normalized(
+                r#"<h4>x</h4><p>a<sup class="footnote-ref" data-footnote-id="bad id!"></sup></p>"#
+            ),
+            None
+        );
+    }
+
+    #[test]
+    fn inline_html_pastes_into_the_carets_paragraph() {
+        let mut doc = RichDoc::from_html("<p><br></p>").unwrap_or_default();
+        doc.paste_html(0..0, "hello <em>x</em>");
+        assert_eq!(doc.to_html(), "<p>hello <em>x</em></p>");
+        let mut doc = RichDoc::from_html("<p>a</p>").unwrap_or_default();
+        doc.paste_html(1..1, "<p>b</p>c<p></p>");
+        assert_eq!(doc.to_html(), "<p>ab</p><p>c</p><p><br></p>");
     }
 
     #[test]

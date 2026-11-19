@@ -315,6 +315,7 @@ impl Tile {
     fn emit(&mut self, asked: &mut Asked) {
         let html = prosecraft_core::html::sanitize_html(&self.doc.to_html());
         self.emitted = html.clone();
+        self.source = html.clone();
         self.changed_at = None;
         if self.scene {
             asked.scenes.push((self.document.clone(), html));

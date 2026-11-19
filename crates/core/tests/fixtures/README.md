@@ -73,6 +73,6 @@ kept here; see [`docs/citation-compare.md`](../../../../docs/citation-compare.md
 
 `pdf-standard-fonts.json`, `export-pdf.json` and `export-screenplay-pdf.json` come from the fork's branch `tools/rust-fixtures-pdf`.
 
-`editor-load.json` comes from `src/editor-load.gen.test.ts` on the fork's branch `tools/rust-fixtures-zotero` (at 914e17f).
+`editor-load.json` is written by a generator file of its own, `src/editor-load.gen.test.ts` (run with `PROSECRAFT_FIXTURE_OUT=… npx vitest run src/editor-load.gen.test.ts`), added on top of the fork's `tools/rust-fixtures-zotero` at 914e17f.
 
 `zotero.json`, `custom-styles.json`, `cover.json`, `cover-art.json`, `research.json`, `proofread.json` and `calc.json` come from the fork's branch `tools/rust-fixtures-zotero`, which holds the newer generator cases (the Zotero case first added at 8ccfdd3). `calc.json` and `cover-art.json` were made again at 914e17f, that branch with upstream main merged in, so they follow jennraeross/ProseCraft#62 and #66; `markdown.json` too, for its table case (#60). The other fixtures made there differ from these only by timestamps and generated ids, and `stamping.json` by upstream's newer project fields (`dismissedSuggestions`, from its Network view, after the port's baseline).

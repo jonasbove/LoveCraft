@@ -5845,3 +5845,69 @@ fn the_editor_opens_a_scene_it_holds_only_normalized_without_storing_it() {
             .is_none()
     );
 }
+
+#[test]
+fn a_pane_shows_its_text_put_back_as_it_was_opened() {
+    let (mut harness, memory) = app();
+    harness.set_size(egui::vec2(1700.0, 1000.0));
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness.get_by_label("Open split view").click();
+    harness.run();
+    // Mara's page in two panes.
+    for _ in 0..2 {
+        harness
+            .get_all_by_label("Show in this pane")
+            .last()
+            .expect("a pane")
+            .click();
+        harness.run();
+        harness
+            .get_by_role_and_label(Role::Button, "  Mara")
+            .click();
+        harness.run();
+        if harness.get_all_by_label("Close this pane").count() < 2 {
+            harness.get_by_label("Add another pane").click();
+            harness.run();
+        }
+    }
+    assert_eq!(harness.get_all_by_label("Document text").count(), 2);
+    let pane = |harness: &Harness<'static, ProseApp>, n: usize| {
+        harness
+            .get_all_by_label("Document text")
+            .nth(n)
+            .and_then(|t| t.value())
+            .unwrap_or_default()
+    };
+    let opened = pane(&harness, 0);
+    // Typed in the first pane, then taken back in the second.
+    harness
+        .get_all_by_label("Document text")
+        .next()
+        .expect("the first pane")
+        .focus();
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::End);
+    harness
+        .get_all_by_label("Document text")
+        .next()
+        .expect("the first pane")
+        .type_text(" X");
+    settle(&mut harness);
+    assert!(saved_content(&memory, "doc-2").ends_with("𝔐𝔞𝔯𝔞 X</p>"));
+    harness
+        .get_all_by_label("Document text")
+        .last()
+        .expect("the second pane")
+        .focus();
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::End);
+    harness.key_press(egui::Key::Backspace);
+    harness.key_press(egui::Key::Backspace);
+    settle(&mut harness);
+    assert!(saved_content(&memory, "doc-2").ends_with("𝔐𝔞𝔯𝔞</p>"));
+    // The first pane shows the text as it is now, as it was opened.
+    assert_eq!(pane(&harness, 0), opened);
+}

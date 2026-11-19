@@ -73,7 +73,10 @@ impl FootnoteEdit {
         } else {
             format!("<p>{html}</p>")
         };
-        let doc = RichDoc::from_html(&source);
+        // Only a definition that is one paragraph's inline content (its HTML is written back
+        // without the paragraph).
+        let doc = RichDoc::from_html(&source)
+            .filter(|d| d.lines == [prosecraft_core::richtext::LineKind::Paragraph]);
         Self {
             document: document.to_owned(),
             id: id.to_owned(),

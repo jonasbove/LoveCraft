@@ -14,6 +14,10 @@
 
 #[cfg(target_arch = "wasm32")]
 mod browser;
+#[cfg(target_arch = "wasm32")]
+mod clipboard;
+#[cfg(any(target_arch = "wasm32", test))]
+mod html_slot;
 
 #[cfg(target_arch = "wasm32")]
 mod web {
@@ -203,7 +207,9 @@ mod web {
             else {
                 return;
             };
-            let app = start_app().await;
+            let mut app = start_app().await;
+            // Without it, paste and copy in the editor are plain text.
+            let _ = crate::clipboard::install(&mut app);
             let _ = eframe::WebRunner::new()
                 .start(
                     canvas,

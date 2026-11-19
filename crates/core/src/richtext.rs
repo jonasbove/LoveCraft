@@ -1254,6 +1254,20 @@ impl RichDoc {
         doc.to_html()
     }
 
+    /// Cleaned HTML as the editor would paste it, if it can hold it. Inline content alone (a
+    /// few words copied from a page, or a lone footnote marker) is a paragraph's.
+    fn pasted(cleaned: &str) -> Option<Self> {
+        RichDoc::from_html(cleaned)
+            .or_else(|| RichDoc::from_html(&format!("<p>{cleaned}</p>")))
+            .filter(|p| !p.text.is_empty())
+    }
+
+    /// How many atoms (footnote markers, citations, pictures, equations, diagrams,
+    /// calculations, kept blocks) [`Self::paste_html`] would paste from `html`.
+    pub fn paste_atom_count(html: &str) -> usize {
+        Self::pasted(&crate::html::sanitize::sanitize_html(html)).map_or(0, |p| p.atoms.len())
+    }
+
     /// Pastes HTML over `range` as the browser pastes into ProseCraft's editor (the HTML
     /// cleaned as its input handler cleans it): the first block joins the caret's line (taking
     /// its own kind only on an empty line), the blocks after it keep theirs, and the text after
@@ -1268,11 +1282,7 @@ impl RichDoc {
             .collect();
         self.apply_text_at(&without, Some(start));
         let cleaned = crate::html::sanitize::sanitize_html(html);
-        // Inline content alone (a few words copied from a page) is a paragraph's.
-        let pasted = RichDoc::from_html(&cleaned)
-            .or_else(|| RichDoc::from_html(&format!("<p>{cleaned}</p>")))
-            .filter(|p| !p.text.is_empty());
-        let Some(pasted) = pasted else {
+        let Some(pasted) = Self::pasted(&cleaned) else {
             let plain = crate::html::html_to_plain_text(&cleaned, &Default::default());
             let plain = plain.trim_end_matches('\n');
             let chars: Vec<char> = self.text.chars().collect();
@@ -2194,5 +2204,77 @@ mod slice_tests {
             "<p><em>dark</em> here.</p><h2>Next</h2>"
         );
         assert_eq!(doc.slice_html(3..3), "");
+    }
+}
+
+#[cfg(test)]
+mod atom_paste_tests {
+    use super::*;
+
+    /// One atom of each kind, written as ProseCraft's editor writes it.
+    const ATOMS: [&str; 9] = [
+        r#"<sup class="footnote-ref" data-footnote-id="fn-abc123" contenteditable="false"></sup>"#,
+        r#"<span class="cite-ref" data-cites="[{&quot;id&quot;:&quot;smith2020&quot;}]" contenteditable="false"></span>"#,
+        r#"<span class="math-inline" data-tex="x^2"></span>"#,
+        r#"<img src="data:image/png;base64,AA==" alt="Map">"#,
+        r#"<div class="math-block" data-tex="a^2"></div>"#,
+        r#"<div class="mermaid-diagram" data-source="graph TD; A-->B"></div>"#,
+        r#"<div class="calc-worksheet" data-source="x := 2"></div>"#,
+        "<hr>",
+        "<pre>let x = 1;</pre>",
+    ];
+
+    /// A scene holding `atom`, and the atom's character.
+    fn scene_with(atom: &str) -> (RichDoc, usize) {
+        let html = if is_block_atom(atom) {
+            format!("<p>A</p>{atom}<p>B</p>")
+        } else {
+            format!("<p>A{atom}B</p>")
+        };
+        let doc = RichDoc::from_html(&html).expect("held");
+        let at = doc.text.chars().position(|c| c == ATOM).expect("an atom");
+        (doc, at)
+    }
+
+    #[test]
+    fn a_lone_atom_copied_pastes_back_as_itself() {
+        for atom in ATOMS {
+            let (doc, at) = scene_with(atom);
+            let copied = crate::html::sanitize::sanitize_html(&doc.slice_html(at..at + 1));
+            assert_eq!(RichDoc::paste_atom_count(&copied), 1, "{atom}: {copied}");
+            let mut target = RichDoc::from_html("<p>Hello world</p>").expect("held");
+            let (_, caret) = target.paste_html(5..5, &copied);
+            assert_eq!(caret, 6, "{atom}");
+            let expected = if is_block_atom(atom) {
+                format!("<p>Hello</p>{atom}<p> world</p>")
+            } else {
+                format!("<p>Hello{atom} world</p>")
+            };
+            assert_eq!(target.to_html(), expected);
+        }
+    }
+
+    #[test]
+    fn a_pasted_footnote_marker_keeps_its_id() {
+        // As in ProseCraft, the copy refers to the same footnote (and takes its number).
+        let (doc, at) = scene_with(ATOMS[0]);
+        let copied = doc.slice_html(at..at + 1);
+        let mut again = doc.clone();
+        let end = again.text.chars().count();
+        again.paste_html(end..end, &copied);
+        assert_eq!(
+            crate::footnotes::extract_ids(&again.to_html()),
+            ["fn-abc123", "fn-abc123"]
+        );
+    }
+
+    #[test]
+    fn text_without_atoms_counts_none() {
+        assert_eq!(RichDoc::paste_atom_count("<p>Just words</p>"), 0);
+        assert_eq!(RichDoc::paste_atom_count(""), 0);
+        assert_eq!(
+            RichDoc::paste_atom_count(&format!("<p>x{}y{}</p>", ATOMS[0], ATOMS[1])),
+            2
+        );
     }
 }

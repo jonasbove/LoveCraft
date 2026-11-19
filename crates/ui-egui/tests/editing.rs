@@ -697,6 +697,63 @@ fn copying_keeps_formatting_for_pasting_back() {
 }
 
 #[test]
+fn a_footnote_marker_copied_alone_pastes_back() {
+    let (mut harness, memory) = app();
+    let board: Board = Default::default();
+    let (writer, reader) = (board.clone(), board.clone());
+    harness
+        .state_mut()
+        .set_clipboard_writer(Arc::new(move |html: &str, text: &str| {
+            *writer.lock().expect("board") = (html.to_owned(), text.to_owned());
+        }));
+    harness.state_mut().set_clipboard_html(Arc::new(move || {
+        Some(reader.lock().expect("board").0.clone()).filter(|h| !h.is_empty())
+    }));
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    // The marker after "It was dark.": twelve right from the start, one with Shift.
+    for _ in 0..3 {
+        harness.key_press(egui::Key::ArrowUp);
+    }
+    harness.key_press(egui::Key::Home);
+    for _ in 0..12 {
+        harness.key_press(egui::Key::ArrowRight);
+    }
+    harness.key_press_modifiers(egui::Modifiers::SHIFT, egui::Key::ArrowRight);
+    harness.run();
+    harness.event(egui::Event::Copy);
+    harness.run();
+    let (html, text) = board.lock().expect("board").clone();
+    assert!(html.contains(r#"data-footnote-id="fn-1""#), "{html}");
+    // The hosts send no paste for an empty text: the copy has one to paste with.
+    assert!(!text.is_empty());
+    // The end of the scene.
+    for _ in 0..3 {
+        harness.key_press(egui::Key::ArrowDown);
+    }
+    harness.key_press(egui::Key::End);
+    harness.run();
+    harness.event(egui::Event::Paste(text));
+    harness.run_steps(12);
+    let stored = content(&memory, "doc-1");
+    // The same footnote, referred to again (as ProseCraft pastes it), and nothing else.
+    assert_eq!(
+        stored.matches(r#"data-footnote-id="fn-1""#).count(),
+        2,
+        "{stored}"
+    );
+    assert!(
+        stored.ends_with(r#"</span>.<sup class="footnote-ref" data-footnote-id="fn-1" contenteditable="false"></sup></p>"#),
+        "{stored}"
+    );
+    assert!(!stored.contains('\u{FFFC}'), "{stored}");
+}
+
+#[test]
 fn pasting_keeps_the_clipboards_formatting_and_pictures() {
     let (mut harness, memory) = app();
     let html = std::sync::Arc::new(std::sync::Mutex::new(String::new()));

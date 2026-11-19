@@ -1491,3 +1491,33 @@ fn minor_headings_stay_blocks() {
         Some("<p>Before</p><p>Fourth level</p><p>After</p>")
     );
 }
+
+/// Markdown passes raw HTML through: a `<script>`, `<style>` or `<template>` that is never
+/// closed would take the rest of the scene with it. The writing after it stays; a closed one
+/// is still dropped with its content.
+#[test]
+fn an_unclosed_script_or_style_keeps_the_writing_after_it() {
+    use prosecraft_core::html::sanitize_html;
+    use prosecraft_core::markdown::markdown_to_html;
+    let clean = |md: &str| sanitize_html(&markdown_to_html(md));
+    assert_eq!(
+        clean("She wrote <script> on the board.\n\nNext paragraph."),
+        "<p>She wrote  on the board.</p>\n<p>Next paragraph.</p>\n"
+    );
+    assert_eq!(
+        clean("A <template> tag.\n\nAfter."),
+        "<p>A  tag.</p>\n<p>After.</p>\n"
+    );
+    assert_eq!(
+        clean("Raw <style>.a{}</style> inline\n\nAfter."),
+        "<p>Raw  inline</p>\n<p>After.</p>\n"
+    );
+    assert_eq!(
+        sanitize_html("<p>x<script>bad()</script>y</p>"),
+        "<p>xy</p>"
+    );
+    assert_eq!(
+        sanitize_html("<p>a<STYLE type=x>b{}</Style>c</p><p>d<script"),
+        "<p>ac</p><p>d</p>"
+    );
+}

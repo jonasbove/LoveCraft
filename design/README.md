@@ -157,7 +157,8 @@ Settings, the starter for a new project, project settings, labels, sources, the 
 editor, find and replace, and the imports are egui windows over the page (`window_fill` = `surface_raised`,
 1 px `border`, radius 10). Settings is a list of categories on the left (General, Writing, Proofreading, Data and
 sync, About) and the category's groups on the right. The character card, opened from the Network view, is
-ProseCraft's panel at the window's right: 380 wide, 12 from the top, right and bottom, its sheet scrolling inside.
+ProseCraft's panel at the window's right: 380 wide (less on a narrow window), 12 from the right edge, reaching
+from 12 below the menu bar to 12 above the bottom, its sheet scrolling inside.
 
 ## Components
 

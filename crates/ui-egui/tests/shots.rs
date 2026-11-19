@@ -104,8 +104,7 @@ fn shots() {
     let Some(dir) = out_dir() else {
         return;
     };
-    // The showcase as the library file the app starts with (an import would leave its
-    // "Added 1 project" note in the status line).
+    // The showcase as the library file the app starts with.
     let library = ProjectLibrary::from_text(&showcase()).unwrap_or_else(|e| panic!("{e}"));
     let app = ProseApp::with_library(library, Box::new(Nowhere));
     assert!(
@@ -133,8 +132,8 @@ fn shots() {
     let h = &mut harness;
 
     // The hero: a scene in the Write view, with its comments. Every chapter starts open; the last
-    // two are folded so the binder has room for the Wiki's places as well as its characters (the
-    // fold lasts the session, so every later shot has it too).
+    // two are folded so the binder has room for the Wiki's first places as well as its characters
+    // (the fold lasts the session, so every later shot has it too).
     tab(h, "Write");
     open(h, "Fog on the Quay");
     for chapter in ["The Ledger", "Lantern Night"] {
@@ -163,8 +162,9 @@ fn shots() {
     h.get_by_label("Hide progress sidebar").click();
     h.run();
     // Re-layout steps the layout's seed and refits the view. In the first arrangement the
-    // Orchard's edge runs through its name and Tobiah Marsh's is cut short; the third keeps every
-    // name whole except Saltmarsh Quay's, which is too long for any of them.
+    // Orchard's suggested edge runs through its name, in the second Tobiah Marsh's name is cut
+    // short; the third keeps every name whole but Saltmarsh Quay's, which no arrangement has room
+    // for. Delphine's arrow to Oren is too short for its label in every one tried.
     for _ in 0..2 {
         h.get_by_label("↺ Re-layout").click();
         h.run_steps(8);

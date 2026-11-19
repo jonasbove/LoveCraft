@@ -34,7 +34,7 @@
 <br>
 
 <p align="center">
-  <img src="docs/screenshots/write.png" alt="The Write view in the dark theme: the binder on the left with the opening chapters' scenes, two chapters folded and the wiki's characters and places, the opening scene of an invented novel, The Glass Orchard, in a serif column with two passages highlighted for comments and character names marked, and the Comments sidebar on the right with an editor's two notes" width="100%">
+  <img src="docs/screenshots/write.png" alt="The Write view in the dark theme: the binder on the left with the opening chapters' scenes, two chapters folded and the wiki's characters and first places, the opening scene of an invented novel, The Glass Orchard, in a serif column with two passages highlighted for comments and character names marked, and the Comments sidebar on the right with an editor's two notes" width="100%">
   <br><sub>Writing a scene, with an editor's comments beside it. The novel in every picture, <i>The Glass Orchard</i>, was made up for them.</sub>
 </p>
 
@@ -101,7 +101,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/network.png" alt="The Network view: a graph of the wiki's pages, with Ines Calder joined to Tobiah Marsh (childhood friends), Delphine Calder (aunt) and Oren Lisle (wants the ledger), Delphine in Oren's debt, a dashed suggested link from Ines to The Orchard (3 scenes), and two places" width="100%">
+  <img src="docs/screenshots/network.png" alt="The Network view: a graph of the wiki's pages, with Ines Calder joined to Tobiah Marsh (childhood friends), Delphine Calder (aunt) and Oren Lisle (wants the ledger), an arrow from Delphine to Oren (in his debt, its label left out for want of room), a dashed suggested link from Ines to The Orchard (3 scenes), and two unlinked places" width="100%">
   <br><sub><b>Network.</b> The relations between your wiki's pages, and the ones the text suggests: Ines and the Orchard share three scenes.</sub>
 </p>
 

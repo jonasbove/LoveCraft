@@ -378,6 +378,77 @@ fn a_selected_picture_is_laid_out_from_its_toolbar() {
 }
 
 #[test]
+fn copying_keeps_formatting_for_pasting_back() {
+    let (mut harness, memory) = app();
+    type Board = std::sync::Arc<std::sync::Mutex<(String, String)>>;
+    let board: Board = Default::default();
+    let (writer, reader) = (board.clone(), board.clone());
+    harness
+        .state_mut()
+        .set_clipboard_writer(std::sync::Arc::new(move |html: &str, text: &str| {
+            *writer.lock().expect("board") = (html.to_owned(), text.to_owned());
+        }));
+    harness
+        .state_mut()
+        .set_clipboard_html(std::sync::Arc::new(move || {
+            Some(reader.lock().expect("board").0.clone()).filter(|h| !h.is_empty())
+        }));
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    // "dark", in italics: Home of the first line, seven right, four with Shift.
+    for _ in 0..3 {
+        harness.key_press(egui::Key::ArrowUp);
+    }
+    harness.key_press(egui::Key::Home);
+    for _ in 0..7 {
+        harness.key_press(egui::Key::ArrowRight);
+    }
+    for _ in 0..4 {
+        harness.key_press_modifiers(egui::Modifiers::SHIFT, egui::Key::ArrowRight);
+    }
+    harness.run();
+    harness.event(egui::Event::Copy);
+    harness.run();
+    assert_eq!(
+        board.lock().expect("board").clone(),
+        ("<p><em>dark</em></p>".to_owned(), "dark".to_owned())
+    );
+    // Cut: taken out of the scene.
+    harness.event(egui::Event::Cut);
+    harness.run_steps(12);
+    let text = content(&memory, "doc-1");
+    assert!(text.starts_with("<p>It was ."), "{text}");
+    // Pasted back: in italics again.
+    harness.event(egui::Event::Paste("dark".into()));
+    harness.run_steps(12);
+    let text = content(&memory, "doc-1");
+    assert!(text.starts_with("<p>It was <em>dark</em>."), "{text}");
+    // A passage with its footnote marker and citation: both come back.
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    harness.run();
+    harness.event(egui::Event::Copy);
+    harness.run();
+    let (html, text) = board.lock().expect("board").clone();
+    assert!(
+        html.contains("footnote-ref") && html.contains("cite-ref"),
+        "{html}"
+    );
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::End);
+    harness.run();
+    harness.event(egui::Event::Paste(text));
+    harness.run_steps(12);
+    let stored = content(&memory, "doc-1");
+    assert_eq!(stored.matches("footnote-ref").count(), 2, "{stored}");
+    assert_eq!(stored.matches("cite-ref").count(), 2, "{stored}");
+}
+
+#[test]
 fn pasting_keeps_the_clipboards_formatting_and_pictures() {
     let (mut harness, memory) = app();
     let html = std::sync::Arc::new(std::sync::Mutex::new(String::new()));

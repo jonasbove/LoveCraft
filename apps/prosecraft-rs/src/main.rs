@@ -600,6 +600,18 @@ fn main() -> ExitCode {
     app.set_clipboard_html(Arc::new(|| {
         arboard::Clipboard::new().ok()?.get().html().ok()
     }));
+    // A copy in the editor: its HTML, and its text for other apps.
+    // One clipboard kept for the app's life: on Linux what is put on it is served by it.
+    static CLIPBOARD: std::sync::OnceLock<std::sync::Mutex<Option<arboard::Clipboard>>> =
+        std::sync::OnceLock::new();
+    app.set_clipboard_writer(Arc::new(|html: &str, text: &str| {
+        let lock = CLIPBOARD.get_or_init(|| std::sync::Mutex::new(arboard::Clipboard::new().ok()));
+        if let Ok(mut held) = lock.lock()
+            && let Some(clipboard) = held.as_mut()
+        {
+            let _ = clipboard.set().html(html, Some(text));
+        }
+    }));
     // Edit > Paste in the menu bar: the clipboard's text.
     app.set_clipboard_text(Arc::new(|| arboard::Clipboard::new().ok()?.get_text().ok()));
     // Zotero on this computer, through its local HTTP server.

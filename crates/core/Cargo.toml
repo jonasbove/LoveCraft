@@ -44,6 +44,8 @@ ratex-types = { workspace = true }
 ratex-svg = { workspace = true }
 resvg = { workspace = true }
 mermaid-rs-renderer = { workspace = true }
+# The network layout's sine and cosine, as JavaScript computes them.
+libm = { workspace = true }
 
 # The operating system's random numbers on the desktop. The web build supplies the browser's
 # `crypto.getRandomValues` through `RandomSource` instead.

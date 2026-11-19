@@ -924,26 +924,35 @@ fn copying_keeps_formatting_for_pasting_back() {
     assert_eq!(stored.matches("cite-ref").count(), 2, "{stored}");
 }
 
-#[test]
-fn a_footnote_marker_copied_alone_pastes_back() {
+/// The app with a clipboard for its copies, read back as the desktop host reads it: its HTML
+/// for rich paste, and with the clipboard keys the app's, its HTML when its text is empty.
+fn app_with_clipboard() -> (Harness<'static, ProseApp>, Memory, Board) {
     let (mut harness, memory) = app();
     let board: Board = Default::default();
-    let (writer, reader) = (board.clone(), board.clone());
-    harness
-        .state_mut()
-        .set_clipboard_writer(Arc::new(move |html: &str, text: &str| {
-            *writer.lock().expect("board") = (html.to_owned(), text.to_owned());
-        }));
-    harness.state_mut().set_clipboard_html(Arc::new(move || {
+    let (writer, reader, keys) = (board.clone(), board.clone(), board.clone());
+    let app = harness.state_mut();
+    app.set_clipboard_writer(Arc::new(move |html: &str, text: &str| {
+        *writer.lock().expect("board") = (html.to_owned(), text.to_owned());
+    }));
+    app.set_clipboard_html(Arc::new(move || {
         Some(reader.lock().expect("board").0.clone()).filter(|h| !h.is_empty())
     }));
+    app.set_clipboard_keys(Arc::new(move || {
+        let (html, text) = keys.lock().expect("board").clone();
+        Some(html).filter(|h| !h.is_empty() && text.is_empty())
+    }));
+    (harness, memory, board)
+}
+
+/// Selects the footnote marker after "It was dark." in the opening scene.
+fn select_the_footnote_marker(harness: &mut Harness<'static, ProseApp>) {
     harness
         .get_by_role_and_label(Role::TreeItem, "Opening Scene")
         .click();
     harness.run();
     harness.get_by_label("Scene text").focus();
     harness.run();
-    // The marker after "It was dark.": twelve right from the start, one with Shift.
+    // Twelve right from the start, one with Shift.
     for _ in 0..3 {
         harness.key_press(egui::Key::ArrowUp);
     }
@@ -953,22 +962,20 @@ fn a_footnote_marker_copied_alone_pastes_back() {
     }
     harness.key_press_modifiers(egui::Modifiers::SHIFT, egui::Key::ArrowRight);
     harness.run();
-    harness.event(egui::Event::Copy);
-    harness.run();
-    let (html, text) = board.lock().expect("board").clone();
-    assert!(html.contains(r#"data-footnote-id="fn-1""#), "{html}");
-    // The hosts send no paste for an empty text: the copy has one to paste with.
-    assert!(!text.is_empty());
-    // The end of the scene.
+}
+
+/// The end of the opening scene.
+fn to_the_end(harness: &mut Harness<'static, ProseApp>) {
     for _ in 0..3 {
         harness.key_press(egui::Key::ArrowDown);
     }
     harness.key_press(egui::Key::End);
     harness.run();
-    harness.event(egui::Event::Paste(text));
-    harness.run_steps(12);
-    let stored = content(&memory, "doc-1");
-    // The same footnote, referred to again (as ProseCraft pastes it), and nothing else.
+}
+
+/// The scene ends with the marker pasted again (the same footnote, as ProseCraft pastes it).
+fn assert_marker_pasted_at_the_end(memory: &Memory) {
+    let stored = content(memory, "doc-1");
     assert_eq!(
         stored.matches(r#"data-footnote-id="fn-1""#).count(),
         2,
@@ -979,6 +986,85 @@ fn a_footnote_marker_copied_alone_pastes_back() {
         "{stored}"
     );
     assert!(!stored.contains('\u{FFFC}'), "{stored}");
+}
+
+#[test]
+fn a_footnote_marker_copied_alone_pastes_back() {
+    let (mut harness, memory, board) = app_with_clipboard();
+    select_the_footnote_marker(&mut harness);
+    // Ctrl+C, the app's own key on the desktop.
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::C);
+    harness.run();
+    let (html, text) = board.lock().expect("board").clone();
+    assert!(html.contains(r#"data-footnote-id="fn-1""#), "{html}");
+    // No text, as the browser writes none for the marker: nothing in another app's field.
+    assert_eq!(text, "");
+    to_the_end(&mut harness);
+    // Ctrl+V: no paste event comes for an empty text; the app reads the HTML itself.
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::V);
+    harness.run_steps(12);
+    assert_marker_pasted_at_the_end(&memory);
+}
+
+#[test]
+fn a_footnote_marker_pastes_back_from_the_edit_menu() {
+    let (mut harness, memory, board) = app_with_clipboard();
+    let reader = board.clone();
+    harness.state_mut().set_clipboard_text(Arc::new(move || {
+        Some(reader.lock().expect("board").1.clone())
+    }));
+    select_the_footnote_marker(&mut harness);
+    menu(&mut harness, "Edit", "Copy");
+    harness.run();
+    assert_eq!(board.lock().expect("board").1, "");
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    to_the_end(&mut harness);
+    menu(&mut harness, "Edit", "Paste");
+    harness.run_steps(12);
+    assert_marker_pasted_at_the_end(&memory);
+}
+
+#[test]
+fn a_footnote_marker_pastes_back_from_a_page_paste_with_no_text() {
+    // The browser hands over a paste's HTML with no text itself (eframe sends no paste event).
+    let (mut harness, memory, board) = app_with_clipboard();
+    let page: Arc<Mutex<Option<String>>> = Default::default();
+    let taken = page.clone();
+    harness
+        .state_mut()
+        .set_html_paste(Arc::new(move || taken.lock().expect("page").take()));
+    select_the_footnote_marker(&mut harness);
+    harness.event(egui::Event::Copy);
+    harness.run();
+    to_the_end(&mut harness);
+    *page.lock().expect("page") = Some(board.lock().expect("board").0.clone());
+    harness.run_steps(12);
+    assert_marker_pasted_at_the_end(&memory);
+    // Taken once: the next frames paste nothing more.
+    harness.run_steps(4);
+    assert_eq!(content(&memory, "doc-1").matches("footnote-ref").count(), 2);
+}
+
+#[test]
+fn a_picture_copied_alone_pastes_back_as_a_picture() {
+    // Its text is its description, as the browser writes it; pasted back with the HTML, the
+    // picture returns, not the words.
+    let (mut harness, memory, board) = app_with_clipboard();
+    let picture = r#"<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==" alt="A goat"></p>"#;
+    *board.lock().expect("board") = (picture.to_owned(), "A goat".to_owned());
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    to_the_end(&mut harness);
+    harness.event(egui::Event::Paste("A goat".into()));
+    harness.run_steps(12);
+    let stored = content(&memory, "doc-1");
+    assert!(stored.contains(r#"alt="A goat""#), "{stored}");
+    assert!(!stored.contains("A goat</"), "{stored}");
 }
 
 /// The stored footnote definitions' ids of a document.

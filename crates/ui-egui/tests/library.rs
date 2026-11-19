@@ -767,16 +767,16 @@ fn a_loose_list_is_edited_as_it_is() {
 #[test]
 fn a_scene_the_rich_editor_holds_only_simplified_still_opens_as_markdown() {
     let memory = Memory::default();
-    let mut app = ProseApp::with_library(
-        ProjectLibrary::new("this-device".into()),
-        Box::new(memory.clone()),
-    );
-    // A fourth-level heading, which the rich editor holds only simplified (as ProseCraft's
-    // sanitizer writes it: its text in no block) and stores so only once it is edited.
+    // A fourth-level heading, which the rich editor holds only simplified (as the sanitizer
+    // writes it: a paragraph) and stores so only once it is edited. In the app's own library:
+    // a backup opened from outside would be sanitized on import.
     let opening = r#"<p>It was <em>dark</em>.<sup class=\"footnote-ref\" data-footnote-id=\"fn-1\" contenteditable=\"false\"></sup></p><p>Then <span class=\"cite-ref\" data-cites=\"[{&quot;id&quot;:&quot;smith2020&quot;}]\">(Smith 2020)</span>.</p>"#;
     let bundle = fixture("bundle-plain.prosecraft").replace(opening, "<h4>One</h4><p>a</p>");
     assert!(bundle.contains("<h4>One</h4>"));
-    app.open_backup("bundle-plain.prosecraft", &bundle);
+    let app = ProseApp::with_library(
+        ProjectLibrary::from_text(&bundle).expect("library"),
+        Box::new(memory.clone()),
+    );
     let mut harness = harness(app);
     harness.run();
     harness

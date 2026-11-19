@@ -137,10 +137,64 @@ pub fn serialize(nodes: &[Node]) -> String {
     out
 }
 
+/// Elements whose content is dropped (see the sanitizer's module notes).
+const DROPPED: [&str; 3] = ["script", "style", "template"];
+
+/// `html` without the start tags of dropped elements that are never closed. A browser reads
+/// everything after such a tag as its content, so the sanitizer would drop the rest of the
+/// scene with it: Markdown passes raw HTML through, and "She wrote <script> on the board."
+/// lost the board and every paragraph after it. Such a tag is left out instead, and the writing
+/// after it read as usual.
+fn without_unclosed_dropped(html: &str) -> std::borrow::Cow<'_, str> {
+    let lower = html.to_ascii_lowercase();
+    let mut cuts: Vec<(usize, usize)> = Vec::new();
+    for name in DROPPED {
+        let open = format!("<{name}");
+        let close = format!("</{name}");
+        let mut from = 0;
+        while let Some(at) = lower[from..].find(&open).map(|i| i + from) {
+            let after = lower.as_bytes().get(at + open.len()).copied();
+            from = at + open.len();
+            if !matches!(
+                after,
+                Some(b'>' | b'/' | b' ' | b'\t' | b'\n' | b'\r' | 0x0c) | None
+            ) {
+                continue;
+            }
+            let Some(end) = lower[at..].find('>').map(|i| i + at + 1) else {
+                break;
+            };
+            if lower[end..].contains(&close) {
+                // Closed: dropped with its content, and the scan goes on after its end tag.
+                from = lower[end..].find(&close).map_or(lower.len(), |i| i + end);
+                continue;
+            }
+            cuts.push((at, end));
+            from = end;
+        }
+    }
+    if cuts.is_empty() {
+        return std::borrow::Cow::Borrowed(html);
+    }
+    cuts.sort_unstable();
+    let mut out = String::with_capacity(html.len());
+    let mut last = 0;
+    for (start, end) in cuts {
+        if start >= last {
+            out.push_str(&html[last..start]);
+            last = end;
+        }
+    }
+    out.push_str(&html[last..]);
+    std::borrow::Cow::Owned(out)
+}
+
 /// Parses an HTML fragment into the children of an implicit body.
 pub fn parse_fragment(html: &str) -> Vec<Node> {
+    let cleaned = without_unclosed_dropped(html);
+    let html: &str = &cleaned;
     let options = craft_html::Options {
-        drop: &["script", "style", "template"],
+        drop: &DROPPED,
         ..craft_html::Options::default()
     };
     let mut stack: Vec<Element> = vec![Element {

@@ -3016,10 +3016,10 @@ mod tests {
     #[test]
     fn normalized_shapes_keep_every_character_or_are_refused() {
         let normalized = |html: &str| RichDoc::from_html_normalized(html).map(|d| d.to_html());
-        // ProseCraft's sanitizer: an `h4` is unwrapped, as its editor stores it.
+        // The sanitizer: an `h4` becomes a paragraph (jennraeross/ProseCraft#70).
         assert_eq!(
             normalized("<p>a</p><h4>Four</h4>").as_deref(),
-            Some("<p>a</p>Four")
+            Some("<p>a</p><p>Four</p>")
         );
         // As ProseCraft's sanitizer balances a stray end tag: the paragraphs go in the list.
         assert_eq!(

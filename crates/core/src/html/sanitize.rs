@@ -45,6 +45,13 @@ const SAFE: &[&str] = &[
 const INLINE_SAFE: &[&str] = &[
     "a", "b", "br", "code", "del", "em", "i", "s", "strike", "strong", "u",
 ];
+/// Elements that can't sit in a paragraph.
+fn is_block(node: &Node) -> bool {
+    matches!(node, Node::Element(e) if matches!(e.name.as_str(),
+        "p" | "div" | "h1" | "h2" | "h3" | "ul" | "ol" | "li" | "blockquote" | "pre" | "hr"
+            | "table" | "tbody" | "thead" | "tr" | "td" | "th"))
+}
+
 const SCREENPLAY: &[&str] = &[
     "scene-heading",
     "action",
@@ -224,6 +231,25 @@ fn clean(node: &Node, inline: bool, out: &mut Vec<Node>) {
             vec![attr("class", &class), attr("contenteditable", "false")],
             children,
         ));
+        return;
+    }
+    // The editor has three heading levels. Deeper headings from a paste or an import become
+    // paragraphs, so each stays its own block (ProseCraft's sanitizer unwraps them to bare text
+    // and headings in a row run together: jennraeross/ProseCraft#70; this follows the fix
+    // proposed there).
+    // Only inline content is wrapped, so the result reads back the same when it is sanitized
+    // again; a heading holding blocks is unwrapped as before, an empty one dropped.
+    if !inline && matches!(e.name.as_str(), "h4" | "h5" | "h6") {
+        let mut children = Vec::new();
+        clean_children(&e.children, inline, &mut children);
+        let empty = children
+            .iter()
+            .all(|c| matches!(c, Node::Text(t) if t.chars().all(is_js_whitespace)));
+        if children.iter().any(is_block) {
+            out.extend(children);
+        } else if !empty {
+            out.push(element("p", Vec::new(), children));
+        }
         return;
     }
     let allowed = if inline { INLINE_SAFE } else { SAFE };

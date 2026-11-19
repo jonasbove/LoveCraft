@@ -2507,9 +2507,12 @@ fn comments_and_wiki_mentions_are_highlighted_with_cards_on_hover() {
         "<p>Mara said it was <em>dark</em>.",
     );
     let memory = Memory::default();
-    let mut app =
-        ProseApp::with_library(ProjectLibrary::new("test".into()), Box::new(memory.clone()));
-    app.open_backup("bundle-plain.prosecraft", &bundle);
+    // In the app's own library, as stored: a backup opened from outside would be sanitized
+    // on import, and the heading would already be a paragraph.
+    let app = ProseApp::with_library(
+        ProjectLibrary::from_text(&bundle).expect("library"),
+        Box::new(memory.clone()),
+    );
     let mut harness = Harness::builder()
         .with_max_steps(8)
         .with_size([1280.0, 850.0])
@@ -3241,17 +3244,20 @@ fn a_scene_pane_writes_its_chapter_back_and_leaves_text_it_cannot_hold_alone() {
 
 #[test]
 fn a_pane_says_when_a_scene_is_simplified_once_edited() {
-    // The lighthouse scene with a fourth-level heading, which ProseCraft's sanitizer (and so
-    // this editor) writes as plain text once the scene is edited.
+    // The lighthouse scene with a fourth-level heading, which the sanitizer writes as a
+    // paragraph once the scene is edited.
     let bundle = fixture("bundle-plain.prosecraft").replace(
         r#"<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p>"#,
         r#"<p data-sp=\"scene-heading\">INT. LIGHTHOUSE - NIGHT</p><h4>Night</h4>"#,
     );
     assert!(bundle.contains("<h4>Night</h4>"));
     let memory = Memory::default();
-    let mut app =
-        ProseApp::with_library(ProjectLibrary::new("test".into()), Box::new(memory.clone()));
-    app.open_backup("bundle-plain.prosecraft", &bundle);
+    // In the app's own library, as stored: a backup opened from outside would be sanitized
+    // on import, and the heading would already be a paragraph.
+    let app = ProseApp::with_library(
+        ProjectLibrary::from_text(&bundle).expect("library"),
+        Box::new(memory.clone()),
+    );
     let mut harness = Harness::builder()
         .with_max_steps(8)
         .with_size([1700.0, 1000.0])
@@ -6237,17 +6243,20 @@ fn a_screenplay_pdf_exports_from_the_publish_view() {
 
 /// The app with the fixture backup, the first scene's text wrapped in a `<div>` (as an import
 /// may leave it): HTML the editor holds only in a normalized shape.
-/// The opening scene after a fourth-level heading, which ProseCraft's sanitizer (and so this
-/// editor) writes as plain text once the scene is edited.
+/// The opening scene after a fourth-level heading, which the sanitizer writes as a paragraph
+/// once the scene is edited.
 fn app_with_simplified_scene() -> (Harness<'static, ProseApp>, Memory) {
     let bundle = fixture("bundle-plain.prosecraft").replace(
         "<p>It was <em>dark</em>.",
         "<h4>Before</h4><p>It was <em>dark</em>.",
     );
     let memory = Memory::default();
-    let mut app =
-        ProseApp::with_library(ProjectLibrary::new("test".into()), Box::new(memory.clone()));
-    app.open_backup("bundle-plain.prosecraft", &bundle);
+    // In the app's own library, as stored: a backup opened from outside would be sanitized
+    // on import, and the heading would already be a paragraph.
+    let app = ProseApp::with_library(
+        ProjectLibrary::from_text(&bundle).expect("library"),
+        Box::new(memory.clone()),
+    );
     let mut harness = Harness::builder()
         .with_max_steps(8)
         .with_size([1700.0, 1000.0])
@@ -6338,7 +6347,7 @@ fn a_pane_edits_a_scene_it_holds_only_normalized_and_stores_it_only_once_typed_i
     let content = saved_content(&memory, "doc-1");
     assert!(!content.contains(heading), "{content}");
     assert!(
-        content.starts_with("Before<p>It was <em>dark</em>.<sup")
+        content.starts_with("<p>Before</p><p>It was <em>dark</em>.<sup")
             && content.ends_with(". Later.</p>"),
         "{content}"
     );
@@ -6369,7 +6378,7 @@ fn the_editor_opens_a_scene_it_holds_only_normalized_without_storing_it() {
     harness.run_steps(12);
     let content = saved_content(&memory, "doc-1");
     assert!(
-        content.starts_with("Before<p>It was <em>dark</em>.<sup")
+        content.starts_with("<p>Before</p><p>It was <em>dark</em>.<sup")
             && content.ends_with(". Later.</p>"),
         "{content}"
     );

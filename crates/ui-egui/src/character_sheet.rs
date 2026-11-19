@@ -84,6 +84,9 @@ fn set_meta(out: &mut Out, page: &Doc, meta: Option<JsValue>) {
     });
 }
 
+/// The character card's width (`CharacterCardPanel.svelte`'s `min(380px, 100vw - 24px)`).
+const CARD_WIDTH: f32 = 380.0;
+
 /// `CharacterCardPanel.svelte`: the sheet in a panel at the right, closed with × or Escape.
 pub(crate) fn card_panel(
     ui: &mut Ui,
@@ -106,11 +109,30 @@ pub(crate) fn card_panel(
     } else {
         &page.title
     };
+    // ProseCraft's panel: 12 px from the window's top, right and bottom edges, 380 px wide (less
+    // on a narrow window), its sheet scrolling inside.
+    let screen = ui.ctx().content_rect();
+    let margin = 12.0;
+    // Below the menu bar drawn in the window, if there is one.
+    let top = ui
+        .ctx()
+        .data(|d| d.get_temp::<f32>(crate::menu_bar_bottom_id()))
+        .unwrap_or(screen.top())
+        .clamp(screen.top(), screen.bottom());
+    // A window's size includes its inner margin; its stroke and outer margin come on top.
+    // On a small window the card gets what there is, never more.
+    let window = egui::Frame::window(ui.style());
+    let frame = window.total_margin().sum() - window.inner_margin.sum();
+    let width = (CARD_WIDTH.min(screen.width() - margin * 2.0) - frame.x).max(1.0);
+    let height = (screen.bottom() - top - margin * 2.0 - frame.y).max(1.0);
     egui::Window::new(format!("{title} character card"))
         .id(egui::Id::unique("character-card"))
         .title_bar(false)
-        .anchor(egui::Align2::RIGHT_TOP, egui::vec2(-16.0, 80.0))
-        .default_width(420.0)
+        .anchor(
+            egui::Align2::RIGHT_TOP,
+            egui::vec2(-margin, top - screen.top() + margin),
+        )
+        .fixed_size(egui::vec2(width, height))
         .resizable(false)
         .show(ui.ctx(), |ui| {
             ui.horizontal(|ui| {
@@ -123,8 +145,10 @@ pub(crate) fn card_panel(
                     }
                 });
             });
-            egui::ScrollArea::vertical()
-                .max_height(ui.ctx().content_rect().height() - 160.0)
+            ui.separator();
+            // Sideways too, on a window narrower than the sheet.
+            egui::ScrollArea::both()
+                .auto_shrink([false, false])
                 .show(ui, |ui| {
                     sheet(ui, palette, project, derived, page, &mut state.sheet, out);
                 });

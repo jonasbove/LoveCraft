@@ -201,7 +201,10 @@ fn load(
         ..
     } = item
     else {
-        return Content::Note("This file type cannot be shown inside ProseCraft yet.".into());
+        return Content::Note(format!(
+            "This file type cannot be shown inside {} yet.",
+            prosecraft_core::about::APP_NAME
+        ));
     };
     let key = egui::Id::unique(("split-file", id.as_str(), *size as u64));
     if let Some(found) = ctx.data(|d| d.get_temp::<Content>(key)) {
@@ -256,7 +259,10 @@ fn load(
                 ))
             })
     } else {
-        Content::Note("This file type cannot be shown inside ProseCraft yet.".into())
+        Content::Note(format!(
+            "This file type cannot be shown inside {} yet.",
+            prosecraft_core::about::APP_NAME
+        ))
     };
     ctx.data_mut(|d| d.insert_temp(key, content.clone()));
     content

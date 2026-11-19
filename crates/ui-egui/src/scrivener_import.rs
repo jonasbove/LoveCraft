@@ -22,7 +22,7 @@ impl ProseApp {
     pub fn import_scrivener_zip(&mut self, bytes: &[u8]) {
         match files_from_zip(bytes) {
             Ok(files) => self.preview_scrivener(&files, ""),
-            Err(error) => self.state.status = Some(error.0),
+            Err(error) => self.state.error(error.0),
         }
     }
 
@@ -30,7 +30,7 @@ impl ProseApp {
     pub fn import_scrivener_folder(&mut self, folder_name: &str, entries: Vec<(String, Vec<u8>)>) {
         match files_from_entries(entries) {
             Ok(files) => self.preview_scrivener(&files, folder_name),
-            Err(error) => self.state.status = Some(error.0),
+            Err(error) => self.state.error(error.0),
         }
     }
 
@@ -53,9 +53,9 @@ impl ProseApp {
                     report,
                     name,
                 });
-                self.state.status = None;
+                self.state.clear_status();
             }
-            Err(error) => self.state.status = Some(error.0),
+            Err(error) => self.state.error(error.0),
         }
     }
 
@@ -77,13 +77,17 @@ impl ProseApp {
             return;
         };
         let r = preview.report;
-        self.state.status = Some(match saved {
-            Ok(()) => format!(
-                "Imported “{name}”: {} chapter(s), {} scene(s), {} wiki page(s).",
-                r.chapters, r.scenes, r.wiki_pages
-            ),
-            Err(_) => "Could not save the imported project.".into(),
-        });
+        let failed = saved.is_err();
+        self.state.say(
+            match saved {
+                Ok(()) => format!(
+                    "Imported “{name}”: {} chapter(s), {} scene(s), {} wiki page(s).",
+                    r.chapters, r.scenes, r.wiki_pages
+                ),
+                Err(_) => "Could not save the imported project.".into(),
+            },
+            failed,
+        );
     }
 }
 

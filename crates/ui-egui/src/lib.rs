@@ -325,6 +325,8 @@ pub struct AppState {
     last_focus: Option<(egui::Id, Option<egui::text_edit::TextEditState>)>,
     previous_focus: Option<(egui::Id, Option<egui::text_edit::TextEditState>)>,
     menu_was_open: bool,
+    /// The project last checked for the Wiki migration.
+    migrated: Option<String>,
     /// ProseCraft's Chapters and Progress toggles: the binder and the progress sidebar hidden.
     binder_hidden: bool,
     sidebar_hidden: bool,
@@ -899,6 +901,34 @@ impl ProseApp {
     }
 
     /// Applies one change to the open project, stamped, and marks the library unsaved.
+    /// `migrateProjectToWiki` when a project opens: its former Story Spaces, Notes folders,
+    /// profiles and storyboard cards folded into the Wiki, as ProseCraft does on loading it (not
+    /// a step to undo).
+    fn migrate_active(&mut self) {
+        let Some(id) = self.active_project_id() else {
+            return;
+        };
+        if self.state.migrated.as_deref() == Some(id.as_str()) {
+            return;
+        }
+        self.state.migrated = Some(id);
+        let needed = self
+            .state
+            .library
+            .as_ref()
+            .and_then(|l| l.projects().get(self.state.active))
+            .and_then(|p| p.stored.get("project"))
+            .and_then(prosecraft_core::wiki_migration::migrate_project_to_wiki);
+        if let Some(migrated) = needed {
+            let undo = std::mem::replace(&mut self.state.applying_undo, true);
+            self.change(move |data, _| {
+                *data = migrated;
+                Ok(())
+            });
+            self.state.applying_undo = undo;
+        }
+    }
+
     fn change(
         &mut self,
         change: impl FnOnce(
@@ -2595,6 +2625,7 @@ impl ProseApp {
             .fill(palette.sidebar_bg)
             .stroke(egui::Stroke::new(1.0, palette.border));
         self.menu_bar(ui);
+        self.migrate_active();
         self.app_shortcuts(ui.ctx());
         self.writing_modes(ui.ctx());
         // Zen and focus mode hide the panes around the text.

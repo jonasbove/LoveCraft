@@ -45,3 +45,4 @@ pub mod sync;
 pub mod timeline;
 pub mod undo;
 pub mod wiki;
+pub mod wiki_migration;

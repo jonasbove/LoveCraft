@@ -87,6 +87,13 @@ fn drop_rows(
             .map(|(r, target)| (p, *r, target))
     });
     let mut intent = None;
+    // Off the binder: a scene onto the panes or the editor (`startTargetDrag`).
+    if hit.is_none()
+        && let Dragged::Scene(id) = &dragged
+    {
+        intent =
+            crate::split_view::target_drop(ui, palette, &prosecraft_core::split::doc_target(id));
+    }
     if let Some((p, rect, target)) = hit {
         let painter = ui.painter();
         let line =
@@ -1063,6 +1070,16 @@ fn wiki_drop(
                     after,
                 });
             }
+        }
+        None if !pos.is_some_and(|p| root.contains(p)) && kind != Kind::Folder => {
+            // Off the binder: a page or file onto the panes or the editor. A link has no
+            // pane view.
+            let target = match kind {
+                Kind::Document => Some(prosecraft_core::split::doc_target(&id)),
+                Kind::File => Some(prosecraft_core::split::file_target(&id)),
+                _ => None,
+            };
+            intent = target.and_then(|t| crate::split_view::target_drop(ui, palette, &t));
         }
         None if pos.is_some_and(|p| root.contains(p)) => {
             painter.rect_stroke(

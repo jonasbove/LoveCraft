@@ -2293,6 +2293,11 @@ impl ProseApp {
                     self.insert_footnote(document, *at);
                     continue;
                 }
+                editing::Intent::SetPaneTarget { pane, target } => {
+                    self.state.split =
+                        prosecraft_core::split::set_target(&self.state.split, pane, target);
+                    continue;
+                }
                 editing::Intent::OpenBeside(target) => {
                     self.state.split = prosecraft_core::split::open_beside(
                         &self.state.split,

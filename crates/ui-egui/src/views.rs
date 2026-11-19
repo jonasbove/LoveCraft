@@ -121,6 +121,8 @@ struct Edit<'a> {
 
 pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
     let palette = state.palette;
+    // Set again below, in the Write view only.
+    crate::split_view::set_drop_grid(ui.ctx(), None);
     ui.add_space(14.0);
     // The Timeline view only when it is turned on (Settings → Writing).
     let views: Vec<WorkspaceView> = WorkspaceView::ALL
@@ -324,6 +326,9 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         open: None,
     };
     let mut chosen = None;
+    if *view == WorkspaceView::Write {
+        crate::split_view::set_drop_grid(ui.ctx(), Some(ui.available_rect_before_wrap()));
+    }
     let total = ui.available_size();
     let split_width = if split_open {
         (total.x * 0.45).max(320.0)

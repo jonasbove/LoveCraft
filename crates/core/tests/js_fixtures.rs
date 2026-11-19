@@ -1465,6 +1465,21 @@ fn minor_headings_stay_blocks() {
         sanitize_html("<h4>One</h4><h6>Two <em>more</em></h6><p>Three</p>"),
         "<p>One</p><p>Two <em>more</em></p><p>Three</p>"
     );
+    // Only inline content is wrapped, so sanitizing again changes nothing; an empty heading
+    // goes.
+    for html in [
+        "<h4><div>a</div><div>b</div></h4>",
+        "<h4><p>x</p></h4>",
+        "<h5>a <b>b</b></h5>",
+    ] {
+        let once = sanitize_html(html);
+        assert_eq!(sanitize_html(&once), once, "{html}");
+    }
+    assert_eq!(sanitize_html("<h4><p>x</p></h4>"), "<p>x</p>");
+    assert_eq!(
+        sanitize_html("<p>a</p><h4> </h4><p>b</p>"),
+        "<p>a</p><p>b</p>"
+    );
     // Footnotes keep headings as inline text, as before.
     assert_eq!(sanitize_inline_html("<h4>Note</h4>"), "Note");
     let html = "<p>Before</p><h4>Fourth level</h4><p>After</p>";

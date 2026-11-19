@@ -132,6 +132,21 @@ impl Dom {
         }
     }
 
+    /// Node `id` with its children, as the converter sees it (whitespace collapsed).
+    fn subtree(&self, id: usize) -> Node {
+        match &self.items[id].kind {
+            Kind::Text(t) => Node::Text(t.clone()),
+            Kind::Element(e) => Node::Element(Element {
+                children: self.items[id]
+                    .children
+                    .iter()
+                    .map(|c| self.subtree(*c))
+                    .collect(),
+                ..e.clone()
+            }),
+        }
+    }
+
     fn element(&self, id: usize) -> Option<&Element> {
         match &self.items[id].kind {
             Kind::Element(e) => Some(e),
@@ -611,6 +626,11 @@ impl Converter {
         if name == "p" && e.has_class("eyebrow") {
             return format!("**{}**\n\n", js_trim(content));
         }
+        if name == "table"
+            && let Node::Element(table) = dom.subtree(id)
+        {
+            return table_markdown(&table);
+        }
         // Turndown's rules.
         match name {
             "p" => return format!("\n\n{content}\n\n"),
@@ -800,6 +820,187 @@ fn seed(nodes: &mut [Node]) {
             }
         }
     }
+}
+
+/// The element children of `e`.
+fn element_children(e: &Element) -> impl Iterator<Item = &Element> {
+    e.children.iter().filter_map(|n| match n {
+        Node::Element(c) => Some(c),
+        _ => None,
+    })
+}
+
+/// Whether any element inside `e` passes `test`.
+fn any_inside(e: &Element, test: &dyn Fn(&Element) -> bool) -> bool {
+    element_children(e).any(|c| test(c) || any_inside(c, test))
+}
+
+fn text_inside(e: &Element) -> String {
+    e.children
+        .iter()
+        .map(|n| match n {
+            Node::Text(t) => t.clone(),
+            Node::Element(c) => text_inside(c),
+        })
+        .collect()
+}
+
+/// `table.rows`: the head's rows, then the body's (bare rows included), then the foot's.
+fn table_rows(table: &Element) -> Vec<&Element> {
+    let section = |name: &str| -> Vec<&Element> {
+        element_children(table)
+            .filter(|c| c.name == name)
+            .flat_map(|s| element_children(s).filter(|r| r.name == "tr"))
+            .collect()
+    };
+    let mut rows = section("thead");
+    for child in element_children(table) {
+        match child.name.as_str() {
+            "tr" => rows.push(child),
+            "tbody" => rows.extend(element_children(child).filter(|r| r.name == "tr")),
+            _ => {}
+        }
+    }
+    rows.extend(section("tfoot"));
+    rows
+}
+
+/// A table as the browser holds it: bare rows in a `tbody` of their own.
+fn with_tbody(table: &Element) -> Element {
+    let mut out = Element {
+        children: Vec::new(),
+        ..table.clone()
+    };
+    let mut bare: Vec<Node> = Vec::new();
+    let flush = |out: &mut Element, bare: &mut Vec<Node>| {
+        if !bare.is_empty() {
+            out.children.push(Node::Element(Element {
+                name: "tbody".into(),
+                attrs: Vec::new(),
+                children: std::mem::take(bare),
+            }));
+        }
+    };
+    for child in &table.children {
+        match child {
+            Node::Element(c) if c.name == "tr" => bare.push(child.clone()),
+            Node::Text(t) if !bare.is_empty() && t.trim().is_empty() => bare.push(child.clone()),
+            _ => {
+                flush(&mut out, &mut bare);
+                out.children.push(child.clone());
+            }
+        }
+    }
+    flush(&mut out, &mut bare);
+    out
+}
+
+/// Empties footnote markers, citations and rich placeholders, which are stored by their
+/// attributes alone.
+fn empty_placeholders(e: &mut Element) {
+    for child in &mut e.children {
+        if let Node::Element(c) = child {
+            let placeholder = (c.name == "sup" && c.has_class(FOOTNOTE_REF_CLASS))
+                || (c.name == "span" && c.has_class(CITE_REF_CLASS))
+                || [
+                    "math-inline",
+                    "math-block",
+                    "mermaid-diagram",
+                    "calc-worksheet",
+                ]
+                .iter()
+                .any(|k| c.has_class(k));
+            if placeholder {
+                c.children.clear();
+            } else {
+                empty_placeholders(c);
+            }
+        }
+    }
+}
+
+/// `tableMarkdown` (jennraeross/ProseCraft#60): a table with a header row of `th` cells, the
+/// same number of `td` cells in every other row, and only inline content in its cells becomes a
+/// GFM pipe table; any other table is kept as HTML.
+fn table_markdown(table: &Element) -> String {
+    const CELL_BLOCKS: [&str; 13] = [
+        "p",
+        "h1",
+        "h2",
+        "h3",
+        "ul",
+        "ol",
+        "li",
+        "blockquote",
+        "pre",
+        "hr",
+        "table",
+        "div",
+        "br",
+    ];
+    let rows: Vec<Vec<&Element>> = table_rows(table)
+        .into_iter()
+        .map(|r| {
+            element_children(r)
+                .filter(|c| c.name == "th" || c.name == "td")
+                .collect()
+        })
+        .collect();
+    let width = rows.first().map_or(0, Vec::len);
+    let pipe = width > 0
+        && rows[0].iter().all(|c| c.name == "th")
+        && rows[1..]
+            .iter()
+            .all(|r| r.len() == width && r.iter().all(|c| c.name == "td"))
+        && rows.iter().flatten().all(|cell| {
+            !any_inside(cell, &|e| CELL_BLOCKS.contains(&e.name.as_str()))
+                && !any_inside(cell, &|e| e.name == "code" && text_inside(e).contains('|'))
+        });
+    if pipe {
+        let lines: Vec<Vec<String>> = rows
+            .iter()
+            .map(|r| {
+                r.iter()
+                    .map(|cell| js_trim(&turndown_nodes(cell.children.clone())).to_owned())
+                    .collect()
+            })
+            .collect();
+        if lines.iter().flatten().all(|t| !t.contains('\n')) {
+            let line = |row: &[String]| {
+                format!(
+                    "| {} |",
+                    row.iter()
+                        .map(|t| t.replace('|', "\\|"))
+                        .collect::<Vec<_>>()
+                        .join(" | ")
+                )
+            };
+            let mut out = vec![line(&lines[0]), line(&vec!["---".to_owned(); width])];
+            out.extend(lines[1..].iter().map(|r| line(r)));
+            return format!("\n\n{}\n\n", out.join("\n"));
+        }
+    }
+    let mut kept = with_tbody(table);
+    empty_placeholders(&mut kept);
+    let html = crate::html::serialize(&[Node::Element(kept)]);
+    // A blank line would end marked's HTML block in the middle of the table.
+    let chars: Vec<char> = html.chars().collect();
+    let mut out = String::new();
+    for (i, c) in chars.iter().enumerate() {
+        let blank_next = *c == '\n'
+            && chars[i + 1..]
+                .iter()
+                .take_while(|n| **n == ' ' || **n == '\t')
+                .count()
+                .checked_add(i + 1)
+                .is_some_and(|j| chars.get(j) == Some(&'\n'));
+        if blank_next {
+            out.push_str("&#10;");
+        } else {
+            out.push(*c);
+        }
+    }
+    format!("\n\n{out}\n\n")
 }
 
 /// `turndown(html)` with ProseCraft's service, the rich content seeded first.

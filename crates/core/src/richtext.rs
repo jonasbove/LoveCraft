@@ -22,10 +22,9 @@ pub const SOFT_BREAK: char = '\u{2028}';
 /// the row; unlike it, it isn't text (it adds nothing to the block's `textContent`).
 pub const HARD_BREAK: char = '\u{2029}';
 
-/// The characters the editor gives its own meaning (and `\r`, which it doesn't hold as text).
-/// One of them in a scene's text is held as an atom whose HTML is that character, so it is
-/// written back as it was.
-const OWN_CHARS: [char; 4] = [ATOM, SOFT_BREAK, HARD_BREAK, '\r'];
+/// The characters the editor gives its own meaning. One of them in a scene's text is held as an
+/// atom whose HTML is that character, so it is written back as it was.
+const OWN_CHARS: [char; 3] = [ATOM, SOFT_BREAK, HARD_BREAK];
 
 /// The character a text atom stands for: one of the editor's own characters found in a scene's
 /// text (a line separator, say), which is text there, not the editor's break.
@@ -308,19 +307,24 @@ impl Frame {
         self.block
     }
 
-    /// The frame of a line Enter starts after this one: in a `<div>` block or a list item
-    /// holding its text, the next one (as WebKit's Enter and a list do); else the next block in
-    /// the same containers.
+    /// The frame of a line Enter starts after this one: in a list item, the next item (with
+    /// the block that follows this one); in a `<div>` block holding text, the next `<div>` (as
+    /// WebKit's Enter makes it); else the next block in the same containers.
     fn follow(&self, fresh: u32) -> Self {
         let mut next = self.clone();
         next.no_br = false;
-        match (self.block, next.containers.last_mut()) {
-            (LineKind::Bare { .. }, Some(last))
-                if matches!(last.tag, ContainerTag::Div | ContainerTag::Li) =>
+        let bare = matches!(self.block, LineKind::Bare { .. });
+        let split = match next.containers.last_mut() {
+            Some(last)
+                if last.tag == ContainerTag::Li || (bare && last.tag == ContainerTag::Div) =>
             {
                 last.id = fresh;
+                true
             }
-            (block, _) => next.block = follow_kind(block),
+            _ => false,
+        };
+        if !(bare && split) {
+            next.block = follow_kind(self.block);
         }
         next
     }
@@ -727,6 +731,10 @@ impl Reader {
             match node {
                 Node::Text(text) => {
                     for c in text.chars() {
+                        // A browser reads a carriage return as a newline: not held.
+                        if c == '\r' {
+                            return None;
+                        }
                         if OWN_CHARS.contains(&c) {
                             self.doc.atoms.push(c.to_string());
                             self.push_char(ATOM, stack);
@@ -1157,6 +1165,33 @@ impl RichDoc {
             }
         }
         None
+    }
+
+    /// After Enter split the innermost container of `own` (a list item, a `<div>` block) at
+    /// line `last` (the last new line), the lines after it still in that container go with it.
+    fn split_container(&mut self, own: &Frame, last: usize) {
+        let Some(depth) = own.containers.len().checked_sub(1) else {
+            return;
+        };
+        let Some(fresh) = self
+            .frame(last)
+            .and_then(|f| f.containers.get(depth))
+            .filter(|c| own.containers.get(depth) != Some(*c))
+            .map(|c| c.id)
+        else {
+            return;
+        };
+        let old = own.containers.clone();
+        for slot in self.frames.iter_mut().skip(last + 1) {
+            match slot {
+                Some(frame) if frame.containers.starts_with(&old) => {
+                    if let Some(container) = frame.containers.get_mut(depth) {
+                        container.id = fresh;
+                    }
+                }
+                _ => break,
+            }
+        }
     }
 
     /// Line `line`'s [`Frame`], if it has one.
@@ -1883,6 +1918,9 @@ impl RichDoc {
             if framed {
                 self.frames.insert((line + 1).min(self.frames.len()), frame);
             }
+        }
+        if let Some(own) = own {
+            self.split_container(&own, line + breaks_added);
         }
         // Formatting of the inserted characters.
         let inherit = if prefix > 0 && old.get(prefix - 1).is_some_and(|c| *c != '\n') {
@@ -2725,7 +2763,6 @@ mod tests {
         for html in [
             "<p>a\u{2029}b<br>c</p>",
             "<p>a\u{fffc}b<sup class=\"footnote-ref\" data-footnote-id=\"n\" contenteditable=\"false\"></sup></p>",
-            "<p>a\rb</p>",
             "<ul><li><em>\u{2028}</em></li></ul>",
         ] {
             let doc = RichDoc::from_html(html).unwrap_or_else(|| panic!("not read: {html}"));
@@ -2830,7 +2867,7 @@ mod tests {
     }
 
     #[test]
-    fn enter_in_containers_follows_the_browser() {
+    fn enter_in_containers_starts_the_next_block_or_item() {
         let enter = |html: &str, at: usize| {
             let mut doc = RichDoc::from_html(html).unwrap_or_default();
             let chars: Vec<char> = doc.text.chars().collect();
@@ -2842,19 +2879,28 @@ mod tests {
             doc.apply_text_at(&text, Some(at + 1));
             doc.to_html()
         };
-        // A `<div>` block is followed by the next one, as WebKit's Enter makes it.
+        // A `<div>` block is followed by the next one (as WebKit's Enter makes it, which
+        // ProseCraft's editor allows for).
         assert_eq!(
             enter("<div>One</div><p>x</p>", 3),
             "<div>One</div><div><br></div><p>x</p>"
         );
-        // A paragraph in a `<div>` or a list item by the next paragraph there.
+        // A paragraph in a `<div>` by the next paragraph there.
         assert_eq!(
             enter("<div><p>a</p></div>", 1),
             "<div><p>a</p><p><br></p></div>"
         );
+        // In a list item, the next item, with what follows in the item (a loose list grows).
         assert_eq!(
             enter("<ul><li><p>a</p></li></ul>", 1),
-            "<ul><li><p>a</p><p><br></p></li></ul>"
+            "<ul><li><p>a</p></li><li><p><br></p></li></ul>"
+        );
+        assert_eq!(
+            enter(
+                "<ol><li><p>ab</p><p>c</p><ul><li>d</li></ul></li><li><p>e</p></li></ol>",
+                1
+            ),
+            "<ol><li><p>a</p></li><li><p>b</p><p>c</p><ul><li>d</li></ul></li><li><p>e</p></li></ol>"
         );
         // Text in a list item by the next item.
         assert_eq!(
@@ -3266,7 +3312,7 @@ mod tests {
             for step in 0..400 {
                 let chars: Vec<char> = doc.text.chars().collect();
                 let at = next(chars.len() + 1);
-                match next(5) {
+                match next(7) {
                     0 | 1 => {
                         let c = ['a', ' ', '\n', HARD_BREAK, '&'][next(5)];
                         let text: String =
@@ -3279,7 +3325,19 @@ mod tests {
                         doc.apply_text_at(&text, Some(at));
                     }
                     3 => doc.toggle_mark(at..(at + next(6)), Mark::Italic),
-                    _ => doc.set_line_kind(at..at, kinds[next(kinds.len())]),
+                    4 => doc.set_line_kind(at..at, kinds[next(kinds.len())]),
+                    5 => {
+                        let pasted = [
+                            "<p>x</p><ul><li>y</li></ul>",
+                            "z<em>w</em>",
+                            "<div><p>q</p></div><h2>h</h2>",
+                        ][next(3)];
+                        let end = (at + next(3)).min(chars.len());
+                        doc.paste_html(at..end, pasted);
+                    }
+                    _ => {
+                        doc.insert_block(at, r#"<div class="math-block" data-tex="x"></div>"#);
+                    }
                 }
                 let html = doc.to_html();
                 let again = RichDoc::from_html(&html)

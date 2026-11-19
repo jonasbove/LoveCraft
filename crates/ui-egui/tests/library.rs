@@ -745,6 +745,9 @@ fn a_loose_list_is_edited_as_it_is() {
     body.focus();
     harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::End);
     harness.get_by_label("Scene text").type_text(" more");
+    // Enter starts the next item.
+    harness.key_press(egui::Key::Enter);
+    harness.get_by_label("Scene text").type_text("c");
     harness.run_steps(12);
     let saved = memory
         .saved
@@ -754,7 +757,9 @@ fn a_loose_list_is_edited_as_it_is() {
         .flatten()
         .expect("saved after typing");
     assert!(
-        saved.contains("<li><p>a</p>\\n</li>\\n<li><p>b more</p>\\n</li>"),
+        saved.contains(
+            "<li><p>a</p>\\n</li>\\n<li><p>b more</p>\\n</li>\\n<li><p>c</p>\\n</li>\\n</ul>"
+        ),
         "{saved}"
     );
 }

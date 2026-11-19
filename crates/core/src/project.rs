@@ -182,7 +182,7 @@ pub struct Snapshot {
     pub title: String,
     pub note: Option<String>,
     pub before_restore: bool,
-    /// The kept HTML.
+    /// The kept text as HTML (`snapshotHtml`: Markdown an MCP write kept is converted).
     pub content: String,
 }
 
@@ -366,7 +366,7 @@ impl Project {
                     title: text(s, "title"),
                     note: optional_text(s, "note"),
                     before_restore: text(s, "reason") == "before-restore",
-                    content: text(s, "content"),
+                    content: crate::snapshots::snapshot_html(s),
                 })
                 .collect(),
             timeline: list(project, "timelineNodes")

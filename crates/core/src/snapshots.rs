@@ -160,9 +160,8 @@ pub fn restore_snapshot(
     let document_id = text(&snapshot, "documentId")
         .map(|d| d.to_string_lossy())
         .ok_or(EditError::Shape)?;
-    let content = text(&snapshot, "content")
-        .map(|c| c.to_string_lossy())
-        .ok_or(EditError::Shape)?;
+    text(&snapshot, "content").ok_or(EditError::Shape)?;
+    let content = snapshot_html(&snapshot);
     let current = document(project, &document_id)
         .cloned()
         .ok_or(EditError::Shape)?;
@@ -172,6 +171,37 @@ pub fn restore_snapshot(
     );
     crate::edit::set_document_content(project, &document_id, &sanitize_html(&content))?;
     Ok(document_id)
+}
+
+/// The note the MCP server gives the snapshot it takes before overwriting a document
+/// (`MCP_SNAPSHOT_NOTE`).
+pub const MCP_SNAPSHOT_NOTE: &str = "Before MCP write";
+
+/// `snapshotIsMarkdown`: whether a snapshot's content is Markdown. The MCP server keeps the
+/// Markdown body of the file it overwrites, saying so with `contentFormat`; its snapshots from
+/// before that field are known by its fixed note.
+pub fn is_markdown(snapshot: &JsValue) -> bool {
+    let field = |key: &str| text(snapshot, key).map(|t| t.to_string_lossy());
+    match field("contentFormat").as_deref() {
+        Some("markdown") => true,
+        Some(_) => false,
+        None => {
+            field("reason").as_deref() == Some("manual")
+                && field("note").as_deref() == Some(MCP_SNAPSHOT_NOTE)
+        }
+    }
+}
+
+/// `snapshotHtml`: a snapshot's content as HTML, for previewing, counting and restoring it.
+pub fn snapshot_html(snapshot: &JsValue) -> String {
+    let content = text(snapshot, "content")
+        .map(|c| c.to_string_lossy())
+        .unwrap_or_default();
+    if is_markdown(snapshot) {
+        crate::markdown::markdown_to_document(&content).html
+    } else {
+        content
+    }
 }
 
 /// `removeSnapshot`.
@@ -284,5 +314,55 @@ mod tests {
         );
         delete_snapshot(&mut p, "first").expect("delete");
         assert_eq!(count(&p, "d"), 1);
+    }
+}
+
+#[cfg(test)]
+mod markdown_tests {
+    use super::{is_markdown, restore_snapshot, snapshot_html};
+    use crate::js::parse;
+
+    #[test]
+    fn markdown_snapshots_are_known_and_restored_as_html() {
+        let tagged = parse(r#"{"id":"a","documentId":"d","createdAt":1,"title":"T","content":"**Bold** move","reason":"manual","contentFormat":"markdown"}"#).expect("json");
+        let older = parse(r#"{"id":"b","documentId":"d","createdAt":1,"title":"T","content":"*Old* text","reason":"manual","note":"Before MCP write"}"#).expect("json");
+        let html = parse(r#"{"id":"c","documentId":"d","createdAt":1,"title":"T","content":"<p>**not markdown**</p>","reason":"manual","note":"mine"}"#).expect("json");
+        let restore = parse(r#"{"id":"e","documentId":"d","createdAt":1,"title":"T","content":"*x*","reason":"before-restore","note":"Before MCP write"}"#).expect("json");
+        assert!(is_markdown(&tagged) && is_markdown(&older));
+        assert!(!is_markdown(&html) && !is_markdown(&restore));
+        assert_eq!(
+            snapshot_html(&tagged),
+            "<p><strong>Bold</strong> move</p>\n"
+        );
+        assert_eq!(snapshot_html(&html), "<p>**not markdown**</p>");
+        let mut p = parse(
+            r#"{"documents":[{"id":"d","title":"T","content":"<p>now</p>"}],"snapshots":[]}"#,
+        )
+        .expect("json");
+        if let Some(list) = p
+            .as_object_mut()
+            .and_then(|o| o.get_mut("snapshots"))
+            .and_then(|s| match s {
+                crate::js::JsValue::Array(a) => Some(a),
+                _ => None,
+            })
+        {
+            list.push(older);
+        }
+        let mut n = 0;
+        restore_snapshot(&mut p, "b", 2.0, &mut || {
+            n += 1;
+            format!("new-{n}")
+        })
+        .expect("restore");
+        let content = p
+            .get("documents")
+            .and_then(crate::js::JsValue::as_array)
+            .and_then(|d| d.first().cloned())
+            .and_then(|d| d.get("content").cloned());
+        assert_eq!(
+            content,
+            Some(crate::js::JsValue::str("<p><em>Old</em> text</p>\n"))
+        );
     }
 }

@@ -861,6 +861,102 @@ fn proofreading_marks(
     }
 }
 
+/// The pictures in the text: each one an image named by its alternative text, a click on one
+/// selecting it (`selectEditorImage`) and anywhere else in the text letting go of it, and the
+/// selected one's outline and resize handle.
+fn picture_marks(
+    ui: &mut Ui,
+    palette: &Palette,
+    document: &str,
+    draft: &mut Draft,
+    markers: &[(egui::Rect, Clicked)],
+    output: &egui::text_edit::TextEditOutput,
+    (body_id, editable, now): (egui::Id, bool, f64),
+) {
+    // The selected picture's outline and resize handle.
+    if let Some(selected) = crate::picture_tools::selected(ui.ctx(), document)
+        && let Some((rect, _)) = markers
+            .iter()
+            .find(|(_, c)| matches!(c, Clicked::Picture(a) if *a == selected))
+        && editable
+    {
+        let column = output.galley.job.wrap.max_width;
+        let column = if column.is_finite() {
+            column
+        } else {
+            output.text_clip_rect.width()
+        };
+        crate::picture_tools::handle(ui, palette, document, draft, *rect, column, now);
+    }
+    // A click on a picture selects it (`selectEditorImage`); anywhere else in the text, it
+    // lets go of it. Each picture is an image named by its alternative text, as its `<img>` is.
+    if output.response.clicked() {
+        let on = output.response.interact_pointer_pos().and_then(|pos| {
+            markers.iter().find_map(|(rect, c)| match c {
+                Clicked::Picture(atom) if rect.contains(pos) => Some(*atom),
+                _ => None,
+            })
+        });
+        crate::picture_tools::select(ui.ctx(), document, on.filter(|_| editable));
+    }
+    for (rect, clicked) in markers {
+        let Clicked::Picture(atom) = clicked else {
+            continue;
+        };
+        let response = ui.interact(
+            rect.intersect(ui.clip_rect()),
+            body_id.with(("picture", *atom)),
+            egui::Sense::click(),
+        );
+        if response.clicked() && editable {
+            crate::picture_tools::select(ui.ctx(), document, Some(*atom));
+        }
+        let alt = draft
+            .doc
+            .atoms
+            .get(*atom)
+            .and_then(|html| crate::pictures::info(html))
+            .map(|p| p.alt)
+            .unwrap_or_default();
+        ui.ctx().accesskit_node_builder(response.id, move |node| {
+            node.set_role(egui::accesskit::Role::Image);
+            node.set_label(alt);
+        });
+    }
+}
+
+/// A passage to select: its document and characters.
+type GoTo = Option<(String, usize, usize)>;
+
+/// The comment and Wiki-mention highlights, and what their cards asked for.
+fn text_marks(
+    ui: &mut Ui,
+    palette: &Palette,
+    document: &prosecraft_core::project::Document,
+    draft: &Draft,
+    output: &egui::text_edit::TextEditOutput,
+    (marks, comment_goto, intents): (&crate::text_marks::Sources<'_>, &mut GoTo, &mut Vec<Intent>),
+) {
+    match crate::text_marks::show(
+        ui,
+        palette,
+        marks,
+        &document.id,
+        &draft.doc,
+        &draft.body,
+        output,
+        ui.input(|i| i.time),
+    ) {
+        crate::text_marks::Asked::None => {}
+        crate::text_marks::Asked::GoTo(start, end) => {
+            *comment_goto = Some((document.id.clone(), start, end));
+        }
+        crate::text_marks::Asked::Resolve(id) => {
+            intents.push(Intent::ResolveComment { id, resolved: true });
+        }
+    }
+}
+
 /// The equation, diagram or calculation editor over the scene, and what it changed.
 fn rich_dialog(
     ui: &mut Ui,
@@ -2058,6 +2154,10 @@ fn editor(
         draft.changed_at = now;
         ui.memory_mut(|m| m.request_focus(body_id));
     }
+    if edit.editable && !screenplay {
+        let column = ui.available_width();
+        crate::picture_tools::toolbar(ui, palette, &document.id, draft, column, now);
+    }
     ui.add_space(14.0);
 
     // "Go to" from the Comments tab: select the passage.
@@ -2190,6 +2290,15 @@ fn editor(
         output.galley_pos,
         output.text_clip_rect,
     );
+    picture_marks(
+        ui,
+        palette,
+        &document.id,
+        draft,
+        &markers,
+        &output,
+        (body_id, edit.editable, now),
+    );
     // A click on a footnote marker opens its editor (`openFootnotePopoverForMarker`); on a
     // citation, the picker to change it (`openCitationPickerForMarker`).
     if output.response.clicked()
@@ -2202,6 +2311,7 @@ fn editor(
             Clicked::Footnote(id) => {
                 *edit.footnote_open = Some((document.id.clone(), id.clone()));
             }
+            Clicked::Picture(_) => {}
             Clicked::Rich(atom) => {
                 if let Some(html) = draft.doc.atoms.get(*atom) {
                     *edit.rich_dialog =
@@ -2226,25 +2336,14 @@ fn editor(
             }
         }
     }
-    match crate::text_marks::show(
+    text_marks(
         ui,
         palette,
-        &edit.marks,
-        &document.id,
-        &draft.doc,
-        &draft.body,
+        document,
+        draft,
         &output,
-        ui.input(|i| i.time),
-    ) {
-        crate::text_marks::Asked::None => {}
-        crate::text_marks::Asked::GoTo(start, end) => {
-            *edit.comment_goto = Some((document.id.clone(), start, end));
-        }
-        crate::text_marks::Asked::Resolve(id) => {
-            edit.intents
-                .push(Intent::ResolveComment { id, resolved: true });
-        }
-    }
+        (&edit.marks, edit.comment_goto, edit.intents),
+    );
     proofreading_marks(
         ui,
         palette,
@@ -2489,6 +2588,8 @@ pub(crate) enum Clicked {
     Cite(usize),
     /// A drawn equation, diagram or calculation: its atom's index.
     Rich(usize),
+    /// A picture: its atom's index.
+    Picture(usize),
 }
 
 /// What the text itself can't show: list bullets and numbers, the quote bar, footnote
@@ -2673,7 +2774,7 @@ fn paint_picture(
     picture: &crate::pictures::PictureInfo,
     row: egui::Rect,
     right_edge: f32,
-) {
+) -> egui::Rect {
     let left = row.min.x;
     let width = (right_edge - left).max(40.0);
     let size = picture.drawn(width);
@@ -2708,6 +2809,7 @@ fn paint_picture(
             );
         }
     }
+    rect
 }
 
 /// Each atom's label, painted in its character's box (footnote numbers, citation labels,
@@ -2824,7 +2926,8 @@ pub(crate) fn paint_atoms(
                     } else {
                         right_edge
                     };
-                    paint_picture(painter, palette, html, picture, cell, right);
+                    let rect = paint_picture(painter, palette, html, picture, cell, right);
+                    markers.push((rect, Clicked::Picture(atom)));
                 }
             }
             AtomLabel::Cite(text) => {

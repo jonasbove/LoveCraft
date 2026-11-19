@@ -274,6 +274,109 @@ fn insert_image_puts_the_picture_at_the_caret_as_prosecraft_does() {
     harness.get_by_label_contains("Use a PNG, JPG, WebP, GIF, BMP, or AVIF image.");
 }
 
+#[test]
+fn a_selected_picture_is_laid_out_from_its_toolbar() {
+    let (mut harness, memory) = app();
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("an add button")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Scene 1")
+        .click();
+    harness.run();
+    let pixels = craft_image_codecs::Image::from_u8(
+        40,
+        20,
+        craft_image_codecs::ChannelLayout::Rgba,
+        vec![200; 40 * 20 * 4],
+    )
+    .expect("pixels");
+    let png = craft_image_codecs::encode(
+        &pixels,
+        craft_image_codecs::Format::Png,
+        &craft_image_codecs::EncodeOptions::default(),
+    )
+    .expect("png");
+    harness.state_mut().insert_picture("Coast map.png", &png);
+    harness.run();
+    assert!(harness.query_by_label("Selected image tools").is_none());
+    harness
+        .get_by_role_and_label(Role::Image, "Coast map")
+        .click();
+    harness.run();
+    harness.get_by_label("Medium image size");
+    harness.get_by_label("Selected image tools");
+    let stored = |memory: &Memory| {
+        let c = content(memory, "new-1");
+        let from = c.find("\" alt=").unwrap_or(0);
+        let to = c[from..].find('>').map_or(c.len(), |e| from + e + 1);
+        c[from..to].to_owned()
+    };
+    harness.get_by_label("Medium image size").click();
+    harness.run_steps(12);
+    assert_eq!(stored(&memory), r#"" alt="Coast map" data-size="medium">"#);
+    harness
+        .get_by_label("Wrap text beside right-aligned image")
+        .click();
+    harness.run_steps(12);
+    assert_eq!(
+        stored(&memory),
+        r#"" alt="Coast map" data-size="medium" data-align="right" data-wrap="wrap-right">"#
+    );
+    harness.get_by_label("Image on its own line").click();
+    harness.get_by_label("Align image center").click();
+    harness.run_steps(12);
+    assert_eq!(stored(&memory), r#"" alt="Coast map" data-size="medium">"#);
+    // A custom width typed in.
+    harness.get_by_label("Custom").click();
+    harness.run();
+    harness
+        .get_by_label("Custom image width in percent")
+        .focus();
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    harness.run();
+    harness
+        .get_by_label("Custom image width in percent")
+        .type_text("62");
+    harness.run_steps(12);
+    assert_eq!(
+        stored(&memory),
+        r#"" alt="Coast map" data-size="custom" data-width="62">"#
+    );
+    // Pixel sizes: 50% of the column, the height from the picture's 2:1.
+    harness.get_by_label("Original size").click();
+    harness.run_steps(12);
+    assert_eq!(stored(&memory), r#"" alt="Coast map">"#);
+    harness.get_by_label("50%").click();
+    harness.run_steps(12);
+    let sized = stored(&memory);
+    let width: u32 = sized
+        .split("width=\"")
+        .nth(1)
+        .and_then(|w| w.split('"').next())
+        .and_then(|w| w.parse().ok())
+        .expect("width");
+    let height: u32 = sized
+        .split("height=\"")
+        .nth(1)
+        .and_then(|w| w.split('"').next())
+        .and_then(|w| w.parse().ok())
+        .expect("height");
+    assert!(
+        width > 100 && (height as i64 - (width as i64 / 2)).abs() <= 1,
+        "{sized}"
+    );
+    // Removed.
+    harness.get_by_label("Remove image").click();
+    harness.run_steps(12);
+    assert!(!content(&memory, "new-1").contains("<img"));
+    assert!(harness.query_by_label("Selected image tools").is_none());
+}
+
 /// The stored content of a document.
 fn content(memory: &Memory, id: &str) -> String {
     let saved = memory.last();

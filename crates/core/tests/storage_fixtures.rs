@@ -533,3 +533,61 @@ fn exports_with_citations_match_prosecraft() {
     }
     assert_eq!(checked, 6);
 }
+
+/// `sanitizeStoredProject`: a backup from outside can't bring in HTML the editor or an export
+/// would carry: each document's body is sanitized and its footnotes normalized on import.
+#[test]
+fn imported_backups_are_sanitized_as_prosecraft_imports_them() {
+    use prosecraft_core::library::Library;
+    let path = format!(
+        "{}/tests/fixtures/bundle-plain.prosecraft",
+        env!("CARGO_MANIFEST_DIR")
+    );
+    let bundle = js::parse(&std::fs::read_to_string(path).expect("fixture")).expect("json");
+    let mut stored = bundle
+        .get("projects")
+        .and_then(JsValue::as_array)
+        .and_then(|p| p.first())
+        .cloned()
+        .expect("project");
+    let doc = js::parse(r#"{"id":"d","title":"D","content":"<p onclick=\"x()\">Hi<script>bad()</script></p><img src=\"https://example.org/t.png\">","footnotes":[{"id":"a","html":"<b onclick=\"x()\">Note</b>"},{"id":"a","html":"dup"},{"id":"bad id!","html":"x"}]}"#).expect("doc");
+    if let Some(JsValue::Array(docs)) = stored
+        .as_object_mut()
+        .and_then(|s| s.get_mut("project"))
+        .and_then(JsValue::as_object_mut)
+        .and_then(|p| p.get_mut("documents"))
+    {
+        docs.insert(0, doc);
+    }
+    let mut library = Library::new("d".into());
+    library.merge(vec![stored]);
+    let project = library.projects().next().expect("project");
+    let doc = project
+        .get("project")
+        .and_then(|p| p.get("documents"))
+        .and_then(JsValue::as_array)
+        .and_then(|d| d.first())
+        .cloned()
+        .expect("doc");
+    let content = doc
+        .get("content")
+        .and_then(JsValue::as_js_string)
+        .map(|s| s.to_string_lossy())
+        .unwrap_or_default();
+    assert_eq!(
+        content,
+        prosecraft_core::html::sanitize_html(
+            r#"<p onclick="x()">Hi<script>bad()</script></p><img src="https://example.org/t.png">"#
+        )
+    );
+    assert!(
+        !content.contains("onclick")
+            && !content.contains("script")
+            && !content.contains("example.org"),
+        "{content}"
+    );
+    assert_eq!(
+        js::stringify(doc.get("footnotes").expect("notes")),
+        r#"[{"id":"a","html":"<b>Note</b>"}]"#
+    );
+}

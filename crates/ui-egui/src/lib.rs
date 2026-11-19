@@ -60,6 +60,9 @@ pub use wiki_files::WikiFileStore;
 /// A source of random bytes for keys and nonces, made where it is used.
 pub type RandomFactory = fn() -> Box<dyn prosecraft_core::storage::crypto::RandomSource + Send>;
 
+/// Puts HTML and its plain text on the clipboard.
+pub type ClipboardWriter = std::sync::Arc<dyn Fn(&str, &str) + Send + Sync>;
+
 /// Reads the clipboard's HTML, if it holds some.
 pub type ClipboardHtml = std::sync::Arc<dyn Fn() -> Option<String> + Send + Sync>;
 
@@ -316,6 +319,8 @@ pub struct AppState {
     clipboard_html: Option<ClipboardHtml>,
     /// The host's clipboard text, for Edit > Paste.
     clipboard_text: Option<ClipboardHtml>,
+    /// How the host puts HTML on the clipboard, for a rich copy.
+    clipboard_write: Option<ClipboardWriter>,
     /// The input an Edit menu item stands for, for the field that had the keys, given next
     /// frame; and the field that last had them.
     menu_events: Vec<egui::Event>,
@@ -1719,6 +1724,12 @@ impl ProseApp {
     pub fn set_installed_fonts(&mut self, fonts: std::sync::Arc<dyn editor_fonts::InstalledFonts>) {
         self.state.installed_fonts = Some(fonts);
         self.state.fonts_applied = None;
+    }
+
+    /// How the host puts HTML (and its text) on the clipboard, so a copy in the editor keeps
+    /// its formatting (egui copies plain text).
+    pub fn set_clipboard_writer(&mut self, write: ClipboardWriter) {
+        self.state.clipboard_write = Some(write);
     }
 
     /// How the host reads the clipboard's text, for Edit > Paste in the menu bar.

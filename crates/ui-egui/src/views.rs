@@ -72,8 +72,9 @@ fn column(ui: &mut Ui, add: impl FnOnce(&mut Ui)) {
 /// The parts of the state a view changes, borrowed apart from the project it shows.
 struct Edit<'a> {
     editable: bool,
-    /// The host's clipboard HTML, for rich paste.
+    /// The host's clipboard HTML, for rich paste, and its writer, for rich copy.
     clipboard_html: Option<&'a crate::ClipboardHtml>,
+    clipboard_write: Option<&'a crate::ClipboardWriter>,
     /// The comments and Wiki articles highlighted in the text.
     marks: crate::text_marks::Sources<'a>,
     draft: &'a mut Option<Draft>,
@@ -248,6 +249,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         wiki_store,
         wiki_root,
         clipboard_html,
+        clipboard_write,
         tiles,
         ..
     } = state;
@@ -290,6 +292,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
     let mut edit = Edit {
         editable: *editable,
         clipboard_html: clipboard_html.as_ref(),
+        clipboard_write: clipboard_write.as_ref(),
         marks: crate::text_marks::Sources {
             comments: &project.comments,
             documents: &project.documents,
@@ -1039,6 +1042,66 @@ fn text_marks(
         crate::text_marks::Asked::Resolve(id) => {
             intents.push(Intent::ResolveComment { id, resolved: true });
         }
+    }
+}
+
+/// `handleEditorClipboard`: a copy or cut of a selection in the rich editor puts its HTML (with
+/// its formatting, footnote markers and citations) and its plain text on the clipboard, as a
+/// browser copies from ProseCraft's editor; a cut then takes the selection out.
+fn copy(
+    ui: &mut Ui,
+    body_id: egui::Id,
+    draft: &mut Draft,
+    write: Option<&crate::ClipboardWriter>,
+    now: f64,
+) {
+    let Some(write) = write.filter(|_| ui.memory(|m| m.has_focus(body_id))) else {
+        return;
+    };
+    let (copy, cut) = ui.input(|i| {
+        (
+            i.events.iter().any(|e| matches!(e, egui::Event::Copy)),
+            i.events.iter().any(|e| matches!(e, egui::Event::Cut)),
+        )
+    });
+    if !copy && !cut {
+        return;
+    }
+    let Some(range) = egui::TextEdit::load_state(ui.ctx(), body_id)
+        .and_then(|s| s.cursor.char_range())
+        .map(|r| {
+            let (a, b) = (r.primary.index.0, r.secondary.index.0);
+            a.min(b)..a.max(b)
+        })
+        .filter(|r| !r.is_empty())
+    else {
+        return;
+    };
+    let html = prosecraft_core::html::sanitize_html(&draft.doc.slice_html(range.clone()));
+    let text = prosecraft_core::html::html_to_plain_text(&html, &Default::default());
+    write(&html, text.trim_end_matches('\n'));
+    ui.input_mut(|i| {
+        i.events
+            .retain(|e| !matches!(e, egui::Event::Copy | egui::Event::Cut))
+    });
+    if cut {
+        let chars: Vec<char> = draft.body.chars().collect();
+        let kept: String = chars[..range.start]
+            .iter()
+            .chain(&chars[range.end..])
+            .collect();
+        draft.body = draft.doc.apply_text_at(&kept, Some(range.start));
+        draft.body_dirty = true;
+        draft.changed_at = now;
+        draft.caret = Some(range.start);
+        draft.words = prosecraft_core::html::html_word_count(&draft.doc.to_html());
+        let mut state = egui::TextEdit::load_state(ui.ctx(), body_id).unwrap_or_default();
+        state
+            .cursor
+            .set_char_range(Some(egui::text::CCursorRange::one(
+                egui::text::CCursor::new(range.start),
+            )));
+        state.store(ui.ctx(), body_id);
     }
 }
 
@@ -2573,6 +2636,13 @@ fn editor(
         })
     };
     link_prompt(ui, draft, now);
+    copy(
+        ui,
+        body_id,
+        draft,
+        edit.clipboard_write.filter(|_| !screenplay),
+        now,
+    );
     paste(
         ui,
         body_id,

@@ -1234,6 +1234,26 @@ impl RichDoc {
         (self.text.clone(), caret)
     }
 
+    /// The HTML of the characters in `range`, with their formatting and atoms (what a copy of
+    /// that selection puts on the clipboard).
+    pub fn slice_html(&self, range: std::ops::Range<usize>) -> String {
+        let chars: Vec<char> = self.text.chars().collect();
+        let (start, end) = (range.start.min(chars.len()), range.end.min(chars.len()));
+        if start >= end {
+            return String::new();
+        }
+        let mut doc = self.clone();
+        doc.no_final_newline = false;
+        // The end first, then the start, so each cut is one change at one end.
+        let head: String = chars[..end].iter().collect();
+        doc.apply_text_at(&head, Some(end));
+        let kept: String = chars[start..end].iter().collect();
+        doc.apply_text_at(&kept, Some(0));
+        doc.empty_source = false;
+        doc.newline_blocks = false;
+        doc.to_html()
+    }
+
     /// Pastes HTML over `range` as the browser pastes into ProseCraft's editor (the HTML
     /// cleaned as its input handler cleans it): the first block joins the caret's line (taking
     /// its own kind only on an empty line), the blocks after it keep theirs, and the text after
@@ -2155,5 +2175,24 @@ mod final_newline_tests {
             let doc = RichDoc::from_html(html).expect("held");
             assert_eq!(doc.to_html(), html);
         }
+    }
+}
+
+#[cfg(test)]
+mod slice_tests {
+    use super::RichDoc;
+
+    #[test]
+    fn a_selection_copies_with_its_formatting() {
+        let doc = RichDoc::from_html(
+            r#"<p>It was <em>very dark</em> here.</p><h2>Next</h2><p>Then <b>more</b>.</p>"#,
+        )
+        .expect("doc");
+        assert_eq!(doc.slice_html(7..11), "<p><em>very</em></p>");
+        assert_eq!(
+            doc.slice_html(12..27),
+            "<p><em>dark</em> here.</p><h2>Next</h2>"
+        );
+        assert_eq!(doc.slice_html(3..3), "");
     }
 }

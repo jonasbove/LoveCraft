@@ -594,6 +594,8 @@ fn main() -> ExitCode {
     }
     let (mut app, problem) = start();
     app.set_wiki_files(Box::new(WikiFiles));
+    // The installed fonts, listed in the background as the window opens.
+    app.set_installed_fonts(Arc::new(InstalledFonts::start()));
     // Rich paste: the clipboard's HTML, as a browser hands a page's selection over.
     app.set_clipboard_html(Arc::new(|| {
         arboard::Clipboard::new().ok()?.get().html().ok()
@@ -634,5 +636,87 @@ fn main() -> ExitCode {
             eprintln!("{}: {error}", about::APP_NAME);
             ExitCode::FAILURE
         }
+    }
+}
+
+/// The installed fonts (ProseCraft's `list_system_font_families`, fontdb as it uses it), read on
+/// a background thread.
+struct InstalledFonts {
+    database: Arc<std::sync::OnceLock<fontdb::Database>>,
+}
+
+impl InstalledFonts {
+    fn start() -> Self {
+        let database = Arc::new(std::sync::OnceLock::new());
+        let filling = Arc::clone(&database);
+        let _ = std::thread::Builder::new()
+            .name("installed-fonts".into())
+            .spawn(move || {
+                let mut db = fontdb::Database::new();
+                db.load_system_fonts();
+                let _ = filling.set(db);
+            });
+        Self { database }
+    }
+}
+
+impl prosecraft_ui_egui::editor_fonts::InstalledFonts for InstalledFonts {
+    fn families(&self) -> Option<Vec<prosecraft_ui_egui::editor_fonts::InstalledFamily>> {
+        let db = self.database.get()?;
+        let mut families: std::collections::HashMap<String, (String, bool)> =
+            std::collections::HashMap::new();
+        for face in db.faces() {
+            for (family, _) in &face.families {
+                let family = family.trim();
+                if family.is_empty() {
+                    continue;
+                }
+                families
+                    .entry(family.to_lowercase())
+                    .and_modify(|(_, monospaced)| *monospaced |= face.monospaced)
+                    .or_insert_with(|| (family.to_owned(), face.monospaced));
+            }
+        }
+        let mut list: Vec<_> = families
+            .into_values()
+            .map(
+                |(family, monospaced)| prosecraft_ui_egui::editor_fonts::InstalledFamily {
+                    family,
+                    monospaced,
+                },
+            )
+            .collect();
+        list.sort_by_key(|f| f.family.to_lowercase());
+        Some(list)
+    }
+
+    fn faces(&self, family: &str) -> Option<prosecraft_ui_egui::editor_fonts::FamilyFaces> {
+        let db = self.database.get()?;
+        let load = |weight: u16, style: fontdb::Style| {
+            let id = db.query(&fontdb::Query {
+                families: &[fontdb::Family::Name(family)],
+                weight: fontdb::Weight(weight),
+                style,
+                ..fontdb::Query::default()
+            })?;
+            let face = db.face(id)?;
+            // Only the face asked for: not a regular standing in for a missing italic.
+            if style != fontdb::Style::Normal && face.style == fontdb::Style::Normal {
+                return None;
+            }
+            if weight >= 600 && face.weight.0 < 600 {
+                return None;
+            }
+            db.with_face_data(id, |data, index| prosecraft_ui_egui::fonts::Face {
+                bytes: data.to_vec(),
+                index,
+            })
+        };
+        let regular = load(400, fontdb::Style::Normal)?;
+        Some(prosecraft_ui_egui::editor_fonts::FamilyFaces {
+            regular: Some(regular),
+            italic: load(400, fontdb::Style::Italic),
+            bold: load(700, fontdb::Style::Normal),
+        })
     }
 }

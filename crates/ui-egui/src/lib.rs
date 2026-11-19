@@ -20,6 +20,7 @@ mod citation_picker;
 mod cover_art;
 mod device_sync;
 mod editing;
+pub mod editor_fonts;
 pub mod find;
 pub mod fonts;
 mod footnote_editor;
@@ -406,6 +407,12 @@ pub struct AppState {
     /// The Color scheme preference (`prosecraft-color-scheme`), and a new choice to save.
     color_scheme: String,
     scheme_choice: Option<String>,
+    /// The writing fonts, a new choice to save, the host's installed fonts, and the choice the
+    /// app's fonts were last built for.
+    font_prefs: editor_fonts::FontPrefs,
+    font_choice: Option<editor_fonts::FontPrefs>,
+    installed_fonts: Option<std::sync::Arc<dyn editor_fonts::InstalledFonts>>,
+    fonts_applied: Option<editor_fonts::FontPrefs>,
     /// The Settings dialog's Device sync group.
     sync: settings::SyncPanel,
     /// What the Device sync group asked for this frame.
@@ -1503,6 +1510,12 @@ impl ProseApp {
     }
 
     /// Gives the app the device's wiki file store (the desktop host's).
+    /// The device's installed fonts, for the writing font pickers (the desktop host's).
+    pub fn set_installed_fonts(&mut self, fonts: std::sync::Arc<dyn editor_fonts::InstalledFonts>) {
+        self.state.installed_fonts = Some(fonts);
+        self.state.fonts_applied = None;
+    }
+
     /// How the host reads the clipboard's HTML, for rich paste (egui's paste is its text).
     pub fn set_clipboard_html(&mut self, read: ClipboardHtml) {
         self.state.clipboard_html = Some(read);
@@ -2514,6 +2527,7 @@ impl ProseApp {
             }
         }
         self.save_appearance();
+        self.apply_fonts(ui.ctx());
         if self.poll_sync() | self.poll_markdown_import() {
             ui.ctx()
                 .request_repaint_after(std::time::Duration::from_millis(100));
@@ -2534,6 +2548,34 @@ impl ProseApp {
             ui.ctx()
                 .request_repaint_after(std::time::Duration::from_millis(300));
         }
+    }
+
+    /// The writing fonts: a new choice saved, and the app's fonts built again for the faces it
+    /// comes to once the installed fonts are listed.
+    fn apply_fonts(&mut self, ctx: &egui::Context) {
+        if let Some(prefs) = self.state.font_choice.take() {
+            self.state.font_prefs = prefs;
+            if let Some(home) = self.home.as_mut() {
+                for (key, value) in self.state.font_prefs.entries() {
+                    if let Err(error) = home.store.save_setting(key, Some(value)) {
+                        self.state.status = Some(format!("Could not save the font: {error}"));
+                    }
+                }
+            }
+        }
+        if self.state.fonts_applied.as_ref() == Some(&self.state.font_prefs) {
+            return;
+        }
+        let installed = self.state.installed_fonts.clone();
+        if installed.as_ref().is_some_and(|i| i.families().is_none()) {
+            ctx.request_repaint_after(std::time::Duration::from_millis(250));
+            return;
+        }
+        let faces = self.state.font_prefs.faces(installed.as_deref());
+        if faces != fonts::WritingFaces::default() || self.state.fonts_applied.is_some() {
+            fonts::reinstall(ctx, &faces);
+        }
+        self.state.fonts_applied = Some(self.state.font_prefs.clone());
     }
 
     /// A new Theme or Color scheme choice, applied and saved on this device.

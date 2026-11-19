@@ -99,6 +99,8 @@ pub(crate) struct Files<'a> {
     /// The project's citation style and locale, for scenes' citations.
     pub citation_style: String,
     pub citation_locale: String,
+    /// The library's record of the project, for the graph tile.
+    pub stored: &'a prosecraft_core::js::JsValue,
 }
 
 /// `splitGroups`: each chapter's scenes, the wiki pages, the wiki files.
@@ -124,6 +126,10 @@ fn groups(project: &Project) -> Vec<(String, Vec<(String, String)>)> {
     if !wiki.is_empty() {
         out.push(("Wiki pages".into(), wiki));
     }
+    out.push((
+        "Graph".into(),
+        vec![(split::graph_target(None), "Characters graph".into())],
+    ));
     let files: Vec<(String, String)> = project
         .research_items
         .iter()
@@ -334,6 +340,10 @@ pub(crate) struct Asked {
     pub open: Option<Selection>,
     /// A wiki file to open with its app.
     pub open_file: Option<String>,
+    /// A detected character the graph tile confirmed for the open scene.
+    pub confirm: Option<String>,
+    /// A page to open beside, from the graph tile.
+    pub beside: Option<String>,
 }
 
 /// The panes, as a grid of `tileColumns` columns.
@@ -355,6 +365,8 @@ pub(crate) fn show(
         chapter_titles: Vec::new(),
         open: None,
         open_file: None,
+        confirm: None,
+        beside: None,
     };
     // `onDestroy(flush)`: a closed pane's pending edit is sent.
     let open: std::collections::HashSet<&str> = panes.iter().map(|p| p.id.as_str()).collect();
@@ -375,10 +387,18 @@ pub(crate) fn show(
     }
     let groups = groups(project);
     // `pruneSplitTargets`.
-    let valid: std::collections::HashSet<String> = groups
+    let mut valid: std::collections::HashSet<String> = groups
         .iter()
         .flat_map(|(_, o)| o.iter().map(|(v, _)| v.clone()))
         .collect();
+    // Page-centred graph tiles come from the Network view and the character card.
+    valid.extend(
+        project
+            .documents
+            .iter()
+            .filter(|d| d.space.as_deref() == Some("Wiki") && !d.trashed)
+            .map(|d| split::graph_target(Some(&d.id))),
+    );
     *panes = split::prune(panes, &valid);
     let total = ui.max_rect().width();
     let columns = split::tile_columns(panes.len(), f64::from(total), 300.0);
@@ -460,7 +480,12 @@ fn header(
             .iter()
             .flat_map(|(_, o)| o.iter())
             .find(|(v, _)| *v == pane.target)
-            .map_or("Choose something to show…".to_owned(), |(_, l)| l.clone());
+            .map(|(_, l)| l.clone())
+            .or_else(|| {
+                matches!(split::parse_target(&pane.target), Some(Target::Graph(_)))
+                    .then(|| "Characters graph".to_owned())
+            })
+            .unwrap_or_else(|| "Choose something to show…".to_owned());
         let mut target = pane.target.clone();
         let combo = craft_ui::ComboBox::from_id_salt(("split-target", pane.id.as_str()))
             .selected_text(current)
@@ -601,6 +626,26 @@ fn body(
                     (pane, doc, chapter, active),
                     (asked, tiles),
                 );
+            }
+            Some(Target::Graph(page)) => {
+                let got = crate::graph_tile::show(
+                    ui,
+                    palette,
+                    files.stored,
+                    &pane.id,
+                    active,
+                    page.as_deref(),
+                    height,
+                );
+                if got.confirm.is_some() {
+                    asked.confirm = got.confirm;
+                }
+                if let Some(id) = got.open {
+                    asked.open = Some(Selection::Document(id));
+                }
+                if got.beside.is_some() {
+                    asked.beside = got.beside;
+                }
             }
             Some(Target::File(id)) => {
                 let Some(item) = project.research_items.iter().find(|r| r.id == id) else {

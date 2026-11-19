@@ -71,6 +71,10 @@ fn column(ui: &mut Ui, add: impl FnOnce(&mut Ui)) {
 
 /// The parts of the state a view changes, borrowed apart from the project it shows.
 struct Edit<'a> {
+    /// The project as stored, for the story data panel.
+    stored: &'a prosecraft_core::js::JsValue,
+    /// The story data panel open, for every scene.
+    story_open: &'a mut bool,
     editable: bool,
     /// The host's clipboard HTML, for rich paste, and its writer, for rich copy.
     clipboard_html: Option<&'a crate::ClipboardHtml>,
@@ -251,6 +255,9 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         clipboard_html,
         clipboard_write,
         tiles,
+        network,
+        fresh_ids,
+        story_data_open,
         ..
     } = state;
     let entry = library.as_ref().and_then(|l| l.projects().get(*active));
@@ -265,6 +272,33 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
             .get("project")
             .unwrap_or(&prosecraft_core::js::JsValue::Null);
         crate::storyboard::show(ui, &palette, data, project, *editable, intents);
+        return;
+    }
+    if *view == WorkspaceView::Network {
+        let derived = crate::graph_tile::derived(ui.ctx(), &entry.stored);
+        let data = entry
+            .stored
+            .get("project")
+            .unwrap_or(&prosecraft_core::js::JsValue::Null);
+        let mut out = crate::network_view::Out {
+            editable: *editable,
+            intents,
+            ids: fresh_ids,
+            open: None,
+        };
+        // Full width, as ProseCraft's network view (not the writing column).
+        egui::ScrollArea::vertical()
+            .auto_shrink([false, false])
+            .show(ui, |ui| {
+                egui::Frame::new()
+                    .inner_margin(egui::Margin::symmetric(24, 0))
+                    .show(ui, |ui| {
+                        crate::network_view::show(ui, &palette, data, &derived, network, &mut out);
+                    });
+            });
+        if let Some(selection) = out.open {
+            state.select(selection);
+        }
         return;
     }
     if *view == WorkspaceView::Publish {
@@ -290,6 +324,11 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
             .and_then(|p| p.get("publishOptions")),
     );
     let mut edit = Edit {
+        stored: entry
+            .stored
+            .get("project")
+            .unwrap_or(&prosecraft_core::js::JsValue::Null),
+        story_open: story_data_open,
         editable: *editable,
         clipboard_html: clipboard_html.as_ref(),
         clipboard_write: clipboard_write.as_ref(),
@@ -359,6 +398,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                             // Shown above, as a full-width canvas.
                             WorkspaceView::Storyboard => {}
                             WorkspaceView::Timeline => timeline(ui, &palette, project, &mut edit),
+                            WorkspaceView::Network => {}
                             // Shown above, in its own two-column layout.
                             WorkspaceView::Publish => {}
                         });
@@ -389,6 +429,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                         ),
                         citation_style: options.citation_style.clone(),
                         citation_locale: options.citation_locale.clone(),
+                        stored: &entry.stored,
                     };
                     let active = edit.draft.as_ref().map(|d| d.document.clone());
                     let asked = crate::split_view::show(
@@ -403,6 +444,16 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                         tiles,
                     );
                     from_split = asked.open;
+                    if let (Some(page), Some(scene)) = (&asked.confirm, active.as_deref()) {
+                        edit.intents.push(Intent::ConfirmCharacter {
+                            scene: scene.to_owned(),
+                            page: page.clone(),
+                        });
+                    }
+                    if let Some(page) = &asked.beside {
+                        edit.intents
+                            .push(Intent::OpenBeside(prosecraft_core::split::doc_target(page)));
+                    }
                     if let Some(file) = asked.open_file {
                         edit.intents.push(Intent::OpenWikiFileExternally(file));
                     }
@@ -2338,6 +2389,15 @@ fn editor(
         }
     }
     ui.add_space(10.0);
+    crate::story_data::show(
+        ui,
+        palette,
+        edit.stored,
+        &document.id,
+        edit.story_open,
+        edit.editable,
+        edit.intents,
+    );
 
     let body_id = body_id(&document.id);
     let selection = egui::TextEdit::load_state(ui.ctx(), body_id)

@@ -39,6 +39,9 @@ thiserror = "2"
 encoding_rs = "0.8"
 # All date and time conversion goes through chrono (Rust house rule 5).
 chrono = { version = "0.4.45", default-features = false, features = ["std"] }
+# Sine and cosine computed as JavaScript's Math.sin/Math.cos (both from fdlibm), for the
+# relation network's layout, which magnifies a difference in the last bit. MIT.
+libm = "0.2"
 # Encrypted backups and sync files, read and written exactly as ProseCraft does: Argon2id derives
 # the key, XChaCha20-Poly1305 seals the records (RustCrypto, MIT OR Apache-2.0).
 argon2 = { version = "0.6", default-features = false, features = ["alloc"] }

@@ -71,6 +71,10 @@ fn column(ui: &mut Ui, add: impl FnOnce(&mut Ui)) {
 
 /// The parts of the state a view changes, borrowed apart from the project it shows.
 struct Edit<'a> {
+    /// The project as stored, for the story data panel.
+    stored: &'a prosecraft_core::js::JsValue,
+    /// The story data panel open, for every scene.
+    story_open: &'a mut bool,
     editable: bool,
     /// The host's clipboard HTML, for rich paste, and its writer, for rich copy.
     clipboard_html: Option<&'a crate::ClipboardHtml>,
@@ -251,6 +255,9 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         clipboard_html,
         clipboard_write,
         tiles,
+        network,
+        fresh_ids,
+        story_data_open,
         ..
     } = state;
     let entry = library.as_ref().and_then(|l| l.projects().get(*active));
@@ -265,6 +272,33 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
             .get("project")
             .unwrap_or(&prosecraft_core::js::JsValue::Null);
         crate::storyboard::show(ui, &palette, data, project, *editable, intents);
+        return;
+    }
+    if *view == WorkspaceView::Network {
+        let derived = crate::graph_tile::derived(ui.ctx(), &entry.stored);
+        let data = entry
+            .stored
+            .get("project")
+            .unwrap_or(&prosecraft_core::js::JsValue::Null);
+        let mut out = crate::network_view::Out {
+            editable: *editable,
+            intents,
+            ids: fresh_ids,
+            open: None,
+        };
+        // Full width, as ProseCraft's network view (not the writing column).
+        egui::ScrollArea::vertical()
+            .auto_shrink([false, false])
+            .show(ui, |ui| {
+                egui::Frame::new()
+                    .inner_margin(egui::Margin::symmetric(24, 0))
+                    .show(ui, |ui| {
+                        crate::network_view::show(ui, &palette, data, &derived, network, &mut out);
+                    });
+            });
+        if let Some(selection) = out.open {
+            state.select(selection);
+        }
         return;
     }
     if *view == WorkspaceView::Publish {
@@ -290,6 +324,11 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
             .and_then(|p| p.get("publishOptions")),
     );
     let mut edit = Edit {
+        stored: entry
+            .stored
+            .get("project")
+            .unwrap_or(&prosecraft_core::js::JsValue::Null),
+        story_open: story_data_open,
         editable: *editable,
         clipboard_html: clipboard_html.as_ref(),
         clipboard_write: clipboard_write.as_ref(),
@@ -359,6 +398,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                             // Shown above, as a full-width canvas.
                             WorkspaceView::Storyboard => {}
                             WorkspaceView::Timeline => timeline(ui, &palette, project, &mut edit),
+                            WorkspaceView::Network => {}
                             // Shown above, in its own two-column layout.
                             WorkspaceView::Publish => {}
                         });
@@ -389,6 +429,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                         ),
                         citation_style: options.citation_style.clone(),
                         citation_locale: options.citation_locale.clone(),
+                        stored: &entry.stored,
                     };
                     let active = edit.draft.as_ref().map(|d| d.document.clone());
                     let asked = crate::split_view::show(
@@ -403,6 +444,16 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                         tiles,
                     );
                     from_split = asked.open;
+                    if let (Some(page), Some(scene)) = (&asked.confirm, active.as_deref()) {
+                        edit.intents.push(Intent::ConfirmCharacter {
+                            scene: scene.to_owned(),
+                            page: page.clone(),
+                        });
+                    }
+                    if let Some(page) = &asked.beside {
+                        edit.intents
+                            .push(Intent::OpenBeside(prosecraft_core::split::doc_target(page)));
+                    }
                     if let Some(file) = asked.open_file {
                         edit.intents.push(Intent::OpenWikiFileExternally(file));
                     }
@@ -1373,10 +1424,7 @@ pub(crate) fn read_only_html_cited(
     let labels = atom_labels(&doc, &cites);
     let wrap = ui.available_width().max(1.0);
     let look = Look::default();
-    let galley = ui.fonts_mut(|f| {
-        let spacing = atom_sizes(f, &labels, wrap);
-        f.layout_job(layout_doc(&doc, &doc.text, palette, wrap, &spacing, &look))
-    });
+    let galley = ui.fonts_mut(|f| doc_galley(f, (&doc, &doc.text), palette, wrap, &labels, &look));
     let (rect, response) = ui.allocate_exact_size(
         galley.size().max(egui::vec2(wrap, 24.0)),
         egui::Sense::hover(),
@@ -1405,16 +1453,14 @@ pub(crate) fn tile_body(
     let layout_palette = *palette;
     let mut layouter = move |ui: &Ui, text: &dyn egui::TextBuffer, wrap_width: f32| {
         ui.fonts_mut(|f| {
-            let spacing = atom_sizes(f, &layout_labels, wrap_width);
-            let look = Look::default();
-            f.layout_job(layout_doc(
-                &doc_for_layout,
-                text.as_str(),
+            doc_galley(
+                f,
+                (&doc_for_layout, text.as_str()),
                 &layout_palette,
                 wrap_width,
-                &spacing,
-                &look,
-            ))
+                &layout_labels,
+                &Look::default(),
+            )
         })
     };
     let output = egui::TextEdit::multiline(body)
@@ -1482,10 +1528,7 @@ fn chapter_scene(
     let galley = if screenplay {
         crate::screenplay_editor::galley(ui, &doc, &doc.text, palette, wrap)
     } else {
-        ui.fonts_mut(|f| {
-            let spacing = atom_sizes(f, &labels, wrap);
-            f.layout_job(layout_doc(&doc, &doc.text, palette, wrap, &spacing, look))
-        })
+        ui.fonts_mut(|f| doc_galley(f, (&doc, &doc.text), palette, wrap, &labels, look))
     };
     let (rect, response) = ui.allocate_exact_size(
         egui::vec2(width, galley.size().y.max(24.0)),
@@ -1989,6 +2032,15 @@ pub(crate) fn atom_sizes(
                     ..AtomBox::default()
                 }
             }
+            // A wrapped picture: the text flows beside it (see `picture_flow`), its character
+            // all but invisible where it stands.
+            AtomLabel::Picture(picture) if picture.layout.wrap != "block" && wrap.is_finite() => {
+                AtomBox {
+                    font: 1.0,
+                    picture: true,
+                    ..AtomBox::default()
+                }
+            }
             // As wide as the column, so the picture has its row to itself.
             AtomLabel::Picture(picture) => AtomBox {
                 spacing: if wrap.is_finite() {
@@ -2181,6 +2233,86 @@ pub(crate) fn layout_doc(
     job
 }
 
+/// The scene's text laid out as the editor shows it: [`layout_doc`], with the text beside its
+/// wrapped pictures.
+pub(crate) fn doc_galley(
+    fonts: &mut egui::epaint::FontsView<'_>,
+    (doc, text): (&RichDoc, &str),
+    palette: &Palette,
+    wrap: f32,
+    labels: &[AtomLabel],
+    look: &Look,
+) -> std::sync::Arc<egui::Galley> {
+    let sizes = atom_sizes(fonts, labels, wrap);
+    let job = layout_doc(doc, text, palette, wrap, &sizes, look);
+    let floats = floats(text, labels, wrap);
+    if floats.is_empty() {
+        return fonts.layout_job(job);
+    }
+    crate::picture_flow::flow(fonts, job, &floats, &clears(doc, text, labels))
+}
+
+/// The wrapped pictures in `text`, drawn in a column `column` wide.
+pub(crate) fn floats(
+    text: &str,
+    labels: &[AtomLabel],
+    column: f32,
+) -> Vec<crate::picture_flow::Float> {
+    // Without a column to wrap in, a picture keeps its row (see `atom_sizes`).
+    if !column.is_finite() {
+        return Vec::new();
+    }
+    text.chars()
+        .enumerate()
+        .filter(|(_, c)| *c == ATOM)
+        .zip(labels.iter().enumerate())
+        .filter_map(|((index, _), (atom, label))| match label {
+            AtomLabel::Picture(picture) if picture.layout.wrap != "block" => {
+                Some(crate::picture_flow::Float {
+                    index,
+                    atom,
+                    left: picture.layout.wrap == "wrap-left",
+                    size: picture.drawn(column),
+                })
+            }
+            _ => None,
+        })
+        .collect()
+}
+
+/// Which lines start below the wrapped pictures (ProseCraft's `clear: both`): headings, quotes
+/// and kept blocks, and here a line holding a picture on its own row.
+fn clears(doc: &RichDoc, text: &str, labels: &[AtomLabel]) -> Vec<bool> {
+    let mut out: Vec<bool> = doc
+        .lines
+        .iter()
+        .map(|kind| {
+            matches!(
+                kind,
+                LineKind::Heading1
+                    | LineKind::Heading2
+                    | LineKind::Heading3
+                    | LineKind::Quote
+                    | LineKind::Block
+            )
+        })
+        .collect();
+    let mut line = 0;
+    let mut atoms = labels.iter();
+    for c in text.chars() {
+        if c == '\n' {
+            line += 1;
+        } else if c == ATOM
+            && let Some(AtomLabel::Picture(picture)) = atoms.next()
+            && picture.layout.wrap == "block"
+            && let Some(clear) = out.get_mut(line)
+        {
+            *clear = true;
+        }
+    }
+    out
+}
+
 /// `.editor-content ul, ol { padding-left: 24px }`.
 const LIST_INDENT: f32 = 24.0;
 /// `.editor-content blockquote { padding: 2px 0 2px 17px }`.
@@ -2257,6 +2389,15 @@ fn editor(
         }
     }
     ui.add_space(10.0);
+    crate::story_data::show(
+        ui,
+        palette,
+        edit.stored,
+        &document.id,
+        edit.story_open,
+        edit.editable,
+        edit.intents,
+    );
 
     let body_id = body_id(&document.id);
     let selection = egui::TextEdit::load_state(ui.ctx(), body_id)
@@ -2623,16 +2764,14 @@ fn editor(
             );
         }
         ui.fonts_mut(|f| {
-            let spacing = atom_sizes(f, &layout_labels, wrap_width);
-            let job = layout_doc(
-                &doc_for_layout,
-                text.as_str(),
+            doc_galley(
+                f,
+                (&doc_for_layout, text.as_str()),
                 &layout_palette,
                 wrap_width,
-                &spacing,
+                &layout_labels,
                 &look,
-            );
-            f.layout_job(job)
+            )
         })
     };
     link_prompt(ui, draft, now);
@@ -3211,6 +3350,18 @@ fn paint_picture(
         _ => left,
     };
     let rect = egui::Rect::from_min_size(egui::pos2(x, row.min.y + crate::pictures::MARGIN), size);
+    draw_picture(painter, palette, html, picture, rect);
+    rect
+}
+
+/// A picture's image in `rect`, or its alternative text in a frame when it can't be drawn.
+fn draw_picture(
+    painter: &egui::Painter,
+    palette: &Palette,
+    html: &str,
+    picture: &crate::pictures::PictureInfo,
+    rect: egui::Rect,
+) {
     match crate::pictures::texture(painter.ctx(), html, picture) {
         Some(texture) => {
             painter.image(
@@ -3236,7 +3387,6 @@ fn paint_picture(
             );
         }
     }
-    rect
 }
 
 /// Each atom's label, painted in its character's box (footnote numbers, citation labels,
@@ -3251,6 +3401,13 @@ pub(crate) fn paint_atoms(
     right_edge: f32,
 ) -> Vec<(egui::Rect, Clicked)> {
     let mut markers = Vec::new();
+    // The wrapped pictures, where the layout put them (see `picture_flow`).
+    let floats = floats(&doc.text, labels, galley.job.wrap.max_width);
+    let wrapped: Vec<(usize, egui::Rect)> = floats
+        .iter()
+        .map(|f| f.atom)
+        .zip(crate::picture_flow::placed(galley, &floats))
+        .collect();
     let atoms = doc
         .text
         .chars()
@@ -3340,6 +3497,13 @@ pub(crate) fn paint_atoms(
                         Clicked::Rich(atom),
                     ));
                 }
+            }
+            AtomLabel::Picture(picture)
+                if let Some((_, rect)) = wrapped.iter().find(|(a, _)| *a == atom) =>
+            {
+                let rect = rect.translate(origin.to_vec2());
+                draw_picture(painter, palette, html, picture, rect);
+                markers.push((rect, Clicked::Picture(atom)));
             }
             AtomLabel::Picture(picture) => {
                 // Its own glyph's cell: at a row break the caret before it is at the end of the

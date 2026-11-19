@@ -427,6 +427,25 @@ fn copying_keeps_formatting_for_pasting_back() {
     harness.run_steps(12);
     let text = content(&memory, "doc-1");
     assert!(text.starts_with("<p>It was <em>dark</em>."), "{text}");
+    // A passage with its footnote marker and citation: both come back.
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    harness.run();
+    harness.event(egui::Event::Copy);
+    harness.run();
+    let (html, text) = board.lock().expect("board").clone();
+    assert!(
+        html.contains("footnote-ref") && html.contains("cite-ref"),
+        "{html}"
+    );
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::End);
+    harness.run();
+    harness.event(egui::Event::Paste(text));
+    harness.run_steps(12);
+    let stored = content(&memory, "doc-1");
+    assert_eq!(stored.matches("footnote-ref").count(), 2, "{stored}");
+    assert_eq!(stored.matches("cite-ref").count(), 2, "{stored}");
 }
 
 #[test]

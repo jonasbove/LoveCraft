@@ -4,7 +4,10 @@
 //! projects), Edit (Undo to Select All) and View (Typewriter Mode, Fade Other Paragraphs, Zen
 //! Mode).
 
-use craft_menu::{Chord, CommandRef, Item, ItemKind, Menu, MenuBar, MenuBarUi, Node};
+use craft_menu::{
+    Chord, CommandRef, Item, ItemKind, ItemRole, LayoutOptions, Menu, MenuBar, MenuBarUi, MenuRole,
+    Node,
+};
 
 use crate::AppState;
 
@@ -101,6 +104,32 @@ pub(crate) fn bar(state: &AppState) -> MenuBar {
             ),
         ],
         documents: Vec::new(),
+    }
+}
+
+/// The bar laid out as a Mac app's menus (ProseCraft's Tauri `run` menu on macOS): the app menu
+/// with Settings and Quit in their places, File, Edit, View.
+pub(crate) fn mac_layout(state: &AppState) -> craft_menu::Layout {
+    let mut bar = bar(state);
+    for (menu, role) in bar.menus.iter_mut().zip([
+        MenuRole::App,
+        MenuRole::File,
+        MenuRole::Edit,
+        MenuRole::View,
+    ]) {
+        menu.role = role;
+    }
+    bar.tag_item(&CommandRef::new("settings"), ItemRole::Settings);
+    bar.tag_item(&CommandRef::new("quit"), ItemRole::Quit);
+    craft_menu::mac_layout(&bar, &LayoutOptions::new(prosecraft_core::about::APP_NAME))
+}
+
+/// What may run from the native menus this frame.
+pub(crate) fn gate(ctx: &egui::Context, state: &AppState) -> craft_menu::Gate {
+    craft_menu::Gate {
+        modal: state.settings_open || state.encrypt_export.is_some(),
+        text_editing: ctx.egui_wants_keyboard_input(),
+        ..Default::default()
     }
 }
 

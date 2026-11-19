@@ -742,6 +742,8 @@ pub struct ProseApp {
     >,
     /// Where wiki files live on this device (the desktop host's).
     wiki_files: Option<std::rc::Rc<dyn WikiFileStore>>,
+    /// The macOS menu bar, which replaces the in-window one there.
+    native_menu: Option<craft_menu::NativeMenu>,
 }
 
 impl Default for ProseApp {
@@ -763,6 +765,23 @@ impl ProseApp {
             sync_job: None,
             markdown_job: None,
             wiki_files: None,
+            native_menu: None,
+        }
+    }
+
+    /// On macOS, the app's menus as the system menu bar (ProseCraft's Tauri `run` menu), from
+    /// eframe's creator closure on the main thread. Elsewhere, and when AppKit refuses them, the
+    /// in-window bar stays.
+    #[cfg(target_os = "macos")]
+    pub fn install_native_menu(&mut self, ctx: &egui::Context) {
+        self.native_menu = craft_menu::mac::install(ctx, &app_menu::mac_layout(&self.state).bar);
+    }
+
+    /// Before egui reads a frame's input (`eframe::App::raw_input_hook`): the native menu's key
+    /// equivalents become the key presses they were.
+    pub fn raw_input_hook(&mut self, raw: &mut egui::RawInput) {
+        if let Some(menu) = self.native_menu.as_mut() {
+            menu.raw_input(raw);
         }
     }
 
@@ -985,9 +1004,24 @@ impl ProseApp {
             .memory(|m| m.focused())
             .filter(|_| ctx.text_edit_focused())
             .map(|id| (id, egui::TextEdit::load_state(&ctx, id)));
-        let chosen = egui::Panel::top("menu-bar")
-            .show(ui, |ui| app_menu::show(ui, &self.state))
-            .inner;
+        let chosen = match self.native_menu.as_mut() {
+            Some(menu) => {
+                menu.set_gate(app_menu::gate(&ctx, &self.state));
+                let clicks = menu.take_clicks(&ctx);
+                let state = &self.state;
+                menu.sync(app_menu::mac_layout(state));
+                clicks
+            }
+            None => {
+                egui::Panel::top("menu-bar")
+                    .show(ui, |ui| app_menu::show(ui, &self.state))
+                    .inner
+            }
+        };
+        // A native menu leaves the focus where it was: its Edit items go to that field.
+        if self.native_menu.is_some() {
+            self.state.last_focus = focus_now.clone();
+        }
         let open = craft_menu::bar::is_open(&ctx);
         if open && !self.state.menu_was_open {
             // The click that opened it may already have taken the focus: last frame's field.

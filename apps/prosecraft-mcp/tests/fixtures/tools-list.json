@@ -1,0 +1,632 @@
+{
+ "tools": [
+  {
+   "name": "list_projects",
+   "description": "List ProseCraft projects in the open sync folder.",
+   "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {}
+   },
+   "execution": {
+    "taskSupport": "forbidden"
+   }
+  },
+  {
+   "name": "list_chapters",
+   "description": "List chapters in a project, optionally filtered by label or Trash state.",
+   "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+     "projectId": {
+      "type": "string",
+      "description": "Project id from list_projects"
+     },
+     "labelId": {
+      "description": "Only chapters with this label",
+      "type": "string"
+     },
+     "trashed": {
+      "description": "true lists only trashed chapters; omit for live ones",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "projectId"
+    ]
+   },
+   "execution": {
+    "taskSupport": "forbidden"
+   }
+  },
+  {
+   "name": "list_scenes",
+   "description": "List scenes (documents) and Wiki pages in a project, optionally filtered by chapter, label or Trash state.",
+   "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+     "projectId": {
+      "type": "string"
+     },
+     "chapterId": {
+      "description": "Only scenes in this chapter",
+      "type": "string"
+     },
+     "labelId": {
+      "description": "Only scenes with this label",
+      "type": "string"
+     },
+     "trashed": {
+      "description": "true lists only trashed scenes; omit for live ones",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "projectId"
+    ]
+   },
+   "execution": {
+    "taskSupport": "forbidden"
+   }
+  },
+  {
+   "name": "search_documents",
+   "description": "Search scene and Wiki page titles and bodies with the app's matching rules: literal query, diacritics folded unless caseSensitive, optional wholeWord. Returns one result per document with a short plain-text snippet around the first match.",
+   "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+     "projectId": {
+      "type": "string"
+     },
+     "query": {
+      "type": "string",
+      "description": "Literal text to find"
+     },
+     "space": {
+      "description": "Only scenes or only Wiki pages",
+      "type": "string",
+      "enum": [
+       "scene",
+       "wiki"
+      ]
+     },
+     "chapterId": {
+      "description": "Only scenes in this chapter",
+      "type": "string"
+     },
+     "folderId": {
+      "description": "Only Wiki pages in this folder",
+      "type": "string"
+     },
+     "labelId": {
+      "description": "Only documents with this label",
+      "type": "string"
+     },
+     "includeTrashed": {
+      "description": "Search the Trash too",
+      "type": "boolean"
+     },
+     "caseSensitive": {
+      "description": "Match case and diacritics exactly",
+      "type": "boolean"
+     },
+     "wholeWord": {
+      "description": "Match whole words only",
+      "type": "boolean"
+     },
+     "limit": {
+      "description": "Maximum number of results (default 30)",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+     }
+    },
+    "required": [
+     "projectId",
+     "query"
+    ]
+   },
+   "execution": {
+    "taskSupport": "forbidden"
+   }
+  },
+  {
+   "name": "read_scene",
+   "description": "Read one scene as Markdown with metadata; fields carries every frontmatter field as stored. Trashed scenes fail unless includeTrashed is set.",
+   "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+     "projectId": {
+      "type": "string"
+     },
+     "sceneId": {
+      "type": "string"
+     },
+     "includeTrashed": {
+      "description": "Read the scene even if it is in the Trash",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "projectId",
+     "sceneId"
+    ]
+   },
+   "execution": {
+    "taskSupport": "forbidden"
+   }
+  },
+  {
+   "name": "list_wiki_pages",
+   "description": "List Wiki pages with title, folder path and kind; no bodies.",
+   "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+     "projectId": {
+      "type": "string"
+     },
+     "folderId": {
+      "description": "Only pages directly in this Wiki folder",
+      "type": "string"
+     }
+    },
+    "required": [
+     "projectId"
+    ]
+   },
+   "execution": {
+    "taskSupport": "forbidden"
+   }
+  },
+  {
+   "name": "read_wiki_page",
+   "description": "Read one Wiki page: Markdown body plus every frontmatter field as fields.",
+   "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+     "projectId": {
+      "type": "string"
+     },
+     "pageId": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "projectId",
+     "pageId"
+    ]
+   },
+   "execution": {
+    "taskSupport": "forbidden"
+   }
+  },
+  {
+   "name": "list_wiki_folders",
+   "description": "List the Wiki folder tree.",
+   "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+     "projectId": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "projectId"
+    ]
+   },
+   "execution": {
+    "taskSupport": "forbidden"
+   }
+  },
+  {
+   "name": "write_scene",
+   "description": "Create or update a scene. Omit sceneId to create with a generated id. Only title, chapterId and the body change; every other frontmatter field is preserved. An unknown sceneId fails unless create is true. Overwriting an existing scene first stores its previous text as a snapshot unless snapshot is false; the result carries the snapshot id (null when none was taken). Pass expectedRevision to fail instead of overwriting a newer edit; the result carries the new revision.",
+   "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+     "projectId": {
+      "type": "string"
+     },
+     "sceneId": {
+      "type": "string"
+     },
+     "chapterId": {
+      "type": "string"
+     },
+     "title": {
+      "type": "string"
+     },
+     "markdown": {
+      "type": "string",
+      "description": "Scene body in Markdown"
+     },
+     "create": {
+      "description": "Create a new scene when sceneId is unknown",
+      "type": "boolean"
+     },
+     "snapshot": {
+      "description": "Set false to skip the snapshot before overwriting",
+      "type": "boolean"
+     },
+     "expectedRevision": {
+      "description": "Fail unless the stored scene revision equals this",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+     }
+    },
+    "required": [
+     "projectId",
+     "markdown"
+    ]
+   },
+   "execution": {
+    "taskSupport": "forbidden"
+   }
+  },
+  {
+   "name": "trash_scene",
+   "description": "Move a scene to Trash (tombstone + remove file). Pass expectedRevision to fail instead of trashing a newer edit; the result carries the new revision.",
+   "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+     "projectId": {
+      "type": "string"
+     },
+     "sceneId": {
+      "type": "string"
+     },
+     "expectedRevision": {
+      "description": "Fail unless the stored scene revision equals this",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+     }
+    },
+    "required": [
+     "projectId",
+     "sceneId"
+    ]
+   },
+   "execution": {
+    "taskSupport": "forbidden"
+   }
+  },
+  {
+   "name": "create_chapter",
+   "description": "Create a chapter.",
+   "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+     "projectId": {
+      "type": "string"
+     },
+     "title": {
+      "type": "string"
+     },
+     "summary": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "projectId",
+     "title"
+    ]
+   },
+   "execution": {
+    "taskSupport": "forbidden"
+   }
+  },
+  {
+   "name": "update_chapter",
+   "description": "Rename a chapter or update its summary. Pass expectedRevision to fail instead of overwriting a newer edit; the result carries the new revision.",
+   "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+     "projectId": {
+      "type": "string"
+     },
+     "chapterId": {
+      "type": "string"
+     },
+     "title": {
+      "type": "string"
+     },
+     "summary": {
+      "type": "string"
+     },
+     "expectedRevision": {
+      "description": "Fail unless the stored chapter revision equals this",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+     }
+    },
+    "required": [
+     "projectId",
+     "chapterId"
+    ]
+   },
+   "execution": {
+    "taskSupport": "forbidden"
+   }
+  },
+  {
+   "name": "create_wiki_page",
+   "description": "Create a Wiki page (space: \"Wiki\"). folderId must be an existing Wiki folder, labelId an existing label. The result carries the new revision.",
+   "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+     "projectId": {
+      "type": "string"
+     },
+     "title": {
+      "type": "string"
+     },
+     "folderId": {
+      "description": "Wiki folder from list_wiki_folders",
+      "type": "string"
+     },
+     "content": {
+      "description": "Page body in Markdown",
+      "type": "string"
+     },
+     "labelId": {
+      "description": "Label from list_labels",
+      "type": "string"
+     }
+    },
+    "required": [
+     "projectId",
+     "title"
+    ]
+   },
+   "execution": {
+    "taskSupport": "forbidden"
+   }
+  },
+  {
+   "name": "update_wiki_page",
+   "description": "Update a Wiki page. Omitted fields keep their stored value and every other frontmatter field is preserved. The previous text is stored as a snapshot first; the result carries the snapshot id and new revision. Pass expectedRevision to fail instead of overwriting a newer edit.",
+   "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+     "projectId": {
+      "type": "string"
+     },
+     "pageId": {
+      "type": "string"
+     },
+     "title": {
+      "type": "string"
+     },
+     "content": {
+      "description": "New page body in Markdown",
+      "type": "string"
+     },
+     "folderId": {
+      "description": "Move the page to this Wiki folder",
+      "type": "string"
+     },
+     "labelId": {
+      "description": "Label from list_labels",
+      "type": "string"
+     },
+     "expectedRevision": {
+      "description": "Fail unless the stored page revision equals this",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+     }
+    },
+    "required": [
+     "projectId",
+     "pageId"
+    ]
+   },
+   "execution": {
+    "taskSupport": "forbidden"
+   }
+  },
+  {
+   "name": "set_label",
+   "description": "Set or clear the label of a document or a chapter. labelId null clears it; an unknown labelId fails without writing.",
+   "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+     "projectId": {
+      "type": "string"
+     },
+     "documentId": {
+      "description": "Scene or Wiki page id",
+      "type": "string"
+     },
+     "chapterId": {
+      "description": "Chapter id; pass either this or documentId",
+      "type": "string"
+     },
+     "labelId": {
+      "description": "Label from list_labels, or null to clear",
+      "type": [
+       "string",
+       "null"
+      ]
+     }
+    },
+    "required": [
+     "projectId",
+     "labelId"
+    ]
+   },
+   "execution": {
+    "taskSupport": "forbidden"
+   }
+  },
+  {
+   "name": "add_comment",
+   "description": "Add a comment anchored to a quote in a document. The quote must occur exactly once in the plain text; prefix and suffix context are stored like the app does.",
+   "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+     "projectId": {
+      "type": "string"
+     },
+     "documentId": {
+      "type": "string"
+     },
+     "quote": {
+      "type": "string",
+      "description": "Exact passage the comment is anchored to"
+     },
+     "text": {
+      "type": "string",
+      "description": "Comment body"
+     },
+     "author": {
+      "description": "Defaults to Me",
+      "type": "string"
+     }
+    },
+    "required": [
+     "projectId",
+     "documentId",
+     "quote",
+     "text"
+    ]
+   },
+   "execution": {
+    "taskSupport": "forbidden"
+   }
+  },
+  {
+   "name": "resolve_comment",
+   "description": "Mark a comment as resolved.",
+   "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+     "projectId": {
+      "type": "string"
+     },
+     "commentId": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "projectId",
+     "commentId"
+    ]
+   },
+   "execution": {
+    "taskSupport": "forbidden"
+   }
+  },
+  {
+   "name": "list_labels",
+   "description": "List project labels with the number of live documents and chapters using each.",
+   "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+     "projectId": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "projectId"
+    ]
+   },
+   "execution": {
+    "taskSupport": "forbidden"
+   }
+  },
+  {
+   "name": "list_comments",
+   "description": "List comments, optionally for one document. Resolved comments appear only with includeResolved.",
+   "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+     "projectId": {
+      "type": "string"
+     },
+     "documentId": {
+      "description": "Only comments on this document",
+      "type": "string"
+     },
+     "includeResolved": {
+      "description": "Include resolved comments",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "projectId"
+    ]
+   },
+   "execution": {
+    "taskSupport": "forbidden"
+   }
+  },
+  {
+   "name": "list_snapshots",
+   "description": "List snapshot metadata, newest first; no text. Optionally only for one document.",
+   "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+     "projectId": {
+      "type": "string"
+     },
+     "documentId": {
+      "description": "Only snapshots of this document",
+      "type": "string"
+     }
+    },
+    "required": [
+     "projectId"
+    ]
+   },
+   "execution": {
+    "taskSupport": "forbidden"
+   }
+  },
+  {
+   "name": "read_snapshot",
+   "description": "Read one snapshot, including its stored text.",
+   "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+     "projectId": {
+      "type": "string"
+     },
+     "snapshotId": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "projectId",
+     "snapshotId"
+    ]
+   },
+   "execution": {
+    "taskSupport": "forbidden"
+   }
+  }
+ ]
+}

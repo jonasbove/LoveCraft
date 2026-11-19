@@ -54,6 +54,9 @@ pub use zotero::Transport as ZoteroTransport;
 mod wiki_files;
 pub use wiki_files::WikiFileStore;
 
+/// A source of random bytes for keys and nonces, made where it is used.
+pub type RandomFactory = fn() -> Box<dyn prosecraft_core::storage::crypto::RandomSource + Send>;
+
 /// Reads the clipboard's HTML, if it holds some.
 pub type ClipboardHtml = std::sync::Arc<dyn Fn() -> Option<String> + Send + Sync>;
 
@@ -171,6 +174,17 @@ pub enum HostRequest {
 struct Home {
     library: ProjectLibrary,
     store: Box<dyn LibraryStore>,
+}
+
+/// The passphrase dialog for an encrypted backup (`passphraseMode = "export"`), and the backup
+/// being sealed in the background (`passphraseBusy`).
+#[derive(Default)]
+pub(crate) struct EncryptExport {
+    passphrase: String,
+    confirm: String,
+    hint: String,
+    error: Option<String>,
+    working: Option<std::sync::mpsc::Receiver<Result<String, String>>>,
 }
 
 /// The views of the main panel, as ProseCraft names them.
@@ -409,6 +423,10 @@ pub struct AppState {
     scheme_choice: Option<String>,
     /// The writing fonts, a new choice to save, the host's installed fonts, and the choice the
     /// app's fonts were last built for.
+    /// Settings > Data > Export encrypted, while its passphrase dialog is open.
+    encrypt_export: Option<EncryptExport>,
+    /// Where new keys and nonces come from (the web host's; the system's on the desktop).
+    random: Option<RandomFactory>,
     font_prefs: editor_fonts::FontPrefs,
     font_choice: Option<editor_fonts::FontPrefs>,
     installed_fonts: Option<std::sync::Arc<dyn editor_fonts::InstalledFonts>>,
@@ -1510,6 +1528,12 @@ impl ProseApp {
     }
 
     /// Gives the app the device's wiki file store (the desktop host's).
+    /// Where keys and nonces come from (the browser's `crypto.getRandomValues` on the web; the
+    /// system's random numbers on the desktop without this).
+    pub fn set_random(&mut self, random: RandomFactory) {
+        self.state.random = Some(random);
+    }
+
     /// The device's installed fonts, for the writing font pickers (the desktop host's).
     pub fn set_installed_fonts(&mut self, fonts: std::sync::Arc<dyn editor_fonts::InstalledFonts>) {
         self.state.installed_fonts = Some(fonts);
@@ -2467,6 +2491,7 @@ impl ProseApp {
             self.create_project(screenplay, &blueprint);
         }
         self.passphrase_dialog(ui);
+        self.encrypt_export_dialog(ui);
         self.handle_sync_actions();
         self.save_custom_starters();
         if let Some(prefs) = self.state.proofread_choice.take() {
@@ -2618,6 +2643,154 @@ impl ProseApp {
             palette.apply(ctx);
             self.state.palette = palette;
         }
+    }
+
+    /// `openEncryptedExport` and `submitPassphrase` for an export: at least 8 characters,
+    /// confirmed, an optional hint kept in clear text; the library sealed (Argon2id,
+    /// XChaCha20-Poly1305) off the interface thread, then saved where the person chooses.
+    fn encrypt_export_dialog(&mut self, ui: &mut Ui) {
+        let Some(dialog) = self.state.encrypt_export.as_mut() else {
+            return;
+        };
+        if let Some(done) = dialog.working.as_ref().and_then(|r| r.try_recv().ok()) {
+            dialog.working = None;
+            match done {
+                Ok(text) => {
+                    self.state.requests.push(HostRequest::ExportBackup {
+                        file_name: "prosecraft-encrypted.prosecraft".into(),
+                        text,
+                    });
+                    self.state.status = Some("Encrypted backup exported.".into());
+                    self.state.encrypt_export = None;
+                    return;
+                }
+                Err(error) => dialog.error = Some(error),
+            }
+        }
+        let busy = dialog.working.is_some();
+        if busy {
+            ui.ctx()
+                .request_repaint_after(std::time::Duration::from_millis(100));
+        }
+        let palette = self.state.palette;
+        let mut submit = false;
+        let mut close = false;
+        egui::Window::new("Encrypt backup")
+            .collapsible(false)
+            .resizable(false)
+            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+            .show(ui.ctx(), |ui| {
+                ui.set_max_width(380.0);
+                ui.label(egui::RichText::new("Passphrase").strong().color(palette.text_heading));
+                ui.label(
+                    egui::RichText::new(
+                        "You will need this passphrase to open the backup on another device. It cannot be recovered.",
+                    )
+                    .size(12.0)
+                    .color(palette.text_muted),
+                );
+                ui.add_enabled_ui(!busy, |ui| {
+                    for (text, name, password, hint) in [
+                        (&mut dialog.passphrase, "Passphrase", true, "Passphrase"),
+                        (&mut dialog.confirm, "Confirm passphrase", true, "Confirm passphrase"),
+                        (&mut dialog.hint, "Passphrase hint", false, "Hint (optional, stored unencrypted)"),
+                    ] {
+                        let field = ui.add(
+                            egui::TextEdit::singleline(text)
+                                .password(password)
+                                .hint_text(hint)
+                                .desired_width(f32::INFINITY),
+                        );
+                        views::name_field(ui, &field, name);
+                        if field.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter)) {
+                            submit = true;
+                        }
+                    }
+                });
+                if let Some(error) = &dialog.error {
+                    let label = ui.colored_label(palette.danger, error);
+                    let text = error.clone();
+                    ui.ctx().accesskit_node_builder(label.id, move |node| {
+                        node.set_role(egui::accesskit::Role::Alert);
+                        node.set_label(text);
+                    });
+                }
+                ui.horizontal(|ui| {
+                    ui.label(egui::RichText::new("Argon2id · XChaCha20-Poly1305").size(11.0).color(palette.text_muted));
+                    let label = if busy { "Working…" } else { "Encrypt & export" };
+                    submit |= ui.add_enabled(!busy, egui::Button::new(label)).clicked();
+                    let button = ui.add_enabled(!busy, egui::Button::new("Cancel"));
+                    views::name_field(ui, &button, "Close passphrase dialog");
+                    close |= button.clicked();
+                });
+            });
+        if !busy && ui.input(|i| i.key_pressed(Key::Escape)) {
+            close = true;
+        }
+        if close {
+            self.state.encrypt_export = None;
+            return;
+        }
+        if !submit || busy {
+            return;
+        }
+        if dialog.passphrase.chars().count() < 8 {
+            dialog.error = Some("Use at least 8 characters.".into());
+            return;
+        }
+        if dialog.passphrase != dialog.confirm {
+            dialog.error = Some("The passphrases do not match.".into());
+            return;
+        }
+        dialog.error = None;
+        let passphrase = dialog.passphrase.clone();
+        let hint = Some(dialog.hint.trim().to_owned()).filter(|h| !h.is_empty());
+        let (send, receive) = std::sync::mpsc::channel();
+        dialog.working = Some(receive);
+        // `persistNow`: the library as it is now.
+        self.flush();
+        let Some(home) = self.home.as_ref() else {
+            self.state.encrypt_export = None;
+            return;
+        };
+        let library = home.library.clone();
+        let now = home.store.now_ms();
+        let ctx = ui.ctx().clone();
+        let random = self.state.random;
+        let work = move || {
+            #[cfg(not(target_arch = "wasm32"))]
+            let mut source: Box<
+                dyn prosecraft_core::storage::crypto::RandomSource + Send,
+            > = random.map_or_else(
+                || Box::new(prosecraft_core::storage::crypto::OsRandom) as _,
+                |make| make(),
+            );
+            #[cfg(target_arch = "wasm32")]
+            let Some(mut source) = random.map(|make| make()) else {
+                let _ = send.send(Err("This device can't make random numbers.".to_owned()));
+                return;
+            };
+            let text = library
+                .to_encrypted_text(
+                    &passphrase,
+                    hint.as_deref(),
+                    now,
+                    (
+                        &prosecraft_core::storage::crypto::VaultOptions::default(),
+                        source.as_mut(),
+                    ),
+                )
+                .map_err(|e| e.to_string());
+            let _ = send.send(text);
+            ctx.request_repaint();
+        };
+        // Sealing takes a moment (Argon2id); the web has no threads to put it on.
+        #[cfg(not(target_arch = "wasm32"))]
+        let _ = std::thread::Builder::new()
+            .name("encrypted-backup".into())
+            .spawn(work);
+        #[cfg(target_arch = "wasm32")]
+        work();
     }
 
     fn passphrase_dialog(&mut self, ui: &mut Ui) {

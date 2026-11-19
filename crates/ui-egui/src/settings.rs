@@ -120,6 +120,51 @@ fn mode_option(
 }
 
 /// ProseCraft's "Import a manuscript" group: EPUB, Scrivener, Markdown folders and Fountain.
+/// ProseCraft's backups: a plain one, and one sealed with a passphrase. Either kind is
+/// imported the same way, an encrypted one asking for its passphrase.
+fn backups(ui: &mut Ui, state: &mut AppState) {
+    let palette = state.palette;
+    ui.label(
+        RichText::new("Backups")
+            .strong()
+            .color(palette.text_heading),
+    );
+    ui.add_space(4.0);
+    let group = |ui: &mut Ui, text: &str| {
+        ui.label(
+            RichText::new(text.to_uppercase())
+                .size(9.0)
+                .color(palette.text_muted),
+        );
+    };
+    let can_export = state.has_home && state.library.is_some();
+    group(ui, "Plain backup (unencrypted)");
+    ui.horizontal(|ui| {
+        if ui
+            .add_enabled(can_export, egui::Button::new("Export backup"))
+            .clicked()
+        {
+            state.export_wanted = true;
+        }
+        if ui.button("Import backup").clicked() {
+            state.requests.push(crate::HostRequest::OpenBackup);
+        }
+    });
+    ui.add_space(6.0);
+    group(ui, "Encrypted backup");
+    ui.horizontal(|ui| {
+        if ui
+            .add_enabled(can_export, egui::Button::new("Export encrypted"))
+            .clicked()
+        {
+            state.encrypt_export = Some(crate::EncryptExport::default());
+        }
+        if ui.button("Import encrypted").clicked() {
+            state.requests.push(crate::HostRequest::OpenBackup);
+        }
+    });
+}
+
 fn import_manuscript(ui: &mut Ui, state: &mut AppState) {
     use crate::HostRequest;
     let palette = state.palette;
@@ -784,6 +829,8 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                             egui::ScrollArea::vertical()
                                 .id_salt("settings-data")
                                 .show(ui, |ui| {
+                                    backups(ui, state);
+                                    ui.add_space(14.0);
                                     import_manuscript(ui, state);
                                     ui.add_space(14.0);
                                     device_sync(ui, state);

@@ -424,6 +424,68 @@ fn pasting_keeps_the_clipboards_formatting_and_pictures() {
     assert!(stored.contains(r#"" alt="image">"#), "{stored}");
 }
 
+#[test]
+fn an_encrypted_backup_is_exported_with_a_passphrase() {
+    let (mut harness, _memory) = app();
+    harness
+        .get_by_role_and_label(Role::Button, "Settings…")
+        .click_accesskit();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Tab, "Data and sync")
+        .click_accesskit();
+    harness.run();
+    harness.get_by_label("Export encrypted").click_accesskit();
+    harness.run();
+    let fill = |harness: &mut Harness<'static, ProseApp>, name: &str, text: &str| {
+        let role = if name == "Passphrase hint" {
+            Role::TextInput
+        } else {
+            Role::PasswordInput
+        };
+        harness.get_by_role_and_label(role, name).focus();
+        harness.run();
+        harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+        harness.get_by_role_and_label(role, name).type_text(text);
+        harness.run();
+    };
+    fill(&mut harness, "Passphrase", "short");
+    harness.get_by_label("Encrypt & export").click_accesskit();
+    harness.run();
+    harness.get_by_label("Use at least 8 characters.");
+    fill(&mut harness, "Passphrase", "lighthouse keeper");
+    fill(&mut harness, "Confirm passphrase", "lighthouse keepr");
+    harness.get_by_label("Encrypt & export").click_accesskit();
+    harness.run();
+    harness.get_by_label("The passphrases do not match.");
+    fill(&mut harness, "Confirm passphrase", "lighthouse keeper");
+    fill(&mut harness, "Passphrase hint", "the job");
+    harness.get_by_label("Encrypt & export").click_accesskit();
+    let mut text = None;
+    for _ in 0..600 {
+        harness.step();
+        if let Some(prosecraft_ui_egui::HostRequest::ExportBackup { file_name, text: t }) = harness
+            .state_mut()
+            .take_requests()
+            .into_iter()
+            .find(|r| matches!(r, prosecraft_ui_egui::HostRequest::ExportBackup { .. }))
+        {
+            assert_eq!(file_name, "prosecraft-encrypted.prosecraft");
+            text = Some(t);
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+    let text = text.expect("the encrypted backup");
+    let bundle =
+        prosecraft_core::storage::bundle::EncryptedBundle::parse(&text).expect("encrypted");
+    assert_eq!(bundle.hint().as_deref(), Some("the job"));
+    let (_, projects) = bundle.open(&"lighthouse keeper".into()).expect("opens");
+    assert!(!projects.is_empty());
+    harness.run();
+    assert!(harness.query_by_label("Encrypt & export").is_none());
+}
+
 /// The stored content of a document.
 fn content(memory: &Memory, id: &str) -> String {
     let saved = memory.last();

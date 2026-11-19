@@ -467,10 +467,16 @@ impl ProseApp {
                 crate::project_settings::ProjectSettingsDraft::for_project(&project.view),
             );
         }
-        self.state.status = Some(match saved {
-            Ok(()) => "Created a new project.".into(),
-            Err(error) => format!("Created a new project, but couldn't save your library: {error}"),
-        });
+        let failed = saved.is_err();
+        self.state.say(
+            match saved {
+                Ok(()) => "Created a new project.".into(),
+                Err(error) => {
+                    format!("Created a new project, but couldn't save your library: {error}")
+                }
+            },
+            failed,
+        );
     }
 
     /// Adds the project `make` builds (from the store's ids and how many live projects there
@@ -484,7 +490,7 @@ impl ProseApp {
         self.save_now();
         let home = self.home.as_mut()?;
         if home.library.is_read_only() {
-            self.state.status = Some("This library has a project from a newer version of ProseCraft, so no project can be added.".into());
+            self.state.error("This library has a project from a newer version of ProseCraft, so no project can be added.".into());
             return None;
         }
         let existing = home
@@ -536,7 +542,7 @@ impl ProseApp {
         let manuscript = match parse_epub(bytes, Some(name)) {
             Ok(m) => m,
             Err(error) => {
-                self.state.status = Some(error.0);
+                self.state.error(error.0);
                 return;
             }
         };
@@ -555,9 +561,10 @@ impl ProseApp {
             manuscript.title,
             manuscript.chapters.len()
         );
+        let failed = saved.is_err();
         if let Err(error) = saved {
             status.push_str(&format!(" Couldn't save your library: {error}"));
         }
-        self.state.status = Some(status);
+        self.state.say(status, failed);
     }
 }

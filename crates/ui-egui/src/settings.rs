@@ -259,7 +259,10 @@ fn device_sync(ui: &mut Ui, state: &mut AppState) {
         SyncMode::OpenFolder => help(
             ui,
             &palette,
-            "This sync location is not encrypted. Anyone with access to it can read and edit your writing. Delete scenes in ProseCraft rather than removing their files.",
+            &format!(
+                "This sync location is not encrypted. Anyone with access to it can read and edit your writing. Delete scenes in {} rather than removing their files.",
+                prosecraft_core::about::APP_NAME
+            ),
         ),
     }
     ui.add_space(8.0);
@@ -429,7 +432,8 @@ fn fonts(ui: &mut Ui, state: &mut AppState) {
     let warn = |ui: &mut Ui, family: &str| {
         ui.label(
             RichText::new(format!(
-                "“{family}” is not installed on this device; the ProseCraft fallback will be used."
+                "“{family}” is not installed on this device; the {} fallback will be used.",
+                prosecraft_core::about::APP_NAME
             ))
             .size(11.0)
             .color(palette.warning),
@@ -611,7 +615,11 @@ fn general(ui: &mut Ui, state: &mut AppState) {
             .strong()
             .color(palette.text_heading),
     );
-    help(ui, &palette, "Choose how ProseCraft looks");
+    help(
+        ui,
+        &palette,
+        &format!("Choose how {} looks", prosecraft_core::about::APP_NAME),
+    );
     ui.add_space(8.0);
     ui.label(
         RichText::new("Theme")

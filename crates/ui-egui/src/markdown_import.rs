@@ -33,7 +33,8 @@ impl ProseApp {
         ignored: usize,
     ) {
         if files.is_empty() {
-            self.state.status = Some("No Markdown files found in that folder.".into());
+            self.state
+                .info("No Markdown files found in that folder.".into());
             return;
         }
         let folders = list_import_folders(&files);
@@ -49,12 +50,12 @@ impl ProseApp {
             mode: ChapterMode::Folders,
             name: folder_name.to_owned(),
         });
-        self.state.status = None;
+        self.state.clear_status();
     }
 
     /// A folder that could not be read (more Markdown files than ProseCraft takes, say).
     pub fn import_markdown_folder_failed(&mut self, message: &str) {
-        self.state.status = Some(message.to_owned());
+        self.state.error(message.to_owned());
     }
 
     /// `importMarkdownFolder`: the project built from the plan (on a worker thread, as a large
@@ -94,9 +95,9 @@ impl ProseApp {
             match spawned {
                 Ok(_) => {
                     self.markdown_job = Some(receiver);
-                    self.state.status = Some("Importing…".into());
+                    self.state.info("Importing…".into());
                 }
-                Err(_) => self.state.status = Some("Could not import that folder.".into()),
+                Err(_) => self.state.error("Could not import that folder.".into()),
             }
         }
         #[cfg(target_arch = "wasm32")]
@@ -120,7 +121,7 @@ impl ProseApp {
             Err(std::sync::mpsc::TryRecvError::Empty) => true,
             Err(std::sync::mpsc::TryRecvError::Disconnected) => {
                 self.markdown_job = None;
-                self.state.status = Some("Could not import that folder.".into());
+                self.state.error("Could not import that folder.".into());
                 false
             }
         }
@@ -135,20 +136,24 @@ impl ProseApp {
         let Some(saved) = self.add_and_open(|_, _| project) else {
             return;
         };
-        self.state.status = Some(match saved {
-            Ok(()) => {
-                let links = if r.links_unresolved > 0 {
-                    format!(", {} link(s) without a target page", r.links_unresolved)
-                } else {
-                    String::new()
-                };
-                format!(
-                    "Imported “{name}”: {} chapter(s), {} scene(s), {} wiki page(s){links}.",
-                    r.chapters, r.scenes, r.wiki_pages
-                )
-            }
-            Err(_) => "Could not save the imported project.".into(),
-        });
+        let failed = saved.is_err();
+        self.state.say(
+            match saved {
+                Ok(()) => {
+                    let links = if r.links_unresolved > 0 {
+                        format!(", {} link(s) without a target page", r.links_unresolved)
+                    } else {
+                        String::new()
+                    };
+                    format!(
+                        "Imported “{name}”: {} chapter(s), {} scene(s), {} wiki page(s){links}.",
+                        r.chapters, r.scenes, r.wiki_pages
+                    )
+                }
+                Err(_) => "Could not save the imported project.".into(),
+            },
+            failed,
+        );
     }
 }
 

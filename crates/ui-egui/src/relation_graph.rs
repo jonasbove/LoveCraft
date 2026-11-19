@@ -83,6 +83,161 @@ pub(crate) fn short_label(label: &str, max: usize) -> String {
     }
 }
 
+/// A page name's distance below its circle's edge, and its font size, at 100%.
+const LABEL_OFFSET: f32 = 15.0;
+const LABEL_SIZE: f32 = 11.0;
+/// The clear space kept between two names, and around a relation's label.
+const LABEL_GAP: f32 = 6.0;
+
+/// The widest each page name may be so that no two names on the same line run into each other:
+/// half the horizontal distance to every name it would otherwise touch, less a gap. `items` are
+/// each name's centre and natural width; `height` is a name's height. A name with nothing beside
+/// it keeps its natural width. Names stay centred under their pages, so two names each kept to
+/// these widths never overlap. Pages (almost) on top of each other would leave each other no
+/// room at all; there the first keeps its name and the later ones give way.
+fn label_widths(items: &[(Pos2, f32)], height: f32) -> Vec<f32> {
+    items
+        .iter()
+        .enumerate()
+        .map(|(i, (at, natural))| {
+            items
+                .iter()
+                .enumerate()
+                .filter(|(j, (other, _))| {
+                    let stacked = (other.x - at.x).abs() < LABEL_GAP;
+                    *j != i
+                        && (other.y - at.y).abs() < height + LABEL_GAP / 2.0
+                        && (!stacked || *j < i)
+                })
+                .map(|(_, (other, _))| (other.x - at.x).abs() - LABEL_GAP)
+                .fold(*natural, f32::min)
+                .max(0.0)
+        })
+        .collect()
+}
+
+/// `text` (already `shortLabel`ed) shortened with "…" until `measure` says it fits in `width`;
+/// empty when not even the ellipsis fits.
+fn elide(text: &str, width: f32, measure: impl Fn(&str) -> f32) -> String {
+    if measure(text) <= width {
+        return text.to_owned();
+    }
+    let chars: Vec<char> = text.chars().collect();
+    for keep in (0..chars.len()).rev() {
+        let candidate = format!("{}…", chars[..keep].iter().collect::<String>().trim_end());
+        if measure(&candidate) <= width {
+            return candidate;
+        }
+    }
+    String::new()
+}
+
+/// A page's circle and name as drawn this frame.
+struct Placed {
+    circle: Rect,
+    /// The name's box, empty when the name doesn't fit at all.
+    label: Rect,
+    text: String,
+}
+
+/// Where every page's circle and name go, each name shortened to the room beside its
+/// neighbours (the full name is the page's tooltip and accessible name).
+fn place_labels(ui: &Ui, graph: &Graph, view: View, origin: Pos2) -> HashMap<String, Placed> {
+    let scale = view.scale as f32;
+    let radius = NODE_RADIUS * scale;
+    let font = egui::FontId::proportional((LABEL_SIZE * scale).max(6.0));
+    let measure = |t: &str| {
+        ui.painter()
+            .layout_no_wrap(t.to_owned(), font.clone(), Color32::WHITE)
+            .size()
+    };
+    let height = measure("Ag").y;
+    let pages: Vec<(&Node, Pos2, String)> = graph
+        .nodes
+        .iter()
+        .map(|n| {
+            let p = graph.positions.get(&n.id).copied().unwrap_or_default();
+            let centre = to_screen(view, origin, p);
+            (n, centre, short_label(&n.label, 20))
+        })
+        .collect();
+    let items: Vec<(Pos2, f32)> = pages
+        .iter()
+        .map(|(_, centre, text)| {
+            (
+                *centre + Vec2::new(0.0, radius + LABEL_OFFSET * scale),
+                measure(text).x,
+            )
+        })
+        .collect();
+    let widths = label_widths(&items, height);
+    pages
+        .into_iter()
+        .zip(items.iter().zip(widths))
+        .map(|((node, centre, text), ((at, _), width))| {
+            let text = elide(&text, width, |t| measure(t).x);
+            let label = if text.is_empty() {
+                Rect::NOTHING
+            } else {
+                Rect::from_center_size(*at, Vec2::new(measure(&text).x, height))
+            };
+            let placed = Placed {
+                circle: Rect::from_center_size(centre, Vec2::splat(radius * 2.0)),
+                label,
+                text,
+            };
+            (node.id.clone(), placed)
+        })
+        .collect()
+}
+
+/// The points `fitView` frames: each page's circle and the name below it, not only its centre,
+/// so Fit never cuts off the lowest name (`widths` are the names' widths at 100%).
+fn fit_points(graph: &Graph, widths: &HashMap<String, f32>) -> Vec<Point> {
+    let r = f64::from(NODE_RADIUS);
+    let below = f64::from(NODE_RADIUS + LABEL_OFFSET + LABEL_SIZE);
+    graph
+        .nodes
+        .iter()
+        .filter_map(|n| {
+            let p = graph.positions.get(&n.id)?;
+            let half = r.max(f64::from(widths.get(&n.id).copied().unwrap_or(0.0)) / 2.0);
+            Some([
+                Point {
+                    x: p.x - half,
+                    y: p.y - r,
+                },
+                Point {
+                    x: p.x + half,
+                    y: p.y + below,
+                },
+            ])
+        })
+        .flatten()
+        .collect()
+}
+
+/// Each page name's width at 100%, for [`fit_points`].
+fn natural_widths(ui: &Ui, graph: &Graph) -> HashMap<String, f32> {
+    let font = egui::FontId::proportional(LABEL_SIZE);
+    graph
+        .nodes
+        .iter()
+        .map(|n| {
+            let text = short_label(&n.label, 20);
+            let width = ui
+                .painter()
+                .layout_no_wrap(text, font.clone(), Color32::WHITE)
+                .size()
+                .x;
+            (n.id.clone(), width)
+        })
+        .collect()
+}
+
+/// The space Fit leaves around the pages and their names.
+const FIT_PADDING: f64 = 24.0;
+
 /// The canvas's own state: the view transform, the search and what is being dragged.
 #[derive(Clone, Debug)]
 pub struct GraphState {
@@ -105,6 +260,13 @@ impl Default for GraphState {
             last_fit: String::new(),
             dragging: None,
         }
+    }
+}
+
+impl GraphState {
+    /// Fits the view to the pages again on the next frame, as when they were laid out anew.
+    pub fn refit(&mut self) {
+        self.last_fit.clear();
     }
 }
 
@@ -161,14 +323,6 @@ fn centre_on(state: &mut GraphState, size: Vec2, p: Point) {
         x: f64::from(size.x) / 2.0 - p.x * state.view.scale,
         y: f64::from(size.y) / 2.0 - p.y * state.view.scale,
     };
-}
-
-fn visible_points(graph: &Graph) -> Vec<Point> {
-    graph
-        .nodes
-        .iter()
-        .filter_map(|n| graph.positions.get(&n.id).copied())
-        .collect()
 }
 
 /// The toolbar: search, counts, zoom.
@@ -239,10 +393,10 @@ fn toolbar(
             name_field(ui, &fit, "Fit graph to view");
             if fit.clicked() {
                 state.view = fit_view(
-                    &visible_points(graph),
+                    &fit_points(graph, &natural_widths(ui, graph)),
                     f64::from(size.x),
                     f64::from(size.y),
-                    76.0,
+                    FIT_PADDING,
                 );
             }
             let centre = Point {
@@ -311,14 +465,47 @@ fn edge_aria(edge: &Edge, from: &str, to: &str) -> String {
     }
 }
 
+/// Where a relation's label goes: beside the middle of its line as ProseCraft puts it, or, when
+/// that covers a page, a page name or another label, the other side or further along the line.
+/// `None` when every place is taken (the label is then left out; the relation still has its
+/// widget at the middle, with its full name).
+fn edge_label_rect(v: &EdgeView, size: Vec2, scale: f32, taken: &[Rect]) -> Option<Rect> {
+    let along = v.b - v.a;
+    let dir = along.normalized();
+    let side = Vec2::new(-dir.y, dir.x) * 9.0 * scale;
+    let candidates = [
+        v.mid,
+        v.mid - side * 2.0,
+        v.a + along * 0.35 + side,
+        v.a + along * 0.65 + side,
+        v.a + along * 0.35 - side,
+        v.a + along * 0.65 - side,
+    ];
+    candidates
+        .into_iter()
+        .map(|c| Rect::from_center_size(c, size))
+        .find(|r| {
+            let clear = r.expand(LABEL_GAP / 2.0);
+            !taken.iter().any(|t| t.intersects(clear))
+        })
+}
+
 /// Draws the edges and gives each one a widget at its middle; returns the one clicked.
 fn edges(
     ui: &mut Ui,
     palette: &Palette,
     graph: &Graph,
     views: &[EdgeView],
+    placed: &HashMap<String, Placed>,
     salt: egui::Id,
 ) -> Option<String> {
+    // Page circles and names are kept clear of relation labels, and so are the labels already
+    // placed.
+    let mut taken: Vec<Rect> = placed
+        .values()
+        .flat_map(|p| [p.circle, p.label])
+        .filter(|r| r.is_positive())
+        .collect();
     let painter = ui.painter().clone();
     let scale = ui
         .data(|d| d.get_temp::<f32>(salt.with("scale")))
@@ -371,27 +558,32 @@ fn edges(
             .find(|n| n.id == v.edge.to)
             .map_or(v.edge.to.as_str(), |n| n.label.as_str());
         let font = egui::FontId::proportional(10.0 * scale.clamp(0.7, 1.4));
-        let hit = if suggested {
-            let text = plural(v.edge.count.unwrap_or(0), "scene", "scenes");
-            let galley = painter.layout_no_wrap(text, font, palette.text_muted);
-            let rect = Rect::from_center_size(v.mid, galley.size() + Vec2::new(10.0, 2.0));
-            painter.rect_filled(
-                rect,
-                CornerRadius::same(6),
-                faded(palette.surface_raised, v.dimmed),
-            );
-            painter.galley(
-                rect.center() - galley.size() / 2.0,
-                galley,
+        let (text, ink, pad) = if suggested {
+            (
+                plural(v.edge.count.unwrap_or(0), "scene", "scenes"),
                 palette.text_muted,
-            );
-            rect
+                Vec2::new(10.0, 2.0),
+            )
         } else {
-            let text = short_label(&v.edge.label, 18);
-            let galley = painter.layout_no_wrap(text, font, color);
-            let rect = Rect::from_center_size(v.mid, galley.size());
-            painter.galley(rect.min, galley, color);
-            rect.expand(3.0)
+            (short_label(&v.edge.label, 18), color, Vec2::new(4.0, 0.0))
+        };
+        let galley = painter.layout_no_wrap(text, font, ink);
+        let size = galley.size() + pad;
+        let hit = match edge_label_rect(v, size, scale, &taken) {
+            Some(rect) if !galley.is_empty() => {
+                taken.push(rect);
+                // A backing in the canvas's colour, as ProseCraft's label halo, so the line
+                // doesn't run through the words.
+                let fill = if suggested {
+                    palette.surface_raised
+                } else {
+                    palette.surface
+                };
+                painter.rect_filled(rect, CornerRadius::same(6), faded(fill, v.dimmed));
+                painter.galley(rect.center() - galley.size() / 2.0, galley, ink);
+                rect.expand(if suggested { 0.0 } else { 3.0 })
+            }
+            _ => Rect::from_center_size(v.mid, Vec2::splat(12.0)),
         };
         let response = ui.interact(hit, salt.with(("edge", &v.edge.id)), Sense::click());
         name_field(ui, &response, &edge_aria(v.edge, from, to));
@@ -456,12 +648,14 @@ struct Focus {
 }
 
 /// The pages; returns what was clicked, double-clicked or dragged.
+#[allow(clippy::too_many_arguments)]
 fn nodes(
     ui: &mut Ui,
     palette: &Palette,
     graph: &Graph,
     state: &mut GraphState,
     origin: Pos2,
+    placed: &HashMap<String, Placed>,
     focus: &Focus,
     events: &mut Events,
 ) {
@@ -510,13 +704,21 @@ fn nodes(
             egui::FontId::proportional((13.0 * scale).max(6.0)),
             color,
         );
-        painter.text(
-            centre + Vec2::new(0.0, radius + 15.0 * scale),
-            egui::Align2::CENTER_CENTER,
-            short_label(&node.label, 20),
-            egui::FontId::proportional((11.0 * scale).max(6.0)),
-            faded(palette.text_primary, dimmed),
-        );
+        if let Some(label) = placed.get(&node.id).filter(|p| !p.text.is_empty()) {
+            // A backing in the canvas's colour (ProseCraft's label halo) keeps lines off the name.
+            painter.rect_filled(
+                label.label.expand2(Vec2::new(2.0, 0.0)),
+                CornerRadius::same(4),
+                faded(palette.surface, dimmed),
+            );
+            painter.text(
+                label.label.center(),
+                egui::Align2::CENTER_CENTER,
+                &label.text,
+                egui::FontId::proportional((LABEL_SIZE * scale).max(6.0)),
+                faded(palette.text_primary, dimmed),
+            );
+        }
         let degree = graph
             .edges
             .iter()
@@ -681,10 +883,10 @@ pub fn show(
     if fit_key != state.last_fit {
         state.last_fit = fit_key;
         state.view = fit_view(
-            &visible_points(graph),
+            &fit_points(graph, &natural_widths(ui, graph)),
             f64::from(rect.width()),
             f64::from(rect.height()),
-            76.0,
+            FIT_PADDING,
         );
     }
     ui.painter().rect(
@@ -763,7 +965,8 @@ pub fn show(
         &focused_edges,
         has_focus,
     );
-    if let Some(edge) = edges(&mut child, palette, graph, &views, salt) {
+    let placed = place_labels(&child, graph, state.view, rect.min);
+    if let Some(edge) = edges(&mut child, palette, graph, &views, &placed, salt) {
         events.select_edge = Some(Some(edge));
         events.select_node = Some(None);
     }
@@ -777,6 +980,7 @@ pub fn show(
         graph,
         state,
         rect.min,
+        &placed,
         &focus,
         &mut events,
     );
@@ -798,4 +1002,136 @@ pub fn show(
         palette.text_muted,
     );
     events
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn boxes(items: &[(Pos2, f32)], height: f32) -> Vec<Rect> {
+        items
+            .iter()
+            .zip(label_widths(items, height))
+            .map(|((at, natural), width)| {
+                Rect::from_center_size(*at, Vec2::new(natural.min(width), height))
+            })
+            .collect()
+    }
+
+    #[test]
+    fn page_names_side_by_side_never_overlap() {
+        // Two unconnected pages 34 apart (the layout's `minDistance`), with names wider than
+        // that, and a third further along: drawn at full width, "Saltmarsh Quay" and "Lantern
+        // Hill" ran into each other.
+        let items = [
+            (Pos2::new(100.0, 50.0), 80.0),
+            (Pos2::new(134.0, 50.0), 64.0),
+            (Pos2::new(260.0, 52.0), 90.0),
+            // On another line: it keeps its whole name.
+            (Pos2::new(110.0, 120.0), 120.0),
+        ];
+        let rects = boxes(&items, 14.0);
+        for (i, a) in rects.iter().enumerate() {
+            for b in rects.iter().skip(i + 1) {
+                assert!(!a.intersects(*b), "{a:?} overlaps {b:?}");
+            }
+        }
+        assert_eq!(rects[3].width(), 120.0);
+        // Room is shared: each name gets at most the distance less the gap.
+        assert!(rects[0].width() <= 34.0 - LABEL_GAP);
+    }
+
+    #[test]
+    fn of_two_pages_on_one_spot_the_first_keeps_its_name() {
+        // Both used to get no room at all, and neither showed a name.
+        let at = Pos2::new(100.0, 50.0);
+        let widths = label_widths(&[(at, 60.0), (at, 50.0)], 14.0);
+        assert_eq!(widths, vec![60.0, 0.0]);
+    }
+
+    #[test]
+    fn a_name_is_shortened_to_its_room_with_an_ellipsis() {
+        let measure = |t: &str| t.chars().count() as f32 * 6.0;
+        assert_eq!(elide("Saltmarsh Quay", 200.0, measure), "Saltmarsh Quay");
+        let short = elide("Saltmarsh Quay", 40.0, measure);
+        assert!(short.ends_with('…') && measure(&short) <= 40.0, "{short}");
+        assert_eq!(elide("Saltmarsh Quay", 3.0, measure), "");
+    }
+
+    #[test]
+    fn a_relation_label_moves_off_a_name_or_is_left_out() {
+        let edge = Edge {
+            id: "e".into(),
+            from: "a".into(),
+            to: "b".into(),
+            kind: "family".into(),
+            label: "In his debt".into(),
+            tension: None,
+            status: Status::Declared,
+            count: None,
+            lane: 0.0,
+            lane_count: 1,
+        };
+        let v = EdgeView {
+            edge: &edge,
+            a: Pos2::new(0.0, 0.0),
+            b: Pos2::new(200.0, 0.0),
+            mid: Pos2::new(100.0, 9.0),
+            dimmed: false,
+        };
+        let size = Vec2::new(50.0, 12.0);
+        // Nothing in the way: ProseCraft's place, beside the middle.
+        let free = edge_label_rect(&v, size, 1.0, &[]).expect("a place");
+        assert_eq!(free.center(), v.mid);
+        // A page name over the middle: somewhere else that is clear of it.
+        let name = Rect::from_center_size(v.mid, Vec2::new(70.0, 14.0));
+        let moved = edge_label_rect(&v, size, 1.0, &[name]).expect("another place");
+        assert!(!moved.intersects(name), "{moved:?}");
+        // Everything taken: no label.
+        let all = Rect::from_min_max(Pos2::new(-50.0, -50.0), Pos2::new(250.0, 50.0));
+        assert!(edge_label_rect(&v, size, 1.0, &[all]).is_none());
+    }
+
+    #[test]
+    fn fit_keeps_the_lowest_name_inside_the_canvas() {
+        // Two pages one above the other: Fit zooms in as far as it goes, and the lower page's
+        // name below its circle fell outside the canvas when only the centres were framed.
+        let nodes = [
+            Node {
+                id: "a".into(),
+                label: "Ines Calder".into(),
+                initials: "IC".into(),
+                kind: "character",
+            },
+            Node {
+                id: "b".into(),
+                label: "Oren Lisle".into(),
+                initials: "OL".into(),
+                kind: "character",
+            },
+        ];
+        let positions = HashMap::from([
+            ("a".to_owned(), Point { x: 0.0, y: 0.0 }),
+            ("b".to_owned(), Point { x: 0.0, y: 50.0 }),
+        ]);
+        let graph = Graph {
+            nodes: &nodes,
+            edges: &[],
+            positions: &positions,
+            selected: None,
+            selected_edge: None,
+            highlight: &[],
+            dim_others: false,
+            compact: false,
+            all: true,
+        };
+        let widths = HashMap::from([("a".to_owned(), 60.0), ("b".to_owned(), 56.0)]);
+        let (w, h) = (1000.0, 400.0);
+        let view = fit_view(&fit_points(&graph, &widths), w, h, FIT_PADDING);
+        let bottom = 50.0 + f64::from(NODE_RADIUS + LABEL_OFFSET + LABEL_SIZE);
+        let top = -f64::from(NODE_RADIUS);
+        let screen = |y: f64| y * view.scale + view.translate.y;
+        assert!(screen(bottom) <= h, "the name ends at {}", screen(bottom));
+        assert!(screen(top) >= 0.0);
+    }
 }

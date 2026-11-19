@@ -69,6 +69,12 @@ fn column(ui: &mut Ui, add: impl FnOnce(&mut Ui)) {
     });
 }
 
+/// A paste with HTML and no text in this frame, and the desktop host's reader for it.
+type HtmlPasteFor<'a> = (
+    &'a crate::clipboard_keys::HtmlPaste,
+    Option<&'a crate::ClipboardHtml>,
+);
+
 /// The parts of the state a view changes, borrowed apart from the project it shows.
 struct Edit<'a> {
     /// The project as stored, for the story data panel.
@@ -80,10 +86,7 @@ struct Edit<'a> {
     clipboard_html: Option<&'a crate::ClipboardHtml>,
     clipboard_write: Option<&'a crate::ClipboardWriter>,
     /// This frame's paste with HTML and no text, and the desktop host's reader for it.
-    html_paste: (
-        &'a crate::clipboard_keys::HtmlPaste,
-        Option<&'a crate::ClipboardHtml>,
-    ),
+    html_paste: HtmlPasteFor<'a>,
     /// The comments and Wiki articles highlighted in the text.
     marks: crate::text_marks::Sources<'a>,
     draft: &'a mut Option<Draft>,
@@ -1267,10 +1270,7 @@ fn paste(
     draft: &mut Draft,
     (clipboard_html, html_paste, intents, now): (
         Option<&crate::ClipboardHtml>,
-        (
-            &crate::clipboard_keys::HtmlPaste,
-            Option<&crate::ClipboardHtml>,
-        ),
+        HtmlPasteFor<'_>,
         &mut Vec<Intent>,
         f64,
     ),

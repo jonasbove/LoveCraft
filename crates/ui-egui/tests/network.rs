@@ -265,6 +265,21 @@ fn the_character_card_applies_a_template_and_stores_values() {
         .expect("Jonah's card")
         .click();
     harness.run();
+    // ProseCraft's panel: 12 points in from the window's top, right and bottom, 380 wide, its
+    // fields inside it (it was a short window that cut them off). The window's outline (its
+    // stroke) is outside its accessible bounds.
+    let close = harness
+        .get_by_role_and_label(Role::Button, "Close character card")
+        .rect();
+    assert!(
+        close.top() < 40.0 && close.right() > 1500.0 - 40.0,
+        "{close:?}"
+    );
+    let panel = harness.get_by_label("Jonah character card").rect();
+    assert!((panel.top() - 12.0).abs() <= 2.0, "{panel:?}");
+    assert!((panel.bottom() - (1000.0 - 12.0)).abs() <= 2.0, "{panel:?}");
+    assert!((panel.right() - (1500.0 - 12.0)).abs() <= 2.0, "{panel:?}");
+    assert!((panel.width() - 380.0).abs() <= 2.0, "{panel:?}");
     harness
         .get_by_role_and_label(Role::ComboBox, "Template")
         .click();
@@ -287,6 +302,11 @@ fn the_character_card_applies_a_template_and_stores_values() {
     harness.run();
     harness.get_by_label("Enter a number.");
     let role = harness.get_by_role_and_label(Role::TextInput, "Role");
+    assert!(
+        panel.contains_rect(role.rect()),
+        "{:?} in {panel:?}",
+        role.rect()
+    );
     role.focus();
     role.type_text("Navigator");
     harness.key_press(egui::Key::Enter);

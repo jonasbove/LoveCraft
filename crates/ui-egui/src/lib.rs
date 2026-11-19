@@ -262,6 +262,15 @@ impl SideTab {
     }
 }
 
+/// A status message as it was first shown: the view and selection then, and the time.
+#[derive(Clone, Debug)]
+struct StatusSeen {
+    message: String,
+    view: WorkspaceView,
+    selection: Option<Selection>,
+    at: f64,
+}
+
 /// What the Write view shows.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Selection {
@@ -298,6 +307,8 @@ pub struct AppState {
     selection: Option<Selection>,
     /// The last message for the person: what was opened, or why it wasn't.
     status: Option<String>,
+    /// When and where the status message was first shown, to let it go again.
+    status_seen: Option<StatusSeen>,
     palette: theme::Palette,
     /// The month the activity calendar shows, once the person has moved it.
     activity_month: Option<(i32, u32)>,
@@ -423,6 +434,8 @@ pub struct AppState {
     renaming_folder: Option<(String, String)>,
     /// A scene being renamed in the binder: its id and the title typed so far.
     renaming_scene: Option<(String, String)>,
+    /// Chapters shown or hidden with their chevron in the binder this session, by id.
+    chapter_open: std::collections::HashMap<String, bool>,
     /// The Find and replace dialog, while open.
     find: Option<find::FindState>,
     /// A footnote to open in the footnote editor (document, id), and the one open.

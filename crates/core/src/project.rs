@@ -61,6 +61,9 @@ pub struct Chapter {
     pub summary: Option<String>,
     pub trashed: bool,
     pub label_id: Option<String>,
+    /// The stored `expanded` flag: whether the binder starts with the chapter's scenes shown.
+    /// A chapter without one is shown open.
+    pub expanded: bool,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -283,6 +286,7 @@ impl Project {
                     summary: optional_text(c, "summary"),
                     trashed: flag(c, "trashed"),
                     label_id: optional_text(c, "labelId"),
+                    expanded: !matches!(c.get("expanded"), Some(JsValue::Bool(false))),
                 })
                 .collect(),
             documents: list(project, "documents")

@@ -132,6 +132,42 @@ struct Edit<'a> {
     rich_dialog: &'a mut Option<crate::rich_dialog::RichDialog>,
 }
 
+/// How long a status message stays when nothing else happens, in seconds.
+const STATUS_SECONDS: f64 = 8.0;
+
+/// The status line is a passing note, as ProseCraft's status messages are: it goes with the next
+/// change of view or of what is open, or after a few seconds.
+fn expire_status(ui: &Ui, state: &mut AppState) {
+    let Some(message) = &state.status else {
+        state.status_seen = None;
+        return;
+    };
+    let now = ui.input(|i| i.time);
+    match &state.status_seen {
+        Some(seen) if seen.message == *message => {
+            if seen.view != state.view
+                || seen.selection != state.selection
+                || now - seen.at >= STATUS_SECONDS
+            {
+                state.status = None;
+                state.status_seen = None;
+            } else {
+                ui.ctx()
+                    .request_repaint_after_secs((STATUS_SECONDS - (now - seen.at)) as f32);
+            }
+        }
+        _ => {
+            state.status_seen = Some(crate::StatusSeen {
+                message: message.clone(),
+                view: state.view,
+                selection: state.selection.clone(),
+                at: now,
+            });
+            ui.ctx().request_repaint_after_secs(STATUS_SECONDS as f32);
+        }
+    }
+}
+
 pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
     let palette = state.palette;
     // Set again below, in the Write view only.
@@ -219,6 +255,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                 }
             }
         });
+        expire_status(ui, state);
         if let Some(status) = &state.status {
             ui.horizontal(|ui| {
                 ui.add_space(18.0);

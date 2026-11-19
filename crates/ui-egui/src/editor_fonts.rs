@@ -195,7 +195,10 @@ pub fn picker(
         .selected_text(current.clone())
         .width(ui.available_width().min(320.0))
         .show_ui(ui, |ui| {
-            ui.label(muted("ProseCraft fonts"));
+            ui.label(muted(&format!(
+                "{} fonts",
+                prosecraft_core::about::APP_NAME
+            )));
             for (option, label, _) in options {
                 let on = selected_family.is_empty() && *option == builtin;
                 if ui.selectable_label(on, *label).clicked() {

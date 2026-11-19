@@ -203,6 +203,9 @@ fn render_views() {
         .state_mut()
         .set_sync_folder("/home/writer/Nextcloud/ProseCraft".into());
     save(&mut harness, "settings");
+    // Settings opens on the section it was left on (Writing, above); the theme is in General.
+    harness.get_by_label("General").click();
+    harness.run();
     harness
         .get_by_role_and_label(Role::ComboBox, "Theme")
         .click();

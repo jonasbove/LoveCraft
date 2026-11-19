@@ -84,6 +84,9 @@ fn set_meta(out: &mut Out, page: &Doc, meta: Option<JsValue>) {
     });
 }
 
+/// The character card's width (`CharacterCardPanel.svelte`'s `min(380px, 100vw - 24px)`).
+const CARD_WIDTH: f32 = 380.0;
+
 /// `CharacterCardPanel.svelte`: the sheet in a panel at the right, closed with × or Escape.
 pub(crate) fn card_panel(
     ui: &mut Ui,
@@ -106,11 +109,20 @@ pub(crate) fn card_panel(
     } else {
         &page.title
     };
+    // ProseCraft's panel: 12 px from the window's top, right and bottom edges, 380 px wide (less
+    // on a narrow window), its sheet scrolling inside.
+    let screen = ui.ctx().content_rect();
+    let margin = 12.0;
+    // A window's size includes its inner margin; its stroke and outer margin come on top.
+    let window = egui::Frame::window(ui.style());
+    let frame = window.total_margin().sum() - window.inner_margin.sum();
+    let width = (CARD_WIDTH.min(screen.width() - margin * 2.0) - frame.x).max(200.0);
+    let height = (screen.height() - margin * 2.0 - frame.y).max(200.0);
     egui::Window::new(format!("{title} character card"))
         .id(egui::Id::unique("character-card"))
         .title_bar(false)
-        .anchor(egui::Align2::RIGHT_TOP, egui::vec2(-16.0, 80.0))
-        .default_width(420.0)
+        .anchor(egui::Align2::RIGHT_TOP, egui::vec2(-margin, margin))
+        .fixed_size(egui::vec2(width, height))
         .resizable(false)
         .show(ui.ctx(), |ui| {
             ui.horizontal(|ui| {
@@ -123,8 +135,9 @@ pub(crate) fn card_panel(
                     }
                 });
             });
+            ui.separator();
             egui::ScrollArea::vertical()
-                .max_height(ui.ctx().content_rect().height() - 160.0)
+                .auto_shrink([false, false])
                 .show(ui, |ui| {
                     sheet(ui, palette, project, derived, page, &mut state.sheet, out);
                 });

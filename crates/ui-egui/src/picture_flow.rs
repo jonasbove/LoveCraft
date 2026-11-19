@@ -4,7 +4,11 @@
 //!
 //! The pictures are placed by the CSS float rules (CSS 2.1 §9.5.1): a picture goes no higher
 //! than its character's row or any picture before it, beside the pictures already on its side
-//! when it fits there, and otherwise below the nearest of them in its way.
+//! when it fits there, and otherwise below the nearest of them in its way. A picture whose
+//! character comes after words on its row goes beside that row only when it fits beside those
+//! words, else below the row, as a browser places a float met partway through a line: laying the
+//! row out narrower can't then push the character to the next row and leave the row narrower
+//! than any picture beside it needs.
 //!
 //! egui lays text out at one width per galley, so the rows beside a picture are laid out again:
 //! a paragraph that starts beside one (or holds one) is laid out piece by piece, each piece at the
@@ -101,6 +105,28 @@ impl Placed {
         }
     }
 
+    /// Where `float` goes, its character in `row` (at `top`, `bottom`) as `at`, its index in the
+    /// row, after the pictures `placed`. A picture after words on its row goes beside the row
+    /// only when it fits beside those words; otherwise it goes below the row, which keeps its
+    /// width (as browsers place a float met partway through a line).
+    fn at(
+        float: &Float,
+        (row, top, bottom): (&PlacedRow, f32, f32),
+        at: usize,
+        placed: &[Placed],
+        column: f32,
+    ) -> Self {
+        let room = band(placed, top, bottom - top, column);
+        let words = words_before(row, at);
+        let fits = words < 2.0 || words + float.size.x + GAP <= room.right - room.left + 0.01;
+        let row = if fits {
+            (top, bottom)
+        } else {
+            (bottom, bottom)
+        };
+        Self::new(float, row, placed, column)
+    }
+
     fn image(&self, float: &Float, column: f32) -> Rect {
         let x = if self.left {
             self.offset
@@ -146,25 +172,46 @@ pub(crate) fn placed(galley: &Galley, floats: &[Float]) -> Vec<Rect> {
     floats
         .iter()
         .map(|float| {
-            let p = Placed::new(float, row_of(galley, float.index), &placed, column);
+            let p = match row_of(galley, float.index) {
+                Some((row, at)) => {
+                    Placed::at(float, (row, row.min_y(), row.max_y()), at, &placed, column)
+                }
+                None => {
+                    let end = galley.rows.last().map_or(0.0, PlacedRow::max_y);
+                    Placed::new(float, (end, end), &placed, column)
+                }
+            };
             placed.push(p);
             p.image(float, column)
         })
         .collect()
 }
 
-/// The top and bottom of the row holding character `index`.
-fn row_of(galley: &Galley, index: usize) -> (f32, f32) {
+/// The row holding character `index`, and the character's index in it.
+fn row_of(galley: &Galley, index: usize) -> Option<(&PlacedRow, usize)> {
     let mut start = 0;
     for placed in &galley.rows {
         let count = placed.char_count_including_newline().0;
         if index < start + count {
-            return (placed.min_y(), placed.max_y());
+            return Some((placed, index - start));
         }
         start += count;
     }
-    let end = galley.rows.last().map_or(0.0, PlacedRow::max_y);
-    (end, end)
+    None
+}
+
+/// How wide the words before character `at` of `row` are, with the character itself (from the
+/// row's start: its left end, or its right end in a right-to-left paragraph).
+fn words_before(row: &PlacedRow, at: usize) -> f32 {
+    let Some(glyph) = row.glyphs.get(at) else {
+        return 0.0;
+    };
+    let first = row.glyphs.first().map_or(0.0, |g| g.pos.x);
+    if row.rtl_paragraph {
+        row.size.x - glyph.pos.x
+    } else {
+        glyph.pos.x + glyph.advance_width - first
+    }
 }
 
 /// The text's paragraphs, as egui splits them to lay them out (the `\n` between them left out;
@@ -579,10 +626,12 @@ impl<'a> Flow<'a> {
             let bottom = base + row.max_y() - origin;
             let room_changes = band.ends.is_some_and(|c| top >= c)
                 || band.starts.is_some_and(|c| bottom > c + 0.01);
-            if (i > 0 && (room_changes || unplaced)) || self.moved(chars.clone(), (top, bottom)) {
+            if (i > 0 && (room_changes || unplaced))
+                || self.moved(chars.clone(), (row, top, bottom))
+            {
                 return stop(taken);
             }
-            match self.place(&chars, (top, bottom)) {
+            match self.place(&chars, (row, top, bottom)) {
                 // The room beside this row changed: lay it out again.
                 Some(true) => return stop(taken),
                 // Placed lower: the room changes where it starts.
@@ -603,15 +652,16 @@ impl<'a> Flow<'a> {
 
     /// Places the pictures whose characters are `chars`, in the row at `top`: `Some(true)` when
     /// one goes beside the row, `Some(false)` when they all go lower, `None` without any.
-    fn place(&mut self, chars: &Range<usize>, row: (f32, f32)) -> Option<bool> {
+    fn place(&mut self, chars: &Range<usize>, row: (&PlacedRow, f32, f32)) -> Option<bool> {
         let mut any = None;
         while let Some(float) = self.floats.get(self.next).copied()
             && float.index < chars.end
         {
-            let p = Placed::new(&float, row, &self.placed, self.column);
+            let at = float.index.saturating_sub(chars.start);
+            let p = Placed::at(&float, row, at, &self.placed, self.column);
             self.placed.push(p);
             self.next += 1;
-            if p.top <= row.0 {
+            if p.top <= row.1 {
                 return Some(true);
             }
             any = Some(false);
@@ -623,7 +673,7 @@ impl<'a> Flow<'a> {
     /// `top` (laid out again beside a picture, its character went to a lower row), moved down
     /// to that row: a picture's top is its character's row's. The pictures after it are placed
     /// again.
-    fn moved(&mut self, chars: Range<usize>, row: (f32, f32)) -> bool {
+    fn moved(&mut self, chars: Range<usize>, row: (&PlacedRow, f32, f32)) -> bool {
         for i in 0..self.next {
             let Some(float) = self.floats.get(i) else {
                 return false;
@@ -631,9 +681,10 @@ impl<'a> Flow<'a> {
             if !chars.contains(&float.index) {
                 continue;
             }
-            let p = Placed::new(
+            let p = Placed::at(
                 float,
                 row,
+                float.index.saturating_sub(chars.start),
                 self.placed.get(..i).unwrap_or_default(),
                 self.column,
             );
@@ -1296,6 +1347,48 @@ mod tests {
             for i in 0..=count {
                 let rect = galley.pos_from_cursor(CCursor::new(i));
                 assert!(galley.cursor_from_pos(rect.center().to_vec2()).index.0 <= count);
+            }
+        }
+    }
+
+    #[test]
+    fn a_row_is_only_as_narrow_as_the_pictures_beside_it() {
+        // A picture's character a word further along each time: wherever it falls in its row,
+        // each row starts where the pictures beside it (in their final places) end, and at the
+        // margin where none is. A picture that doesn't fit beside the words before it on its
+        // row goes below that row, as a browser places a float.
+        let words: Vec<&str> = WORDS.split(' ').collect();
+        for k in 1..words.len() {
+            let text = format!(
+                "{WORDS}\n{} X {} {WORDS} {WORDS}",
+                words[..k].join(" "),
+                words[k..].join(" ")
+            );
+            let floats = floats_at(&text, &[('X', true, (150.0, 100.0))]);
+            let (galley, rects) = checked(&text, &floats);
+            // The picture is level with its character's row, or just below it.
+            let (_, own) = rows(&galley)
+                .into_iter()
+                .rfind(|(start, _)| *start <= floats[0].index)
+                .expect("its row");
+            let top = rects[0].top() - TOP;
+            assert!(
+                (top - own.top()).abs() < 0.5 || (top - own.bottom()).abs() < 0.5,
+                "after {k} words: {own:?} {rects:?}"
+            );
+            for row in rows(&galley).into_iter().map(|(_, r)| r) {
+                if row.width() < 2.0 {
+                    continue;
+                }
+                let edge = rects
+                    .iter()
+                    .filter(|r| r.top() - TOP < row.bottom() && row.top() < r.bottom() + BOTTOM)
+                    .map(|r| r.right() + GAP)
+                    .fold(0.0, f32::max);
+                assert!(
+                    (row.left() - edge).abs() < 0.5,
+                    "after {k} words: {row:?} beside {rects:?}"
+                );
             }
         }
     }

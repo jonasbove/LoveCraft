@@ -303,6 +303,7 @@ pub(crate) fn galley(
         let width = (wrap * share).max(40.0);
         let mut job = LayoutJob::default();
         job.wrap.max_width = width;
+        job.direction = crate::views::SCENE_DIRECTION;
         for c in part.chars() {
             let format = format_for(doc, index, kind, palette);
             let mut buf = [0u8; 4];

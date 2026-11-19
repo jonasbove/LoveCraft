@@ -732,6 +732,7 @@ fn small_wrapped_pictures_sit_side_by_side() {
 
 #[test]
 fn right_to_left_text_flows_beside_a_wrapped_picture() {
+    // As in ProseCraft (no `dir`): the rows start on the left, beside the picture and below it.
     let hebrew = "הגאות עלתה על הבוץ בזמן שהפנסים נדלקו לאורך חומת הנמל, אחד אחד, עד שכל העיר \
         הוארה והסירות שכבו בשקט. ";
     let text = hebrew.repeat(4);
@@ -748,32 +749,24 @@ fn right_to_left_text_flows_beside_a_wrapped_picture() {
             beside.len() >= 2 && !below.is_empty(),
             "{rows:?} {picture:?}"
         );
-        // Right-to-left rows end on the right: below the picture together, beside it clear of
-        // it (a row's trailing space, at its left end, may stand in the gap).
-        let end = below[0].0.right();
+        let margin = if wrap == "left" {
+            picture.left()
+        } else {
+            below[0].0.left()
+        };
         for (row, text) in &below {
-            assert!((row.right() - end).abs() < 1.5, "{text} {row:?} {end}");
+            assert!((row.left() - margin).abs() < 1.0, "{text} {row:?} {margin}");
         }
         for (row, text) in &beside {
             if wrap == "left" {
-                assert!((row.right() - end).abs() < 1.5, "{text} {row:?} {end}");
-                assert!(row.left() >= picture.right() + 8.0, "{text} {row:?}");
-            } else {
                 assert!(
-                    (row.right() - (picture.left() - 18.0)).abs() < 1.5,
+                    (row.left() - (picture.right() + 18.0)).abs() < 1.0,
                     "{text} {row:?} {picture:?}"
                 );
+            } else {
+                assert!((row.left() - margin).abs() < 1.0, "{text} {row:?}");
+                assert!(row.right() <= picture.left() - 17.5, "{text} {row:?}");
             }
-        }
-        if wrap == "right" {
-            // A click at a row's right end (where a right-to-left row starts) puts the caret
-            // before its first word.
-            let (row, text) = beside[2].clone();
-            click_at(&mut harness, egui::pos2(row.right() - 1.0, row.center().y));
-            harness.get_by_label("Scene text").type_text("Z");
-            harness.run_steps(12);
-            let (_, after) = around(&content(&memory, "new-1"), 'Z');
-            assert_eq!(after, text.chars().take(4).collect::<String>(), "{text}");
         }
         // A click in a row beside the picture puts the caret among that row's words.
         let (row, text) = beside[1].clone();
@@ -787,6 +780,56 @@ fn right_to_left_text_flows_beside_a_wrapped_picture() {
             "{before}|Q|{after} in {text}"
         );
     }
+}
+
+#[test]
+fn right_to_left_paragraphs_start_on_the_left_as_in_prosecraft() {
+    let (mut harness, memory) = app();
+    harness
+        .get_all_by_role_and_label(Role::Button, "Add chapter")
+        .next()
+        .expect("an add button")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Scene 1")
+        .click();
+    harness.run();
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    let english = "The tide came in over the mud while the lamps went on along the wall. ";
+    let hebrew = "הגאות עלתה על הבוץ בזמן שהפנסים נדלקו לאורך חומת הנמל, אחד אחד. ";
+    for paragraph in [english.repeat(3), hebrew.repeat(3), "שלום".to_owned()] {
+        harness.get_by_label("Scene text").type_text(&paragraph);
+        harness.key_press(egui::Key::Enter);
+    }
+    harness.run_steps(12);
+    let rows = text_rows(&harness);
+    let margin = rows[0].0.left();
+    assert!(rows.len() >= 6, "{rows:?}");
+    for (row, text) in &rows {
+        assert!((row.left() - margin).abs() < 1.0, "{text} {row:?} {margin}");
+    }
+    // A short one too: on the left, not across the column.
+    let (short, _) = rows
+        .iter()
+        .rfind(|(_, t)| t.contains("שלום"))
+        .expect("short");
+    assert!(short.width() < 100.0, "{short:?}");
+    // A click on a Hebrew row puts the caret among its words.
+    let (row, text) = rows
+        .iter()
+        .find(|(_, t)| t.contains("הגאות"))
+        .cloned()
+        .expect("a Hebrew row");
+    click_at(&mut harness, row.center());
+    harness.get_by_label("Scene text").type_text("Q");
+    harness.run_steps(12);
+    let (before, after) = around(&content(&memory, "new-1"), 'Q');
+    assert!(
+        text.contains(&format!("{before}{after}")),
+        "{before}|Q|{after} in {text}"
+    );
 }
 
 /// The four characters of text before and after `mark` in the text of `stored` (its markup

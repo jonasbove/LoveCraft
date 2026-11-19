@@ -18,6 +18,9 @@
 //! paragraph. Its right-to-left rows end where the room beside a picture on the right does, and
 //! elsewhere where the other right-to-left rows end. The pictures stay where `float: left` /
 //! `float: right` put them: those are sides of the page, not of the text.
+//!
+//! Scene text sets every paragraph left-to-right at its base, as ProseCraft does (see
+//! `views::SCENE_DIRECTION`); a piece keeps a direction its job sets, and so starts on the left.
 
 use std::ops::Range;
 use std::sync::Arc;
@@ -216,11 +219,11 @@ fn slice(job: &LayoutJob, range: Range<usize>, width: f32, rtl: bool) -> LayoutJ
             0.0
         },
         // A piece starting in the middle of a paragraph would otherwise take the direction of
-        // its own first letter.
-        direction: if rtl {
-            TextDirection::RightToLeft
-        } else {
-            TextDirection::LeftToRight
+        // its own first letter. A direction the job sets for every paragraph stays.
+        direction: match job.direction {
+            TextDirection::Auto if rtl => TextDirection::RightToLeft,
+            TextDirection::Auto => TextDirection::LeftToRight,
+            fixed => fixed,
         },
         ..job.clone()
     }
@@ -1246,6 +1249,54 @@ mod tests {
                 .rfind(|g| !g.chr.is_whitespace())
                 .expect("a glyph");
             assert!(first.pos.x > last.pos.x, "{} {}", first.pos.x, last.pos.x);
+        }
+    }
+
+    #[test]
+    fn a_left_to_right_base_keeps_right_to_left_text_on_the_left_beside_a_picture() {
+        // The editor lays every paragraph out left-to-right at its base (as ProseCraft, which
+        // sets no `dir`): rows beside a picture start at the room's left edge, and the space
+        // where a row of Hebrew wraps stays at the row's right end (UAX #9 L1 at that base).
+        let only_letters = ["הגאות עלתה על הבוץ בזמן שהפנסים נדלקו לאורך חומת הנמל"; 6].join(" ");
+        for left in [true, false] {
+            let text = format!("{WORDS}\nX\n{only_letters}\n{HEBREW} {HEBREW}");
+            let floats = floats_at(&text, &[('X', left, (150.0, 120.0))]);
+            let mut ltr = job(&text, 400.0);
+            ltr.direction = egui::epaint::text::TextDirection::LeftToRight;
+            let galley = with_fonts(|f| flow(f, ltr, &floats, &[]));
+            clear_of(&galley, &floats);
+            let rect = placed(&galley, &floats)[0];
+            let start = if left { rect.right() + GAP } else { 0.0 };
+            let bottom = rect.bottom() + BOTTOM;
+            let (mut beside, mut spaces) = (0, 0);
+            let mut at = 0;
+            for r in &galley.rows {
+                let after = at > floats[0].index + 1;
+                at += r.char_count_including_newline().0;
+                assert!(!r.rtl_paragraph);
+                let row = r.rect();
+                if !after || row.width() < 2.0 {
+                    continue;
+                }
+                let edge = if row.top() < bottom { start } else { 0.0 };
+                beside += usize::from(row.top() < bottom);
+                assert!((row.left() - edge).abs() < 0.5, "{row:?} {rect:?}");
+                if let Some(space) = r.glyphs.last().filter(|g| g.chr == ' ') {
+                    let rightmost = r.glyphs.iter().map(|g| g.pos.x).fold(f32::MIN, f32::max);
+                    assert!(
+                        (space.pos.x - rightmost).abs() < 0.5,
+                        "{} {rightmost}",
+                        space.pos.x
+                    );
+                    spaces += 1;
+                }
+            }
+            assert!(beside >= 3 && spaces >= 3, "{beside} {spaces}");
+            let count = text.chars().count();
+            for i in 0..=count {
+                let rect = galley.pos_from_cursor(CCursor::new(i));
+                assert!(galley.cursor_from_pos(rect.center().to_vec2()).index.0 <= count);
+            }
         }
     }
 

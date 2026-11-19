@@ -846,7 +846,33 @@ fn trashing_a_chapter_from_its_view_asks_first() {
 fn opening_a_project_folds_its_legacy_profiles_into_the_wiki() {
     let (mut harness, memory) = app();
     harness.run_steps(12);
-    // Mara's character profile (from before the Wiki) is her page's text now.
+    // As ProseCraft loads it: migrated for the views, nothing written by opening alone.
+    let opened = memory.last();
+    if let Some(mara) = opened
+        .get("projects")
+        .and_then(|_| document(project(&opened, "project-1"), "doc-2"))
+    {
+        assert!(
+            mara.get("character").is_some(),
+            "opening alone doesn't write"
+        );
+    }
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Mara")
+        .click();
+    harness.run();
+    let shown = harness
+        .get_by_label("Scene text")
+        .value()
+        .unwrap_or_default();
+    assert!(shown.starts_with("Character profile"), "{shown}");
+    // The project's next change stores it.
+    harness
+        .get_by_role_and_label(Role::Button, "Add to Wiki")
+        .click();
+    harness.run();
+    harness.get_by_label("Add page").click();
+    harness.run_steps(12);
     let saved = memory.last();
     let mara = document(project(&saved, "project-1"), "doc-2").expect("Mara");
     assert!(mara.get("character").is_none());

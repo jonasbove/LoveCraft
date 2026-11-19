@@ -1767,17 +1767,67 @@ struct UndoAt<'a> {
     now_ms: f64,
 }
 
+/// The ids of a scene's footnote markers, in order.
+fn footnote_ids(doc: &RichDoc) -> Vec<String> {
+    doc.atoms
+        .iter()
+        .filter(|a| is_footnote(a))
+        .flat_map(|a| prosecraft_core::footnotes::extract_ids(a))
+        .collect()
+}
+
+/// `handleInput`: a footnote whose last marker an edit took away (a cut, Backspace or Delete,
+/// typing or pasting over it) loses its definition in the scene, or the chapter, it belongs
+/// to. Undo brings it back with the marker (the step before holds both). Returns those ids.
+fn drop_removed_footnotes(
+    before: &[String],
+    draft: &Draft,
+    (document, chapter): (
+        &prosecraft_core::project::Document,
+        Option<&ChapterView<'_>>,
+    ),
+    intents: &mut Vec<Intent>,
+) -> Vec<String> {
+    let after = footnote_ids(&draft.doc);
+    if before == after.as_slice() {
+        return Vec::new();
+    }
+    let others: Vec<&prosecraft_core::project::Document> = chapter
+        .map(|c| c.before.iter().chain(&c.after).copied().collect())
+        .unwrap_or_default();
+    // In the chapter view the chapter's other scenes are in the editor too.
+    let elsewhere: Vec<String> = others
+        .iter()
+        .flat_map(|s| prosecraft_core::footnotes::extract_ids(&s.content))
+        .collect();
+    let mut removed = prosecraft_core::footnotes::removed_ids(before, &after);
+    removed.retain(|id| !elsewhere.contains(id));
+    for id in &removed {
+        for scene in std::iter::once(document).chain(others.iter().copied()) {
+            if scene.footnotes.iter().any(|f| f.id == *id) {
+                intents.push(Intent::RemoveFootnote {
+                    document: scene.id.clone(),
+                    id: id.clone(),
+                });
+            }
+        }
+    }
+    removed
+}
+
 fn record_body_history(
     edit: UndoAt<'_>,
-    document: &prosecraft_core::project::Document,
+    (document, dropped): (&prosecraft_core::project::Document, &[String]),
     draft: &mut Draft,
     cursor: Option<egui::text::CCursorRange>,
 ) {
     use prosecraft_core::undo::{Edit as UndoEdit, EditKind, decode_body, encode_body};
     let key = format!("{}/body:{}", edit.project, document.id);
+    // The definitions as they are after this edit (those it dropped are going).
     let notes: Vec<(String, String)> = document
         .footnotes
         .iter()
+        .filter(|f| !dropped.contains(&f.id))
         .map(|f| (f.id.clone(), f.html.clone()))
         .collect();
     let value = encode_body(&draft.doc.to_html(), &document.id, &notes);
@@ -2826,6 +2876,7 @@ fn editor(
         })
     };
     link_prompt(ui, draft, now);
+    let footnotes_before = footnote_ids(&draft.doc);
     copy(
         ui,
         body_id,
@@ -2879,6 +2930,12 @@ fn editor(
         draft.words = words;
     }
     after_typing(ui, edit.writing, edit.editor_rect, edit.intents, &output);
+    let dropped = drop_removed_footnotes(
+        &footnotes_before,
+        draft,
+        (document, chapter.as_ref()),
+        edit.intents,
+    );
     record_body_history(
         UndoAt {
             undo: edit.undo,
@@ -2886,7 +2943,7 @@ fn editor(
             page: &edit.undo_page,
             now_ms: edit.now_ms,
         },
-        document,
+        (document, &dropped),
         draft,
         output.cursor_range,
     );

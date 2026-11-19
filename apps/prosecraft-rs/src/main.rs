@@ -614,11 +614,28 @@ fn main() -> ExitCode {
         if let Ok(mut held) = lock.lock()
             && let Some(clipboard) = held.as_mut()
         {
-            let _ = clipboard.set().html(html, Some(text));
+            // No text for a footnote marker alone, as a browser writes none.
+            let _ = clipboard
+                .set()
+                .html(html, Some(text).filter(|t| !t.is_empty()));
         }
     }));
     // Edit > Paste in the menu bar: the clipboard's text.
     app.set_clipboard_text(Arc::new(|| arboard::Clipboard::new().ok()?.get_text().ok()));
+    // The clipboard keys are the app's (`clipboard_shortcuts` below): a paste whose clipboard
+    // has HTML but no text, which egui-winit sends nothing for, reads the HTML here.
+    app.set_clipboard_keys(Arc::new(|| {
+        let mut clipboard = arboard::Clipboard::new().ok()?;
+        // HTML first: egui's own copies (from a title field) offer none, so its text, which
+        // egui-winit serves, isn't asked for on every paste.
+        let html = clipboard
+            .get()
+            .html()
+            .ok()
+            .filter(|html| !html.is_empty())?;
+        let text = clipboard.get_text().unwrap_or_default();
+        text.is_empty().then_some(html)
+    }));
     // Zotero on this computer, through its local HTTP server.
     app.set_zotero(Arc::new(prosecraft_core::citations::zotero::request));
     if let Some(problem) = problem {
@@ -633,6 +650,9 @@ fn main() -> ExitCode {
             .with_app_id(APP_ID)
             .with_inner_size([1280.0, 850.0])
             .with_drag_and_drop(true),
+        // The app turns Cmd/Ctrl+X, C and V into cut, copy and paste itself
+        // (`ProseApp::set_clipboard_keys`), so that it sees a paste with no text.
+        clipboard_shortcuts: false,
         ..Default::default()
     };
     let result = eframe::run_native(

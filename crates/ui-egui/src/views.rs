@@ -69,6 +69,12 @@ fn column(ui: &mut Ui, add: impl FnOnce(&mut Ui)) {
     });
 }
 
+/// A paste with HTML and no text in this frame, and the desktop host's reader for it.
+type HtmlPasteFor<'a> = (
+    &'a crate::clipboard_keys::HtmlPaste,
+    Option<&'a crate::ClipboardHtml>,
+);
+
 /// The parts of the state a view changes, borrowed apart from the project it shows.
 struct Edit<'a> {
     /// The project as stored, for the story data panel.
@@ -79,6 +85,8 @@ struct Edit<'a> {
     /// The host's clipboard HTML, for rich paste, and its writer, for rich copy.
     clipboard_html: Option<&'a crate::ClipboardHtml>,
     clipboard_write: Option<&'a crate::ClipboardWriter>,
+    /// This frame's paste with HTML and no text, and the desktop host's reader for it.
+    html_paste: HtmlPasteFor<'a>,
     /// The comments and Wiki articles highlighted in the text.
     marks: crate::text_marks::Sources<'a>,
     draft: &'a mut Option<Draft>,
@@ -254,6 +262,8 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         wiki_root,
         clipboard_html,
         clipboard_write,
+        clipboard_keys,
+        html_paste,
         tiles,
         network,
         fresh_ids,
@@ -332,6 +342,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
         editable: *editable,
         clipboard_html: clipboard_html.as_ref(),
         clipboard_write: clipboard_write.as_ref(),
+        html_paste: (html_paste, clipboard_keys.as_ref()),
         marks: crate::text_marks::Sources {
             comments: &project.comments,
             documents: &project.documents,
@@ -1141,15 +1152,7 @@ fn copy(
         return;
     };
     let html = prosecraft_core::html::sanitize_html(&draft.doc.slice_html(range.clone()));
-    let text = prosecraft_core::html::html_to_plain_text(&html, &Default::default());
-    let atoms = draft
-        .body
-        .chars()
-        .skip(range.start)
-        .take(range.len())
-        .filter(|c| *c == prosecraft_core::richtext::ATOM)
-        .count();
-    write(&html, &clipboard_text(&text, atoms));
+    write(&html, &clipboard_text(&html));
     ui.input_mut(|i| {
         i.events
             .retain(|e| !matches!(e, egui::Event::Copy | egui::Event::Cut))
@@ -1175,37 +1178,53 @@ fn copy(
     }
 }
 
-/// The plain text a copy puts beside its HTML. A selection of atoms with no text of their own
-/// (a footnote marker, a citation, a picture, a rule) is one object replacement character per
-/// atom, as a desktop puts an attachment's place in plain text: the hosts send no paste for an
-/// empty text, so without it the HTML could never be pasted back.
-fn clipboard_text(plain: &str, atoms: usize) -> String {
+/// The plain text a copy puts beside its HTML, as the browser writes it for a selection in
+/// ProseCraft's editor: the text, an equation's or a diagram's source; for atoms with no text
+/// of their own, a picture's description (its `alt`), a newline for a rule, and nothing for a
+/// footnote marker or a citation (whose label is drawn, not text).
+fn clipboard_text(html: &str) -> String {
+    let plain = prosecraft_core::html::html_to_plain_text(html, &Default::default());
     let plain = plain.trim_end_matches('\n');
-    if plain.trim().is_empty() && atoms > 0 {
-        std::iter::repeat_n(prosecraft_core::richtext::ATOM, atoms).collect()
+    if !plain.trim().is_empty() {
+        return plain.to_owned();
+    }
+    let nodes = prosecraft_core::html::parse_fragment(html);
+    let mut alts = Vec::new();
+    let mut rule = false;
+    let mut stack: Vec<&prosecraft_core::html::Node> = nodes.iter().rev().collect();
+    while let Some(node) = stack.pop() {
+        if let prosecraft_core::html::Node::Element(e) = node {
+            match e.name.as_str() {
+                "img" => alts.extend(e.attr("alt").map(str::trim).filter(|a| !a.is_empty())),
+                "hr" => rule = true,
+                _ => {}
+            }
+            stack.extend(e.children.iter().rev());
+        }
+    }
+    if !alts.is_empty() {
+        alts.join(" ")
+    } else if rule {
+        "\n".to_owned()
     } else {
-        plain.to_owned()
+        String::new()
     }
 }
 
 /// Whether the clipboard's HTML is the passage whose text was pasted (not HTML left from an
-/// earlier copy): the same words, or, for atoms alone, as many atoms as the text stands for.
+/// earlier copy): the same words as [`clipboard_text`] gives it; for a text with no words (a
+/// rule's newline, or the object characters earlier builds wrote for atoms), HTML of atoms
+/// alone.
 fn clipboard_holds(text: &str, html: &str) -> bool {
-    let plain = prosecraft_core::html::html_to_plain_text(html, &Default::default());
     let words = words_of(text);
     if !words.is_empty() {
-        return words_of(&plain) == words;
+        return words_of(&clipboard_text(html)) == words;
     }
-    let atoms = text
-        .chars()
-        .filter(|c| *c == prosecraft_core::richtext::ATOM)
-        .count();
-    is_atom_text(text)
-        && words_of(&plain).is_empty()
-        && prosecraft_core::richtext::RichDoc::paste_atom_count(html) == atoms
+    words_of(&clipboard_text(html)).is_empty()
+        && prosecraft_core::richtext::RichDoc::paste_atom_count(html) > 0
 }
 
-/// A text standing for atoms alone (see [`clipboard_text`]).
+/// The text earlier builds copied for atoms alone: an object character for each.
 fn is_atom_text(text: &str) -> bool {
     text.contains(prosecraft_core::richtext::ATOM)
         && text
@@ -1213,13 +1232,25 @@ fn is_atom_text(text: &str) -> bool {
             .all(|c| c == prosecraft_core::richtext::ATOM || c.is_whitespace())
 }
 
-/// Outside the rich editor a copy of atoms alone pastes nothing, as its empty plain text does
-/// in ProseCraft; an object character in Markdown would leave the scene read-only.
+/// Outside the rich editor a copy of atoms alone made by an earlier build pastes nothing, as an
+/// empty plain text does in ProseCraft; an object character in Markdown would leave the scene
+/// read-only.
 fn drop_atom_paste(ui: &Ui) {
     ui.input_mut(|i| {
         i.events
             .retain(|e| !matches!(e, egui::Event::Paste(text) if is_atom_text(text)))
     });
+}
+
+/// Whether pasting `html` puts something in the editor: words or atoms (HTML of a picture on
+/// the web, which the editor can't keep, pastes nothing).
+fn html_pastes(html: &str) -> bool {
+    prosecraft_core::richtext::RichDoc::paste_atom_count(html) > 0
+        || !words_of(&prosecraft_core::html::html_to_plain_text(
+            &prosecraft_core::html::sanitize_html(html),
+            &Default::default(),
+        ))
+        .is_empty()
 }
 
 /// The words of a text, without spaces and punctuation: a pasted text and the clipboard's
@@ -1230,18 +1261,20 @@ fn words_of(text: &str) -> String {
 
 /// Paste into the rich editor as ProseCraft's browser editor pastes: the clipboard's HTML,
 /// cleaned, with its formatting (egui's own paste is the plain text), and an image as a picture
-/// (`handleImagePaste`).
+/// (`handleImagePaste`). A clipboard with HTML and no text (a footnote marker copied alone),
+/// which no paste event comes for, pastes its HTML too.
 fn paste(
     ui: &mut Ui,
     body_id: egui::Id,
     document: &str,
     draft: &mut Draft,
-    (clipboard_html, intents, now, screenplay): (
+    (clipboard_html, html_paste, intents, now): (
         Option<&crate::ClipboardHtml>,
+        HtmlPasteFor<'_>,
         &mut Vec<Intent>,
         f64,
-        bool,
     ),
+    screenplay: bool,
 ) {
     if screenplay || !ui.memory(|m| m.has_focus(body_id)) {
         return;
@@ -1294,22 +1327,32 @@ fn paste(
         }
         return;
     }
-    let Some(read) = clipboard_html else {
-        return;
-    };
     let text = ui.input(|i| {
         i.events.iter().find_map(|e| match e {
             egui::Event::Paste(text) => Some(text.clone()),
             _ => None,
         })
     });
-    let Some(text) = text else {
-        return;
+    let html = match text {
+        Some(text) => {
+            let Some(html) = clipboard_html
+                .and_then(|read| read())
+                .filter(|html| clipboard_holds(&text, html))
+            else {
+                return;
+            };
+            ui.input_mut(|i| i.events.retain(|e| !matches!(e, egui::Event::Paste(_))));
+            html
+        }
+        // No text, so no paste event: the HTML, if the editor can hold something of it.
+        None => {
+            let (asked, read) = html_paste;
+            match asked.html(read) {
+                Some(html) if html_pastes(&html) => html,
+                _ => return,
+            }
+        }
     };
-    let Some(html) = read().filter(|html| clipboard_holds(&text, html)) else {
-        return;
-    };
-    ui.input_mut(|i| i.events.retain(|e| !matches!(e, egui::Event::Paste(_))));
     let (body, caret) = draft.doc.paste_html(range, &html);
     draft.body = body;
     draft.body_dirty = true;
@@ -2979,7 +3022,8 @@ fn editor(
         body_id,
         &document.id,
         draft,
-        (edit.clipboard_html, edit.intents, now, screenplay),
+        (edit.clipboard_html, edit.html_paste, edit.intents, now),
+        screenplay,
     );
     history_keys(ui, body_id, &document.id, edit.intents);
     let output = egui::TextEdit::multiline(&mut draft.body)
@@ -4197,22 +4241,35 @@ mod tests {
     }
 
     #[test]
-    fn atoms_alone_copy_as_object_characters_and_paste_back() {
+    fn atoms_alone_copy_as_the_browser_writes_them_and_paste_back() {
         use super::{clipboard_holds, clipboard_text, is_atom_text};
+        let note = r#"<p><sup class="footnote-ref" data-footnote-id="fn-abc123" contenteditable="false"></sup></p>"#;
+        let cite = r#"<p><span class="cite-ref" data-cites="[{&quot;id&quot;:&quot;smith2020&quot;}]" contenteditable="false"></span></p>"#;
+        let picture = r#"<p><img src="data:image/png;base64,AA==" alt="A goat"></p>"#;
+        let bare = r#"<p><img src="data:image/png;base64,AA=="></p>"#;
+        // What Chromium writes as text/plain for these alone in ProseCraft's editor.
+        assert_eq!(clipboard_text(note), "");
+        assert_eq!(clipboard_text(cite), "");
+        assert_eq!(clipboard_text(picture), "A goat");
+        assert_eq!(clipboard_text(bare), "");
+        assert_eq!(clipboard_text("<hr>"), "\n");
+        assert_eq!(clipboard_text("<p><em>dark</em></p>"), "dark");
+        assert_eq!(
+            clipboard_text(r#"<p><span class="math-inline" data-tex="x^2"></span></p>"#),
+            "$x^2$"
+        );
+        // A text pasted with them is theirs: a picture's description, a rule's newline.
+        assert!(clipboard_holds("A goat", picture));
+        assert!(!clipboard_holds("A sheep", picture));
+        assert!(clipboard_holds("\n", "<hr>"));
+        assert!(!clipboard_holds("\n", "<p>Something else</p>"));
+        assert!(clipboard_holds("dark", "<p><em>dark</em></p>"));
+        assert!(!clipboard_holds("light", "<p><em>dark</em></p>"));
+        // The object characters earlier builds wrote still paste their atoms back.
         assert!(is_atom_text("\u{FFFC}\u{FFFC}\n"));
         assert!(!is_atom_text("\u{FFFC} and words"));
         assert!(!is_atom_text(" "));
-        let note = r#"<p><sup class="footnote-ref" data-footnote-id="fn-abc123" contenteditable="false"></sup></p>"#;
-        assert_eq!(clipboard_text("", 1), "\u{FFFC}");
-        assert_eq!(clipboard_text("\n", 2), "\u{FFFC}\u{FFFC}");
-        assert_eq!(clipboard_text("dark\n", 0), "dark");
-        assert_eq!(clipboard_text("$x^2$", 1), "$x^2$");
         assert!(clipboard_holds("\u{FFFC}", note));
-        // Another number of atoms, words, or HTML with words: not this copy.
-        assert!(!clipboard_holds("\u{FFFC}\u{FFFC}", note));
         assert!(!clipboard_holds("\u{FFFC}", "<p>Something else</p>"));
-        assert!(!clipboard_holds("", note));
-        assert!(clipboard_holds("dark", "<p><em>dark</em></p>"));
-        assert!(!clipboard_holds("light", "<p><em>dark</em></p>"));
     }
 }

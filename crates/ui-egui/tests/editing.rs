@@ -2378,6 +2378,43 @@ fn a_scene_pane_writes_its_chapter_back_and_leaves_text_it_cannot_hold_alone() {
 }
 
 #[test]
+fn binder_rows_dropped_on_the_editor_open_beside_or_fill_a_pane() {
+    let (mut harness, _memory) = app();
+    harness.set_size(egui::vec2(1700.0, 1000.0));
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    // A scene dropped on the editor: beside it (`handleTargetDrop`).
+    let from = harness
+        .get_by_role_and_label(Role::TreeItem, "INT. LIGHTHOUSE - NIGHT")
+        .rect()
+        .center();
+    let editor = harness.get_by_label("Scene text").rect().center();
+    drag(&mut harness, from, editor);
+    harness.run_steps(6);
+    assert_eq!(harness.get_all_by_label("Close this pane").count(), 1);
+    assert_eq!(harness.get_all_by_label("Document text").count(), 1);
+    // A Wiki page dropped on a pane: that pane shows it (`handlePaneDrop`).
+    let mara = harness
+        .get_by_role_and_label(Role::TreeItem, "Mara")
+        .rect()
+        .center();
+    let pane = harness.get_by_label("Show in this pane").rect().center() + egui::vec2(0.0, 60.0);
+    drag(&mut harness, mara, pane);
+    harness.run_steps(6);
+    assert_eq!(harness.get_all_by_label("Close this pane").count(), 1);
+    harness.get_by_role_and_label(Role::TextInput, "Title");
+    assert_eq!(
+        harness
+            .get_by_role_and_label(Role::TextInput, "Title")
+            .value()
+            .as_deref(),
+        Some("Mara")
+    );
+}
+
+#[test]
 fn the_split_view_shows_scenes_and_wiki_files_beside_the_editor() {
     let (mut harness, _memory) = app();
     harness.set_size(egui::vec2(1700.0, 1000.0));

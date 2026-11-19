@@ -81,6 +81,11 @@ pub enum Intent {
     AddWikiFiles(Option<String>),
     /// `openBesideTarget`: shown in a split view pane (`doc:<id>`, `file:<id>`).
     OpenBeside(String),
+    /// `handlePaneDrop`: a pane shows this target.
+    SetPaneTarget {
+        pane: String,
+        target: String,
+    },
     /// "Open externally" from a pane.
     OpenWikiFileExternally(String),
     AddWikiLink(Option<String>),
@@ -606,6 +611,7 @@ pub fn run(
         | Intent::ChooseCover
         | Intent::AddWikiFiles(_)
         | Intent::OpenBeside(_)
+        | Intent::SetPaneTarget { .. }
         | Intent::OpenWikiFileExternally(_)
         | Intent::AddWikiLink(_)
         | Intent::OpenWikiItem(_)

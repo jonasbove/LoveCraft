@@ -12,6 +12,62 @@ use crate::Selection;
 use crate::theme::Palette;
 use crate::wiki_files::WikiFileStore;
 
+fn drop_panes_id() -> egui::Id {
+    egui::Id::unique("split-drop-panes")
+}
+
+fn drop_grid_id() -> egui::Id {
+    egui::Id::unique("split-drop-grid")
+}
+
+/// The Write view's editor and panes (the `tile-grid`), where a dropped binder row opens beside.
+pub(crate) fn set_drop_grid(ctx: &egui::Context, grid: Option<egui::Rect>) {
+    ctx.data_mut(|d| match grid {
+        Some(grid) => {
+            d.insert_temp(drop_grid_id(), grid);
+        }
+        None => d.remove::<egui::Rect>(drop_grid_id()),
+    });
+    if grid.is_none() {
+        ctx.data_mut(|d| d.remove::<Vec<(String, egui::Rect)>>(drop_panes_id()));
+    }
+}
+
+/// A binder row (`doc:…`, `file:…`) dragged over the panes or the editor: a pane shows it
+/// (`handlePaneDrop`), the rest opens it beside (`handleTargetDrop`). Marked while dragging;
+/// the intent for letting go there. `None` outside them.
+pub(crate) fn target_drop(
+    ui: &egui::Ui,
+    palette: &Palette,
+    target: &str,
+) -> Option<crate::editing::Intent> {
+    let pos = ui.ctx().pointer_latest_pos()?;
+    let grid = ui
+        .ctx()
+        .data(|d| d.get_temp::<egui::Rect>(drop_grid_id()))?;
+    let panes = ui
+        .ctx()
+        .data(|d| d.get_temp::<Vec<(String, egui::Rect)>>(drop_panes_id()))
+        .unwrap_or_default();
+    let painter = ui.ctx().layer_painter(egui::LayerId::new(
+        egui::Order::Foreground,
+        egui::Id::unique("split-drop"),
+    ));
+    let stroke = egui::Stroke::new(2.0, palette.accent);
+    if let Some((pane, rect)) = panes.iter().find(|(_, r)| r.contains(pos)) {
+        painter.rect_stroke(*rect, 9.0, stroke, egui::StrokeKind::Inside);
+        return Some(crate::editing::Intent::SetPaneTarget {
+            pane: pane.clone(),
+            target: target.to_owned(),
+        });
+    }
+    if grid.contains(pos) {
+        painter.rect_stroke(grid, 8.0, stroke, egui::StrokeKind::Inside);
+        return Some(crate::editing::Intent::OpenBeside(target.to_owned()));
+    }
+    None
+}
+
 /// A new pane's id.
 pub(crate) fn pane_id() -> String {
     static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(1);
@@ -332,6 +388,7 @@ pub(crate) fn show(
         (ui.available_height() / panes.len().div_ceil(columns).max(1) as f32 - 70.0).max(160.0);
     let snapshot = panes.clone();
     let mut next = None;
+    let mut pane_rects: Vec<(String, egui::Rect)> = Vec::new();
     egui::ScrollArea::vertical()
         .id_salt("split-panes")
         .auto_shrink([false, false])
@@ -368,11 +425,15 @@ pub(crate) fn show(
                                     );
                                 });
                         });
+                        pane_rects.push((pane.id.clone(), ui.min_rect()));
                     }
                 });
                 ui.add_space(8.0);
             }
         });
+    // Where a binder row can be dropped this frame (`handlePaneDrop`).
+    ui.ctx()
+        .data_mut(|d| d.insert_temp(drop_panes_id(), pane_rects));
     if let Some((changed, swap)) = next {
         *panes = changed;
         if swap.is_some() {

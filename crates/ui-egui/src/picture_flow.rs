@@ -194,6 +194,7 @@ pub(crate) fn flow(
         floats,
         placed: Vec::new(),
         next: 0,
+        unsettled: false,
         rows: Vec::new(),
         y: 0.0,
     };
@@ -239,6 +240,8 @@ struct Flow<'a> {
     placed: Vec<Placed>,
     /// The next picture not yet placed.
     next: usize,
+    /// The picture placed last may still move down to its character's row.
+    unsettled: bool,
     rows: Vec<PlacedRow>,
     /// Where the next row goes.
     y: f32,
@@ -281,7 +284,6 @@ impl Flow<'_> {
     ) {
         let mut start = range.start;
         let mut char_at = first_char;
-        let mut placed_any = false;
         // Each round places at least a row or a picture; the bound guards against a loop.
         for _ in 0..(range.len() + self.floats.len() + 4) * 2 {
             let (left, right, change) = band(&self.placed, self.y, self.column);
@@ -293,7 +295,7 @@ impl Flow<'_> {
             }
             let width = (right - left).max(MIN_BAND);
             let piece = fonts.layout_job(slice(self.job, start..range.end, width));
-            let step = self.take(&piece, (left, change), char_at, &mut placed_any);
+            let step = self.take(&piece, (left, change), char_at);
             char_at += step.chars;
             start = self
                 .job
@@ -318,13 +320,7 @@ impl Flow<'_> {
     /// Takes the rows of `piece` (laid out from character `char_at`) that fit where they go:
     /// up to a picture not yet placed (which is placed then), or the height where the room
     /// beside the pictures changes.
-    fn take(
-        &mut self,
-        piece: &Galley,
-        (left, change): (f32, Option<f32>),
-        char_at: usize,
-        placed_any: &mut bool,
-    ) -> Step {
+    fn take(&mut self, piece: &Galley, (left, change): (f32, Option<f32>), char_at: usize) -> Step {
         let mut taken = 0;
         let origin = piece.rows.first().map_or(0.0, PlacedRow::min_y);
         let base = self.y;
@@ -338,6 +334,12 @@ impl Flow<'_> {
             }
             let count = row.char_count_including_newline().0;
             let start = char_at + taken;
+            if self.moved(start..start + count.max(1), top) {
+                return Step {
+                    chars: taken,
+                    done: false,
+                };
+            }
             if let Some(float) = self.floats.get(self.next).copied()
                 && float.index < start + count.max(1)
             {
@@ -350,7 +352,7 @@ impl Flow<'_> {
                 let p = Placed::new(&float, top, &self.placed);
                 self.placed.push(p);
                 self.next += 1;
-                *placed_any = true;
+                self.unsettled = true;
                 // The room beside this row changed: lay it out again.
                 if p.top <= top {
                     return Step {
@@ -372,6 +374,28 @@ impl Flow<'_> {
             chars: taken,
             done: true,
         }
+    }
+
+    /// Whether the picture placed last, its character in the row at `chars` now going at `top`
+    /// (laid out again beside it, its character went to a lower row), moved down to that row:
+    /// a picture's top is its character's row's.
+    fn moved(&mut self, chars: Range<usize>, top: f32) -> bool {
+        let Some(float) = self.next.checked_sub(1).and_then(|i| self.floats.get(i)) else {
+            return false;
+        };
+        if !self.unsettled || !chars.contains(&float.index) {
+            return false;
+        }
+        let Some((last, others)) = self.placed.split_last_mut() else {
+            return false;
+        };
+        let p = Placed::new(float, top, others);
+        if (p.top - last.top).abs() < 0.5 {
+            self.unsettled = false;
+            return false;
+        }
+        *last = p;
+        true
     }
 
     fn push(&mut self, row: &PlacedRow, left: f32, top: f32) {
@@ -417,6 +441,7 @@ mod tests {
     use super::{BOTTOM, Float, GAP, TOP, flow, paragraphs, placed};
     use egui::epaint::text::{Galley, LayoutJob, TextFormat};
     use egui::text::CCursor;
+    use egui::{Rect, pos2};
     use std::sync::Arc;
 
     // No "fl" or "fi": a caret can't stand inside a ligature.
@@ -557,6 +582,66 @@ mod tests {
         }
     }
 
+    /// No row runs into a picture or the room kept around it.
+    fn clear_of(galley: &Galley, floats: &[Float]) {
+        for (rect, float) in placed(galley, floats).iter().zip(floats) {
+            let kept = Rect::from_min_max(
+                pos2(rect.left() - GAP + 0.5, rect.top() - TOP + 0.5),
+                pos2(rect.right() + GAP - 0.5, rect.bottom() + BOTTOM - 0.5),
+            );
+            for (start, row) in rows(galley) {
+                // The picture's own character is all but invisible.
+                if start == float.index && row.width() < 2.0 {
+                    continue;
+                }
+                assert!(
+                    !row.intersects(kept) || row.width() < 0.5,
+                    "row at {start} {row:?} runs into {kept:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn a_picture_after_words_in_a_row_goes_beside_its_own_row() {
+        for left in [true, false] {
+            let text =
+                format!("{WORDS}\nThe lamps along the harbour wall X\u{2029}{WORDS} {WORDS}");
+            let float = picture(&text, left);
+            let galley = with_fonts(|f| flow(f, job(&text, 400.0), &[float], &[]));
+            clear_of(&galley, &[float]);
+            let count = text.chars().count();
+            for i in 0..=count {
+                let rect = galley.pos_from_cursor(CCursor::new(i));
+                assert_eq!(galley.cursor_from_pos(rect.center().to_vec2()).index.0, i);
+            }
+        }
+    }
+
+    #[test]
+    fn pictures_on_both_sides_too_wide_together_stack() {
+        let text = format!("{WORDS}\nX\u{2029}Y\u{2029}{WORDS} {WORDS} {WORDS}");
+        let at = |c| text.chars().position(|x| x == c).expect("char");
+        let floats = [
+            Float {
+                index: at('X'),
+                atom: 0,
+                left: true,
+                size: egui::vec2(200.0, 80.0),
+            },
+            Float {
+                index: at('Y'),
+                atom: 1,
+                left: false,
+                size: egui::vec2(200.0, 80.0),
+            },
+        ];
+        let galley = with_fonts(|f| flow(f, job(&text, 400.0), &floats, &[]));
+        clear_of(&galley, &floats);
+        let rects = placed(&galley, &floats);
+        assert!(rects[1].top() >= rects[0].bottom(), "{rects:?}");
+    }
+
     #[test]
     fn a_highlight_beside_the_picture_stays_beside_it() {
         let (galley, float, rect) = flowed(true);
@@ -581,6 +666,7 @@ mod tests {
                 floats: &[],
                 placed: Vec::new(),
                 next: 0,
+                unsettled: false,
                 rows: Vec::new(),
                 y: 0.0,
             };

@@ -1983,11 +1983,13 @@ pub(crate) fn atom_sizes(
             }
             // A wrapped picture: the text flows beside it (see `picture_flow`), its character
             // all but invisible where it stands.
-            AtomLabel::Picture(picture) if picture.layout.wrap != "block" => AtomBox {
-                font: 1.0,
-                picture: true,
-                ..AtomBox::default()
-            },
+            AtomLabel::Picture(picture) if picture.layout.wrap != "block" && wrap.is_finite() => {
+                AtomBox {
+                    font: 1.0,
+                    picture: true,
+                    ..AtomBox::default()
+                }
+            }
             // As wide as the column, so the picture has its row to itself.
             AtomLabel::Picture(picture) => AtomBox {
                 spacing: if wrap.is_finite() {
@@ -2205,6 +2207,10 @@ pub(crate) fn floats(
     labels: &[AtomLabel],
     column: f32,
 ) -> Vec<crate::picture_flow::Float> {
+    // Without a column to wrap in, a picture keeps its row (see `atom_sizes`).
+    if !column.is_finite() {
+        return Vec::new();
+    }
     text.chars()
         .enumerate()
         .filter(|(_, c)| *c == ATOM)
@@ -3432,12 +3438,12 @@ pub(crate) fn paint_atoms(
                     ));
                 }
             }
-            AtomLabel::Picture(picture) if picture.layout.wrap != "block" => {
-                if let Some((_, rect)) = wrapped.iter().find(|(a, _)| *a == atom) {
-                    let rect = rect.translate(origin.to_vec2());
-                    draw_picture(painter, palette, html, picture, rect);
-                    markers.push((rect, Clicked::Picture(atom)));
-                }
+            AtomLabel::Picture(picture)
+                if let Some((_, rect)) = wrapped.iter().find(|(a, _)| *a == atom) =>
+            {
+                let rect = rect.translate(origin.to_vec2());
+                draw_picture(painter, palette, html, picture, rect);
+                markers.push((rect, Clicked::Picture(atom)));
             }
             AtomLabel::Picture(picture) => {
                 // Its own glyph's cell: at a row break the caret before it is at the end of the

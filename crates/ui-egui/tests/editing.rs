@@ -552,17 +552,43 @@ fn text_flows_beside_a_picture_wrapped_left() {
         "Z{first}: {}",
         content(&memory, "new-1")
     );
-    // The picture is still picked by a click, its tools shown.
+    // The picture is still picked by a click, its tools shown, and its corner resizes it.
     harness
         .get_by_role_and_label(Role::Image, "Coast map")
         .click();
     harness.run();
     harness.get_by_label("Selected image tools");
+    let corner = harness.get_by_label("Resize image").rect().center();
+    drag(&mut harness, corner, corner - egui::vec2(120.0, 0.0));
+    harness.run_steps(12);
+    let stored = content(&memory, "new-1");
+    assert!(
+        stored.contains(r#"data-size="custom""#) && stored.contains(r#"data-wrap="wrap-left""#),
+        "{}",
+        &stored[stored.find("alt=").unwrap_or(0)..][..120]
+    );
+    let smaller = harness
+        .get_by_role_and_label(Role::Image, "Coast map")
+        .rect();
+    assert!(
+        smaller.width() < picture.width() - 60.0,
+        "{smaller:?} {}",
+        &stored[stored.find("alt=").unwrap_or(0)..][..90]
+    );
+    // The text follows the picture's new edge.
+    let (row, _) = text_rows(&harness)
+        .into_iter()
+        .find(|(r, _)| r.top() < smaller.bottom())
+        .expect("a row beside");
+    assert!(
+        (row.left() - (smaller.right() + 18.0)).abs() < 1.0,
+        "{row:?} {smaller:?}"
+    );
 }
 
 #[test]
 fn text_flows_beside_a_picture_wrapped_right() {
-    let (harness, _, _) = wrapped_picture("right");
+    let (mut harness, memory, _) = wrapped_picture("right");
     let picture = harness
         .get_by_role_and_label(Role::Image, "Coast map")
         .rect();
@@ -586,6 +612,16 @@ fn text_flows_beside_a_picture_wrapped_right() {
         rows.iter()
             .any(|(r, _)| r.top() >= bottom && r.right() > picture.left()),
         "{rows:?}"
+    );
+    // A click at the end of a row beside the picture puts the caret after its last word.
+    let (row, text) = beside[1].clone();
+    click_at(&mut harness, egui::pos2(row.right() - 0.5, row.center().y));
+    harness.get_by_label("Scene text").type_text("Q");
+    harness.run_steps(12);
+    let last = text.split_whitespace().last().expect("a word");
+    assert!(
+        content(&memory, "new-1").contains(&format!("{last} Q")),
+        "{last} Q: {text}"
     );
 }
 

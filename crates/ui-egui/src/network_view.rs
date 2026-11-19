@@ -425,6 +425,8 @@ fn toolbar(ui: &mut Ui, palette: &Palette, state: &mut NetworkState, model: &gra
                     ..Options::default()
                 },
             );
+            // The new arrangement can be taller or wider than the old one: fit it.
+            state.graph.refit();
         }
     });
 }

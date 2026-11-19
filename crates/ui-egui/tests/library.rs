@@ -927,3 +927,28 @@ fn the_status_line_fades_after_a_few_seconds() {
             .is_none()
     );
 }
+
+#[test]
+fn an_error_in_the_status_line_stays_until_the_next_view() {
+    let mut harness = library_app();
+    harness
+        .state_mut()
+        .report("The browser didn't start the download.");
+    harness.run();
+    // Long past the seconds a note stays.
+    harness.run_steps(40);
+    harness.get_by_label_contains("The browser didn't start the download.");
+    // A live region: screen readers announce it.
+    let line = harness.get_by_label_contains("The browser didn't start the download.");
+    assert_eq!(
+        line.accesskit_node().data().live(),
+        Some(egui::accesskit::Live::Polite)
+    );
+    harness
+        .get_by_role_and_label(Role::Tab, "Storyboard")
+        .focus();
+    harness.run();
+    harness.key_press(egui::Key::Enter);
+    harness.run();
+    assert!(harness.state().state().status().is_none());
+}

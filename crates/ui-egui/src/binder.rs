@@ -39,6 +39,18 @@ fn tree_row(
             )
         })
         .inner;
+    // A shortened title shows in full on hover.
+    let natural = ui
+        .painter()
+        .layout_no_wrap(label.to_owned(), egui::FontId::proportional(13.5), color)
+        .size()
+        .x
+        + 2.0 * ui.spacing().button_padding.x;
+    let response = if natural > width + 0.5 {
+        response.on_hover_text(label)
+    } else {
+        response
+    };
     ui.ctx().accesskit_node_builder(response.id, |node| {
         node.set_role(Role::TreeItem);
         node.set_level(level);
@@ -689,8 +701,8 @@ fn chapter_row(
             );
         }
         // The tree's keys: Right shows the scenes, Left hides them (kept from moving the
-        // focus while the chapter has it).
-        if row.has_focus() {
+        // focus while the chapter has it, unless it has to stay open).
+        if row.has_focus() && !locked {
             ui.memory_mut(|m| {
                 m.set_focus_lock_filter(
                     row.id,
@@ -892,9 +904,10 @@ fn label_filter(ui: &mut Ui, project: &Project, filter: &mut Option<String>) {
     }
 }
 
-/// Whether a chapter shows its scenes, and whether that is fixed: a chapter starts as its stored
-/// `expanded` flag says and its chevron changes that for the session (`open`, not saved, as
-/// ProseCraft's own collapsing isn't), but the chapter of the open scene, of a scene being
+/// Whether a chapter shows its scenes, and whether that is fixed: every chapter starts open and
+/// its chevron folds it for the session (`open`, not saved). The stored `expanded` flag is not
+/// read: ProseCraft never reads it, and folder sync writes `false` for chapters that have none,
+/// so it would fold chapters nobody folded. The chapter of the open scene, of a scene being
 /// renamed, and every chapter while a label filter is on stay open.
 fn chapter_open(
     chapter: &prosecraft_core::project::Chapter,
@@ -913,7 +926,7 @@ fn chapter_open(
         || matches!(selection, Some(Selection::Document(id)) if holds(id))
         || renaming.is_some_and(|(id, _)| holds(id));
     let key = (project.id.clone(), chapter.id.clone());
-    let shown = locked || open.get(&key).copied().unwrap_or(chapter.expanded);
+    let shown = locked || open.get(&key).copied().unwrap_or(true);
     (shown, locked)
 }
 

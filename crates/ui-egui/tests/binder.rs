@@ -163,21 +163,18 @@ fn a_chapter_folds_its_scenes_away_and_back() {
 }
 
 #[test]
-fn a_chapter_stored_as_folded_starts_folded_unless_its_scene_is_open() {
-    let mut harness = app(|text| text.replace(r#""expanded": true"#, r#""expanded": false"#));
-    assert!(
-        harness
-            .query_by_role_and_label(Role::TreeItem, "Opening Scene")
-            .is_none()
-    );
+fn a_chapter_stored_as_folded_still_starts_open() {
+    // Folder sync writes `"expanded": false` for chapters that never had the flag, and
+    // ProseCraft never reads it: no chapter starts folded.
+    let harness = app(|text| text.replace(r#""expanded": true"#, r#""expanded": false"#));
+    harness.get_by_role_and_label(Role::TreeItem, "Opening Scene");
     let chevron = harness.get_by_role_and_label(Role::Button, "Scenes of Chapter One");
-    assert_eq!(chevron.accesskit_node().data().is_expanded(), Some(false));
-    harness
-        .get_by_role_and_label(Role::Button, "Scenes of Chapter One")
-        .focus();
-    harness.run();
-    harness.key_press(Key::Enter);
-    harness.run();
+    assert_eq!(chevron.accesskit_node().data().is_expanded(), Some(true));
+}
+
+#[test]
+fn the_chapter_of_the_open_scene_stays_open_and_lets_arrows_through() {
+    let mut harness = app(|text| text);
     // Open a scene: its chapter stays open, and its chevron can't fold it while it is.
     harness
         .get_by_role_and_label(Role::TreeItem, "Opening Scene")
@@ -186,4 +183,36 @@ fn a_chapter_stored_as_folded_starts_folded_unless_its_scene_is_open() {
     let chevron = harness.get_by_role_and_label(Role::Button, "Scenes of Chapter One");
     assert_eq!(chevron.accesskit_node().data().is_expanded(), Some(true));
     assert!(chevron.accesskit_node().is_disabled());
+    // Left and Right are not kept by a chapter that can't fold: they move the focus as
+    // anywhere else.
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Chapter One")
+        .focus();
+    harness.run();
+    harness.key_press(Key::ArrowRight);
+    harness.run();
+    assert!(
+        !harness
+            .get_by_role_and_label(Role::TreeItem, "Chapter One")
+            .is_focused()
+    );
+    harness.get_by_role_and_label(Role::TreeItem, "Opening Scene");
+}
+
+#[test]
+fn a_shortened_title_shows_in_full_on_hover() {
+    let mut harness = app(|text| {
+        text.replacen(
+            r#""title": "Chapter One""#,
+            &format!(r#""title": "{LONG}""#),
+            1,
+        )
+    });
+    // The title shows elsewhere too (the Outline); hovering the row adds its tooltip.
+    let before = harness.get_all_by_label(LONG).count();
+    harness.get_by_role_and_label(Role::TreeItem, LONG).hover();
+    // Tooltips wait for the pointer to rest.
+    harness.run_steps(8);
+    let after = harness.get_all_by_label(LONG).count();
+    assert_eq!(after, before + 1, "a tooltip with the whole title");
 }

@@ -93,7 +93,8 @@ const LABEL_GAP: f32 = 6.0;
 /// half the horizontal distance to every name it would otherwise touch, less a gap. `items` are
 /// each name's centre and natural width; `height` is a name's height. A name with nothing beside
 /// it keeps its natural width. Names stay centred under their pages, so two names each kept to
-/// these widths never overlap.
+/// these widths never overlap. Pages (almost) on top of each other would leave each other no
+/// room at all; there the first keeps its name and the later ones give way.
 fn label_widths(items: &[(Pos2, f32)], height: f32) -> Vec<f32> {
     items
         .iter()
@@ -103,7 +104,10 @@ fn label_widths(items: &[(Pos2, f32)], height: f32) -> Vec<f32> {
                 .iter()
                 .enumerate()
                 .filter(|(j, (other, _))| {
-                    *j != i && (other.y - at.y).abs() < height + LABEL_GAP / 2.0
+                    let stacked = (other.x - at.x).abs() < LABEL_GAP;
+                    *j != i
+                        && (other.y - at.y).abs() < height + LABEL_GAP / 2.0
+                        && (!stacked || *j < i)
                 })
                 .map(|(_, (other, _))| (other.x - at.x).abs() - LABEL_GAP)
                 .fold(*natural, f32::min)
@@ -256,6 +260,13 @@ impl Default for GraphState {
             last_fit: String::new(),
             dragging: None,
         }
+    }
+}
+
+impl GraphState {
+    /// Fits the view to the pages again on the next frame, as when they were laid out anew.
+    pub fn refit(&mut self) {
+        self.last_fit.clear();
     }
 }
 
@@ -1028,6 +1039,14 @@ mod tests {
         assert_eq!(rects[3].width(), 120.0);
         // Room is shared: each name gets at most the distance less the gap.
         assert!(rects[0].width() <= 34.0 - LABEL_GAP);
+    }
+
+    #[test]
+    fn of_two_pages_on_one_spot_the_first_keeps_its_name() {
+        // Both used to get no room at all, and neither showed a name.
+        let at = Pos2::new(100.0, 50.0);
+        let widths = label_widths(&[(at, 60.0), (at, 50.0)], 14.0);
+        assert_eq!(widths, vec![60.0, 0.0]);
     }
 
     #[test]

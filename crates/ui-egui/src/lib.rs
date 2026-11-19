@@ -262,10 +262,22 @@ impl SideTab {
     }
 }
 
+/// The bottom edge of the menu bar drawn in the window (none with a native menu), kept in the
+/// context's data for the panels placed below it.
+pub(crate) fn menu_bar_bottom_id() -> egui::Id {
+    egui::Id::unique("prosecraft-menu-bar-bottom")
+}
+
+/// The status line's message, and whether it reports something that went wrong.
+#[derive(Clone, Debug)]
+struct StatusLine {
+    text: String,
+    error: bool,
+}
+
 /// A status message as it was first shown: the view and selection then, and the time.
 #[derive(Clone, Debug)]
 struct StatusSeen {
-    message: String,
     view: WorkspaceView,
     selection: Option<Selection>,
     at: f64,
@@ -306,7 +318,7 @@ pub struct AppState {
     side_tab: SideTab,
     selection: Option<Selection>,
     /// The last message for the person: what was opened, or why it wasn't.
-    status: Option<String>,
+    status: Option<StatusLine>,
     /// When and where the status message was first shown, to let it go again.
     status_seen: Option<StatusSeen>,
     palette: theme::Palette,
@@ -513,7 +525,29 @@ impl AppState {
     }
 
     pub fn status(&self) -> Option<&str> {
-        self.status.as_deref()
+        self.status.as_ref().map(|s| s.text.as_str())
+    }
+
+    /// Says `text` in the status line; an error stays until the next change of view or
+    /// selection, other messages also go after a few seconds. Saying it again starts it over.
+    fn say(&mut self, text: String, error: bool) {
+        self.status = Some(StatusLine { text, error });
+        self.status_seen = None;
+    }
+
+    /// Says what happened.
+    fn info(&mut self, text: String) {
+        self.say(text, false);
+    }
+
+    /// Says what went wrong.
+    fn error(&mut self, text: String) {
+        self.say(text, true);
+    }
+
+    fn clear_status(&mut self) {
+        self.status = None;
+        self.status_seen = None;
     }
 
     pub fn save_state(&self) -> &SaveState {
@@ -533,8 +567,8 @@ impl AppState {
         self.view = WorkspaceView::Write;
     }
 
-    fn set_library(&mut self, library: Library, status: String) {
-        self.status = Some(status);
+    fn set_library(&mut self, library: Library, status: String, error: bool) {
+        self.say(status, error);
         self.library = Some(library);
         self.active = 0;
         self.selection = None;
@@ -837,7 +871,7 @@ impl ProseApp {
                 if count == 1 { "" } else { "s" }
             )
         };
-        app.state.set_library(views, status);
+        app.state.set_library(views, status, false);
         app.state.has_home = true;
         app.state.editable = !library.is_read_only();
         app.state.save_state = SaveState::Saved;
@@ -851,7 +885,7 @@ impl ProseApp {
     /// Says `message` in the status line (for what the host can't do, such as a folder on the
     /// web).
     pub fn report(&mut self, message: &str) {
-        self.state.status = Some(message.to_owned());
+        self.state.error(message.to_owned());
     }
 
     pub fn take_requests(&mut self) -> Vec<HostRequest> {
@@ -868,7 +902,7 @@ impl ProseApp {
                 if count == 1 { "" } else { "s" }
             );
             self.state
-                .set_library(Library::from_stored(projects), status);
+                .set_library(Library::from_stored(projects), status, false);
             return;
         };
         let result = home.library.merge(projects);
@@ -882,6 +916,7 @@ impl ProseApp {
             home.store.save(&text)
         };
         let plural = if result.imported == 1 { "" } else { "s" };
+        let failed = saved.is_err();
         let status = match saved {
             Ok(()) => format!(
                 "Added {} project{plural} from {name} to your library ({} in all).",
@@ -890,7 +925,7 @@ impl ProseApp {
             Err(error) => format!("Read {name}, but couldn't save your library: {error}"),
         };
         let views = Library::from_stored(home.library.projects().cloned().collect());
-        self.state.set_library(views, status);
+        self.state.set_library(views, status, failed);
     }
 
     /// The open project's id.
@@ -932,7 +967,9 @@ impl ProseApp {
                 self.unsaved_since = Some(self.state.now);
                 self.state.save_state = SaveState::Pending;
             }
-            Err(error) => self.state.status = Some(format!("That change wasn't made: {error}")),
+            Err(error) => self
+                .state
+                .error(format!("That change wasn't made: {error}")),
         }
         self.refresh_views();
     }
@@ -1020,7 +1057,9 @@ impl ProseApp {
                     self.state.undo.push_state(&page, step);
                 }
             }
-            Err(error) => self.state.status = Some(format!("That change wasn't made: {error}")),
+            Err(error) => self
+                .state
+                .error(format!("That change wasn't made: {error}")),
         }
         self.refresh_views();
     }
@@ -1044,9 +1083,12 @@ impl ProseApp {
                 clicks
             }
             None => {
-                egui::Panel::top("menu-bar")
-                    .show(ui, |ui| app_menu::show(ui, &self.state))
-                    .inner
+                let bar =
+                    egui::Panel::top("menu-bar").show(ui, |ui| app_menu::show(ui, &self.state));
+                // Where the drawn menu bar ends, for what is placed below it.
+                let bottom = bar.response.rect.bottom();
+                ctx.data_mut(|d| d.insert_temp(menu_bar_bottom_id(), bottom));
+                bar.inner
             }
         };
         // A native menu leaves the focus where it was: its Edit items go to that field.
@@ -1354,7 +1396,7 @@ impl ProseApp {
                     extension: "pdf".to_owned(),
                 }),
                 Err(error) => {
-                    self.state.status = Some(format!("Could not save the PDF: {error}"));
+                    self.state.error(format!("Could not save the PDF: {error}"));
                 }
             }
         }
@@ -2195,7 +2237,7 @@ impl ProseApp {
         let url = match prosecraft_core::picture::prepare(name, bytes) {
             Ok(url) => url,
             Err(message) => {
-                self.state.status = Some(message);
+                self.state.error(message);
                 return;
             }
         };
@@ -2615,7 +2657,7 @@ impl ProseApp {
                     focus: true,
                 });
             }
-            Err(error) => self.state.status = Some(format!("Couldn't open {name}: {error}")),
+            Err(error) => self.state.error(format!("Couldn't open {name}: {error}")),
         }
     }
 
@@ -2623,11 +2665,9 @@ impl ProseApp {
     pub fn open_backup_bytes(&mut self, name: &str, bytes: &[u8]) {
         match std::str::from_utf8(bytes) {
             Ok(text) => self.open_backup(name, text),
-            Err(_) => {
-                self.state.status = Some(format!(
-                    "Couldn't open {name}: it isn't a ProseCraft backup."
-                ))
-            }
+            Err(_) => self.state.error(format!(
+                "Couldn't open {name}: it isn't a ProseCraft backup."
+            )),
         }
     }
 
@@ -2652,7 +2692,7 @@ impl ProseApp {
             |n| n.to_string_lossy().into_owned(),
         );
         if std::fs::metadata(path).is_ok_and(|m| m.len() > Self::MAX_BACKUP_BYTES) {
-            self.state.status = Some(format!(
+            self.state.error(format!(
                 "Couldn't open {name}: it is far too large to be a ProseCraft backup."
             ));
             return;
@@ -2665,7 +2705,7 @@ impl ProseApp {
             // A dropped EPUB is imported (`importEpubData`); anything else is a backup.
             Ok(bytes) if name.to_lowercase().ends_with(".epub") => self.import_epub(&name, &bytes),
             Ok(bytes) => self.open_backup_bytes(&name, &bytes),
-            Err(error) => self.state.status = Some(format!("Couldn't open {name}: {error}")),
+            Err(error) => self.state.error(format!("Couldn't open {name}: {error}")),
         }
     }
 
@@ -2836,7 +2876,8 @@ impl ProseApp {
                             .save_setting(proofreading::DIALECT_KEY, Some(&prefs.dialect))
                     });
                 if let Err(error) = saved {
-                    self.state.status = Some(format!("Could not save the setting: {error}"));
+                    self.state
+                        .error(format!("Could not save the setting: {error}"));
                 }
             }
         }
@@ -2858,7 +2899,8 @@ impl ProseApp {
             if let Some(home) = self.home.as_mut()
                 && let Err(error) = writing.save(home.store.as_mut())
             {
-                self.state.status = Some(format!("Could not save the setting: {error}"));
+                self.state
+                    .error(format!("Could not save the setting: {error}"));
             }
         }
         if let Some(enabled) = self.state.markdown_enabled_choice.take() {
@@ -2872,7 +2914,8 @@ impl ProseApp {
                     Some(if enabled { "true" } else { "false" }),
                 )
             {
-                self.state.status = Some(format!("Could not save the setting: {error}"));
+                self.state
+                    .error(format!("Could not save the setting: {error}"));
             }
         }
         self.save_appearance();
@@ -2905,10 +2948,14 @@ impl ProseApp {
         if let Some(prefs) = self.state.font_choice.take() {
             self.state.font_prefs = prefs;
             if let Some(home) = self.home.as_mut() {
+                let mut failed = None;
                 for (key, value) in self.state.font_prefs.entries() {
                     if let Err(error) = home.store.save_setting(key, Some(value)) {
-                        self.state.status = Some(format!("Could not save the font: {error}"));
+                        failed = Some(format!("Could not save the font: {error}"));
                     }
+                }
+                if let Some(message) = failed {
+                    self.state.error(message);
                 }
             }
         }
@@ -2936,7 +2983,8 @@ impl ProseApp {
                     .store
                     .save_setting(theme::SCHEME_KEY, Some(&self.state.color_scheme))
             {
-                self.state.status = Some(format!("Could not save the color scheme: {error}"));
+                self.state
+                    .error(format!("Could not save the color scheme: {error}"));
             }
         }
         if let Some(theme) = self.state.theme_choice.take() {
@@ -2946,7 +2994,8 @@ impl ProseApp {
                     .store
                     .save_setting(settings::THEME_KEY, Some(theme.id()))
             {
-                self.state.status = Some(format!("Could not save the theme: {error}"));
+                self.state
+                    .error(format!("Could not save the theme: {error}"));
             }
         }
     }
@@ -2984,7 +3033,7 @@ impl ProseApp {
                         file_name: "prosecraft-encrypted.prosecraft".into(),
                         text,
                     });
-                    self.state.status = Some("Encrypted backup exported.".into());
+                    self.state.info("Encrypted backup exported.".into());
                     self.state.encrypt_export = None;
                     return;
                 }
@@ -3161,7 +3210,8 @@ impl ProseApp {
         }
         if cancel {
             self.locked = None;
-            self.state.status = Some("Opening the encrypted backup was cancelled.".into());
+            self.state
+                .info("Opening the encrypted backup was cancelled.".into());
         } else if submit {
             self.unlock();
         }

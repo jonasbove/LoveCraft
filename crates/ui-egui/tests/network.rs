@@ -74,6 +74,11 @@ fn doc(id: &str, title: &str, extra: &[(&str, JsValue)]) -> JsValue {
 /// The plain bundle with a Characters folder holding Mara and Jonah, and three scenes in which
 /// both appear.
 fn bundle() -> String {
+    bundle_with(0)
+}
+
+/// The bundle with `extra` more character pages, unrelated.
+fn bundle_with(extra: usize) -> String {
     let path = format!(
         "{}/../core/tests/fixtures/bundle-plain.prosecraft",
         env!("CARGO_MANIFEST_DIR")
@@ -106,6 +111,30 @@ fn bundle() -> String {
             ("content", JsValue::str("<p>A sailor.</p>")),
         ],
     ));
+    for n in 1..=extra {
+        documents.push(doc(
+            &format!("doc-extra-{n}"),
+            &format!("Extra {n}"),
+            &[
+                ("space", JsValue::str("Wiki")),
+                ("folderId", JsValue::str("folder-1")),
+                ("content", JsValue::str("<p>Someone.</p>")),
+                // A line of friends, laid out at another angle by each layout seed.
+                (
+                    "meta",
+                    js::parse(&if n < extra {
+                        format!(
+                            r#"{{"relations":[{{"id":"r-{n}","to":"doc-extra-{}","type":"friend"}}]}}"#,
+                            n + 1
+                        )
+                    } else {
+                        "{}".to_owned()
+                    })
+                    .expect("meta"),
+                ),
+            ],
+        ));
+    }
     for n in 1..=3 {
         documents.push(doc(
             &format!("scene-{n}"),
@@ -120,12 +149,16 @@ fn bundle() -> String {
 }
 
 fn app() -> (Harness<'static, ProseApp>, Memory) {
+    app_with(bundle())
+}
+
+fn app_with(bundle: String) -> (Harness<'static, ProseApp>, Memory) {
     let memory = Memory::default();
     let mut app = ProseApp::with_library(
         ProjectLibrary::new("this-device".into()),
         Box::new(memory.clone()),
     );
-    app.open_backup("network.prosecraft", &bundle());
+    app.open_backup("network.prosecraft", &bundle);
     let mut harness = Harness::builder()
         .with_max_steps(8)
         .with_size([1500.0, 1000.0])
@@ -265,18 +298,19 @@ fn the_character_card_applies_a_template_and_stores_values() {
         .expect("Jonah's card")
         .click();
     harness.run();
-    // ProseCraft's panel: 12 points in from the window's top, right and bottom, 380 wide, its
-    // fields inside it (it was a short window that cut them off). The window's outline (its
-    // stroke) is outside its accessible bounds.
+    // ProseCraft's panel: 12 points in from the window's right and bottom and below the menu
+    // bar, 380 wide, its fields inside it (it was a short window that cut them off). The
+    // window's outline (its stroke) is outside its accessible bounds.
     let close = harness
         .get_by_role_and_label(Role::Button, "Close character card")
         .rect();
-    assert!(
-        close.top() < 40.0 && close.right() > 1500.0 - 40.0,
-        "{close:?}"
-    );
     let panel = harness.get_by_label("Jonah character card").rect();
-    assert!((panel.top() - 12.0).abs() <= 2.0, "{panel:?}");
+    assert!(panel.contains_rect(close), "{close:?} in {panel:?}");
+    let menu = harness.get_by_label("File").rect();
+    assert!(
+        panel.top() > menu.bottom() && panel.top() - menu.bottom() <= 24.0,
+        "{panel:?} below the menu bar ({menu:?})"
+    );
     assert!((panel.bottom() - (1000.0 - 12.0)).abs() <= 2.0, "{panel:?}");
     assert!((panel.right() - (1500.0 - 12.0)).abs() <= 2.0, "{panel:?}");
     assert!((panel.width() - 380.0).abs() <= 2.0, "{panel:?}");
@@ -449,5 +483,55 @@ fn two_fingers_pinch_the_graph() {
     assert!(
         harness.query_by_label("300%").is_none(),
         "pinching in zooms out"
+    );
+}
+
+#[test]
+fn re_layout_fits_the_new_arrangement() {
+    let (mut harness, _memory) = app_with(bundle_with(3));
+    harness.get_by_role_and_label(Role::Tab, "Network").click();
+    harness.run();
+    // Each arrangement is framed again: every page, and the name below it, inside the canvas.
+    for round in 0..6 {
+        harness.get_by_label("↺ Re-layout").click();
+        harness.run_steps(4);
+        let canvas = harness
+            .get_by_label_contains("Relationship network of")
+            .rect();
+        for page in harness.get_all_by_label_contains(", Character, ") {
+            let name = page.accesskit_node().label().unwrap_or_default();
+            let page = page.rect();
+            // The name sits below the circle: 15 + 11 points at 100%, scaled with the circle.
+            let scale = page.height() / 52.0;
+            let bottom = page.bottom() + 26.0 * scale;
+            assert!(
+                canvas.contains_rect(page) && bottom <= canvas.bottom(),
+                "round {round}: {name} at {page:?} (name to {bottom}) outside {canvas:?}"
+            );
+        }
+    }
+}
+
+#[test]
+fn the_character_card_stays_inside_a_narrow_window() {
+    let (mut harness, _memory) = app();
+    harness.get_by_role_and_label(Role::Tab, "Network").click();
+    harness.run();
+    harness.get_by_label("Cards").click();
+    harness.run();
+    harness
+        .get_all_by_label("Jonah")
+        .find(|n| n.accesskit_node().role() != Role::TreeItem)
+        .expect("Jonah's card")
+        .click();
+    harness.run();
+    // Narrower than the card's own width plus its margins.
+    harness.set_size(egui::vec2(220.0, 600.0));
+    harness.run_steps(4);
+    let panel = harness.get_by_label("Jonah character card").rect();
+    let window = harness.ctx.content_rect();
+    assert!(
+        panel.left() >= window.left() && panel.right() <= window.right(),
+        "{panel:?} in {window:?}"
     );
 }

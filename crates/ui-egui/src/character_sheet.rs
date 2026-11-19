@@ -113,15 +113,25 @@ pub(crate) fn card_panel(
     // on a narrow window), its sheet scrolling inside.
     let screen = ui.ctx().content_rect();
     let margin = 12.0;
+    // Below the menu bar drawn in the window, if there is one.
+    let top = ui
+        .ctx()
+        .data(|d| d.get_temp::<f32>(crate::menu_bar_bottom_id()))
+        .unwrap_or(screen.top())
+        .clamp(screen.top(), screen.bottom());
     // A window's size includes its inner margin; its stroke and outer margin come on top.
+    // On a small window the card gets what there is, never more.
     let window = egui::Frame::window(ui.style());
     let frame = window.total_margin().sum() - window.inner_margin.sum();
-    let width = (CARD_WIDTH.min(screen.width() - margin * 2.0) - frame.x).max(200.0);
-    let height = (screen.height() - margin * 2.0 - frame.y).max(200.0);
+    let width = (CARD_WIDTH.min(screen.width() - margin * 2.0) - frame.x).max(1.0);
+    let height = (screen.bottom() - top - margin * 2.0 - frame.y).max(1.0);
     egui::Window::new(format!("{title} character card"))
         .id(egui::Id::unique("character-card"))
         .title_bar(false)
-        .anchor(egui::Align2::RIGHT_TOP, egui::vec2(-margin, margin))
+        .anchor(
+            egui::Align2::RIGHT_TOP,
+            egui::vec2(-margin, top - screen.top() + margin),
+        )
         .fixed_size(egui::vec2(width, height))
         .resizable(false)
         .show(ui.ctx(), |ui| {
@@ -136,7 +146,8 @@ pub(crate) fn card_panel(
                 });
             });
             ui.separator();
-            egui::ScrollArea::vertical()
+            // Sideways too, on a window narrower than the sheet.
+            egui::ScrollArea::both()
                 .auto_shrink([false, false])
                 .show(ui, |ui| {
                     sheet(ui, palette, project, derived, page, &mut state.sheet, out);

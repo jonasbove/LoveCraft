@@ -790,6 +790,55 @@ fn trashing_a_chapter_from_its_view_asks_first() {
     assert_eq!(trashed, Some(JsValue::Bool(true)));
 }
 
+#[test]
+fn opening_a_project_folds_its_legacy_profiles_into_the_wiki() {
+    let (mut harness, memory) = app();
+    harness.run_steps(12);
+    // As ProseCraft loads it: migrated for the views, nothing written by opening alone.
+    let opened = memory.last();
+    if let Some(mara) = opened
+        .get("projects")
+        .and_then(|_| document(project(&opened, "project-1"), "doc-2"))
+    {
+        assert!(
+            mara.get("character").is_some(),
+            "opening alone doesn't write"
+        );
+    }
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Mara")
+        .click();
+    harness.run();
+    let shown = harness
+        .get_by_label("Scene text")
+        .value()
+        .unwrap_or_default();
+    assert!(shown.starts_with("Character profile"), "{shown}");
+    // The project's next change stores it.
+    harness
+        .get_by_role_and_label(Role::Button, "Add to Wiki")
+        .click();
+    harness.run();
+    harness.get_by_label("Add page").click();
+    harness.run_steps(12);
+    let saved = memory.last();
+    let mara = document(project(&saved, "project-1"), "doc-2").expect("Mara");
+    assert!(mara.get("character").is_none());
+    let text = mara
+        .get("content")
+        .and_then(JsValue::as_js_string)
+        .map(|c| c.to_string_lossy())
+        .unwrap_or_default();
+    assert!(
+        text.starts_with("<h2>Character profile</h2>\n<p><strong>Role:</strong> Protagonist</p>"),
+        "{text}"
+    );
+    assert!(
+        text.ends_with("<hr>\n<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>"),
+        "{text}"
+    );
+}
+
 /// The stored content of a document.
 fn content(memory: &Memory, id: &str) -> String {
     let saved = memory.last();
@@ -2293,7 +2342,17 @@ fn a_pane_edits_its_document_as_prosecrafts_tile_editor_does() {
             .unwrap_or_default()
     };
     assert_eq!(field("title"), "Mara Vale");
-    assert_eq!(field("content"), "<p>Notes about Mara. 𝔐𝔞𝔯𝔞 More.</p>");
+    // Below the profile the Wiki migration put above Mara's text.
+    assert!(
+        field("content").starts_with("<h2>Character profile</h2>"),
+        "{}",
+        field("content")
+    );
+    assert!(
+        field("content").ends_with("<p>Notes about Mara. 𝔐𝔞𝔯𝔞 More.</p>"),
+        "{}",
+        field("content")
+    );
 }
 
 #[test]
@@ -2374,7 +2433,13 @@ fn a_scene_pane_writes_its_chapter_back_and_leaves_text_it_cannot_hold_alone() {
     harness.run();
     assert!(harness.query_by_label("Document text").is_none());
     harness.get_by_label("Open in the editor to change this text.");
-    assert_eq!(stored(&memory, "doc-2"), "Loose notes about Mara");
+    // As the Wiki migration left it (its profile above the text), not edited.
+    let mara = stored(&memory, "doc-2");
+    assert!(
+        mara.starts_with("<h2>Character profile</h2>")
+            && mara.ends_with("<hr>\nLoose notes about Mara"),
+        "{mara}"
+    );
 }
 
 #[test]

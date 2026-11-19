@@ -203,6 +203,9 @@ pub struct RichDoc {
     /// Whether blocks are separated by newlines (ProseCraft's Markdown output) or not (its
     /// editor's).
     pub newline_blocks: bool,
+    /// With newlines between blocks, none after the last (as the Wiki migration joins a
+    /// profile and a page's text).
+    pub no_final_newline: bool,
     /// The scene was empty (`""`) and hasn't been written in; it stays `""`.
     pub empty_source: bool,
 }
@@ -629,8 +632,9 @@ impl RichDoc {
         if doc.lines.is_empty() {
             return None;
         }
-        for newline_blocks in [false, true] {
+        for (newline_blocks, no_final_newline) in [(false, false), (true, false), (true, true)] {
             doc.newline_blocks = newline_blocks;
+            doc.no_final_newline = no_final_newline;
             if doc.to_html() == html {
                 return Some(doc);
             }
@@ -654,7 +658,11 @@ impl RichDoc {
 
     /// The document as ProseCraft's HTML.
     pub fn to_html(&self) -> String {
-        self.write_html(&mut Vec::new())
+        let html = self.write_html(&mut Vec::new());
+        match html.strip_suffix('\n') {
+            Some(kept) if self.newline_blocks && self.no_final_newline => kept.to_owned(),
+            _ => html,
+        }
     }
 
     /// The document as ProseCraft's HTML, and where in it each character was written (byte
@@ -1359,6 +1367,7 @@ impl RichDoc {
                 return RichDoc {
                     lines: vec![LineKind::Paragraph],
                     newline_blocks: self.newline_blocks,
+                    no_final_newline: self.no_final_newline,
                     ..RichDoc::default()
                 };
             }
@@ -1383,6 +1392,7 @@ impl RichDoc {
                     .cloned()
                     .collect(),
                 newline_blocks: self.newline_blocks,
+                no_final_newline: self.no_final_newline,
                 empty_source: false,
             }
         };
@@ -2128,5 +2138,22 @@ mod link_tests {
             doc.to_html(),
             r#"<p><a href="https://example.com/">example.com</a>See the map now</p>"#
         );
+    }
+}
+
+#[cfg(test)]
+mod final_newline_tests {
+    use super::RichDoc;
+
+    #[test]
+    fn blocks_joined_by_newlines_without_a_final_one_round_trip() {
+        for html in [
+            "<h2>A</h2>\n<p>b</p>",
+            "<p>b</p>\n<hr>\n<p>c</p>",
+            "<h2>A</h2>\n<p>b</p>\n",
+        ] {
+            let doc = RichDoc::from_html(html).expect("held");
+            assert_eq!(doc.to_html(), html);
+        }
     }
 }

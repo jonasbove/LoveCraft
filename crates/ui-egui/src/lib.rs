@@ -922,6 +922,11 @@ impl ProseApp {
         let mut step = None;
         let mut removed = Vec::new();
         let result = editing::apply(&mut home.library, &project_id, now_ms, |data| {
+            // `migrateProjectToWiki`, kept with this first change as ProseCraft keeps it with its
+            // next save (the views show it from loading on); not part of the undo step.
+            if let Some(migrated) = prosecraft_core::wiki_migration::migrate_project_to_wiki(data) {
+                *data = migrated;
+            }
             let before = undo_state(data);
             change(data, &mut new_id)?;
             let after = undo_state(data);

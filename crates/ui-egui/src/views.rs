@@ -623,11 +623,19 @@ fn body_format(palette: &Palette) -> egui::TextFormat {
     }
 }
 
+/// The base direction of every paragraph of scene text. ProseCraft's editor sets no `dir`, so a
+/// browser gives each paragraph the page's left-to-right base direction and aligns it to the
+/// left: Arabic or Hebrew words are ordered right-to-left within the line, and a line mixing
+/// them with left-to-right words orders its runs left to right (UAX #9 with paragraph level 0).
+pub(crate) const SCENE_DIRECTION: egui::epaint::text::TextDirection =
+    egui::epaint::text::TextDirection::LeftToRight;
+
 /// The manuscript text, read-only: serif, ProseCraft's 1.85 line spacing, a gap between paragraphs.
 fn manuscript(ui: &mut Ui, palette: &Palette, text: &str) {
     for paragraph in text.split("\n\n") {
         let mut job = egui::text::LayoutJob::default();
         job.wrap.max_width = ui.available_width();
+        job.direction = SCENE_DIRECTION;
         job.append(paragraph, 0.0, body_format(palette));
         ui.label(job);
         ui.add_space(8.0);
@@ -2133,6 +2141,7 @@ pub(crate) fn layout_doc(
 ) -> egui::text::LayoutJob {
     let mut job = egui::text::LayoutJob::default();
     job.wrap.max_width = wrap;
+    job.direction = SCENE_DIRECTION;
     let mut line = 0;
     let mut atom = 0;
     let mut previous = None;
@@ -3862,7 +3871,65 @@ fn timeline(ui: &mut Ui, palette: &Palette, project: &Project, edit: &mut Edit<'
 
 #[cfg(test)]
 mod tests {
-    use super::grouped;
+    use super::{Look, doc_galley, grouped};
+    use crate::theme::Palette;
+    use egui::text::CCursor;
+    use prosecraft_core::richtext::RichDoc;
+
+    const HEBREW: &str = "הגאות עלתה על הבוץ בזמן שהפנסים נדלקו לאורך חומת הנמל, אחד אחד, \
+        עד שכל העיר הוארה והסירות שכבו בשקט.";
+
+    #[test]
+    fn right_to_left_paragraphs_are_set_as_prosecraft_shows_them() {
+        // ProseCraft sets no `dir`: every paragraph is left-to-right at its base and set on the
+        // left, its Arabic or Hebrew words still ordered right-to-left.
+        let html = format!("<p>{HEBREW} {HEBREW}</p><p>שלום abc def אבג</p><p>Plain words.</p>");
+        let doc = RichDoc::from_html(&html).expect("doc");
+        let ctx = egui::Context::default();
+        crate::setup_for_tests(&ctx);
+        ctx.begin_pass(egui::RawInput::default());
+        let galley = ctx.fonts_mut(|f| {
+            doc_galley(
+                f,
+                (&doc, &doc.text),
+                &Palette::LIGHT,
+                400.0,
+                &[],
+                &Look::default(),
+            )
+        });
+        ctx.end_pass().textures_delta.clear();
+        assert!(galley.rows.len() >= 4);
+        for row in &galley.rows {
+            assert!(!row.rtl_paragraph);
+            assert!(row.rect().left().abs() < 0.5, "{:?}", row.rect());
+        }
+        // Within a row of Hebrew, the first letter is on the right.
+        let first = &galley.rows[0];
+        let x = |i: usize| first.glyphs[i].pos.x;
+        assert!(x(0) > x(4), "{} {}", x(0), x(4));
+        // A mixed line orders its runs left to right: "שלום" first, "abc def", then "אבג".
+        let mixed = galley
+            .rows
+            .iter()
+            .find(|r| r.glyphs.first().is_some_and(|g| g.chr == 'ש') && r.glyphs.len() < 20)
+            .expect("the mixed line");
+        let at = |c: char| {
+            mixed
+                .glyphs
+                .iter()
+                .find(|g| g.chr == c)
+                .map_or(f32::NAN, |g| g.pos.x)
+        };
+        assert!(at('ש') < at('a') && at('a') < at('f') && at('f') < at('א'));
+        // Every caret position maps back from where it is drawn.
+        let count = doc.text.chars().count();
+        for i in 0..=count {
+            let rect = galley.pos_from_cursor(CCursor::new(i));
+            let back = galley.cursor_from_pos(rect.center().to_vec2()).index.0;
+            assert!(back <= count);
+        }
+    }
 
     #[test]
     fn groups_thousands() {

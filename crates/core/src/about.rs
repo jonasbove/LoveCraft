@@ -30,6 +30,160 @@ pub fn name_and_version() -> String {
     format!("{APP_NAME} {VERSION}")
 }
 
+/// The licence the original and this rewrite are under (`APP_LICENSE`).
+pub const LICENSE: &str = "MIT";
+
+/// `summarizeUserAgent`: the operating system and the browser engine a user agent names, and
+/// nothing else of it.
+pub fn summarize_user_agent(user_agent: &str) -> String {
+    let lower = user_agent.to_lowercase();
+    let os = if ["windows nt", "win32", "win64"]
+        .iter()
+        .any(|k| lower.contains(k))
+    {
+        "Windows"
+    } else if lower.contains("macintosh") || lower.contains("mac os") {
+        "macOS"
+    } else if lower.contains("linux") || lower.contains("x11") {
+        "Linux"
+    } else {
+        "unknown"
+    };
+    // The digits after `token` (`/(\d+)/`).
+    let version = |text: &str, token: &str| {
+        let at = text.find(token)? + token.len();
+        let digits: String = text[at..]
+            .chars()
+            .take_while(char::is_ascii_digit)
+            .collect();
+        (!digits.is_empty()).then_some(digits)
+    };
+    // `/Edg[\s\/]/i`.
+    let edge = lower.match_indices("edg").any(|(at, _)| {
+        lower[at + 3..]
+            .chars()
+            .next()
+            .is_some_and(|c| c == '/' || c.is_whitespace())
+    }) || lower.contains("edgios");
+    let engine = if edge {
+        match version(&lower, "edg/") {
+            Some(v) => format!("WebView2 (Chromium {v})"),
+            None => "WebView2 (Chromium)".to_owned(),
+        }
+    } else if lower.contains("trident") || lower.contains("msie") {
+        "Trident".to_owned()
+    } else if let Some(v) = version(user_agent, "Chrome/") {
+        format!("Chromium {v}")
+    } else if lower.contains("webkit") {
+        if os == "Linux" { "WebKitGTK" } else { "WebKit" }.to_owned()
+    } else if lower.contains("blink") {
+        "Blink".to_owned()
+    } else {
+        "unknown".to_owned()
+    };
+    format!("{os}, {engine}")
+}
+
+/// What the diagnostics report says (`DiagnosticsInput`): the setup and counts, never titles or
+/// text.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Diagnostics {
+    pub version: String,
+    /// The operating system and engine (from [`summarize_user_agent`] on the web).
+    pub os: String,
+    pub storage_backend: String,
+    pub online: Option<bool>,
+    pub projects: usize,
+    pub chapters: usize,
+    pub scenes: usize,
+    pub wiki_pages: usize,
+    pub words: usize,
+    pub comments: usize,
+    pub snapshots: usize,
+    pub features: Vec<(String, bool)>,
+}
+
+/// `buildDiagnosticsReport`, at `date` (an ISO 8601 time).
+pub fn diagnostics_report(input: &Diagnostics, date: &str) -> String {
+    let mut lines = vec![
+        format!("app: {APP_NAME} {}", input.version),
+        format!("date: {date}"),
+        format!("os: {}", input.os),
+        format!("storage backend: {}", input.storage_backend),
+        format!(
+            "online: {}",
+            input.online.map_or("unknown".to_owned(), |o| o.to_string())
+        ),
+        format!("projects: {}", input.projects),
+        format!("chapters: {}", input.chapters),
+        format!("scenes: {}", input.scenes),
+        format!("wiki pages: {}", input.wiki_pages),
+        format!("words: {}", input.words),
+        format!("comments: {}", input.comments),
+        format!("snapshots: {}", input.snapshots),
+    ];
+    for (name, on) in &input.features {
+        lines.push(format!("{name}: {}", if *on { "on" } else { "off" }));
+    }
+    lines.join("\n")
+}
+
+#[cfg(test)]
+mod diagnostics_tests {
+    use super::{Diagnostics, diagnostics_report, summarize_user_agent};
+
+    #[test]
+    fn user_agents_are_summarized_as_prosecraft_does() {
+        let linux_webkit = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15";
+        assert_eq!(summarize_user_agent(linux_webkit), "Linux, WebKitGTK");
+        let edge = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0";
+        assert_eq!(
+            summarize_user_agent(edge),
+            "Windows, WebView2 (Chromium 126)"
+        );
+        let mac = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Safari/605.1.16";
+        assert_eq!(summarize_user_agent(mac), "macOS, WebKit");
+        assert_eq!(
+            summarize_user_agent("Some random user agent string"),
+            "unknown, unknown"
+        );
+        let chrome = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
+        assert_eq!(summarize_user_agent(chrome), "Linux, Chromium 126");
+        assert_eq!(
+            summarize_user_agent("/home/alice/secret data here"),
+            "unknown, unknown"
+        );
+    }
+
+    #[test]
+    fn the_report_lists_the_setup_and_counts_only() {
+        let input = Diagnostics {
+            version: "0.4.6".into(),
+            os: "Linux, egui".into(),
+            storage_backend: "IndexedDB".into(),
+            online: Some(false),
+            projects: 5,
+            chapters: 10,
+            scenes: 20,
+            wiki_pages: 3,
+            words: 15000,
+            comments: 50,
+            snapshots: 2,
+            features: vec![("darkMode".into(), true), ("autosave".into(), false)],
+        };
+        let report = diagnostics_report(&input, "2026-01-02T03:04:05.000Z");
+        assert_eq!(
+            report,
+            "app: prosecraft-rs 0.4.6\ndate: 2026-01-02T03:04:05.000Z\nos: Linux, egui\nstorage backend: IndexedDB\nonline: false\nprojects: 5\nchapters: 10\nscenes: 20\nwiki pages: 3\nwords: 15000\ncomments: 50\nsnapshots: 2\ndarkMode: on\nautosave: off"
+        );
+        let unknown = Diagnostics {
+            online: None,
+            ..input
+        };
+        assert!(diagnostics_report(&unknown, "d").contains("online: unknown"));
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{UPSTREAM_BASELINE, credit_line, name_and_version};

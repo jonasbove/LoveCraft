@@ -392,10 +392,17 @@ pub(crate) enum Category {
     Writing,
     Proofreading,
     Data,
+    About,
 }
 
 impl Category {
-    const ALL: [Self; 4] = [Self::General, Self::Writing, Self::Proofreading, Self::Data];
+    const ALL: [Self; 5] = [
+        Self::General,
+        Self::Writing,
+        Self::Proofreading,
+        Self::Data,
+        Self::About,
+    ];
 
     fn label(self) -> &'static str {
         match self {
@@ -403,6 +410,7 @@ impl Category {
             Self::Writing => "Writing",
             Self::Proofreading => "Proofreading",
             Self::Data => "Data and sync",
+            Self::About => "About",
         }
     }
 }
@@ -825,6 +833,27 @@ pub(crate) fn show(ui: &mut Ui, state: &mut AppState) {
                         Category::General => general(ui, state),
                         Category::Writing => writing(ui, state),
                         Category::Proofreading => proofreading(ui, state),
+                        Category::About => {
+                            ui.label(
+                                RichText::new("About")
+                                    .strong()
+                                    .color(state.palette.text_heading),
+                            );
+                            ui.add_space(6.0);
+                            let about = format!(
+                                "About {} · version {}",
+                                prosecraft_core::about::APP_NAME,
+                                prosecraft_core::about::VERSION
+                            );
+                            if ui.button(about).clicked() {
+                                state.about_wanted = true;
+                            }
+                            // `showShortcutsFromSettings`.
+                            if ui.button("Keyboard shortcuts").clicked() {
+                                state.shortcuts = Some(cfg!(target_os = "macos"));
+                                state.settings_open = false;
+                            }
+                        }
                         Category::Data => {
                             egui::ScrollArea::vertical()
                                 .id_salt("settings-data")

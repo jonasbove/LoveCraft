@@ -126,6 +126,18 @@ fn footer(ui: &mut Ui, state: &mut AppState) {
         if state.has_home && ui.button("Settings…").clicked() {
             state.settings_open = true;
         }
+        // ProseCraft's version button, beside the sidebar's status.
+        let version = ui
+            .small_button(format!("v{}", prosecraft_core::about::VERSION))
+            .on_hover_text("About");
+        crate::views::name_field(
+            ui,
+            &version,
+            &format!("About {}", prosecraft_core::about::APP_NAME),
+        );
+        if version.clicked() {
+            state.about_wanted = true;
+        }
     });
 }
 

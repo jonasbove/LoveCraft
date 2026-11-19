@@ -2178,6 +2178,28 @@ pub(crate) fn atom_sizes(
 
 const ATOM_FONT: f32 = 12.0;
 
+/// The atom character's glyph, the same in every build: an invisible box half an em wide. No
+/// installed font has U+FFFC, so egui asks its fallbacks, and on the web eframe's asks the
+/// browser, which draws nothing for it and measures it as nothing; the character then had no
+/// width to scale (see [`atom_sizes`]), and a citation's label lay over the text after it.
+pub(crate) fn atom_glyph() -> egui::GlyphRasterizer {
+    egui::GlyphRasterizer::new("prosecraft::atom_glyph", |request| {
+        let mut chars = request.cluster.chars();
+        if chars.next() != Some(ATOM) || chars.next().is_some() {
+            return None;
+        }
+        Some(egui::RasterizedGlyph {
+            bitmap: egui::GlyphBitmap {
+                image: egui::ColorImage::filled([1, 1], egui::Color32::TRANSPARENT),
+                offset_px: egui::Vec2::ZERO,
+                is_color: false,
+            },
+            advance_px: request.font_size_px * 0.5,
+        })
+    })
+    .with_priority(egui::FontPriority::Highest)
+}
+
 /// The text formats the editor lays the scene out with.
 /// How the editor's text looks beyond its formatting: the text size (`--editor-scale`), and
 /// which lines Fade other paragraphs dims.
@@ -4052,6 +4074,67 @@ mod tests {
 
     const HEBREW: &str = "הגאות עלתה על הבוץ בזמן שהפנסים נדלקו לאורך חומת הנמל, אחד אחד, \
         עד שכל העיר הוארה והסירות שכבו בשקט.";
+
+    #[test]
+    fn a_citation_label_has_its_room_where_the_browser_measures_the_atom_as_nothing() {
+        // eframe's web fallback asks the browser for glyphs no font has; Chromium draws
+        // nothing for U+FFFC and measures it as nothing. Here a fallback that does the same.
+        use super::{AtomLabel, glyph_rect};
+        let browser = egui::GlyphRasterizer::new("test::browser", |request| {
+            (request.cluster == "\u{FFFC}").then(|| egui::RasterizedGlyph {
+                bitmap: egui::GlyphBitmap {
+                    image: egui::ColorImage::filled([1, 1], egui::Color32::TRANSPARENT),
+                    offset_px: egui::Vec2::ZERO,
+                    is_color: false,
+                },
+                advance_px: 0.0,
+            })
+        });
+        let doc = RichDoc::from_html(
+            r#"<p>Then <span class="cite-ref" data-cites="[{&quot;id&quot;:&quot;smith2020&quot;}]">(Smith 2020)</span>.</p>"#,
+        )
+        .expect("doc");
+        let labels = [AtomLabel::Cite("(Smith, 2020)".into())];
+        let ctx = egui::Context::default();
+        crate::setup_for_tests(&ctx);
+        ctx.add_glyph_rasterizer(browser);
+        ctx.begin_pass(egui::RawInput::default());
+        let (galley, label) = ctx.fonts_mut(|f| {
+            let galley = doc_galley(
+                f,
+                (&doc, &doc.text),
+                &Palette::LIGHT,
+                600.0,
+                &labels,
+                &Look::default(),
+            );
+            let label = f
+                .layout_no_wrap(
+                    "(Smith, 2020)".into(),
+                    super::cite_font(),
+                    egui::Color32::WHITE,
+                )
+                .size()
+                .x;
+            (galley, label)
+        });
+        ctx.end_pass().textures_delta.clear();
+        let at = doc
+            .text
+            .chars()
+            .position(|c| c == super::ATOM)
+            .expect("the citation");
+        let cell = glyph_rect(&galley, at).expect("its cell");
+        let then = glyph_rect(&galley, at - 1).expect("the space before it");
+        let stop = glyph_rect(&galley, at + 1).expect("the full stop");
+        // As wide as its label and padding, after "Then " and before the full stop.
+        assert!(
+            cell.width() >= label + 11.0,
+            "{cell:?} for a label {label} wide"
+        );
+        assert!(then.max.x <= cell.min.x + 1.0, "{then:?} {cell:?}");
+        assert!(cell.max.x <= stop.min.x + 1.0, "{cell:?} {stop:?}");
+    }
 
     #[test]
     fn right_to_left_paragraphs_are_set_as_prosecraft_shows_them() {

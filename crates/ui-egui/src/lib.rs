@@ -600,6 +600,7 @@ impl egui::epaint::text::LineBreaker for RowBreaks {
 fn setup_with(ctx: &egui::Context, system_fonts: bool) {
     ctx.set_line_breaker(std::sync::Arc::new(RowBreaks));
     ctx.set_missing_glyph_policy(egui::MissingGlyphPolicy::Tofu);
+    ctx.add_glyph_rasterizer(views::atom_glyph());
     fonts::install(ctx, system_fonts);
     // Diagram labels are set in the interface's face (Inter, else egui's own).
     let faces: Vec<&[u8]> = ["Inter-Regular", "Inter-SemiBold"]

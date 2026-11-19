@@ -34,12 +34,26 @@ impl fmt::Display for OpenError {
     }
 }
 
+/// A stored project with its data migrated to the Wiki, when it needs it.
+fn migrated(mut stored: JsValue) -> JsValue {
+    let data = stored
+        .get("project")
+        .and_then(prosecraft_core::wiki_migration::migrate_project_to_wiki);
+    if let (Some(data), Some(object)) = (data, stored.as_object_mut()) {
+        object.insert("project", data);
+    }
+    stored
+}
+
 impl Library {
     /// Views of stored projects (for example the app's own library).
     pub fn from_stored(stored: Vec<JsValue>) -> Self {
         let mut projects: Vec<OpenProject> = stored
             .into_iter()
             .filter_map(|stored| {
+                // As ProseCraft loads it: the Wiki migration done in memory
+                // (`migrateProjectToWiki`); it is stored with the project's next change.
+                let stored = migrated(stored);
                 Project::from_stored(&stored).map(|view| OpenProject { stored, view })
             })
             .collect();

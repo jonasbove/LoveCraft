@@ -504,6 +504,33 @@ fn general(ui: &mut Ui, state: &mut AppState) {
     if chosen != current {
         state.theme_choice = Some(chosen);
     }
+    ui.add_space(8.0);
+    ui.label(
+        RichText::new("Color scheme")
+            .size(12.0)
+            .color(palette.text_secondary),
+    );
+    let current = crate::theme::SCHEMES
+        .iter()
+        .find(|(v, _)| *v == state.color_scheme)
+        .unwrap_or(&crate::theme::SCHEMES[0]);
+    let mut chosen = current.0;
+    let combo = craft_ui::ComboBox::from_id_salt("color-scheme-preference")
+        .selected_text(current.1)
+        .show_ui(ui, |ui| {
+            for (value, label) in crate::theme::SCHEMES {
+                ui.selectable_value(&mut chosen, value, label);
+            }
+        });
+    let label = current.1;
+    ui.ctx()
+        .accesskit_node_builder(combo.response.id, move |node| {
+            node.set_label("Color scheme");
+            node.set_value(label);
+        });
+    if chosen != current.0 {
+        state.scheme_choice = Some(chosen.to_owned());
+    }
 }
 
 /// The Settings dialog, while open: ProseCraft's categories on the left, the chosen one's

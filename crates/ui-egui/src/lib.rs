@@ -403,6 +403,9 @@ pub struct AppState {
     /// The Theme preference, and one chosen in Settings this frame.
     theme: settings::ThemePreference,
     theme_choice: Option<settings::ThemePreference>,
+    /// The Color scheme preference (`prosecraft-color-scheme`), and a new choice to save.
+    color_scheme: String,
+    scheme_choice: Option<String>,
     /// The Settings dialog's Device sync group.
     sync: settings::SyncPanel,
     /// What the Device sync group asked for this frame.
@@ -2510,16 +2513,7 @@ impl ProseApp {
                 self.state.status = Some(format!("Could not save the setting: {error}"));
             }
         }
-        if let Some(theme) = self.state.theme_choice.take() {
-            self.state.theme = theme;
-            if let Some(home) = self.home.as_mut()
-                && let Err(error) = home
-                    .store
-                    .save_setting(settings::THEME_KEY, Some(theme.id()))
-            {
-                self.state.status = Some(format!("Could not save the theme: {error}"));
-            }
-        }
+        self.save_appearance();
         if self.poll_sync() | self.poll_markdown_import() {
             ui.ctx()
                 .request_repaint_after(std::time::Duration::from_millis(100));
@@ -2542,6 +2536,30 @@ impl ProseApp {
         }
     }
 
+    /// A new Theme or Color scheme choice, applied and saved on this device.
+    fn save_appearance(&mut self) {
+        if let Some(scheme) = self.state.scheme_choice.take() {
+            self.state.color_scheme = scheme;
+            if let Some(home) = self.home.as_mut()
+                && let Err(error) = home
+                    .store
+                    .save_setting(theme::SCHEME_KEY, Some(&self.state.color_scheme))
+            {
+                self.state.status = Some(format!("Could not save the color scheme: {error}"));
+            }
+        }
+        if let Some(theme) = self.state.theme_choice.take() {
+            self.state.theme = theme;
+            if let Some(home) = self.home.as_mut()
+                && let Err(error) = home
+                    .store
+                    .save_setting(settings::THEME_KEY, Some(theme.id()))
+            {
+                self.state.status = Some(format!("Could not save the theme: {error}"));
+            }
+        }
+    }
+
     /// The palette for the Theme preference: Follow system uses the system's light or dark
     /// theme (dark when the system doesn't say, as ProseCraft opens).
     fn apply_theme(&mut self, ctx: &egui::Context) {
@@ -2552,11 +2570,7 @@ impl ProseApp {
                 ctx.input(|i| i.raw.system_theme) == Some(egui::Theme::Light)
             }
         };
-        let palette = if light {
-            theme::Palette::LIGHT
-        } else {
-            theme::Palette::DARK
-        };
+        let palette = theme::Palette::for_scheme(&self.state.color_scheme, !light);
         // Compared with the style egui holds, so a style set elsewhere is put right too.
         if palette != self.state.palette || ctx.global_style().visuals != palette.visuals() {
             palette.apply(ctx);

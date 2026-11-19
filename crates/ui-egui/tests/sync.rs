@@ -338,6 +338,24 @@ fn the_theme_is_chosen_in_settings_and_remembered() {
         dark_bg,
         "the light palette is in use"
     );
+    // A colour scheme: Nord's light base, remembered under ProseCraft's key.
+    harness
+        .get_by_role_and_label(Role::ComboBox, "Color scheme")
+        .click_accesskit();
+    harness.run();
+    harness.get_by_role_and_label(Role::Button, "Nord").click();
+    harness.run();
+    assert_eq!(
+        settings.0.lock().expect("settings").last().cloned(),
+        Some((
+            "prosecraft-color-scheme".to_owned(),
+            Some("nord".to_owned())
+        ))
+    );
+    assert_eq!(
+        harness.ctx.global_style().visuals.panel_fill,
+        egui::Color32::from_rgb(0xec, 0xef, 0xf4)
+    );
     // A new app on this device opens in the remembered theme.
     let again = ProseApp::with_library(
         ProjectLibrary::new("d".into()),
@@ -351,7 +369,11 @@ fn the_theme_is_chosen_in_settings_and_remembered() {
         .build_ui_state(|ui, app: &mut ProseApp| app.show(ui), again);
     prosecraft_ui_egui::setup_for_tests(&harness.ctx);
     harness.run();
-    assert_ne!(harness.ctx.global_style().visuals.panel_fill, dark_bg);
+    assert_eq!(
+        harness.ctx.global_style().visuals.panel_fill,
+        egui::Color32::from_rgb(0xec, 0xef, 0xf4),
+        "the remembered theme and scheme"
+    );
 }
 
 /// Opens Settings, chooses the open folder (which asks for no passphrase) and syncs.

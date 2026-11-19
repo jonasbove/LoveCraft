@@ -6,7 +6,8 @@
 //! default. These listeners capture the same events first: a paste's HTML is kept for the app
 //! to read when it handles egui's paste of the text (it consumes that paste, so the two never
 //! both apply); a copy's or cut's `DataTransfer` is kept while eframe runs the app inside the
-//! event, and the app's clipboard writer fills it there.
+//! event, and the app's clipboard writer fills it there. A copy from the app's Edit menu
+//! isn't a browser event: its text goes through egui, as before.
 
 use std::cell::RefCell;
 use std::sync::Arc;
@@ -37,11 +38,13 @@ fn capture(
     Ok(())
 }
 
-/// Listens on the page and gives the app its clipboard readers and writer. Called before
-/// eframe starts, so these listeners come first; if it fails, paste and copy are plain text.
-pub fn install(app: &mut ProseApp) -> Result<(), JsValue> {
-    let document = web_sys::window()
-        .and_then(|w| w.document())
+/// Listens on the page and gives the app its clipboard readers and writer. Called while
+/// eframe creates the app, before it listens itself; if it fails, paste and copy are plain
+/// text.
+pub fn install(app: &mut ProseApp, ctx: &eframe::egui::Context) -> Result<(), JsValue> {
+    let window = web_sys::window().ok_or_else(|| JsValue::from_str("no window"))?;
+    let document = window
+        .document()
         .ok_or_else(|| JsValue::from_str("no document"))?;
     let slot = HtmlSlot::default();
     let pasted = slot.clone();
@@ -53,18 +56,24 @@ pub fn install(app: &mut ProseApp) -> Result<(), JsValue> {
         );
     })?;
     for event in ["copy", "cut"] {
-        capture(&document, event, |event| {
+        let window = window.clone();
+        capture(&document, event, move |event| {
             TRANSFER.with(|t| *t.borrow_mut() = event.clipboard_data());
+            // Gone once the event is over (a copy outside the editor leaves it unused).
+            let clear = Closure::once_into_js(|| TRANSFER.with(|t| *t.borrow_mut() = None));
+            let _ = window.set_timeout_with_callback(clear.unchecked_ref());
         })?;
     }
     app.set_clipboard_html(Arc::new(move || slot.get()));
-    app.set_clipboard_writer(Arc::new(|html: &str, text: &str| {
-        TRANSFER.with(|t| {
-            if let Some(data) = t.borrow_mut().take() {
+    let ctx = ctx.clone();
+    app.set_clipboard_writer(Arc::new(move |html: &str, text: &str| {
+        match TRANSFER.with(|t| t.borrow_mut().take()) {
+            Some(data) => {
                 let _ = data.set_data("text/html", html);
                 let _ = data.set_data("text/plain", text);
             }
-        });
+            None => ctx.copy_text(text.to_owned()),
+        }
     }));
     Ok(())
 }

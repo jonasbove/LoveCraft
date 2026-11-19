@@ -1188,12 +1188,26 @@ fn clipboard_holds(text: &str, html: &str) -> bool {
         .chars()
         .filter(|c| *c == prosecraft_core::richtext::ATOM)
         .count();
-    atoms > 0
+    is_atom_text(text)
+        && words_of(&plain).is_empty()
+        && prosecraft_core::richtext::RichDoc::paste_atom_count(html) == atoms
+}
+
+/// A text standing for atoms alone (see [`clipboard_text`]).
+fn is_atom_text(text: &str) -> bool {
+    text.contains(prosecraft_core::richtext::ATOM)
         && text
             .chars()
             .all(|c| c == prosecraft_core::richtext::ATOM || c.is_whitespace())
-        && words_of(&plain).is_empty()
-        && prosecraft_core::richtext::RichDoc::paste_atom_count(html) == atoms
+}
+
+/// Outside the rich editor a copy of atoms alone pastes nothing, as its empty plain text does
+/// in ProseCraft; an object character in Markdown would leave the scene read-only.
+fn drop_atom_paste(ui: &Ui) {
+    ui.input_mut(|i| {
+        i.events
+            .retain(|e| !matches!(e, egui::Event::Paste(text) if is_atom_text(text)))
+    });
 }
 
 /// The words of a text, without spaces and punctuation: a pasted text and the clipboard's
@@ -3089,6 +3103,7 @@ fn markdown_editor(
     let Some(draft) = edit.draft.as_mut() else {
         return;
     };
+    drop_atom_paste(ui);
     if let Some(chapter) = &chapter {
         chapter_title(
             ui,
@@ -3911,7 +3926,10 @@ mod tests {
 
     #[test]
     fn atoms_alone_copy_as_object_characters_and_paste_back() {
-        use super::{clipboard_holds, clipboard_text};
+        use super::{clipboard_holds, clipboard_text, is_atom_text};
+        assert!(is_atom_text("\u{FFFC}\u{FFFC}\n"));
+        assert!(!is_atom_text("\u{FFFC} and words"));
+        assert!(!is_atom_text(" "));
         let note = r#"<p><sup class="footnote-ref" data-footnote-id="fn-abc123" contenteditable="false"></sup></p>"#;
         assert_eq!(clipboard_text("", 1), "\u{FFFC}");
         assert_eq!(clipboard_text("\n", 2), "\u{FFFC}\u{FFFC}");

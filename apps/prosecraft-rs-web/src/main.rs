@@ -207,15 +207,16 @@ mod web {
             else {
                 return;
             };
-            let mut app = start_app().await;
-            // Without it, paste and copy in the editor are plain text.
-            let _ = crate::clipboard::install(&mut app);
+            let app = start_app().await;
             let _ = eframe::WebRunner::new()
                 .start(
                     canvas,
                     eframe::WebOptions::default(),
                     Box::new(|cc| {
                         prosecraft_ui_egui::setup(&cc.egui_ctx);
+                        let mut app = app;
+                        // Without it, paste and copy in the editor are plain text.
+                        let _ = crate::clipboard::install(&mut app, &cc.egui_ctx);
                         Ok(Box::new(WebApp {
                             app,
                             inbox: Default::default(),

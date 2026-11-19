@@ -167,7 +167,7 @@ fn unusual_scenes_open_for_editing_as_prosecraft_keeps_them() {
             own.push(name);
         }
     }
-    assert_eq!(exact.len(), 11, "{exact:?}");
+    assert_eq!(exact.len(), 13, "{exact:?}");
     assert_eq!(as_saved, ["a fourth-level heading"]);
     assert_eq!(
         own,
@@ -177,10 +177,7 @@ fn unusual_scenes_open_for_editing_as_prosecraft_keeps_them() {
             "a stray end tag after a list"
         ]
     );
-    assert_eq!(
-        read_only,
-        ["an eyebrow screenplay element", "a line separator"]
-    );
+    assert!(read_only.is_empty(), "{read_only:?}");
 }
 
 /// Every scene HTML in the fixtures (`content` and the sanitizer's `full` output), once each.
@@ -237,15 +234,7 @@ fn the_fixture_scenes_open_for_editing() {
         read_only.len(),
         scenes.len()
     );
-    // What stays read-only: a screenplay element that is an eyebrow too, and a literal line
-    // separator (the editor's own soft line break).
-    assert_eq!(
-        read_only,
-        [
-            r#"<p data-sp="scene-heading">INT. ROOM</p><p>x</p><p class="eyebrow" data-sp="dialogue">y</p>"#,
-            "<p>Unicode: café 🌊 \u{2028} tab\tend</p>",
-        ],
-    );
+    assert!(read_only.is_empty(), "{read_only:?}");
     assert_eq!(normalized, 6);
 }
 

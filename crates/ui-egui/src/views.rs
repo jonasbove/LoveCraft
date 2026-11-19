@@ -2316,6 +2316,14 @@ pub(crate) fn layout_doc(
                 laid_out = PICTURE_CHAR;
                 format.extra_letter_spacing = laid.spacing;
             }
+            // A line separator in the text itself: it ends the row, as in ProseCraft.
+            if let Some(own @ (prosecraft_core::richtext::SOFT_BREAK | HARD_BREAK)) = doc
+                .atoms
+                .get(atom)
+                .and_then(|html| prosecraft_core::richtext::text_atom(html))
+            {
+                laid_out = own;
+            }
             let size = if laid.font > 0.0 {
                 laid.font
             } else {
@@ -2329,8 +2337,8 @@ pub(crate) fn layout_doc(
             atom += 1;
         }
         if matches!(
-            c,
-            prosecraft_core::richtext::SOFT_BREAK | prosecraft_core::richtext::HARD_BREAK
+            laid_out,
+            prosecraft_core::richtext::SOFT_BREAK | HARD_BREAK
         ) {
             // A line break: it ends the row (see `RowBreaks`) and shows nothing.
             format.color = egui::Color32::TRANSPARENT;

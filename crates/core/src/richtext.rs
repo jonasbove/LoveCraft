@@ -21,6 +21,21 @@ pub const SOFT_BREAK: char = '\u{2028}';
 /// the row; unlike it, it isn't text (it adds nothing to the block's `textContent`).
 pub const HARD_BREAK: char = '\u{2029}';
 
+/// The characters the editor gives its own meaning (and `\r`, which it doesn't hold as text).
+/// One of them in a scene's text is held as an atom whose HTML is that character, so it is
+/// written back as it was.
+const OWN_CHARS: [char; 4] = [ATOM, SOFT_BREAK, HARD_BREAK, '\r'];
+
+/// The character a text atom stands for: one of the editor's own characters found in a scene's
+/// text (a line separator, say), which is text there, not the editor's break.
+pub fn text_atom(html: &str) -> Option<char> {
+    let mut chars = html.chars();
+    match (chars.next(), chars.next()) {
+        (Some(c), None) if OWN_CHARS.contains(&c) => Some(c),
+        _ => None,
+    }
+}
+
 /// What a line (block) is.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LineKind {
@@ -48,9 +63,12 @@ pub enum LineKind {
     Block,
     /// A screenplay element: `<p data-sp="…">`. `bare` is an empty one written without the
     /// editor's `<br>` (as a new screenplay scene starts: `<p data-sp="scene-heading"></p>`).
+    /// `eyebrow` is one that is a caption too, `<p class="eyebrow" data-sp="…">` (a caption
+    /// given an element type in ProseCraft's screenplay editor keeps its class).
     Screenplay {
         kind: ScreenplayKind,
         bare: bool,
+        eyebrow: bool,
     },
     /// `<p></p>`: an empty paragraph written without the editor's `<br>` (as an import writes
     /// one). Typed into, it is a [`Self::Paragraph`].
@@ -552,10 +570,12 @@ impl Reader {
             match node {
                 Node::Text(text) => {
                     for c in text.chars() {
-                        let c = if c == '\n' { SOFT_BREAK } else { c };
-                        if c == ATOM || c == HARD_BREAK || c == '\r' {
-                            return None;
+                        if OWN_CHARS.contains(&c) {
+                            self.doc.atoms.push(c.to_string());
+                            self.push_char(ATOM, stack);
+                            continue;
                         }
+                        let c = if c == '\n' { SOFT_BREAK } else { c };
                         self.push_char(c, stack);
                     }
                 }
@@ -586,18 +606,30 @@ impl Reader {
         Some(())
     }
 
-    /// A `<p data-sp>` paragraph: a screenplay element (empty without a `<br>` too).
+    /// A `<p data-sp>` paragraph: a screenplay element (empty without a `<br>` too), a caption
+    /// too when its class is `eyebrow` (written first, as ProseCraft's sanitizer writes it).
     fn screenplay(&mut self, element: &Element) -> Option<()> {
-        let [(name, value)] = element.attrs.as_slice() else {
-            return None;
+        let (eyebrow, value) = match element.attrs.as_slice() {
+            [(name, value)] if name == "data-sp" => (false, value),
+            [(class, eyebrow), (name, value)]
+                if class == "class" && eyebrow == "eyebrow" && name == "data-sp" =>
+            {
+                (true, value)
+            }
+            _ => return None,
         };
-        let kind = (name == "data-sp")
-            .then(|| ScreenplayKind::from_name(value))
-            .flatten()?;
+        let kind = ScreenplayKind::from_name(value)?;
         let bare = element.children.is_empty();
         let mut plain = element.clone();
         plain.attrs.clear();
-        self.block(&plain, LineKind::Screenplay { kind, bare })
+        self.block(
+            &plain,
+            LineKind::Screenplay {
+                kind,
+                bare,
+                eyebrow,
+            },
+        )
     }
 
     /// A list (`ul` or `ol`) at the end of `path`: its items, and the lists inside them.
@@ -1138,9 +1170,14 @@ impl Writer<'_> {
                 self.out.push_str(r#"<p class="eyebrow">"#);
                 empty
             }
-            LineKind::Screenplay { kind, bare } => {
+            LineKind::Screenplay {
+                kind,
+                bare,
+                eyebrow,
+            } => {
+                let class = if eyebrow { r#" class="eyebrow""# } else { "" };
                 self.out
-                    .push_str(&format!(r#"<p data-sp="{}">"#, kind.as_str()));
+                    .push_str(&format!(r#"<p{class} data-sp="{}">"#, kind.as_str()));
                 empty && !bare
             }
             LineKind::EmptyParagraph => {
@@ -1274,6 +1311,9 @@ impl RichDoc {
                     let html = self.atoms.get(atom).map(String::as_str).unwrap_or_default();
                     if is_block_atom(html) {
                         text.extend(crate::comments::comment_text(html));
+                    } else if let Some(c) = text_atom(html) {
+                        let mut buf = [0u16; 2];
+                        text.extend_from_slice(c.encode_utf16(&mut buf));
                     }
                     atom += 1;
                 }
@@ -1302,6 +1342,7 @@ impl RichDoc {
         let mut text = Vec::new();
         let mut at = Vec::new();
         let mut written = 0;
+        let mut atom = 0;
         let newlines = |text: &mut Vec<char>, at: &mut Vec<Option<usize>>, html: &str| {
             for _ in 0..structural_newlines(html) {
                 text.push('\n');
@@ -1310,6 +1351,12 @@ impl RichDoc {
         };
         for (i, c) in chars.iter().enumerate() {
             let span = spans.get(i).cloned().unwrap_or(0..0);
+            let own = (*c == ATOM)
+                .then(|| text_atom(self.atoms.get(atom).map(String::as_str).unwrap_or_default()))
+                .flatten();
+            if *c == ATOM {
+                atom += 1;
+            }
             if *c == '\n' || span.is_empty() {
                 continue;
             }
@@ -1324,6 +1371,11 @@ impl RichDoc {
                 .get(i)
                 .is_some_and(|tags| tags.iter().any(|t| t.name == "a" || t.name == "code"));
             match *c {
+                // A text atom's character is text in a text node.
+                ATOM if !skipped && own.is_some() => {
+                    text.extend(own);
+                    at.push(Some(i));
+                }
                 ATOM | HARD_BREAK => {}
                 _ if skipped => {}
                 SOFT_BREAK => {
@@ -1446,8 +1498,13 @@ impl RichDoc {
             | LineKind::EmptyParagraph
             | LineKind::Bare { quote: false } => LineKind::Paragraph,
             LineKind::Bare { quote: true } => LineKind::Quote,
-            // A new screenplay element is written as the editor writes it (with its `<br>`).
-            LineKind::Screenplay { kind, .. } => LineKind::Screenplay { kind, bare: false },
+            // A new screenplay element is written as the editor writes it (with its `<br>`, and
+            // without a caption's class, as ProseCraft's Enter makes a plain `<p data-sp>`).
+            LineKind::Screenplay { kind, .. } => LineKind::Screenplay {
+                kind,
+                bare: false,
+                eyebrow: false,
+            },
             other => other,
         };
         let breaks_added = inserted.iter().filter(|c| **c == '\n').count();
@@ -2156,6 +2213,62 @@ mod tests {
     }
 
     #[test]
+    fn a_caption_that_is_a_screenplay_element_is_both() {
+        let html = r#"<p data-sp="scene-heading">INT. ROOM</p><p class="eyebrow" data-sp="dialogue">y</p><p class="eyebrow" data-sp="action"></p>"#;
+        let mut doc = RichDoc::from_html(html).unwrap_or_else(|| panic!("not read: {html}"));
+        assert_eq!(doc.to_html(), html);
+        assert_eq!(
+            doc.lines[1],
+            LineKind::Screenplay {
+                kind: super::ScreenplayKind::Dialogue,
+                bare: false,
+                eyebrow: true,
+            }
+        );
+        // Typed into, it keeps both; Enter starts a plain element, as ProseCraft's does.
+        doc.apply_text_at("INT. ROOM\nyz\n\n", Some(13));
+        assert_eq!(
+            doc.to_html(),
+            r#"<p data-sp="scene-heading">INT. ROOM</p><p class="eyebrow" data-sp="dialogue">yz</p><p data-sp="dialogue"><br></p><p class="eyebrow" data-sp="action"></p>"#
+        );
+    }
+
+    #[test]
+    fn the_editors_own_characters_in_the_text_are_kept() {
+        // A line separator is the editor's newline in the text; one in the text itself is
+        // held as an atom of its own, and so are the others the editor gives a meaning.
+        let html = "<p>Unicode: caf\u{e9} \u{2028} tab\tend\nnext</p>";
+        let doc = RichDoc::from_html(html).unwrap_or_else(|| panic!("not read: {html}"));
+        assert_eq!(doc.to_html(), html);
+        assert_eq!(doc.text, format!("Unicode: caf\u{e9} {ATOM} tab\tend{}next", super::SOFT_BREAK));
+        assert_eq!(doc.atoms, ["\u{2028}"]);
+        assert_eq!(super::text_atom(&doc.atoms[0]), Some(super::SOFT_BREAK));
+        for html in [
+            "<p>a\u{2029}b<br>c</p>",
+            "<p>a\u{fffc}b<sup class=\"footnote-ref\" data-footnote-id=\"n\" contenteditable=\"false\"></sup></p>",
+            "<p>a\rb</p>",
+            "<ul><li><em>\u{2028}</em></li></ul>",
+        ] {
+            let doc = RichDoc::from_html(html).unwrap_or_else(|| panic!("not read: {html}"));
+            assert_eq!(doc.to_html(), html);
+            // It is text: in the comment text and in what proofreading checks.
+            assert_eq!(
+                doc.comment_map().text,
+                crate::comments::comment_text(html),
+                "{html}"
+            );
+        }
+        let doc = RichDoc::from_html("<p>a\u{2028}b</p>").unwrap_or_default();
+        let (text, at) = doc.proofread_map();
+        assert_eq!(text, ['a', '\u{2028}', 'b']);
+        assert_eq!(at, [Some(0), Some(1), Some(2)]);
+        // Typing beside it keeps it.
+        let mut doc = doc;
+        doc.apply_text_at(&format!("ax{ATOM}b"), Some(2));
+        assert_eq!(doc.to_html(), "<p>ax\u{2028}b</p>");
+    }
+
+    #[test]
     fn keeps_atoms_and_kinds() {
         let doc = RichDoc::from_html(
             r#"<h1>T</h1><p>x<span class="math-inline" data-tex="x^2"></span>y</p>"#,
@@ -2174,6 +2287,9 @@ mod tests {
         for html in [
             r#"<p data-sp="action" class="x">x</p>"#,
             r#"<p data-sp="unknown">x</p>"#,
+            // ProseCraft's sanitizer writes the class first.
+            r#"<p data-sp="action" class="eyebrow">x</p>"#,
+            r#"<p class="eyebrow big" data-sp="action">x</p>"#,
             "<div>x</div>",
             "<ul><li><pre>code</pre></li></ul>",
             "<ul><li><p>a</p><ul><li>b</li></ul></li></ul>",
@@ -2184,7 +2300,6 @@ mod tests {
             r#"<p class="eyebrow big">x</p>"#,
             "<p>a</p>\n<p>b</p><p>c</p>",
             r#"<p>a<br class="x">b</p>"#,
-            "<p>a\u{2029}b</p>",
         ] {
             assert!(RichDoc::from_html(html).is_none(), "{html}");
         }
@@ -2256,8 +2371,7 @@ mod tests {
                 .as_deref(),
             Some("<ul><li>a</li><li>b<ul><li>c</li></ul></li><li>d</li></ul>")
         );
-        // Refused: a character it would change, a block it can't hold.
-        assert_eq!(normalized("<p>a\u{2028}b</p>"), None);
+        // Refused: a block it can't hold.
         assert_eq!(normalized("<ul><li><pre>code</pre></li></ul>"), None);
         // Refused: a picture or a footnote marker the sanitizer would drop.
         assert_eq!(
@@ -2502,6 +2616,8 @@ mod tests {
             "<img src=\"data:image/png;base64,AA==\" alt=\"Map\">\n<img src=\"data:image/png;base64,AA==\" alt=\"\">Caption\n<p></p>\n<p></p>".to_owned(),
             "<em>a</em> b<p>x</p>Tail<blockquote>Quoted <b>bold</b><p>p</p></blockquote>".to_owned(),
             r#"<p>It was <em></em>.</p><p></p><div class="scene-break" contenteditable="false">* * *</div><p>Kept<a></a></p>"#.to_owned(),
+            // The editor's own characters in the text.
+            "<p>Unicode: caf\u{e9} \u{2028} tab\tend\nnext\u{2029}</p><p>\u{fffc}</p>".to_owned(),
         ];
         let mut seed: u64 = 0x2545_f491_4f6c_dd1d;
         let mut next = |n: usize| {

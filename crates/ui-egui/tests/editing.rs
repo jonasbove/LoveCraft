@@ -3048,12 +3048,14 @@ fn a_pane_edits_its_document_as_prosecrafts_tile_editor_does() {
 
 #[test]
 fn a_scene_pane_writes_its_chapter_back_and_leaves_text_it_cannot_hold_alone() {
-    // Mara's page with a line separator in its text, which the editor can't hold (it stands
-    // for a newline in the text there).
-    let bundle = fixture("bundle-plain.prosecraft").replace(
-        "<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>",
-        "<p>Notes about\u{2028}Mara</p>",
+    // Mara's page with its notes in quotes nested deeper than the editor holds.
+    let deep = format!(
+        "{}<p>Notes about Mara</p>{}",
+        "<blockquote>".repeat(40),
+        "</blockquote>".repeat(40)
     );
+    let bundle =
+        fixture("bundle-plain.prosecraft").replace("<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>", &deep);
     let memory = Memory::default();
     let mut app =
         ProseApp::with_library(ProjectLibrary::new("test".into()), Box::new(memory.clone()));
@@ -3131,7 +3133,7 @@ fn a_scene_pane_writes_its_chapter_back_and_leaves_text_it_cannot_hold_alone() {
     let mara = stored(&memory, "doc-2");
     assert!(
         mara.starts_with("<h2>Character profile</h2>")
-            && mara.ends_with("<p>Notes about\u{2028}Mara</p>"),
+            && mara.ends_with(&deep),
         "{mara}"
     );
 }

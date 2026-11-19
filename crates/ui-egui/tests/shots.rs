@@ -132,9 +132,16 @@ fn shots() {
     harness.run();
     let h = &mut harness;
 
-    // The hero: a scene in the Write view, with its comments.
+    // The hero: a scene in the Write view, with its comments. Every chapter starts open; the last
+    // two are folded so the binder has room for the Wiki's places as well as its characters (the
+    // fold lasts the session, so every later shot has it too).
     tab(h, "Write");
     open(h, "Fog on the Quay");
+    for chapter in ["The Ledger", "Lantern Night"] {
+        h.get_by_role_and_label(Role::Button, &format!("Scenes of {chapter}"))
+            .click();
+        h.run();
+    }
     tab(h, "Comments");
     save(h, &dir, "write");
 
@@ -155,7 +162,9 @@ fn shots() {
     tab(h, "Network");
     h.get_by_label("Hide progress sidebar").click();
     h.run();
-    // Re-layout steps the layout's seed: the third arrangement keeps every label clear.
+    // Re-layout steps the layout's seed and refits the view. In the first arrangement the
+    // Orchard's edge runs through its name and Tobiah Marsh's is cut short; the third keeps every
+    // name whole except Saltmarsh Quay's, which is too long for any of them.
     for _ in 0..2 {
         h.get_by_label("↺ Re-layout").click();
         h.run_steps(8);

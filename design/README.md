@@ -125,11 +125,13 @@ The window is a menu bar over three columns, managed by `craft_ui`'s pane host (
 - **Menu bar** (`app_menu.rs`): ProseCraft-rs, File, Edit, View, drawn by `craft-menu`; on macOS the native menu.
 - **Binder** (left pane, docked, 280 wide, `binder.rs`): the project picker, its settings gear, Trash and "+",
   the author; CHAPTERS with the label filter and the chapter and scene rows (each with its label dot and a "⋯"
-  menu, drag to reorder); WIKI with folders, pages, files and links; at the foot Open backup…, Export backup…,
+  menu, drag to reorder; every chapter starts open, and its chevron folds its scenes away for the session);
+  WIKI with folders, pages, files and links; at the foot Open backup…, Export backup…,
   Settings… and the version.
 - **Page** (centre, `views.rs`): the view switch (Outline, Write, Storyboard, Timeline when it is on, Network,
-  Publish) with Search, the Chapters and Progress pane toggles, Shortcuts and, in Write, Split; the status line
-  under it; then the view. Prose views keep to a centred column at most 720 wide (`COLUMN`).
+  Publish) with Search, the Chapters and Progress pane toggles, Shortcuts and, in Write, Split; under it the
+  status line while it has something to say (a note goes after eight seconds or with the next change of view
+  or selection, an error with that change; a read-only notice stays); then the view. Prose views keep to a centred column at most 720 wide (`COLUMN`).
 - **Sidebar** (right pane, docked, 300 wide, `sidebar.rs`): the tabs Progress (project goal, chapter goals,
   writing calendar), Comments, Snapshots and Footnotes.
 
@@ -154,7 +156,8 @@ view switch.
 Settings, the starter for a new project, project settings, labels, sources, the citation picker, the footnote
 editor, find and replace, and the imports are egui windows over the page (`window_fill` = `surface_raised`,
 1 px `border`, radius 10). Settings is a list of categories on the left (General, Writing, Proofreading, Data and
-sync, About) and the category's groups on the right. The character card is a window in the Network view.
+sync, About) and the category's groups on the right. The character card, opened from the Network view, is
+ProseCraft's panel at the window's right: 380 wide, 12 from the top, right and bottom, its sheet scrolling inside.
 
 ## Components
 
@@ -173,10 +176,12 @@ sync, About) and the category's groups on the right. The character card is a win
 - **Goal bar** (`widgets::goal_bar`): 5 high, `control_bg` track, `accent` fill; role ProgressIndicator with
   "N% of goal".
 - **Chips:** the label dot in the binder (the label's colour), relation type chips in the network.
-- **The graph** (`relation_graph.rs`): pages as circles with their initials and names under them, declared
-  relations as arrows coloured by type (family `accent`, friend `success`, rival `danger`, love `quote`, mentor
-  `link`, employer `warning`) with their label at the middle, suggestions as dashed lines in `text_faint` with
-  the number of shared scenes; drag, scroll or pinch to zoom, a minimap in the corner.
+- **The graph** (`relation_graph.rs`): pages as circles with their initials and names under them (a name is
+  shortened to the room beside its neighbours), declared relations as arrows coloured by type (family `accent`,
+  friend `success`, rival `danger`, love `quote`, mentor `link`, employer `warning`) with their label near the
+  middle, moved clear of pages and names or left out where there is no room; suggestions as dashed lines in
+  `text_faint` with the number of shared scenes. Names and labels sit on a backing like ProseCraft's halo. Drag,
+  scroll or pinch to zoom, Fit and Re-layout frame the whole graph, a minimap in the corner.
 - **Writing calendar** (`sidebar.rs` `activity`): a month of day cells shaded through `heat`.
 
 ## Accessibility

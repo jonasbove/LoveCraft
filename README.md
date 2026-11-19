@@ -34,7 +34,7 @@
 <br>
 
 <p align="center">
-  <img src="docs/screenshots/write.png" alt="The Write view in the dark theme: the binder of chapters and scenes on the left, the opening scene of an invented novel, The Glass Orchard, in a serif column with two passages highlighted for comments and character names marked, and the Comments sidebar on the right with an editor's two notes" width="100%">
+  <img src="docs/screenshots/write.png" alt="The Write view in the dark theme: the binder on the left with the opening chapters' scenes, two chapters folded and the wiki's characters and places, the opening scene of an invented novel, The Glass Orchard, in a serif column with two passages highlighted for comments and character names marked, and the Comments sidebar on the right with an editor's two notes" width="100%">
   <br><sub>Writing a scene, with an editor's comments beside it. The novel in every picture, <i>The Glass Orchard</i>, was made up for them.</sub>
 </p>
 

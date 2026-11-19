@@ -1807,6 +1807,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "craft-mcp-server"
+version = "0.1.0"
+source = "git+https://github.com/storytold/craft-libs?rev=8672aff3d85ccad8f2a391304139d192a7d08dd5#8672aff3d85ccad8f2a391304139d192a7d08dd5"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
 name = "craft-menu"
 version = "0.1.0"
 source = "git+https://github.com/storytold/craft-libs?rev=8672aff3d85ccad8f2a391304139d192a7d08dd5#8672aff3d85ccad8f2a391304139d192a7d08dd5"
@@ -6373,6 +6381,7 @@ dependencies = [
  "encoding_rs",
  "getrandom 0.3.4",
  "harper-core",
+ "libm",
  "mermaid-rs-renderer",
  "ratex-layout",
  "ratex-parser",
@@ -6387,6 +6396,20 @@ dependencies = [
  "unicode-properties",
  "url",
  "zeroize",
+]
+
+[[package]]
+name = "prosecraft-mcp"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "craft-atomic",
+ "craft-mcp-server",
+ "prosecraft-core",
+ "regress",
+ "serde_json",
+ "sha2 0.11.1",
+ "tempfile",
 ]
 
 [[package]]

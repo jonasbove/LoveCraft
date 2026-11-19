@@ -18,6 +18,7 @@
 mod about_window;
 mod app_menu;
 mod binder;
+mod character_sheet;
 mod citation_picker;
 mod cover_art;
 mod device_sync;
@@ -27,15 +28,19 @@ pub mod find;
 pub mod fonts;
 mod footnote_editor;
 mod fountain_import;
+mod graph_tile;
 mod labels;
 mod library;
 mod markdown_import;
+mod network_view;
+mod picture_flow;
 mod picture_tools;
 mod pictures;
 mod preview;
 mod project_settings;
 mod proofreading;
 mod publish;
+mod relation_graph;
 mod rich_dialog;
 mod rich_view;
 mod screenplay_editor;
@@ -45,6 +50,7 @@ mod sidebar;
 mod sources;
 mod split_view;
 mod starter;
+mod story_data;
 mod storyboard;
 mod text_marks;
 pub mod theme;
@@ -201,15 +207,17 @@ pub enum WorkspaceView {
     Write,
     Storyboard,
     Timeline,
+    Network,
     Publish,
 }
 
 impl WorkspaceView {
-    pub const ALL: [Self; 5] = [
+    pub const ALL: [Self; 6] = [
         Self::Outline,
         Self::Write,
         Self::Storyboard,
         Self::Timeline,
+        Self::Network,
         Self::Publish,
     ];
 
@@ -219,6 +227,7 @@ impl WorkspaceView {
             Self::Write => "Write",
             Self::Storyboard => "Storyboard",
             Self::Timeline => "Timeline",
+            Self::Network => "Network",
             Self::Publish => "Publish",
         }
     }
@@ -335,6 +344,13 @@ pub struct AppState {
     sidebar_hidden: bool,
     /// The split view panes' editors.
     tiles: split_view::Tiles,
+    /// The Network view's filters, selection, layout and open character card.
+    network: network_view::NetworkState,
+    /// Fresh ids for what the views create themselves (relations, template fields), topped up
+    /// from the store each frame.
+    fresh_ids: Vec<String>,
+    /// The story data panel open (shared by every scene for the session).
+    story_data_open: bool,
     wiki_store: Option<std::rc::Rc<dyn WikiFileStore>>,
     /// Undo and redo (ProseCraft's `UndoManager`), by text field and by page; selections are
     /// character ranges.
@@ -1394,6 +1410,7 @@ impl ProseApp {
             WorkspaceView::Outline => "outline".to_owned(),
             WorkspaceView::Storyboard => "storyboard".to_owned(),
             WorkspaceView::Timeline => "timeline".to_owned(),
+            WorkspaceView::Network => "network".to_owned(),
             WorkspaceView::Publish => "publish".to_owned(),
         };
         format!("{project}/{page}")
@@ -2348,6 +2365,11 @@ impl ProseApp {
                         prosecraft_core::split::set_target(&self.state.split, pane, target);
                     continue;
                 }
+                editing::Intent::OpenCharacterCard(id) => {
+                    self.state.network.open_card(id);
+                    self.state.view = WorkspaceView::Network;
+                    continue;
+                }
                 editing::Intent::OpenBeside(target) => {
                     self.state.split = prosecraft_core::split::open_beside(
                         &self.state.split,
@@ -2609,6 +2631,14 @@ impl ProseApp {
             && let Some(home) = self.home.as_mut()
         {
             self.state.book_id = Some(home.store.new_id());
+        }
+        // Ids the Network view and the character card draw for what they create.
+        if self.state.view == WorkspaceView::Network
+            && let Some(home) = self.home.as_mut()
+        {
+            while self.state.fresh_ids.len() < 8 {
+                self.state.fresh_ids.push(home.store.new_id());
+            }
         }
         self.state.undo_page = self.undo_page_key();
         // Undo and redo with no text field focused take back the page's last change

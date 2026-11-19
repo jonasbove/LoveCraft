@@ -12,6 +12,37 @@ use prosecraft_core::storage::stamp::stamp_project;
 /// A change the interface asks for.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Intent {
+    /// A document's story metadata replaced (`updateSceneMeta`); `None` removes it.
+    SetMeta {
+        document: String,
+        meta: Option<JsValue>,
+    },
+    /// A detected character confirmed for a scene (`confirmSceneCharacter`).
+    ConfirmCharacter {
+        scene: String,
+        page: String,
+    },
+    /// A relation stored on `source` (its id drawn by the view).
+    AddRelation {
+        source: String,
+        relation: prosecraft_core::network::meta::Relation,
+    },
+    /// Keys of a relation set or (with `None`) removed.
+    UpdateRelation {
+        source: String,
+        relation: String,
+        patch: Vec<(String, Option<JsValue>)>,
+    },
+    RemoveRelation {
+        source: String,
+        relation: String,
+    },
+    /// The project's own character-sheet templates.
+    SetSheetTemplates(Vec<prosecraft_core::network::templates::Template>),
+    /// A Wiki page's character card, in the Network view (`openCharacterCard`).
+    OpenCharacterCard(String),
+    /// A relation suggestion dismissed for good.
+    DismissSuggestion(String),
     AddChapter,
     AddScene {
         chapter: String,
@@ -397,7 +428,21 @@ pub fn run(
     data: &mut JsValue,
     new_id: &mut dyn FnMut() -> String,
 ) -> Result<(), EditError> {
+    use prosecraft_core::network::edit as network;
     match intent {
+        Intent::SetMeta { document, meta } => network::set_meta(data, document, meta.clone()),
+        Intent::ConfirmCharacter { scene, page } => network::confirm_character(data, scene, page),
+        Intent::AddRelation { source, relation } => network::add_relation(data, source, relation),
+        Intent::UpdateRelation {
+            source,
+            relation,
+            patch,
+        } => network::update_relation(data, source, relation, patch),
+        Intent::RemoveRelation { source, relation } => {
+            network::remove_relation(data, source, relation)
+        }
+        Intent::SetSheetTemplates(list) => network::set_sheet_templates(data, list),
+        Intent::DismissSuggestion(key) => network::dismiss_suggestion(data, key),
         Intent::AddChapter => edit::add_chapter(data, new_id(), new_id()).map(|_| ()),
         Intent::AddScene { chapter } => {
             let count = data
@@ -615,6 +660,7 @@ pub fn run(
         | Intent::OpenWikiFileExternally(_)
         | Intent::AddWikiLink(_)
         | Intent::OpenWikiItem(_)
+        | Intent::OpenCharacterCard(_)
         | Intent::RevealWikiFile(_)
         | Intent::RemoveWikiItem(_)
         | Intent::ChooseWikiRoot

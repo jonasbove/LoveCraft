@@ -35,7 +35,7 @@ const ROWS_FILE: &str = "rows.json";
 const CARDS_FILE: &str = "cards.json";
 const RECORD_KINDS: [&str; 4] = ["documents", "chapters", "storyboardRows", "storyboardCards"];
 /// The front matter fields the hash covers (`documentPayload`).
-const DOCUMENT_FIELDS: [&str; 16] = [
+const DOCUMENT_FIELDS: [&str; 17] = [
     "id",
     "title",
     "chapterId",
@@ -52,6 +52,7 @@ const DOCUMENT_FIELDS: [&str; 16] = [
     "deletedAt",
     "character",
     "place",
+    "meta",
 ];
 
 fn fail(message: impl Into<String>) -> SyncError {
@@ -201,7 +202,7 @@ pub fn normalize_document(document: &JsObject) -> JsObject {
 }
 
 /// `formatYamlValue`: a front matter value, JSON where YAML would need quoting.
-fn format_yaml_value(value: &JsValue) -> String {
+pub(crate) fn format_yaml_value(value: &JsValue) -> String {
     match value {
         JsValue::Null => "null".into(),
         JsValue::Number(n) => number_to_string(*n),
@@ -256,7 +257,7 @@ rule!(plain_number, r"^-?\d+(?:\.\d+)?$");
 rule!(field_key, r"^[A-Za-z0-9_-]+$");
 
 /// `parseYamlValue`.
-fn parse_yaml_value(raw: &str) -> Result<JsValue, ()> {
+pub(crate) fn parse_yaml_value(raw: &str) -> Result<JsValue, ()> {
     Ok(match raw {
         "" => JsValue::str(""),
         "null" => JsValue::Null,
@@ -319,7 +320,7 @@ fn document_fields(document: &JsObject, meta: &JsValue) -> JsObject {
             fields.insert(key, value.clone());
         }
     }
-    for key in ["character", "place"] {
+    for key in ["character", "place", "meta"] {
         if let Some(value) = document.get(key) {
             fields.insert(key, value.clone());
         }
@@ -434,6 +435,13 @@ fn decode_document(path: &str, file: &str, now: f64) -> Result<Decoded, SyncErro
         if is_object(fields.get(key)) {
             record.insert(key, fields.get(key).cloned().unwrap_or(JsValue::Null));
         }
+    }
+    if is_object(fields.get("meta"))
+        && let Some(meta) = fields
+            .get("meta")
+            .and_then(crate::network::meta::normalize_meta)
+    {
+        record.insert("meta", meta);
     }
     let changed_at = number(meta.get("updatedAt")).unwrap_or(0.0);
     Ok(Decoded {

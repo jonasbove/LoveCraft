@@ -167,7 +167,7 @@ impl Library {
                 .find(|p| p.get("id").and_then(JsValue::as_js_string) == id.as_ref());
             match existing {
                 None => {
-                    self.projects.push(project);
+                    self.projects.push(sanitize_stored_project(project));
                     imported += 1;
                 }
                 Some(previous) => {
@@ -177,7 +177,7 @@ impl Library {
                         || (new_at == old_at
                             && number(&project, "revision") > number(previous, "revision"));
                     if wins {
-                        *previous = project;
+                        *previous = sanitize_stored_project(project);
                         imported += 1;
                     }
                 }
@@ -189,6 +189,34 @@ impl Library {
             total: self.projects().count(),
         }
     }
+}
+
+/// `sanitizeStoredProject`: every document's body through the editor's sanitizer and its
+/// footnotes normalized, as ProseCraft does to a project it imports from a backup, so a backup
+/// from outside can't bring in HTML the editor or an export would carry on.
+pub fn sanitize_stored_project(mut stored: JsValue) -> JsValue {
+    let documents = stored
+        .as_object_mut()
+        .and_then(|s| s.get_mut("project"))
+        .and_then(JsValue::as_object_mut)
+        .and_then(|p| p.get_mut("documents"));
+    if let Some(JsValue::Array(documents)) = documents {
+        for document in documents.iter_mut() {
+            let Some(object) = document.as_object_mut() else {
+                continue;
+            };
+            if let Some(content) = object.get("content").and_then(JsValue::as_js_string) {
+                let clean = crate::html::sanitize_html(&content.to_string_lossy());
+                object.insert("content", JsValue::str(&clean));
+            }
+            if let Some(notes) =
+                crate::sync::open_layout::normalize_footnotes(object.get("footnotes"))
+            {
+                object.insert("footnotes", notes);
+            }
+        }
+    }
+    stored
 }
 
 /// A new installation id: a random UUID (version 4), as ProseCraft's `crypto.randomUUID()`.

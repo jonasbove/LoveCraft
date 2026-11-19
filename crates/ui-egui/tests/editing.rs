@@ -2411,7 +2411,8 @@ fn typing_into_a_formatted_scene_keeps_its_emphasis_footnote_and_citation() {
         .unwrap_or_default();
     assert_eq!(
         content,
-        r#"<p>It was <em>dark</em>.<sup class="footnote-ref" data-footnote-id="fn-1" contenteditable="false"></sup></p><p>Then <span class="cite-ref" data-cites="[{&quot;id&quot;:&quot;smith2020&quot;}]">(Smith 2020)</span>. It rained.</p>"#
+        // The backup's citation as ProseCraft's sanitizer stores it on import.
+        r#"<p>It was <em>dark</em>.<sup class="footnote-ref" data-footnote-id="fn-1" contenteditable="false"></sup></p><p>Then <span class="cite-ref" data-cites="[{&quot;id&quot;:&quot;smith2020&quot;}]" contenteditable="false"></span>. It rained.</p>"#
     );
 }
 
@@ -6382,4 +6383,77 @@ fn a_pane_shows_its_text_put_back_as_it_was_opened() {
     assert!(saved_content(&memory, "doc-2").ends_with("𝔐𝔞𝔯𝔞</p>"));
     // The first pane shows the text as it is now, as it was opened.
     assert_eq!(pane(&harness, 0), opened);
+}
+
+/// In the chapter view a footnote is still in use while another scene of the chapter holds its
+/// marker, also one pasted there a moment ago and not saved yet: cutting the original keeps
+/// the definition.
+#[test]
+fn a_footnote_used_in_another_scene_of_the_chapter_keeps_its_text() {
+    let (mut harness, memory) = app();
+    let board: Board = Default::default();
+    let (writer, reader) = (board.clone(), board.clone());
+    harness
+        .state_mut()
+        .set_clipboard_writer(Arc::new(move |html: &str, text: &str| {
+            *writer.lock().expect("board") = (html.to_owned(), text.to_owned());
+        }));
+    harness.state_mut().set_clipboard_html(Arc::new(move || {
+        Some(reader.lock().expect("board").0.clone()).filter(|h| !h.is_empty())
+    }));
+    let select_marker = |harness: &mut Harness<'static, ProseApp>| {
+        harness.get_by_label("Scene text").focus();
+        harness.run();
+        for _ in 0..3 {
+            harness.key_press(egui::Key::ArrowUp);
+        }
+        harness.key_press(egui::Key::Home);
+        for _ in 0..12 {
+            harness.key_press(egui::Key::ArrowRight);
+        }
+        harness.key_press_modifiers(egui::Modifiers::SHIFT, egui::Key::ArrowRight);
+        harness.run();
+    };
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    select_marker(&mut harness);
+    harness.event(egui::Event::Copy);
+    harness.run();
+    assert!(board.lock().expect("board").0.contains("fn-1"));
+    harness
+        .get_by_role_and_label(Role::Button, "Actions for Chapter One")
+        .click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "Add scene")
+        .click();
+    harness.run_steps(4);
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Scene 3")
+        .click();
+    harness.run();
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    let text = board.lock().expect("board").1.clone();
+    harness.event(egui::Event::Paste(text));
+    // Straight back to the first scene, before the typing pause would save the paste.
+    harness.step();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    select_marker(&mut harness);
+    harness.event(egui::Event::Cut);
+    harness.run_steps(12);
+    assert!(
+        !content(&memory, "doc-1").contains("fn-1"),
+        "the marker was cut"
+    );
+    assert_eq!(
+        footnote_ids(&memory, "doc-1"),
+        ["fn-1"],
+        "still used in Scene 3"
+    );
 }

@@ -215,6 +215,11 @@ fn read_backup(app: &mut ProseApp, path: &Path) {
 }
 
 impl eframe::App for DesktopApp {
+    /// The native menu's key equivalents, before egui reads the input.
+    fn raw_input_hook(&mut self, _ctx: &eframe::egui::Context, raw: &mut eframe::egui::RawInput) {
+        self.app.raw_input_hook(raw);
+    }
+
     /// The last keystrokes are saved before the window closes.
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
         self.app.flush();
@@ -637,6 +642,13 @@ fn main() -> ExitCode {
             prosecraft_ui_egui::setup(&cc.egui_ctx);
             let ctx = cc.egui_ctx.clone();
             let dialogs = Dialogs::new(Arc::new(move || ctx.request_repaint()));
+            // ProseCraft's native menu bar on macOS (its Tauri `run` menu).
+            #[cfg(target_os = "macos")]
+            let app = {
+                let mut app = app;
+                app.install_native_menu(&cc.egui_ctx);
+                app
+            };
             Ok(Box::new(DesktopApp {
                 app,
                 dialogs,

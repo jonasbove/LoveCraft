@@ -206,6 +206,74 @@ pub fn set_document_content(project: &mut JsValue, id: &str, html: &str) -> Resu
     Ok(())
 }
 
+/// `updateTileDocument` with `patchTileDocument`: an edit made in a split view pane. A
+/// scene's pane edits its whole chapter, so its text goes back to the chapter's scenes
+/// (`splitChapterHtml`, `writeChapterSectionsFor`); any other document takes the title and the
+/// text, a changed text dropping its Markdown source. An unknown document is left alone.
+pub fn patch_tile_document(
+    project: &mut JsValue,
+    id: &str,
+    title: Option<&str>,
+    content: Option<&str>,
+) -> Result<(), EditError> {
+    let text_of = |v: Option<&JsValue>| {
+        v.and_then(JsValue::as_js_string)
+            .map(|s| s.to_string_lossy())
+    };
+    let docs = project
+        .get("documents")
+        .and_then(JsValue::as_array)
+        .map(<[JsValue]>::to_vec)
+        .unwrap_or_default();
+    let Some(doc) = docs
+        .iter()
+        .find(|d| text_of(d.get("id")).as_deref() == Some(id))
+    else {
+        return Ok(());
+    };
+    let chapter = text_of(doc.get("chapterId"));
+    let chapter_exists = chapter.as_ref().is_some_and(|c| {
+        project
+            .get("chapters")
+            .and_then(JsValue::as_array)
+            .is_some_and(|list| {
+                list.iter()
+                    .any(|ch| text_of(ch.get("id")).as_ref() == Some(c))
+            })
+    });
+    if let (Some(content), Some(chapter), true) = (content, chapter.as_deref(), chapter_exists) {
+        let sections = crate::chapter::split_chapter_html(&crate::html::sanitize_html(content));
+        return crate::chapter::write_chapter_sections(project, chapter, &sections, None, None);
+    }
+    patch_document(project, id, title, content)
+}
+
+/// `patchTileDocument` alone: the title and the text of one document (a scene edited on its
+/// own in a pane), a changed text dropping its Markdown source.
+pub fn patch_document(
+    project: &mut JsValue,
+    id: &str,
+    title: Option<&str>,
+    content: Option<&str>,
+) -> Result<(), EditError> {
+    let text_of = |v: Option<&JsValue>| {
+        v.and_then(JsValue::as_js_string)
+            .map(|s| s.to_string_lossy())
+    };
+    let document = find_mut(project, "documents", id)?;
+    if let Some(title) = title {
+        document.insert("title", JsValue::str(title));
+    }
+    let current = text_of(document.get("content"));
+    if let Some(content) = content
+        && current.as_deref() != Some(content)
+    {
+        document.insert("content", JsValue::str(content));
+        document.remove("markdownSource");
+    }
+    Ok(())
+}
+
 /// `applySingleDocumentMarkdown`: Markdown from the Markdown editor as the document's content
 /// (sanitized), kept as its `markdownSource`, and its footnote definitions as the document's
 /// footnotes (replacing the old ones; none when it has none).
@@ -938,6 +1006,81 @@ mod moves {
         assert_eq!(
             stringify(p.get("chapterGoals").expect("goals")),
             r#"{"b":5}"#
+        );
+    }
+}
+
+#[cfg(test)]
+mod tile_tests {
+    use super::patch_tile_document;
+    use crate::js::{parse, stringify};
+
+    fn project() -> crate::js::JsValue {
+        parse(
+            r#"{"chapters":[],"documents":[{"id":"scene","title":"Scene 1","content":"<p>one</p>","markdownSource":"one"},{"id":"wiki","title":"Castle","content":"<p>two</p>","space":"Wiki"}]}"#,
+        )
+        .expect("json")
+    }
+
+    fn docs(p: &crate::js::JsValue) -> String {
+        stringify(p.get("documents").expect("documents"))
+    }
+
+    #[test]
+    fn tile_edits_patch_one_document_as_prosecraft_does() {
+        // Renames one document and leaves the others in place.
+        let mut p = project();
+        patch_tile_document(&mut p, "scene", Some("Opening"), None).expect("patch");
+        assert_eq!(
+            docs(&p),
+            r#"[{"id":"scene","title":"Opening","content":"<p>one</p>","markdownSource":"one"},{"id":"wiki","title":"Castle","content":"<p>two</p>","space":"Wiki"}]"#
+        );
+        // Drops the cached Markdown source when the body changes.
+        let mut p = project();
+        patch_tile_document(&mut p, "scene", None, Some("<p>one more</p>")).expect("patch");
+        assert!(
+            docs(&p)
+                .starts_with(r#"[{"id":"scene","title":"Scene 1","content":"<p>one more</p>"},"#),
+            "{}",
+            docs(&p)
+        );
+        // Keeps it when the body is unchanged.
+        let mut p = project();
+        patch_tile_document(&mut p, "scene", None, Some("<p>one</p>")).expect("patch");
+        assert_eq!(docs(&p), docs(&project()));
+        // Edits wiki pages like any other document.
+        let mut p = project();
+        patch_tile_document(&mut p, "wiki", Some("Castle Keep"), Some("<p>three</p>"))
+            .expect("patch");
+        assert!(
+            docs(&p).ends_with(
+                r#"{"id":"wiki","title":"Castle Keep","content":"<p>three</p>","space":"Wiki"}]"#
+            ),
+            "{}",
+            docs(&p)
+        );
+        // An unknown id changes nothing.
+        let mut p = project();
+        patch_tile_document(&mut p, "missing", Some("Nope"), None).expect("patch");
+        assert_eq!(docs(&p), docs(&project()));
+    }
+
+    #[test]
+    fn a_scene_pane_writes_its_chapter_back_to_the_scenes() {
+        let mut p = parse(
+            r#"{"chapters":[{"id":"c"}],"documents":[{"id":"a","title":"A","content":"<p>one</p>","chapterId":"c"},{"id":"b","title":"B","content":"<p>two</p>","chapterId":"c"}]}"#,
+        )
+        .expect("json");
+        let chapter = crate::chapter::build_chapter_html(
+            &["<p>one!</p>".to_owned(), "<p>two!</p>".to_owned()],
+            crate::publish::SceneSeparator::Hash,
+        );
+        patch_tile_document(&mut p, "b", None, Some(&chapter)).expect("patch");
+        let out = docs(&p);
+        assert!(
+            out.contains(r#""id":"a","title":"A","content":"<p>one!</p>""#)
+                && out.contains(r#""id":"b","title":"B","content":"<p>two!</p>""#),
+            "{out}"
         );
     }
 }

@@ -1885,6 +1885,133 @@ fn equations_and_calculations_are_inserted_from_the_toolbar() {
 }
 
 #[test]
+fn a_pane_edits_its_document_as_prosecrafts_tile_editor_does() {
+    let (mut harness, memory) = app();
+    harness.set_size(egui::vec2(1700.0, 1000.0));
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness.get_by_label("Open split view").click();
+    harness.run();
+    // The Wiki page Mara, edited beside the scene.
+    harness.get_by_label("Show in this pane").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "  Mara")
+        .click();
+    harness.run();
+    let title = harness.get_by_role_and_label(Role::TextInput, "Title");
+    title.focus();
+    harness.run();
+    harness.key_press(egui::Key::End);
+    harness
+        .get_by_role_and_label(Role::TextInput, "Title")
+        .type_text(" Vale");
+    harness.run_steps(6);
+    let text = harness.get_by_label("Document text");
+    text.focus();
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::End);
+    harness.get_by_label("Document text").type_text(" More.");
+    // Sent once typing pauses.
+    harness.step();
+    std::thread::sleep(std::time::Duration::from_millis(350));
+    harness.run_steps(12);
+    let saved = memory.last();
+    let wiki = document(project(&saved, "project-1"), "doc-2").expect("the wiki page");
+    let field = |name: &str| {
+        wiki.get(name)
+            .and_then(JsValue::as_js_string)
+            .map(|c| c.to_string_lossy())
+            .unwrap_or_default()
+    };
+    assert_eq!(field("title"), "Mara Vale");
+    assert_eq!(field("content"), "<p>Notes about Mara. 𝔐𝔞𝔯𝔞 More.</p>");
+}
+
+#[test]
+fn a_scene_pane_writes_its_chapter_back_and_leaves_text_it_cannot_hold_alone() {
+    // Mara's page as bare text, which the editor can't hold.
+    let bundle = fixture("bundle-plain.prosecraft")
+        .replace("<p>Notes about Mara. 𝔐𝔞𝔯𝔞</p>", "Loose notes about Mara");
+    let memory = Memory::default();
+    let mut app =
+        ProseApp::with_library(ProjectLibrary::new("test".into()), Box::new(memory.clone()));
+    app.open_backup("bundle-plain.prosecraft", &bundle);
+    let mut harness = Harness::builder()
+        .with_max_steps(8)
+        .with_size([1700.0, 1000.0])
+        .build_ui_state(|ui, app: &mut ProseApp| app.show(ui), app);
+    prosecraft_ui_egui::setup_for_tests(&harness.ctx);
+    harness.run();
+    let stored = |memory: &Memory, id: &str| -> String {
+        let saved = memory.last();
+        document(project(&saved, "project-1"), id)
+            .and_then(|d| d.get("content"))
+            .and_then(JsValue::as_js_string)
+            .map(|c| c.to_string_lossy())
+            .unwrap_or_default()
+    };
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Mara")
+        .click();
+    harness.run();
+    harness.get_by_label("Open split view").click();
+    harness.run();
+    // The other scene's pane: the whole chapter, both scenes, editable.
+    harness.get_by_label("Show in this pane").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "  INT. LIGHTHOUSE - NIGHT")
+        .click();
+    harness.run();
+    harness.run_steps(12);
+    let opening = stored(&memory, "doc-1");
+    // Each scene its own editor: the second one's.
+    assert_eq!(harness.get_all_by_label("Document text").count(), 2);
+    harness
+        .get_all_by_label("Document text")
+        .last()
+        .expect("the second scene")
+        .focus();
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::End);
+    harness
+        .get_all_by_label("Document text")
+        .last()
+        .expect("the second scene")
+        .type_text(" LATER");
+    harness.step();
+    std::thread::sleep(std::time::Duration::from_millis(350));
+    harness.run_steps(12);
+    assert_eq!(
+        stored(&memory, "doc-1"),
+        opening,
+        "the first scene is as it was"
+    );
+    assert!(
+        stored(&memory, "doc-3").contains("LATER"),
+        "{}",
+        stored(&memory, "doc-3")
+    );
+    // Mara, beside a scene: shown, not edited.
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness.get_by_label("Show in this pane").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::Button, "  Mara")
+        .click();
+    harness.run();
+    assert!(harness.query_by_label("Document text").is_none());
+    harness.get_by_label("Open in the editor to change this text.");
+    assert_eq!(stored(&memory, "doc-2"), "Loose notes about Mara");
+}
+
+#[test]
 fn the_split_view_shows_scenes_and_wiki_files_beside_the_editor() {
     let (mut harness, _memory) = app();
     harness.set_size(egui::vec2(1700.0, 1000.0));
@@ -1899,14 +2026,15 @@ fn the_split_view_shows_scenes_and_wiki_files_beside_the_editor() {
     harness.get_by_label("Open split view").click();
     harness.run();
     harness.get_by_label_contains("Pick a scene, wiki page or file above");
-    // A scene of another chapter, read beside the editor.
+    // Another scene, beside the editor.
     harness.get_by_label("Show in this pane").click();
     harness.run();
     harness
         .get_by_role_and_label(Role::Button, "  INT. LIGHTHOUSE - NIGHT")
         .click();
     harness.run();
-    assert!(harness.get_all_by_label("Pane text").count() == 1);
+    // Not the open scene: editable, as ProseCraft's tile editor.
+    assert_eq!(harness.get_all_by_label("Document text").count(), 1);
     // Swapped: the editor has that scene, the pane the one that was open.
     harness
         .get_by_label("Edit this in the main editor and show the current text here")

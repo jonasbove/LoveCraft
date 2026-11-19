@@ -600,6 +600,8 @@ fn main() -> ExitCode {
     app.set_clipboard_html(Arc::new(|| {
         arboard::Clipboard::new().ok()?.get().html().ok()
     }));
+    // Edit > Paste in the menu bar: the clipboard's text.
+    app.set_clipboard_text(Arc::new(|| arboard::Clipboard::new().ok()?.get_text().ok()));
     // Zotero on this computer, through its local HTTP server.
     app.set_zotero(Arc::new(prosecraft_core::citations::zotero::request));
     if let Some(problem) = problem {

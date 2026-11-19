@@ -639,6 +639,75 @@ fn binder_rows_are_dragged_into_place_as_prosecraft_drags_them() {
     assert_eq!(scene.get("chapterId").cloned(), new_id);
 }
 
+/// Opens a menu of the menu bar and chooses an item in it.
+fn menu(harness: &mut Harness<'static, ProseApp>, title: &str, item: &str) {
+    harness.get_by_role_and_label(Role::MenuItem, title).click();
+    harness.run();
+    let found = [Role::MenuItem, Role::MenuItemCheckBox, Role::MenuItemRadio]
+        .into_iter()
+        .find(|role| harness.query_by_role_and_label(*role, item).is_some())
+        .expect("the menu item");
+    harness.get_by_role_and_label(found, item).click();
+    harness.run_steps(8);
+}
+
+#[test]
+fn the_menu_bar_runs_prosecrafts_menu_commands() {
+    let (mut harness, memory) = app();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    // File > New Scene: a scene in the first chapter, as Ctrl+N.
+    menu(&mut harness, "File", "New Scene");
+    harness.run_steps(12);
+    let saved = memory.last();
+    let scenes = project(&saved, "project-1")
+        .get("project")
+        .and_then(|p| p.get("documents"))
+        .and_then(JsValue::as_array)
+        .map(|d| d.iter().filter(|d| d.get("chapterId").is_some()).count())
+        .unwrap_or_default();
+    assert_eq!(scenes, 3);
+    // Edit > Select All, then Edit > Cut, in the scene that had the keys.
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness.get_by_label("Scene text").focus();
+    harness.run();
+    menu(&mut harness, "Edit", "Select All");
+    menu(&mut harness, "Edit", "Cut");
+    harness.run_steps(12);
+    assert_eq!(
+        harness.get_by_label("Scene text").value().as_deref(),
+        Some("")
+    );
+    // View > Zen Mode: checked as the writing mode is.
+    let zen = |harness: &mut Harness<'static, ProseApp>| {
+        harness
+            .get_by_role_and_label(Role::MenuItem, "View")
+            .click();
+        harness.run();
+        let on = harness
+            .get_by_role_and_label(Role::MenuItemCheckBox, "Zen Mode")
+            .accesskit_node()
+            .toggled()
+            == Some(egui::accesskit::Toggled::True);
+        harness.key_press(egui::Key::Escape);
+        harness.run();
+        on
+    };
+    assert!(!zen(&mut harness));
+    menu(&mut harness, "View", "Zen Mode");
+    assert!(zen(&mut harness));
+    menu(&mut harness, "View", "Zen Mode");
+    assert!(!zen(&mut harness));
+    // The projects, in File: choosing one opens it.
+    menu(&mut harness, "File", "Second");
+    assert!(prosecraft_ui_egui::window_title(harness.state()).starts_with("Second"));
+}
+
 /// The stored content of a document.
 fn content(memory: &Memory, id: &str) -> String {
     let saved = memory.last();

@@ -1,9 +1,9 @@
-# prosecraft-rs
+# ProseCraft-rs
 
 **Outline. Write. Publish.** A novel-writing app, written in Rust with egui, that runs natively on Linux, macOS, Windows and BSD and in the browser.
 
 > [!NOTE]
-> **prosecraft-rs is an independent Rust rewrite of [ProseCraft](https://github.com/jennraeross/ProseCraft)** by Jennifer Roylance and contributors, used under the MIT licence. It is not affiliated with or endorsed by the ProseCraft project. For the original app, go to [ProseCraft](https://github.com/jennraeross/ProseCraft). Report problems with prosecraft-rs here, not there.
+> **ProseCraft-rs is an independent Rust rewrite of [ProseCraft](https://github.com/jennraeross/ProseCraft)** by Jennifer Roylance and contributors, used under the MIT licence. It is not affiliated with or endorsed by the ProseCraft project. For the original app, go to [ProseCraft](https://github.com/jennraeross/ProseCraft). Report problems with ProseCraft-rs here, not there.
 
 > [!CAUTION]
 > **0.1.0: early release.** It does what ProseCraft does (up to upstream `8cdc694`, v0.6.1), but it is new: it has not been run on a Mac yet, and it hasn't carried a whole book. Keep backups, and keep your ProseCraft copy until you trust it.
@@ -37,4 +37,4 @@ cd apps/prosecraft-rs-web && trunk build --release   # web build into dist/web
 ## Licence and credits
 `MIT OR Apache-2.0`, see [LICENSE-MIT](LICENSE-MIT) and [LICENSE-APACHE](LICENSE-APACHE).
 
-prosecraft-rs is a rewrite of ProseCraft, © 2026 Jennifer Roylance, MIT licence. That copyright and permission notice is kept in [LICENSE-MIT](LICENSE-MIT) and [NOTICE](NOTICE), and every asset or text taken from ProseCraft is listed in [ATTRIBUTION.md](ATTRIBUTION.md). Thank you to Jennifer and the ProseCraft contributors for building it and sharing it openly.
+ProseCraft-rs is a rewrite of ProseCraft, © 2026 Jennifer Roylance, MIT licence. That copyright and permission notice is kept in [LICENSE-MIT](LICENSE-MIT) and [NOTICE](NOTICE), and every asset or text taken from ProseCraft is listed in [ATTRIBUTION.md](ATTRIBUTION.md). Thank you to Jennifer and the ProseCraft contributors for building it and sharing it openly.

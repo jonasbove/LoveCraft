@@ -34,7 +34,7 @@ pub use tools::ProseCraftTools;
 /// Who the server says it is, as the TypeScript server does ("prosecraft" 0.1.0).
 pub const INFO: Info = Info {
     name: "prosecraft",
-    title: "prosecraft-rs",
+    title: "ProseCraft-rs",
     version: "0.1.0",
     // A write carries a whole scene; this leaves room for a long novel chapter many times over.
     max_line: 64 * 1024 * 1024,

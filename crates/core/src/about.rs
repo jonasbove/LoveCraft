@@ -1,7 +1,7 @@
 //! What the app is and where it comes from, for the About window, `--version` and diagnostics.
 
 /// The name people see. A working name until the branding is decided.
-pub const APP_NAME: &str = "prosecraft-rs";
+pub const APP_NAME: &str = "ProseCraft-rs";
 
 /// This build's version, from the workspace manifest.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -174,7 +174,7 @@ mod diagnostics_tests {
         let report = diagnostics_report(&input, "2026-01-02T03:04:05.000Z");
         assert_eq!(
             report,
-            "app: prosecraft-rs 0.4.6\ndate: 2026-01-02T03:04:05.000Z\nos: Linux, egui\nstorage backend: IndexedDB\nonline: false\nprojects: 5\nchapters: 10\nscenes: 20\nwiki pages: 3\nwords: 15000\ncomments: 50\nsnapshots: 2\ndarkMode: on\nautosave: off"
+            "app: ProseCraft-rs 0.4.6\ndate: 2026-01-02T03:04:05.000Z\nos: Linux, egui\nstorage backend: IndexedDB\nonline: false\nprojects: 5\nchapters: 10\nscenes: 20\nwiki pages: 3\nwords: 15000\ncomments: 50\nsnapshots: 2\ndarkMode: on\nautosave: off"
         );
         let unknown = Diagnostics {
             online: None,
@@ -199,7 +199,7 @@ mod tests {
     #[test]
     fn version_line_has_name_and_semver() {
         let line = name_and_version();
-        let version = line.strip_prefix("prosecraft-rs ").unwrap_or_default();
+        let version = line.strip_prefix("ProseCraft-rs ").unwrap_or_default();
         assert_eq!(version.split('.').count(), 3, "{line}");
     }
 

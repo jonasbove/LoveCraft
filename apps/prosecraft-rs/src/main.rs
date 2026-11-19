@@ -655,8 +655,10 @@ fn main() -> ExitCode {
         clipboard_shortcuts: false,
         ..Default::default()
     };
+    // eframe keeps the window's state in a folder named after this; it stays the name the
+    // first builds used, so a renamed app keeps it.
     let result = eframe::run_native(
-        about::APP_NAME,
+        "prosecraft-rs",
         options,
         Box::new(|cc| {
             prosecraft_ui_egui::setup(&cc.egui_ctx);

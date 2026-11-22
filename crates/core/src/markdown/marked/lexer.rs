@@ -148,8 +148,10 @@ struct LinkDef {
 /// How many levels quotes and lists, and inline tokens (emphasis, links), may nest. marked
 /// recurses without a limit and throws a `RangeError` some thousands of levels down; past this,
 /// the port reads what is left as plain text, so a hostile file cannot overflow the stack. Up to
-/// it (200 nested quotes, lists or emphasis), the two agree.
-const MAX_NESTING: usize = 200;
+/// it (64 nested quotes, lists or emphasis), the two agree. A level costs about 4.5 KB of stack
+/// in a debug build and more on Windows, so 64 levels stay well inside a 1 MB thread (Windows'
+/// default main thread); 200 did not on Windows.
+const MAX_NESTING: usize = 64;
 
 pub(crate) struct Lexer {
     links: HashMap<String, LinkDef>,

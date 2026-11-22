@@ -475,7 +475,11 @@ fn a_stale_revision_is_refused_for_write_trash_and_chapter_update_without_writin
 #[test]
 fn a_fresh_lock_fails_the_write_clearly() {
     let root = make_root(&fixture());
-    let lock = format!("{}/{LOCK_FILE}", root.path);
+    // The server joins with the platform's separator, so build the path the same way.
+    let lock = std::path::Path::new(&root.path)
+        .join(LOCK_FILE)
+        .to_string_lossy()
+        .into_owned();
     fs::write(&lock, "other").expect("lock");
 
     let error = write_scene(

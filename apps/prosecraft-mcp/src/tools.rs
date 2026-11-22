@@ -842,7 +842,10 @@ mod tests {
                 "set_label",
                 r#"{"projectId":"x","documentId":"d","labelId":null}"#
             ),
-            "ENOENT: no such file or directory, open '/nonexistent/.prosecraft-mcp.lock'"
+            format!(
+                "ENOENT: no such file or directory, open '{}'",
+                crate::fsx::join(&["/nonexistent", crate::fsx::LOCK_FILE])
+            )
         );
         assert_eq!(
             issues("list_chapters", r#"{"projectId":"x","extra":1}"#),

@@ -3,8 +3,11 @@ xtask = "run -p xtask --"
 
 # Windows: link the C runtime into the exe. Without it prosecraft-rs.exe needs VCRUNTIME140.dll,
 # which a fresh Windows doesn't have, and exits at once (0xC0000135) with no message.
+#
+# Also give the main thread an 8 MB stack, as Linux and macOS have; Windows' default is 1 MB, which
+# deep recursion (nested quotes, lists, folders) can use up in a debug build.
 [target.x86_64-pc-windows-msvc]
-rustflags = ["-C", "target-feature=+crt-static"]
+rustflags = ["-C", "target-feature=+crt-static", "-C", "link-arg=/STACK:8388608"]
 
 [target.aarch64-pc-windows-msvc]
-rustflags = ["-C", "target-feature=+crt-static"]
+rustflags = ["-C", "target-feature=+crt-static", "-C", "link-arg=/STACK:8388608"]

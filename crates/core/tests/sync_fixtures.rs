@@ -661,4 +661,109 @@ mod open_folder {
         );
         same_files(&fs, sync.get("after").expect("after"), "after sync");
     }
+
+    /// What CraftCloud leaves in a synced open folder: conflict copies of a scene (two on the
+    /// same minute), a chapter, a project's header, the storyboard and the marker, a project
+    /// folder it had to rename, its own `.craftcloud` folder and a download in progress. The
+    /// sync reads none of them as a record (a scene's copy repeats its id), removes none of
+    /// them, and reports the conflict copies.
+    #[test]
+    fn craftcloud_files_in_the_folder_are_reported_and_left_alone() {
+        use prosecraft_core::sync::SyncFileSystem;
+        let f = fixture();
+        let sync = f.get("sync").expect("sync");
+        let mut fs = files(sync.get("files").expect("files"));
+        let copy = |fs: &MemoryFs, from: &str| fs.files().get(from).cloned().expect(from);
+        let doc = "projects/project-1/documents/doc-1.md";
+        let edited = copy(&fs, doc).replace("revision:", "revision: 7 #");
+        let extra = [
+            (
+                "projects/project-1/documents/doc-1 (conflict 2026-11-13 14.32 Studio).md",
+                edited.clone(),
+            ),
+            (
+                "projects/project-1/documents/doc-1 (conflict 2026-11-13 14.32 Studio 2).md",
+                edited,
+            ),
+            (
+                "projects/project-1/chapters/chapter-1 (conflict 2026-11-13 14.32 Jo's Laptop).json",
+                copy(&fs, "projects/project-1/chapters/chapter-1.json"),
+            ),
+            (
+                "projects/project-1/project (conflict 2026-11-13 14.32 Studio).json",
+                copy(&fs, "projects/project-1/project.json"),
+            ),
+            (
+                "projects/project-1/storyboard/rows (conflict 2026-11-13 14.32 Studio).json",
+                copy(&fs, "projects/project-1/storyboard/rows.json"),
+            ),
+            (
+                "prosecraft-folder (conflict 2026-11-13 14.32 Studio).json",
+                copy(&fs, "prosecraft-folder.json"),
+            ),
+            (
+                "projects/project-1 (conflict 2026-11-13 14.32 Studio)/project.json",
+                copy(&fs, "projects/project-1/project.json"),
+            ),
+            ("projects/.craftcloud/engine.lock", "1".to_owned()),
+            (
+                "projects/project-1/documents/.doc-9.md.d7fc8c633e524686-1794615066.craftcloud-part",
+                "half a download".to_owned(),
+            ),
+            (
+                "projects/project-1/documents/.ccpart-0123456789abcdef01234567.craftcloud-part",
+                "half a save".to_owned(),
+            ),
+        ];
+        for (path, content) in &extra {
+            fs.write_text(path, content).expect("write");
+        }
+        let mut suffix = || "x".to_owned();
+        let result = sync_via(
+            &mut OpenFolderProvider::new(&mut fs, now(&f)),
+            &JsString::from(""),
+            &list(sync, "local"),
+            sync.get("lastSynced").expect("lastSynced"),
+            now(&f),
+            "device-a",
+            &mut OsRandom,
+            &mut suffix,
+        )
+        .expect("CraftCloud's files don't stop the sync");
+        let want = sync.get("result").expect("result");
+        assert_eq!(
+            json(&result.projects),
+            json(&list(want, "projects")),
+            "the same projects as without them"
+        );
+        for (path, content) in &extra {
+            assert_eq!(
+                fs.files().get(*path),
+                Some(content),
+                "{path} is left as it was"
+            );
+        }
+        assert_eq!(
+            result.conflict_files,
+            [
+                "prosecraft-folder (conflict 2026-11-13 14.32 Studio).json",
+                "projects/project-1 (conflict 2026-11-13 14.32 Studio)",
+                "projects/project-1/project (conflict 2026-11-13 14.32 Studio).json",
+                "projects/project-1/documents/doc-1 (conflict 2026-11-13 14.32 Studio 2).md",
+                "projects/project-1/documents/doc-1 (conflict 2026-11-13 14.32 Studio).md",
+                "projects/project-1/chapters/chapter-1 (conflict 2026-11-13 14.32 Jo's Laptop).json",
+                "projects/project-1/storyboard/rows (conflict 2026-11-13 14.32 Studio).json",
+            ]
+        );
+        // Everything else is the folder a sync without them leaves.
+        let mut without = fs.clone();
+        for (path, _) in &extra {
+            without.remove(path).expect("remove");
+        }
+        without
+            .remove("projects/project-1 (conflict 2026-11-13 14.32 Studio)")
+            .expect("remove");
+        without.remove("projects/.craftcloud").expect("remove");
+        same_files(&without, sync.get("after").expect("after"), "after sync");
+    }
 }

@@ -9,6 +9,7 @@
 //! what ProseCraft wrote; a file whose hash no longer matches was edited outside, and its record
 //! counts as changed by "external" now, so the next sync takes it.
 
+use super::foreign::{is_conflict_copy, left_alone};
 use super::layout::{project_dir_name, safe_name};
 use super::providers::{Connection, SyncProvider};
 use super::{BUNDLE_FILE, OPEN_MARKER_FILE, PROJECTS_DIR, SyncError, SyncFileSystem, VAULT_FILE};
@@ -609,7 +610,9 @@ fn read_entity_files(
     } = *files;
     let mut decoded: HashMap<String, Decoded> = HashMap::new();
     for entry in fs.list_dir(base)? {
-        if entry.is_directory || !entry.name.ends_with(extension) {
+        // Another sync program's conflict copy repeats its original's id: it is reported
+        // (`conflict_files`), never read as a second record.
+        if entry.is_directory || !entry.name.ends_with(extension) || left_alone(&entry.name) {
             continue;
         }
         let path = format!("{base}/{}", entry.name);
@@ -956,7 +959,7 @@ pub fn read_open_projects(
 ) -> Result<Vec<JsValue>, SyncError> {
     let mut projects = Vec::new();
     for entry in fs.list_dir(PROJECTS_DIR)? {
-        if entry.is_directory {
+        if entry.is_directory && !left_alone(&entry.name) {
             projects.push(read_open_project(fs, &entry.name, now)?);
         }
     }
@@ -1168,7 +1171,9 @@ pub fn write_open_project(fs: &mut dyn SyncFileSystem, project: &JsValue) -> Res
     )
 }
 
-/// `pruneEntityDir`.
+/// `pruneEntityDir`, except that another sync program's files are never removed: a conflict
+/// copy can be the only copy of an edit made on another computer. (ProseCraft at `7dae544`
+/// removes every file it didn't write.)
 fn prune(
     fs: &mut dyn SyncFileSystem,
     dir: &str,
@@ -1176,7 +1181,7 @@ fn prune(
     extension: &str,
 ) -> Result<(), SyncError> {
     for entry in fs.list_dir(dir)? {
-        if entry.is_directory || !entry.name.ends_with(extension) {
+        if entry.is_directory || !entry.name.ends_with(extension) || left_alone(&entry.name) {
             continue;
         }
         let path = format!("{dir}/{}", entry.name);
@@ -1281,6 +1286,38 @@ impl SyncProvider for OpenFolderProvider<'_> {
             self.fs.remove(&project_dir_name(id))?;
         }
         Ok(())
+    }
+
+    /// Another sync program's conflict copies anywhere in the layout: of the marker, a project
+    /// folder, its `project.json`, a document, a chapter or the storyboard. None of them is read
+    /// or removed; the original beside each is what syncs.
+    fn conflict_files(&mut self) -> Result<Vec<String>, SyncError> {
+        let mut found = Vec::new();
+        let mut look = |fs: &mut dyn SyncFileSystem, dir: &str| -> Result<(), SyncError> {
+            for entry in fs.list_dir(dir)? {
+                if is_conflict_copy(&entry.name) {
+                    found.push(if dir.is_empty() {
+                        entry.name
+                    } else {
+                        format!("{dir}/{}", entry.name)
+                    });
+                }
+            }
+            Ok(())
+        };
+        look(self.fs, "")?;
+        look(self.fs, PROJECTS_DIR)?;
+        for project in self.fs.list_dir(PROJECTS_DIR)? {
+            if !project.is_directory || left_alone(&project.name) {
+                continue;
+            }
+            let dir = format!("{PROJECTS_DIR}/{}", project.name);
+            look(self.fs, &dir)?;
+            for sub in [DOCUMENTS_DIR, CHAPTERS_DIR, STORYBOARD_DIR] {
+                look(self.fs, &format!("{dir}/{sub}"))?;
+            }
+        }
+        Ok(found)
     }
 
     /// Markdown is what this layout keeps of a document, so the records match what comes back

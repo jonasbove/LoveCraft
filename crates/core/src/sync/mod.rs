@@ -9,6 +9,7 @@
 //! merge the folder's projects with the library's ([`merge::merge_projects`]), write the result
 //! back, and delete projects deleted on this side.
 
+pub mod foreign;
 pub mod layout;
 pub mod memory;
 pub mod merge;

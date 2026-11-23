@@ -357,9 +357,10 @@ impl SyncProvider for FolderProvider<'_> {
         Ok(())
     }
 
+    /// A deleted project's files go; another sync program's conflict copies in its folder stay.
     fn remove(&mut self, project_ids: &[String]) -> Result<(), SyncError> {
         for id in project_ids {
-            self.fs.remove(&project_dir_name(id))?;
+            super::foreign::remove_keeping_foreign(self.fs, &project_dir_name(id))?;
         }
         Ok(())
     }
@@ -418,7 +419,9 @@ pub fn sync_via(
     if !merged.removed_ids.is_empty() {
         provider.remove(&merged.removed_ids)?;
     }
-    let conflict_files = provider.conflict_files()?;
+    // Only a report: the folder is written already, so a listing that fails can't fail the
+    // sync (its result must reach the library, or the next sync redoes it).
+    let conflict_files = provider.conflict_files().unwrap_or_default();
     Ok(SyncResult {
         conflict_files,
         projects,

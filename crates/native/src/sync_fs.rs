@@ -87,6 +87,13 @@ impl SyncFileSystem for FolderFs {
         }
     }
 
+    /// `remove_dir`, which refuses a folder that isn't empty: a file another program put there
+    /// between the listing and now stays.
+    fn remove_empty_dir(&mut self, path: &str) -> Result<(), SyncError> {
+        let _ = std::fs::remove_dir(self.resolve(path)?);
+        Ok(())
+    }
+
     fn exists(&mut self, path: &str) -> Result<bool, SyncError> {
         Ok(self.resolve(path)?.exists())
     }

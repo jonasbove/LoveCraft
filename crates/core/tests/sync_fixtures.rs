@@ -766,4 +766,173 @@ mod open_folder {
         without.remove("projects/.craftcloud").expect("remove");
         same_files(&without, sync.get("after").expect("after"), "after sync");
     }
+
+    fn projects_with(f: &JsValue, from: &str, to: &str) -> Vec<JsValue> {
+        let text = js::stringify(f.get("projects").expect("projects"));
+        let text = text.replace(&format!("\"{from}\""), &format!("\"{to}\""));
+        js::parse(&text)
+            .expect("json")
+            .as_array()
+            .expect("array")
+            .to_vec()
+    }
+
+    fn doc_ids(projects: &[JsValue]) -> Vec<String> {
+        projects
+            .iter()
+            .flat_map(|p| {
+                p.get("project")
+                    .and_then(|p| p.get("documents"))
+                    .and_then(JsValue::as_array)
+                    .unwrap_or_default()
+                    .iter()
+                    .filter_map(|d| d.get("id").and_then(JsValue::as_js_string))
+                    .map(|s| s.to_string_lossy())
+                    .collect::<Vec<_>>()
+            })
+            .collect()
+    }
+
+    fn sync_open(
+        fs: &mut MemoryFs,
+        local: &[JsValue],
+        last: &JsValue,
+        now: f64,
+        device: &str,
+    ) -> prosecraft_core::sync::SyncResult {
+        sync_via(
+            &mut OpenFolderProvider::new(fs, now),
+            &JsString::from(""),
+            local,
+            last,
+            now,
+            device,
+            &mut OsRandom,
+            &mut || "x".to_owned(),
+        )
+        .expect("sync")
+    }
+
+    /// A scene whose id `safe_name` keeps as it is, but which looks like a Syncthing conflict
+    /// stamp, is the project's own: it reaches the second computer. (It was written and never
+    /// read back.)
+    #[test]
+    fn a_scene_whose_id_looks_like_a_conflict_stamp_reaches_the_other_computer() {
+        let f = fixture();
+        let id = "doc-2.sync-conflict-20261113-143200-A";
+        let local = projects_with(&f, "doc-2", id);
+        let none = JsValue::Object(Default::default());
+        let mut fs = MemoryFs::new();
+        sync_open(&mut fs, &local, &none, now(&f), "device-a");
+        let file = format!("projects/project-1/documents/{id}.md");
+        assert!(fs.files().contains_key(&file), "written");
+        let b = sync_open(&mut fs, &[], &none, now(&f) + 1.0, "device-b");
+        assert!(
+            doc_ids(&b.projects).iter().any(|d| d == id),
+            "{:?}",
+            doc_ids(&b.projects)
+        );
+        assert!(b.conflict_files.is_empty(), "{:?}", b.conflict_files);
+        assert!(fs.files().contains_key(&file), "still there after B's sync");
+    }
+
+    /// Deleting a project removes its files but not a conflict copy in its folder, which can be
+    /// the only copy of an edit; the folder stays for it, later syncs don't mistake it for a
+    /// damaged project, and the copy is reported.
+    #[test]
+    fn deleting_a_project_keeps_the_conflict_copies_in_its_folder() {
+        use prosecraft_core::sync::SyncFileSystem;
+        let f = fixture();
+        let local = list(&f, "projects");
+        let none = JsValue::Object(Default::default());
+        let mut fs = MemoryFs::new();
+        let a = sync_open(&mut fs, &local, &none, now(&f), "device-a");
+        let copy = "projects/project-1/documents/doc-1 (conflict 2026-11-13 14.32 Studio).md";
+        fs.write_text(copy, "the only copy of an edit made on Studio")
+            .expect("write");
+        let kept: Vec<JsValue> = a
+            .projects
+            .iter()
+            .filter(|p| {
+                !p.get("id")
+                    .and_then(JsValue::as_js_string)
+                    .is_some_and(|i| i.eq_str("project-1"))
+            })
+            .cloned()
+            .collect();
+        let a2 = sync_open(&mut fs, &kept, &a.last_synced, now(&f) + 1.0, "device-a");
+        assert_eq!(a2.removed, 1, "project-1 was deleted");
+        assert_eq!(
+            fs.files().get(copy).map(String::as_str),
+            Some("the only copy of an edit made on Studio")
+        );
+        let left: Vec<&String> = fs
+            .files()
+            .keys()
+            .filter(|k| k.starts_with("projects/project-1/"))
+            .collect();
+        assert_eq!(left, [copy], "only the copy is left of the project");
+        assert_eq!(a2.conflict_files, [copy]);
+        let again = sync_open(
+            &mut fs,
+            &a2.projects,
+            &a2.last_synced,
+            now(&f) + 2.0,
+            "device-a",
+        );
+        assert_eq!(
+            again.projects.len(),
+            kept.len(),
+            "the folder isn't read as a project"
+        );
+        assert_eq!(again.conflict_files, [copy]);
+    }
+
+    /// Listing conflict copies is only a report: when it fails, the sync (already written)
+    /// still succeeds.
+    #[test]
+    fn a_conflict_listing_that_fails_does_not_fail_the_sync() {
+        use prosecraft_core::storage::crypto::{RandomSource, VaultKey};
+        use prosecraft_core::sync::SyncError;
+        use prosecraft_core::sync::providers::Connection;
+        struct NoListing<'a>(OpenFolderProvider<'a>);
+        impl SyncProvider for NoListing<'_> {
+            fn connect(
+                &mut self,
+                passphrase: &JsString,
+                random: &mut dyn RandomSource,
+            ) -> Result<Connection, SyncError> {
+                self.0.connect(passphrase, random)
+            }
+            fn push(
+                &mut self,
+                projects: &[JsValue],
+                key: Option<&VaultKey>,
+                random: &mut dyn RandomSource,
+            ) -> Result<(), SyncError> {
+                self.0.push(projects, key, random)
+            }
+            fn remove(&mut self, ids: &[String]) -> Result<(), SyncError> {
+                self.0.remove(ids)
+            }
+            fn conflict_files(&mut self) -> Result<Vec<String>, SyncError> {
+                Err(SyncError::Io("Permission denied".into()))
+            }
+        }
+        let f = fixture();
+        let mut fs = MemoryFs::new();
+        let result = sync_via(
+            &mut NoListing(OpenFolderProvider::new(&mut fs, now(&f))),
+            &JsString::from(""),
+            &list(&f, "projects"),
+            &JsValue::Object(Default::default()),
+            now(&f),
+            "device-a",
+            &mut OsRandom,
+            &mut || "x".to_owned(),
+        )
+        .expect("the sync succeeds");
+        assert!(result.conflict_files.is_empty());
+        assert_eq!(result.projects.len(), 2);
+    }
 }

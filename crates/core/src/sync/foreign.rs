@@ -11,7 +11,11 @@
 //! conflicted copy 2026-11-13).md`) name theirs differently.
 //!
 //! The names prosecraft-rs writes are `safe_name`s: letters, digits, `.`, `_`, `-` and `~`,
-//! never a space or a parenthesis, so a name with a conflict mark is never one of its own.
+//! never a space or a parenthesis, so a CraftCloud, Nextcloud or Dropbox conflict mark is never
+//! one of its own. A Syncthing-like stamp or a `.craft_tmp` ending can be part of an id, so the
+//! names of the records a project knows always count as its own ([`foreign`]).
+
+use super::{SyncError, SyncFileSystem};
 
 /// The name a CraftCloud conflict copy was made from: `doc-1 (conflict 2026-11-13 14.32
 /// Studio).md` → `doc-1.md`. `None` for any other name.
@@ -51,8 +55,74 @@ pub fn is_sync_program_file(name: &str) -> bool {
 }
 
 /// Whether the open folder leaves this name alone: neither read as a record nor ever removed.
+/// A name this app gave a record it knows is never left alone, whatever it looks like (an id
+/// can end in `.craft_tmp` or hold a Syncthing-like stamp): see [`foreign`].
 pub fn left_alone(name: &str) -> bool {
     is_conflict_copy(name) || is_sync_program_file(name)
+}
+
+/// [`left_alone`], unless `ours` says this app wrote the name for a record it knows.
+pub fn foreign(name: &str, ours: impl Fn(&str) -> bool) -> bool {
+    left_alone(name) && !ours(name)
+}
+
+/// How deep a project folder goes: `projects/<id>/<kind>/<file>`.
+const MAX_DEPTH: usize = 4;
+
+/// Removes what a layout wrote in `dir` (a project's folder) and keeps every name another sync
+/// program owns (its conflict copies can be the only copy of an edit). Folders are removed only
+/// once empty. The paths it kept.
+pub(crate) fn remove_keeping_foreign(
+    fs: &mut dyn SyncFileSystem,
+    dir: &str,
+) -> Result<Vec<String>, SyncError> {
+    let mut kept = Vec::new();
+    remove_in(fs, dir, 0, &mut kept)?;
+    Ok(kept)
+}
+
+fn remove_in(
+    fs: &mut dyn SyncFileSystem,
+    dir: &str,
+    depth: usize,
+    kept: &mut Vec<String>,
+) -> Result<(), SyncError> {
+    for entry in fs.list_dir(dir)? {
+        let path = format!("{dir}/{}", entry.name);
+        if left_alone(&entry.name) || (entry.is_directory && depth + 1 >= MAX_DEPTH) {
+            kept.push(path);
+        } else if entry.is_directory {
+            remove_in(fs, &path, depth + 1, kept)?;
+        } else {
+            fs.remove(&path)?;
+        }
+    }
+    fs.remove_empty_dir(dir)
+}
+
+/// Whether a folder holds nothing but other sync programs' files (what is left of a project
+/// deleted while a conflict copy was in it).
+pub(crate) fn only_foreign(fs: &mut dyn SyncFileSystem, dir: &str) -> Result<bool, SyncError> {
+    only_foreign_in(fs, dir, 0)
+}
+
+fn only_foreign_in(
+    fs: &mut dyn SyncFileSystem,
+    dir: &str,
+    depth: usize,
+) -> Result<bool, SyncError> {
+    for entry in fs.list_dir(dir)? {
+        if left_alone(&entry.name) {
+            continue;
+        }
+        if !entry.is_directory || depth + 1 >= MAX_DEPTH {
+            return Ok(false);
+        }
+        if !only_foreign_in(fs, &format!("{dir}/{}", entry.name), depth + 1)? {
+            return Ok(false);
+        }
+    }
+    Ok(true)
 }
 
 #[cfg(test)]
@@ -127,5 +197,42 @@ mod tests {
             let name = format!("{}.md", safe_name(id));
             assert!(!left_alone(&name), "{id} → {name}");
         }
+        // Safe ids that do look like another program's names: a known record's name is its own.
+        for id in [
+            "doc-2.sync-conflict-20261113-143200-A",
+            "project.craft_tmp",
+            "p.craftcloud-part",
+        ] {
+            let name = safe_name(id);
+            assert_eq!(name, id, "kept as it is");
+            assert!(left_alone(&name), "{id} looks foreign by name alone");
+            assert!(!super::foreign(&name, |n| n == id), "{id} is known: ours");
+            assert!(super::foreign(&name, |_| false), "{id} unknown: foreign");
+        }
+    }
+
+    #[test]
+    fn removing_a_project_keeps_conflict_copies_and_its_folder_for_them() {
+        use crate::sync::SyncFileSystem;
+        use crate::sync::memory::MemoryFs;
+        let copy = "projects/p/documents/d (conflict 2026-11-13 14.32 Studio).md";
+        let mut fs = MemoryFs::with_files([
+            ("projects/p/project.json".to_owned(), "{}".to_owned()),
+            ("projects/p/documents/d.md".to_owned(), "d".to_owned()),
+            (copy.to_owned(), "edit".to_owned()),
+            (
+                "projects/p/storyboard/rows.json".to_owned(),
+                "[]".to_owned(),
+            ),
+            ("projects/q/project.json".to_owned(), "{}".to_owned()),
+        ]);
+        let kept = super::remove_keeping_foreign(&mut fs, "projects/p").unwrap();
+        assert_eq!(kept, [copy]);
+        let left: Vec<&String> = fs.files().keys().collect();
+        assert_eq!(left, [copy, "projects/q/project.json"]);
+        assert!(super::only_foreign(&mut fs, "projects/p").unwrap());
+        assert!(!super::only_foreign(&mut fs, "projects/q").unwrap());
+        super::remove_keeping_foreign(&mut fs, "projects/q").unwrap();
+        assert!(!fs.exists("projects/q").unwrap(), "an empty folder goes");
     }
 }

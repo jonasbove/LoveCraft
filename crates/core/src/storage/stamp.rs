@@ -232,7 +232,37 @@ fn stamp_entities(
         }
         result.insert(kind, JsValue::Object(map));
     }
+    let previous_entities = previous
+        .and_then(|p| p.get("entities"))
+        .and_then(JsValue::as_object);
+    keep_unknown(&mut result, previous_entities, &ENTITY_KINDS);
     JsValue::Object(result)
+}
+
+/// The fields `stampProject` writes in a stored project.
+const STORED_FIELDS: [&str; 9] = [
+    "schemaVersion",
+    "id",
+    "createdAt",
+    "updatedAt",
+    "revision",
+    "updatedBy",
+    "deletedAt",
+    "project",
+    "entities",
+];
+
+/// Copies `previous`'s fields other than `known` into `target`, unchanged, after its own.
+///
+/// Deviation from ProseCraft, whose `stampProject` and `stampEntities` rebuild the record from
+/// their known fields only: a field or entity kind a newer release (or another tool) added is
+/// kept, as this app keeps every record it doesn't understand.
+fn keep_unknown(target: &mut JsObject, previous: Option<&JsObject>, known: &[&str]) {
+    for (key, value) in previous.into_iter().flat_map(JsObject::iter) {
+        if !known.iter().any(|k| key.eq_str(k)) {
+            target.insert(key.clone(), value.clone());
+        }
+    }
 }
 
 /// `stampProject`: the stored project after a save of `project`.
@@ -275,5 +305,47 @@ pub fn stamp_project(
     let entities = stamp_entities(previous, &project, device_id, now);
     stored.insert("project", project);
     stored.insert("entities", entities);
+    keep_unknown(
+        &mut stored,
+        previous.and_then(JsValue::as_object),
+        &STORED_FIELDS,
+    );
     JsValue::Object(stored)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::stamp_project;
+    use crate::js::{self, JsValue};
+
+    #[test]
+    fn fields_and_entity_kinds_this_build_does_not_know_are_kept() {
+        let previous = js::parse(
+            r#"{"schemaVersion":2,"id":"p","createdAt":1,"updatedAt":1,"revision":1,"updatedBy":"a","deletedAt":null,
+            "project":{"id":"p","name":"Old","documents":[],"chapters":[]},
+            "entities":{"documents":{},"chapters":{},"storyboardRows":{},"storyboardCards":{},
+              "futureKind":{"x":{"updatedAt":1,"revision":1,"updatedBy":"a","deletedAt":null}}},
+            "futureField":{"keep":true}}"#,
+        )
+        .expect("json");
+        let project =
+            js::parse(r#"{"id":"p","name":"New","documents":[],"chapters":[]}"#).expect("json");
+        let stamped = stamp_project(Some(&previous), project, "b", 5.0);
+        assert_eq!(
+            stamped.get("futureField"),
+            previous.get("futureField"),
+            "an unknown field of the record"
+        );
+        assert_eq!(
+            stamped.get("entities").and_then(|e| e.get("futureKind")),
+            previous.get("entities").and_then(|e| e.get("futureKind")),
+            "an unknown entity kind"
+        );
+        // The known fields are still stamped.
+        assert_eq!(stamped.get("revision"), Some(&JsValue::Number(2.0)));
+        assert_eq!(stamped.get("updatedBy"), Some(&JsValue::str("b")));
+        // Not duplicated: a known field keeps its single, new value.
+        let text = js::stringify(&stamped);
+        assert_eq!(text.matches("\"revision\":2").count(), 1, "{text}");
+    }
 }

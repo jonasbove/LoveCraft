@@ -16,9 +16,17 @@ Changed` (GitHub's generated notes: each pull request merged since the previous 
 `**Full Changelog**`, plus a link to [RELEASE-NOTES.md](RELEASE-NOTES.md) when it has a section for the version.
 FreeBSD and riscv64 are added to the draft later by the `late` job, when (and if) they build.
 
+The web app is built too (`web`, `packaging/web/package.sh`): Trunk in release mode with the same fonts, zipped as
+`prosecraft-rs-web-<version>.zip` with one top-level folder `prosecraft-rs-web-<version>/` holding Trunk's dist
+(`index.html`, the JS and wasm, relative URLs) and the licence files, the layout of the Craft apps' web zips. The
+job checks that every file `index.html` loads is in the zip. CraftCloud's `apps.toml` pins it as
+`[apps.prosecraft-rs]` with `asset = "prosecraft-rs-web-<version>.zip"`, `bridge = "native"` and the sha256
+GitHub shows for the published asset (`cargo xtask bump-apps` there reads it), so a published release is all it
+needs.
+
 The draft is made only when:
 
-- **every required file** was built (`files`);
+- **every required file** was built (`files`), the web zip included;
 - the **package tests** pass (`package-test`, `packaging/linux/test-package.sh`): every Linux package is installed
   in a clean container with its distro's package manager (`.deb` on Debian 12, Ubuntu 22.04 and 24.04; `.rpm` on
   Fedora 41 and 42; both on x86_64 and aarch64; the Arch package on Arch Linux; the AppImage and the tarball on

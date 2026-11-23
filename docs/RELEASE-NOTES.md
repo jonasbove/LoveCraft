@@ -24,6 +24,17 @@ release links to its section here. The newest version is at the top.
   background and is stopped if it doesn't answer. Without CraftCloud nothing changes. It works with today's CraftCloud too, which
   doesn't know the `prosecraft-rs` app yet: the listing is then filtered here.
 
+- **The web app runs inside CraftCloud.** Opened from CraftCloud's file browser (framed with `?host=parent`), the
+  web app edits the `.prosecraft` backup CraftCloud sends and saves it back there under the same name, after a
+  pause in writing (at most every 15 seconds), at once with Ctrl+S, and when the page is hidden or closed, through
+  the Craft apps' shared host messages (`craft-web-host`). It reports unsaved changes, typing included, so
+  CraftCloud can warn before you leave, and says so when a save goes unconfirmed (the next waits for it). Projects
+  you don't edit go back exactly as they came. A file from a newer ProseCraft and an encrypted backup open
+  read-only and are never written back; a file that isn't a backup is refused. Outside a host, nothing changes,
+  and the browser's library is never touched by a hosted file.
+- **A web download.** Each release now has `prosecraft-rs-web-<ver>.zip`, the web app to put on any static host,
+  under any path (the zip CraftCloud pins). It is checksummed and signed like the other files.
+
 ### Fixes
 
 - **Device sync leaves other sync programs' files alone.** In the open folder, a conflict copy that CraftCloud (or
@@ -34,6 +45,11 @@ release links to its section here. The newest version is at the top.
   stay); the sync names the conflict copies it found. A failure to list them no longer fails a sync.
 - **The encrypted single file syncs on the desktop again.** Looking for conflict copies beside it failed with
   "Invalid sync path." after every sync, so the sync reported a failure (the file itself was written).
+- **Nothing a newer release added to a project is lost when it is edited.** Saving a project keeps the fields
+  and record kinds this version doesn't know, instead of rebuilding it from the ones it does (as ProseCraft
+  does).
+- **A backup with a project from a newer ProseCraft, opened into the library, leaves the app read-only**, so no
+  edit is made that could never be saved.
 
 ## 0.1.2
 

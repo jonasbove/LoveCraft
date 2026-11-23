@@ -221,6 +221,26 @@ FreeBSD (`prosecraft-rs-<ver>-freebsd-{x86_64,aarch64}.tar.gz`) and Linux riscv6
 builds are attempted too, but ProseCraft-rs has never been tried there; a release may come without them.
 Installing, updating or removing a package never touches your library.
 
+**Web** (any current browser)
+
+| File | What it is |
+|---|---|
+| `prosecraft-rs-web-<ver>.zip` | The web app: one folder, `prosecraft-rs-web-<ver>/`, to put on any static web server, at the top or under a sub-path (its file URLs are relative). It keeps its library in the browser (IndexedDB) |
+
+**Running inside CraftCloud.** [CraftCloud](https://github.com/jonasbove/craftcloud) serves the Craft apps' web
+builds under `/apps/<app>/` (this one as `/apps/prosecraft-rs/`), and its web file browser opens a file in its app
+through the Craft host messages. Given a `.prosecraft` backup that way, the app edits that file instead of the
+browser's library: it shows the file's projects, and sends them back to be saved as a ProseCraft backup under the
+same name, after a pause in writing (at most every 15 seconds) or at once with Ctrl+S (⌘S). It tells the host
+when there are unsaved changes, so the host can warn before you leave. It sends one save at a time and the next only once the
+host has answered `saved` (a save unanswered after 30 seconds is reported, and holds the next one back), so a
+host must store a file's saves in the order they come, one after another. When the page is hidden or closed,
+what was typed is sent at once. A file from a newer ProseCraft and an
+encrypted backup open read-only and are never written back; a file that isn't a backup is refused with a message.
+The browser's own library is not opened or changed while the app runs inside CraftCloud. Any page on the same
+origin can host it the same way: it speaks `craft-web-host`'s messages (`prosecraft-rs:open`, `:save`,
+`:saved`, `:dirty`, `:failed`) when its URL has `?host=parent`.
+
 **Checking a download**
 
 Every release has `SHA256SUMS.txt`. Check the files you downloaded against it:

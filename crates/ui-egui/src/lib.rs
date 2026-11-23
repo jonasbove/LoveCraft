@@ -932,6 +932,11 @@ impl ProseApp {
             ),
             Err(error) => format!("Read {name}, but couldn't save your library: {error}"),
         };
+        // A project from a newer ProseCraft came in: nothing is saved from now on, so nothing
+        // can be edited either (an edit would be lost without a word).
+        if home.library.is_read_only() {
+            self.state.editable = false;
+        }
         let views = Library::from_stored(home.library.projects().cloned().collect());
         self.state.set_library(views, status, failed);
     }
@@ -2685,6 +2690,12 @@ impl ProseApp {
 
     pub fn state(&self) -> &AppState {
         &self.state
+    }
+
+    /// Whether the editor holds typing not yet committed to the library (it is, after a short
+    /// pause), for a host that warns about unsaved changes.
+    pub fn has_unsaved_draft(&self) -> bool {
+        self.state.draft.as_ref().is_some_and(|d| d.is_dirty())
     }
 
     /// Whether a passphrase is being asked for.

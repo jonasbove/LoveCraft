@@ -4,6 +4,7 @@
 
 use super::layout::{
     encode_project_files, entity_dir, entity_file_name, project_dir_name, read_project_files,
+    safe_name,
 };
 use super::merge::merge_projects;
 use super::{
@@ -230,6 +231,7 @@ impl<'a> FolderProvider<'a> {
         let mut projects = Vec::new();
         for entry in self.fs.list_dir(PROJECTS_DIR)? {
             if entry.is_directory
+                && !self.foreign_project_dir(&entry.name)
                 && let Some(project) = read_project_files(self.fs, &entry.name, key)?
             {
                 projects.push(project);
@@ -271,6 +273,21 @@ impl<'a> FolderProvider<'a> {
             }
         }
         Ok(())
+    }
+
+    /// Whether a folder in `projects/` is another sync program's: a CraftCloud (or Syncthing…)
+    /// conflict copy of a whole project folder, `project-1 (conflict 2026-11-13 14.32 Studio)`,
+    /// whose `project.enc` names another id. Never read as a project (it would be a second copy
+    /// of one) and never removed; [`SyncProvider::conflict_files`] reports it. A project whose
+    /// own id merely looks like such a name is ours: its envelope names that id.
+    fn foreign_project_dir(&mut self, name: &str) -> bool {
+        if !super::foreign::left_alone(name) {
+            return false;
+        }
+        let ours = self
+            .envelope_id(&format!("{PROJECTS_DIR}/{name}/project.enc"))
+            .is_some_and(|id| safe_name(&id) == name);
+        super::foreign::foreign(name, |_| ours)
     }
 
     /// The record id in an encrypted file's plain-text envelope, if it can be read.
@@ -368,10 +385,14 @@ impl SyncProvider for FolderProvider<'_> {
     fn conflict_files(&mut self) -> Result<Vec<String>, SyncError> {
         let mut found = Vec::new();
         for project in self.fs.list_dir(PROJECTS_DIR)? {
+            let dir = format!("{PROJECTS_DIR}/{}", project.name);
             if !project.is_directory {
                 continue;
             }
-            let dir = format!("{PROJECTS_DIR}/{}", project.name);
+            if self.foreign_project_dir(&project.name) {
+                found.push(dir);
+                continue;
+            }
             for kind in ENTITY_KINDS {
                 let sub = format!("{dir}/{}", entity_dir(kind));
                 for entry in self.fs.list_dir(&sub)? {

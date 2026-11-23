@@ -487,6 +487,68 @@ fn conflict_copies_are_reported_not_removed() {
     );
 }
 
+/// CraftCloud's conflict copies of a whole encrypted project folder (the plain one and the
+/// numbered one): not read as a second copy of the project, never removed, and reported.
+#[test]
+fn conflict_copies_of_an_encrypted_project_folder_are_left_alone() {
+    let f = fixture();
+    let none = JsValue::Object(Default::default());
+    let sync = |fs: &mut MemoryFs| {
+        sync_via(
+            &mut FolderProvider::new(fs),
+            &passphrase(&f),
+            &[],
+            &none,
+            1.0,
+            "d",
+            &mut OsRandom,
+            &mut || "x".to_owned(),
+        )
+        .expect("sync")
+    };
+    let mut plain = files(f.get("folder").expect("folder"));
+    let want = sync(&mut plain);
+    let mut fs = files(f.get("folder").expect("folder"));
+    let original: Vec<(String, String)> = fs
+        .files()
+        .iter()
+        .filter(|(k, _)| k.starts_with("projects/project-1/"))
+        .map(|(k, v)| (k.clone(), v.clone()))
+        .collect();
+    let copies = [
+        "projects/project-1 (conflict 2026-11-13 14.32 Studio)",
+        "projects/project-1 (conflict 2026-11-13 14.32 Studio 2)",
+    ];
+    let mut extra = Vec::new();
+    for copy in copies {
+        for (path, content) in &original {
+            let path = path.replacen("projects/project-1", copy, 1);
+            prosecraft_core::sync::SyncFileSystem::write_text(&mut fs, &path, content)
+                .expect("copy");
+            extra.push((path, content.clone()));
+        }
+    }
+    let result = sync(&mut fs);
+    let ids = |r: &prosecraft_core::sync::SyncResult| -> Vec<String> {
+        r.projects
+            .iter()
+            .filter_map(|p| p.get("id").and_then(JsValue::as_js_string))
+            .map(|s| s.to_string_lossy())
+            .collect()
+    };
+    assert_eq!(ids(&result), ids(&want), "one project-1, not three");
+    assert_eq!(result.projects.len(), want.projects.len());
+    for (path, content) in &extra {
+        assert_eq!(
+            fs.files().get(path),
+            Some(content),
+            "{path} is left as it was"
+        );
+    }
+    // Listed in name order: " 2)" sorts before ")".
+    assert_eq!(result.conflict_files, [copies[1], copies[0]]);
+}
+
 mod open_folder {
     use super::{files, text};
     use prosecraft_core::js::{self, JsString, JsValue};

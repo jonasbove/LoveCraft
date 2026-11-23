@@ -952,3 +952,26 @@ fn an_error_in_the_status_line_stays_until_the_next_view() {
     harness.run();
     assert!(harness.state().state().status().is_none());
 }
+
+#[test]
+fn a_backup_with_a_newer_project_leaves_the_library_read_only_and_not_editable() {
+    let memory = Memory::default();
+    let mut app = ProseApp::with_library(ProjectLibrary::new("d".into()), Box::new(memory.clone()));
+    assert!(app.state().is_editable());
+    let newer = fixture("bundle-plain.prosecraft").replacen(
+        "\"schemaVersion\": 2,\n      \"id\": \"project-1\"",
+        "\"schemaVersion\": 99,\n      \"id\": \"project-1\"",
+        1,
+    );
+    assert_ne!(
+        newer,
+        fixture("bundle-plain.prosecraft"),
+        "the fixture changed"
+    );
+    app.open_backup("newer.prosecraft", &newer);
+    assert!(
+        !app.state().is_editable(),
+        "an edit now would never be saved, so none can be made"
+    );
+    assert!(memory.saved.lock().map(|s| s.is_empty()).unwrap_or(false));
+}

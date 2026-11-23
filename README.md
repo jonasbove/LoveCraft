@@ -184,8 +184,8 @@ not; cloud sync goes through [CraftCloud](https://github.com/jonasbove/craftclou
 Every release from 0.1.2 on, on the [releases page](https://github.com/jonasbove/LoveCraft/releases) has
 packages for every system, each with the app (`lovecraft`) and the MCP server (`lovecraft-mcp`). Before 0.2.0
 the files and commands were named `prosecraft-rs`; every package still installs `prosecraft-rs` and
-`prosecraft-mcp` as aliases (deprecated), and the 0.2 packages replace the `prosecraft-rs` ones. The app also comes from the
-Nix flake or from source. `<ver>` is the version number, for example `0.2.0`.
+`prosecraft-mcp` as aliases (deprecated), and the 0.2 packages replace the `prosecraft-rs` ones. The app also
+comes from the Nix flake or from source. `<ver>` is the version number, for example `0.2.0`.
 
 The builds are **not code-signed** by Apple or Microsoft yet, so your system asks once before the first start.
 

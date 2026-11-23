@@ -44,12 +44,20 @@ function Get-FileInfo([string] $Path) {
   return @{ Package = $Matches[1]; Version = $Matches[2]; Display = $display }
 }
 
+# A started process's exit code. The handle is taken first: without it, ExitCode can be empty.
+function Wait-Exit([System.Diagnostics.Process] $Process) {
+  $null = $Process.Handle
+  $Process.WaitForExit()
+  return $Process.ExitCode
+}
+
 function Invoke-Msiexec([string] $Action, [string] $Path) {
-  $log = Join-Path $Work "msiexec-$Action-$([IO.Path]::GetRandomFileName()).log"
-  $p = Start-Process msiexec.exe -ArgumentList @($Action, "`"$Path`"", '/qn', '/norestart', '/l*v', "`"$log`"") -Wait -PassThru
-  if ($p.ExitCode -ne 0) {
+  $log = Join-Path $Work "msiexec-$($Action.TrimStart('/'))-$([IO.Path]::GetRandomFileName()).log"
+  $p = Start-Process msiexec.exe -ArgumentList @($Action, "`"$Path`"", '/qn', '/norestart', '/l*v', "`"$log`"") -PassThru
+  $code = Wait-Exit $p
+  if ($code -ne 0) {
     if (Test-Path $log) { Get-Content $log -Tail 60 }
-    Fail "msiexec $Action $(Split-Path -Leaf $Path) exited $($p.ExitCode)"
+    Fail "msiexec $Action $(Split-Path -Leaf $Path) exited $code"
   }
   Ok "msiexec $Action $(Split-Path -Leaf $Path)"
 }
@@ -58,8 +66,9 @@ function Invoke-Msiexec([string] $Action, [string] $Path) {
 function Get-AppVersion([string] $Exe) {
   if (-not (Test-Path -LiteralPath $Exe)) { Fail "$Exe missing" }
   $out = Join-Path $Work "version-$([IO.Path]::GetRandomFileName()).txt"
-  $p = Start-Process -FilePath $Exe -ArgumentList '--version' -Wait -PassThru -NoNewWindow -RedirectStandardOutput $out
-  if ($p.ExitCode -ne 0) { Fail "$Exe --version exited $($p.ExitCode)" }
+  $p = Start-Process -FilePath $Exe -ArgumentList '--version' -PassThru -NoNewWindow -RedirectStandardOutput $out
+  $code = Wait-Exit $p
+  if ($code -ne 0) { Fail "$Exe --version exited $code" }
   return (Get-Content -Raw $out).Trim()
 }
 

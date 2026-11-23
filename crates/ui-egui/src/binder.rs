@@ -290,6 +290,9 @@ fn footer(ui: &mut Ui, state: &mut AppState) {
         if ui.button("Open backup…").clicked() {
             state.requests.push(crate::HostRequest::OpenBackup);
         }
+        if state.cloud.runner.is_some() && ui.button("Open from CraftCloud…").clicked() {
+            crate::craftcloud::start_open(ui.ctx(), state);
+        }
         if state.has_home && state.library.is_some() && ui.button("Export backup…").clicked() {
             state.export_wanted = true;
         }

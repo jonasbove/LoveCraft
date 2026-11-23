@@ -28,7 +28,7 @@ impl ProseApp {
             return;
         };
         self.state.sync.available = home.store.supports_sync();
-        self.state.sync.craftcloud = home.store.has_craftcloud();
+        self.state.sync.craftcloud = self.state.cloud.runner.is_some();
         self.state.comment_author = home
             .store
             .load_setting(crate::COMMENT_AUTHOR_KEY)
@@ -157,23 +157,10 @@ impl ProseApp {
                     };
                 }
                 SyncAction::SetMode(_) => {}
-                SyncAction::UseCraftCloud => {
-                    let Some(home) = self.home.as_mut() else {
-                        continue;
-                    };
-                    match home.store.craftcloud_folder() {
-                        Ok(folder) => {
-                            // One encrypted file: a CraftCloud clash is then one whole-file
-                            // conflict copy, never a half-synced layout.
-                            if self.state.sync.mode != SyncMode::EncryptedFile {
-                                self.state.sync.mode = SyncMode::EncryptedFile;
-                                self.state.sync.passphrase.clear();
-                            }
-                            self.set_sync_folder(folder);
-                        }
-                        Err(why) => self.state.sync.status = why,
-                    }
-                }
+                SyncAction::UseCraftCloud => match self.craftcloud_sync_folder() {
+                    Ok(folder) => self.set_sync_folder(folder),
+                    Err(why) => self.state.sync.status = why,
+                },
                 SyncAction::Forget => {
                     if let Some(home) = self.home.as_mut() {
                         let _ = home.store.save_setting(SYNC_STATE_KEY, None);
@@ -185,6 +172,33 @@ impl ProseApp {
                 SyncAction::SyncNow => self.start_sync(),
             }
         }
+    }
+
+    /// "In CraftCloud": device sync's folder for the chosen method inside the folder CraftCloud
+    /// keeps in step (`prosecraft_core::craftcloud::device_sync_folder`). Every method works
+    /// there: CraftCloud's conflict copies and files in progress are left alone and reported.
+    fn craftcloud_sync_folder(&mut self) -> Result<String, String> {
+        use prosecraft_core::craftcloud;
+        let runner = self
+            .state
+            .cloud
+            .runner
+            .clone()
+            .ok_or("CraftCloud isn't installed.")?;
+        let root = craftcloud::sync_folder(runner.as_ref()).map_err(|f| f.message())?;
+        let mode = self.state.sync.mode;
+        let legacy = std::path::Path::new(&root)
+            .join(craftcloud::LEGACY_SYNC_FOLDER)
+            .to_string_lossy()
+            .into_owned();
+        let legacy_in_use = mode == SyncMode::EncryptedFile
+            && self.home.as_mut().is_some_and(|home| {
+                home.store.sync_fs(&legacy).is_some_and(|mut fs| {
+                    fs.exists(prosecraft_core::sync::BUNDLE_FILE)
+                        .unwrap_or(false)
+                })
+            });
+        Ok(craftcloud::device_sync_folder(&root, mode, legacy_in_use))
     }
 
     fn start_sync(&mut self) {
@@ -304,10 +318,16 @@ impl ProseApp {
                     } else {
                         format!(" and {more} more")
                     };
-                    let advice = if mode == SyncMode::EncryptedFile {
-                        " Open it with Open backup… to bring its changes in."
-                    } else {
-                        ""
+                    let advice = match mode {
+                        SyncMode::EncryptedFile => {
+                            " Open it with Open backup… to bring its changes in."
+                        }
+                        // A copy holds the other computer's version of a scene, chapter or
+                        // storyboard: plain text, read beside the original.
+                        SyncMode::OpenFolder => {
+                            " A conflict copy is one computer's version of a file that changed on two; the original beside it is what syncs. Open the copy in a text editor, bring what you need into ProseCraft-rs, then delete the copy."
+                        }
+                        SyncMode::EncryptedFolder => "",
                     };
                     self.state.sync.status.push_str(&format!(" Another sync tool left a conflict copy in the folder: {first}{others}. It was left as it is.{advice}"));
                 }

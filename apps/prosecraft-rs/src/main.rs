@@ -73,8 +73,6 @@ enum Then {
 /// The library file, saved atomically.
 struct DiskStore {
     file: LibraryFile,
-    /// CraftCloud's `craftcloud` program, found on `PATH` at start.
-    craftcloud: Option<std::path::PathBuf>,
 }
 
 impl LibraryStore for DiskStore {
@@ -98,17 +96,6 @@ impl LibraryStore for DiskStore {
     }
     fn supports_sync(&self) -> bool {
         true
-    }
-    fn has_craftcloud(&self) -> bool {
-        self.craftcloud.is_some()
-    }
-    fn craftcloud_folder(&mut self) -> Result<String, String> {
-        let program = self
-            .craftcloud
-            .as_ref()
-            .ok_or("CraftCloud isn't installed.")?;
-        prosecraft_native::craftcloud::prosecraft_folder(program)
-            .map(|p| p.to_string_lossy().into_owned())
     }
     fn sync_fs(
         &mut self,
@@ -163,13 +150,7 @@ fn start() -> (ProseApp, Option<String>) {
         }
     };
     (
-        ProseApp::with_library(
-            library,
-            Box::new(DiskStore {
-                file,
-                craftcloud: prosecraft_native::craftcloud::find_on_path(),
-            }),
-        ),
+        ProseApp::with_library(library, Box::new(DiskStore { file })),
         None,
     )
 }
@@ -418,6 +399,8 @@ impl eframe::App for DesktopApp {
                         .filter("ProseCraft backup", &["prosecraft", "json"]);
                     self.dialogs.ask(dialog, Then::Open);
                 }
+                // A backup CraftCloud synced here, opened as Open backup opens one.
+                HostRequest::OpenBackupPath(path) => read_backup(&mut self.app, Path::new(&path)),
                 HostRequest::ImportCitations => {
                     let dialog = FileDialog::open().title("Import citation file").filter(
                         "Citation file",
@@ -656,6 +639,12 @@ fn main() -> ExitCode {
     }));
     // Zotero on this computer, through its local HTTP server.
     app.set_zotero(Arc::new(prosecraft_core::citations::zotero::request));
+    // CraftCloud, when its program is installed ("without it, show nothing").
+    if let Some(program) = prosecraft_native::craftcloud::find_on_path() {
+        app.set_craftcloud(Arc::new(prosecraft_native::craftcloud::ProcessRunner::new(
+            program,
+        )));
+    }
     if let Some(problem) = problem {
         eprintln!("{problem}");
     }

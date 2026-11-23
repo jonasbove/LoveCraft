@@ -16,6 +16,7 @@ pub mod chapter;
 pub mod citations;
 pub mod cite;
 pub mod comments;
+pub mod craftcloud;
 pub mod csl;
 pub mod edit;
 pub mod footnotes;

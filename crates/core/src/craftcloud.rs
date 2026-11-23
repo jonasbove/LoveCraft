@@ -15,6 +15,7 @@
 
 use crate::js::{self, JsValue};
 use crate::sync::SyncMode;
+use std::time::Duration;
 
 /// ProseCraft-rs' app id in CraftCloud's `apps.toml`.
 pub const APP_ID: &str = "prosecraft-rs";
@@ -26,6 +27,11 @@ pub const FOLDER: &str = "ProseCraft-rs";
 /// megabytes; anything past this is not read.
 pub const MAX_OUTPUT_BYTES: usize = 64 * 1024 * 1024;
 
+/// How long a command that answers from this computer or one listing may take.
+pub const QUICK: Duration = Duration::from_secs(60);
+/// How long `save --wait` may take: CraftCloud waits up to 30 minutes for the upload.
+pub const UPLOAD: Duration = Duration::from_secs(35 * 60);
+
 /// What one run of the program gave back.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Output {
@@ -33,6 +39,8 @@ pub struct Output {
     pub code: Option<i32>,
     pub stdout: String,
     pub stderr: String,
+    /// It didn't finish in time and was stopped.
+    pub timed_out: bool,
 }
 
 impl Output {
@@ -41,7 +49,7 @@ impl Output {
         Self {
             code: Some(0),
             stdout: json.to_owned(),
-            stderr: String::new(),
+            ..Self::default()
         }
     }
 
@@ -58,17 +66,17 @@ impl Output {
         }));
         Self {
             code: Some(code),
-            stdout: String::new(),
             stderr: error,
+            ..Self::default()
         }
     }
 }
 
 /// Runs the `craftcloud` program. Shared with a background thread, so it is `Send + Sync`.
 pub trait Runner: Send + Sync {
-    /// Runs `craftcloud` with these arguments and waits for it. `Err` when it couldn't be
-    /// started at all.
-    fn run(&self, args: &[&str]) -> Result<Output, String>;
+    /// Runs `craftcloud` with these arguments and waits for it, at most `timeout`: then it is
+    /// stopped (`timed_out`). `Err` when it couldn't be started at all.
+    fn run(&self, args: &[&str], timeout: Duration) -> Result<Output, String>;
     /// Writes a file named `name` with these bytes in a new temporary folder, for `save` to
     /// copy into CraftCloud (it keeps the file's name). Its path.
     fn stage(&self, name: &str, bytes: &[u8]) -> Result<String, String>;
@@ -88,8 +96,18 @@ pub enum Failure {
     SignedOut,
     /// 4: no such file or folder.
     NotFound(String),
-    /// 5: a file is already there (or it changed in the cloud meanwhile): `--force` replaces it.
-    Exists(String),
+    /// 5 from `save`: a file of that name is there; `--force` replaces it. When it last changed,
+    /// if CraftCloud said.
+    Exists {
+        message: String,
+        modified: Option<String>,
+    },
+    /// 5 from `save --wait` once the file was in the sync folder: it changed in the cloud too,
+    /// and CraftCloud kept both. Saved, as a conflict copy beside the cloud's version; never
+    /// to be forced.
+    BothKept(String),
+    /// 5 for anything else (a folder of that name, a change on the server meanwhile).
+    Conflict(String),
     /// 6: no desktop client (or daemon) is running.
     NoClient(String),
     /// 7: the server refused.
@@ -98,6 +116,8 @@ pub enum Failure {
     Unreachable,
     /// 9: the sync is held and waits for the person.
     Held(String),
+    /// It didn't answer in time.
+    TimedOut,
     /// Any other failure, or an answer that couldn't be read.
     Other(String),
 }
@@ -110,12 +130,13 @@ impl Failure {
             Some(2) => Self::Usage(message),
             Some(3) => Self::SignedOut,
             Some(4) => Self::NotFound(message),
-            Some(5) => Self::Exists(message),
+            Some(5) => Self::Conflict(message),
             Some(6) => Self::NoClient(message),
             Some(7) => Self::Forbidden(message),
             Some(8) => Self::Unreachable,
             Some(9) => Self::Held(message),
             Some(_) => Self::Other(message),
+            None if output.timed_out => Self::TimedOut,
             None => Self::Other("CraftCloud was stopped before it answered.".into()),
         }
     }
@@ -134,7 +155,15 @@ impl Failure {
             Self::Usage(why) => said("CraftCloud didn't accept the request.", why),
             Self::SignedOut => "CraftCloud isn't signed in on this computer. Sign in to CraftCloud, then try again.".into(),
             Self::NotFound(why) => said("CraftCloud couldn't find it.", why),
-            Self::Exists(why) => said("There is already a file of this name in CraftCloud.", why),
+            Self::Exists { message, .. } => {
+                said("There is already a file of this name in CraftCloud.", message)
+            }
+            Self::BothKept(why) => said(
+                "Saved, but the file had changed in the cloud too: CraftCloud kept both, this backup as a conflict copy beside it.",
+                why,
+            ),
+            Self::Conflict(why) => said("CraftCloud didn't save it.", why),
+            Self::TimedOut => "CraftCloud didn't answer in time. Check that the CraftCloud desktop client is running, then try again.".into(),
             Self::NoClient(_) => "The CraftCloud desktop client isn't running. Start CraftCloud, then try again.".into(),
             Self::Forbidden(why) => said("The CraftCloud server refused.", why),
             Self::Unreachable => "The CraftCloud server can't be reached. Check the connection, then try again.".into(),
@@ -179,8 +208,13 @@ fn error_message(stderr: &str) -> String {
 
 /// Runs a command and reads its JSON answer. With `held_ok`, a held sync (exit 9) still
 /// answers.
-fn ask(runner: &dyn Runner, args: &[&str], held_ok: bool) -> Result<JsValue, Failure> {
-    let output = runner.run(args).map_err(Failure::NotStarted)?;
+fn ask(
+    runner: &dyn Runner,
+    args: &[&str],
+    timeout: Duration,
+    held_ok: bool,
+) -> Result<JsValue, Failure> {
+    let output = runner.run(args, timeout).map_err(Failure::NotStarted)?;
     let answered = output.code == Some(0) || (held_ok && output.code == Some(9));
     if !answered {
         return Err(Failure::of(&output));
@@ -301,8 +335,8 @@ pub fn is_backup_name(name: &str) -> bool {
 /// The ProseCraft backups CraftCloud has, newest first: `files --app prosecraft-rs`, or, from a
 /// CraftCloud that doesn't know that app yet, every file it lists, kept here by extension.
 pub fn list_backups(runner: &dyn Runner) -> Result<Vec<CloudFile>, Failure> {
-    let answer = match ask(runner, &["files", "--app", APP_ID, "--json"], false) {
-        Err(Failure::Usage(_)) => ask(runner, &["files", "--json"], false)?,
+    let answer = match ask(runner, &["files", "--app", APP_ID, "--json"], QUICK, false) {
+        Err(Failure::Usage(_)) => ask(runner, &["files", "--json"], QUICK, false)?,
         other => other?,
     };
     let items = answer
@@ -355,9 +389,24 @@ pub fn save_backup(
     if force {
         args.push("--force");
     }
-    let answer = ask(runner, &args, false);
+    let answer = ask(runner, &args, UPLOAD, false);
+    // Copied (or not) by now, whatever happened: the temporary file goes.
     runner.discard(&staged);
-    let answer = answer?;
+    let answer = answer.map_err(|failure| match failure {
+        Failure::Conflict(message) if message.contains("both versions were kept") => {
+            Failure::BothKept(message)
+        }
+        Failure::Conflict(message)
+            if message.contains("already in CraftCloud") || message.contains("already there") =>
+        {
+            let path = format!("{folder}/{file_name}");
+            Failure::Exists {
+                modified: modified_of(runner, folder, &path),
+                message,
+            }
+        }
+        other => other,
+    })?;
     let text = |key: &str| {
         answer
             .get(key)
@@ -372,19 +421,48 @@ pub fn save_backup(
     })
 }
 
+/// When the file at `path` in the cloud folder `folder` last changed (RFC 3339), from `files
+/// --in`, if CraftCloud says.
+fn modified_of(runner: &dyn Runner, folder: &str, path: &str) -> Option<String> {
+    let answer = ask(runner, &["files", "--in", folder, "--json"], QUICK, false).ok()?;
+    answer
+        .as_array()?
+        .iter()
+        .filter_map(CloudFile::read)
+        .find(|f| f.path == path)
+        .map(|f| f.modified)
+        .filter(|m| !m.is_empty())
+}
+
 /// The folder CraftCloud keeps in step on this computer (`status --json`'s `local_folder`).
+/// Refused while CraftCloud holds its sync for the person: its folder is missing, or a mass
+/// delete waits to be confirmed. Writing there then would go nowhere, or be undone.
 pub fn sync_folder(runner: &dyn Runner) -> Result<String, Failure> {
-    let status = ask(runner, &["status", "--json"], true)?;
+    let status = ask(runner, &["status", "--json"], QUICK, true)?;
+    let state = status
+        .get("state")
+        .and_then(JsValue::as_js_string)
+        .map(|s| s.to_string_lossy())
+        .unwrap_or_default();
+    match state.as_str() {
+        "folder_missing" => {
+            return Err(Failure::Held(
+                "Its sync folder is missing on this computer. Open CraftCloud to find or choose it, then try again".into(),
+            ));
+        }
+        "mass_delete" => {
+            return Err(Failure::Held(
+                "It is holding a large delete for you to confirm or undo. Open CraftCloud and decide, then try again".into(),
+            ));
+        }
+        _ => {}
+    }
     let folder = status
         .get("local_folder")
         .and_then(JsValue::as_js_string)
         .map(|s| s.to_string_lossy())
         .unwrap_or_default();
-    let signed_out = status
-        .get("state")
-        .and_then(JsValue::as_js_string)
-        .is_some_and(|s| s.eq_str("signed_out"));
-    if folder.is_empty() || signed_out {
+    if folder.is_empty() || state == "signed_out" {
         return Err(Failure::SignedOut);
     }
     Ok(folder)
@@ -402,32 +480,99 @@ pub fn device_sync_folder(root: &str, mode: SyncMode, legacy_in_use: bool) -> St
     let root = std::path::Path::new(root);
     let folder = match mode {
         SyncMode::EncryptedFile if legacy_in_use => root.join(LEGACY_SYNC_FOLDER),
-        SyncMode::EncryptedFile => root.join(FOLDER).join("Encrypted sync file"),
-        SyncMode::OpenFolder => root.join(FOLDER).join("Open sync folder"),
-        SyncMode::EncryptedFolder => root.join(FOLDER).join("Encrypted sync folder"),
+        SyncMode::EncryptedFile => root.join(FOLDER).join(METHOD_FOLDERS[0]),
+        SyncMode::OpenFolder => root.join(FOLDER).join(METHOD_FOLDERS[1]),
+        SyncMode::EncryptedFolder => root.join(FOLDER).join(METHOD_FOLDERS[2]),
     };
     folder.to_string_lossy().into_owned()
 }
 
-/// A backup's file name for a project: its name with the characters file systems refuse
-/// replaced, `.prosecraft` after it.
-pub fn backup_file_name(project_name: &str) -> String {
-    let cleaned: String = project_name
-        .chars()
-        .map(|c| match c {
-            '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|' => '-',
-            c if c.is_control() => ' ',
-            c => c,
-        })
-        .take(120)
-        .collect();
-    let cleaned = cleaned.trim().trim_matches('.').trim();
-    let stem = if cleaned.is_empty() {
-        "Untitled project"
-    } else {
-        cleaned
+/// Whether CraftCloud's cloud has 0.1's sync file (`ProseCraft/prosecraft-sync.prosecraft`),
+/// downloaded here or not (`ls`, which asks the server). `false` when it can't tell.
+pub fn legacy_sync_file_in_cloud(runner: &dyn Runner) -> bool {
+    let Ok(answer) = ask(runner, &["ls", LEGACY_SYNC_FOLDER, "--json"], QUICK, false) else {
+        return false;
     };
+    answer.as_array().is_some_and(|items| {
+        items
+            .iter()
+            .filter_map(CloudFile::read)
+            .any(|f| f.name == crate::sync::BUNDLE_FILE)
+    })
+}
+
+/// The CraftCloud sync folder a device-sync folder is inside, when it is one this app made
+/// there: `<root>/ProseCraft-rs/<method>` or 0.1's `<root>/ProseCraft`.
+pub fn craftcloud_root_of(folder: &str) -> Option<String> {
+    let path = std::path::Path::new(folder);
+    let name = path.file_name()?.to_str()?;
+    let parent = path.parent()?;
+    let root = if METHOD_FOLDERS.contains(&name)
+        && parent.file_name().and_then(|n| n.to_str()) == Some(FOLDER)
+    {
+        parent.parent()?
+    } else if name == LEGACY_SYNC_FOLDER {
+        parent
+    } else {
+        return None;
+    };
+    Some(root.to_string_lossy().into_owned())
+}
+
+/// The folders device sync uses in `ProseCraft-rs/`, one for each method.
+const METHOD_FOLDERS: [&str; 3] = [
+    "Encrypted sync file",
+    "Open sync folder",
+    "Encrypted sync folder",
+];
+
+/// The most bytes a backup's name may take before `.prosecraft`: file systems allow 255 bytes,
+/// and CraftCloud's conflict copies add about 40.
+const MAX_STEM_BYTES: usize = 200;
+
+/// A backup's file name for a project: its name with the characters file systems refuse
+/// replaced, at most [`MAX_STEM_BYTES`] bytes (cut between characters), `.prosecraft` after
+/// it. A name Windows keeps for a device (`CON`, `NUL`, `COM1`…) or that Office and CraftCloud
+/// take for a lock file (`~$…`) gets a mark that makes it an ordinary name.
+pub fn backup_file_name(project_name: &str) -> String {
+    let mut cleaned = String::new();
+    for c in project_name.chars().map(|c| match c {
+        '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|' => '-',
+        c if c.is_control() => ' ',
+        c => c,
+    }) {
+        if cleaned.len() + c.len_utf8() > MAX_STEM_BYTES {
+            break;
+        }
+        cleaned.push(c);
+    }
+    let cleaned = cleaned.trim().trim_matches('.').trim();
+    let mut stem = if cleaned.is_empty() {
+        "Untitled project".to_owned()
+    } else {
+        cleaned.to_owned()
+    };
+    if let Some(rest) = stem.strip_prefix("~$") {
+        stem = format!("-${rest}");
+    }
+    if windows_device_name(&stem) {
+        stem.push_str(" (project)");
+    }
     format!("{stem}.{EXTENSION}")
+}
+
+/// `CON`, `PRN`, `AUX`, `NUL`, `COM1`–`COM9` and `LPT1`–`LPT9`, in any case, alone or before
+/// a dot: names Windows gives its devices, whatever follows the dot.
+fn windows_device_name(stem: &str) -> bool {
+    let base = stem.split('.').next().unwrap_or_default().trim_end();
+    let upper = base.to_ascii_uppercase();
+    matches!(upper.as_str(), "CON" | "PRN" | "AUX" | "NUL")
+        || ((upper.starts_with("COM") || upper.starts_with("LPT"))
+            && upper.len() == 4
+            && upper
+                .as_bytes()
+                .get(3)
+                .is_some_and(|d| (b'1'..=b'9').contains(d)))
 }
 
 #[cfg(test)]

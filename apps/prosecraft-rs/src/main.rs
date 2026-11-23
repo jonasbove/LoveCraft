@@ -200,16 +200,12 @@ fn file_name(path: &Path) -> String {
         .unwrap_or_else(|| path.display().to_string())
 }
 
-/// Reads a backup for opening. The file is only read, never written.
+/// Reads a backup for opening. The file is only read, never written; why it can't be read
+/// shows in the app's status line.
 fn read_backup(app: &mut ProseApp, path: &Path) {
-    let name = file_name(path);
-    if std::fs::metadata(path).is_ok_and(|m| m.len() > ProseApp::MAX_BACKUP_BYTES) {
-        eprintln!("{name}: far too large to be a ProseCraft backup");
-        return;
-    }
-    match std::fs::read(path) {
-        Ok(bytes) => app.open_backup_bytes(&name, &bytes),
-        Err(error) => eprintln!("{name}: {error}"),
+    match prosecraft_native::read_backup_file(path, ProseApp::MAX_BACKUP_BYTES) {
+        Ok(bytes) => app.open_backup_bytes(&file_name(path), &bytes),
+        Err(why) => app.report(&why),
     }
 }
 
@@ -639,8 +635,13 @@ fn main() -> ExitCode {
     }));
     // Zotero on this computer, through its local HTTP server.
     app.set_zotero(Arc::new(prosecraft_core::citations::zotero::request));
-    // CraftCloud, when its program is installed ("without it, show nothing").
+    // CraftCloud, when its program is installed ("without it, show nothing"). What an earlier
+    // save to it left behind (a crash mid-save) goes first.
     if let Some(program) = prosecraft_native::craftcloud::find_on_path() {
+        prosecraft_native::craftcloud::clean_stale_stages(
+            &std::env::temp_dir(),
+            std::time::Duration::from_secs(2 * 60 * 60),
+        );
         app.set_craftcloud(Arc::new(prosecraft_native::craftcloud::ProcessRunner::new(
             program,
         )));

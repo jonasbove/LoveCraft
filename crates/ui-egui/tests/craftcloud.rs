@@ -18,6 +18,8 @@ struct Fake {
     answers: Mutex<VecDeque<Output>>,
     asked: Mutex<Vec<String>>,
     staged: Mutex<Vec<String>>,
+    /// How long a `save` takes to answer.
+    slow_save: std::time::Duration,
 }
 
 impl Fake {
@@ -27,14 +29,24 @@ impl Fake {
             ..Self::default()
         })
     }
+    fn slow(answers: impl IntoIterator<Item = Output>) -> Arc<Self> {
+        Arc::new(Self {
+            answers: Mutex::new(answers.into_iter().collect()),
+            slow_save: std::time::Duration::from_millis(400),
+            ..Self::default()
+        })
+    }
     fn asked(&self) -> Vec<String> {
         self.asked.lock().expect("asked").clone()
     }
 }
 
 impl Runner for Fake {
-    fn run(&self, args: &[&str]) -> Result<Output, String> {
+    fn run(&self, args: &[&str], _timeout: std::time::Duration) -> Result<Output, String> {
         self.asked.lock().expect("asked").push(args.join(" "));
+        if args.first() == Some(&"save") {
+            std::thread::sleep(self.slow_save);
+        }
         self.answers
             .lock()
             .expect("answers")
@@ -220,6 +232,12 @@ const SAVED: &str = r#"{"path": "ProseCraft-rs/The Lighthouse 🌊 Keeper.prosec
  "local_path": "/home/john/CraftCloud/ProseCraft-rs/The Lighthouse 🌊 Keeper.prosecraft",
  "via": "client", "state": "synced", "replaced": true, "size": 812}"#;
 
+/// `files --in ProseCraft-rs --json`: the file already there.
+const EXISTING: &str = r#"[{"path": "ProseCraft-rs/The Lighthouse 🌊 Keeper.prosecraft",
+ "name": "The Lighthouse 🌊 Keeper.prosecraft", "type": "file", "size": 900,
+ "modified": "2026-11-13T21:54:00Z", "starred": false,
+ "local_path": "/home/john/CraftCloud/ProseCraft-rs/The Lighthouse 🌊 Keeper.prosecraft", "sync": "synced"}]"#;
+
 #[test]
 fn save_asks_before_replacing_and_then_forces() {
     let fake = Fake::new([
@@ -228,6 +246,7 @@ fn save_asks_before_replacing_and_then_forces() {
             "conflict",
             "ProseCraft-rs/The Lighthouse 🌊 Keeper.prosecraft is already in CraftCloud (--force replaces it; the old version is kept)",
         ),
+        Output::ok(EXISTING),
         Output::ok(SAVED),
     ]);
     let mut harness = app(Some(fake.clone()));
@@ -236,7 +255,7 @@ fn save_asks_before_replacing_and_then_forces() {
         .get_by_role_and_label(Role::MenuItem, "Save to CraftCloud…")
         .click();
     settle(&mut harness, |h| h.query_by_label("Replace?").is_some());
-    harness.get_by_label_contains("There is already a The Lighthouse 🌊 Keeper.prosecraft in CraftCloud's ProseCraft-rs folder");
+    harness.get_by_label_contains("There is already a The Lighthouse 🌊 Keeper.prosecraft (last changed 13 Nov 2026, 21:54 UTC) in CraftCloud's ProseCraft-rs folder");
     harness.get_by_label_contains("is already in CraftCloud (--force replaces it");
     harness
         .get_by_role_and_label(Role::Button, "Replace")
@@ -259,6 +278,7 @@ fn save_asks_before_replacing_and_then_forces() {
         fake.asked(),
         [
             "save /tmp/prosecraft-rs-craftcloud-x/The Lighthouse 🌊 Keeper.prosecraft --to ProseCraft-rs --wait --json",
+            "files --in ProseCraft-rs --json",
             "save /tmp/prosecraft-rs-craftcloud-x/The Lighthouse 🌊 Keeper.prosecraft --to ProseCraft-rs --wait --json --force",
         ]
     );
@@ -324,4 +344,71 @@ fn a_client_that_stops_mid_upload_is_not_a_failure() {
             .is_some_and(|s| s.contains("is in your CraftCloud folder"))
     });
     assert!(harness.query_by_role(Role::Alert).is_none());
+}
+
+/// A save goes on in the background: Escape puts its window aside, the menus stay usable, and
+/// the status line says how it ended, a failure too.
+#[test]
+fn a_save_put_aside_says_how_it_ended() {
+    for (answer, says) in [
+        (
+            Output::ok(SAVED),
+            "Saved to CraftCloud as ProseCraft-rs/The Lighthouse",
+        ),
+        (
+            Output::failed(8, "unreachable", "cloud.example.org: connection refused"),
+            "The CraftCloud server can't be reached.",
+        ),
+    ] {
+        let mut harness = app(Some(Fake::slow([answer])));
+        open_file_menu(&mut harness);
+        harness
+            .get_by_role_and_label(Role::MenuItem, "Save to CraftCloud…")
+            .click();
+        harness.run_steps(2);
+        harness.get_by_role_and_label(Role::Button, "Continue in background");
+        harness.key_press(Key::Escape);
+        harness.run_steps(2);
+        assert!(
+            harness.query_by_label("Continue in background").is_none(),
+            "put aside"
+        );
+        // The menus aren't held while it saves.
+        open_file_menu(&mut harness);
+        assert!(
+            !harness
+                .get_by_role_and_label(Role::MenuItem, "Open from CraftCloud…")
+                .accesskit_node()
+                .is_disabled()
+        );
+        harness.key_press(Key::Escape);
+        settle(&mut harness, |h| {
+            h.state().state().status().is_some_and(|s| s.contains(says))
+        });
+        assert!(harness.query_by_role(Role::Alert).is_none());
+    }
+}
+
+/// `save --wait` that found the file changed in the cloud too: CraftCloud kept both, so it is
+/// saved; "Replace?" (and `--force`) is never offered.
+#[test]
+fn a_save_kept_beside_a_cloud_change_is_reported_as_saved() {
+    let fake = Fake::new([Output::failed(
+        5,
+        "conflict",
+        "ProseCraft-rs/The Lighthouse 🌊 Keeper.prosecraft changed in the cloud too: both versions were kept",
+    )]);
+    let mut harness = app(Some(fake.clone()));
+    open_file_menu(&mut harness);
+    harness
+        .get_by_role_and_label(Role::MenuItem, "Save to CraftCloud…")
+        .click();
+    settle(&mut harness, |h| {
+        h.state()
+            .state()
+            .status()
+            .is_some_and(|s| s.starts_with("Saved, but the file had changed in the cloud too"))
+    });
+    assert!(harness.query_by_label("Replace?").is_none());
+    assert_eq!(fake.asked().len(), 1);
 }

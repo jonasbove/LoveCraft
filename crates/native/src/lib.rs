@@ -148,9 +148,53 @@ impl LibraryFile {
 /// The operating system's random numbers, for new device ids and encryption.
 pub use prosecraft_core::storage::crypto::OsRandom;
 
+/// A backup's bytes for opening (Open backup…, a dropped file, one CraftCloud synced here),
+/// or why it can't be opened, in words for the status line. The file is only read.
+pub fn read_backup_file(path: &Path, max: u64) -> Result<Vec<u8>, String> {
+    let name = path.file_name().map_or_else(
+        || path.display().to_string(),
+        |n| n.to_string_lossy().into_owned(),
+    );
+    let meta = std::fs::metadata(path).map_err(|e| match e.kind() {
+        io::ErrorKind::NotFound => format!(
+            "Couldn't open {name}: it isn't on this computer (any more). If CraftCloud is still downloading it, try again in a moment."
+        ),
+        _ => format!("Couldn't open {name}: {e}"),
+    })?;
+    if !meta.is_file() {
+        return Err(format!("Couldn't open {name}: it isn't a file."));
+    }
+    if meta.len() > max {
+        return Err(format!(
+            "Couldn't open {name}: it is far too large to be a ProseCraft backup."
+        ));
+    }
+    std::fs::read(path).map_err(|e| format!("Couldn't open {name}: {e}"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::LibraryFile;
+
+    #[test]
+    fn a_backup_that_cannot_be_read_says_why() {
+        let dir = tempfile::tempdir().expect("dir");
+        let gone = dir.path().join("Book.prosecraft");
+        let err = super::read_backup_file(&gone, 100).unwrap_err();
+        assert!(
+            err.starts_with("Couldn't open Book.prosecraft: it isn't on this computer"),
+            "{err}"
+        );
+        std::fs::write(&gone, "0123456789").expect("write");
+        assert_eq!(
+            super::read_backup_file(&gone, 100).expect("read"),
+            b"0123456789"
+        );
+        let err = super::read_backup_file(&gone, 5).unwrap_err();
+        assert!(err.contains("far too large"), "{err}");
+        let err = super::read_backup_file(dir.path(), 100).unwrap_err();
+        assert!(err.contains("isn't a file"), "{err}");
+    }
 
     #[test]
     fn saves_atomically_and_keeps_the_previous_version() {

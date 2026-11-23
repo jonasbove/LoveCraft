@@ -15,6 +15,8 @@ pub(crate) struct SyncPanel {
     pub available: bool,
     /// CraftCloud is installed: its folder is offered in one click.
     pub craftcloud: bool,
+    /// CraftCloud is being asked where its folder is.
+    pub craftcloud_pending: bool,
     pub folder: String,
     pub mode: SyncMode,
     pub passphrase: String,
@@ -282,10 +284,17 @@ fn device_sync(ui: &mut Ui, state: &mut AppState) {
         }
     });
     if panel.craftcloud {
-        if ui
-            .add_enabled(!panel.busy, egui::Button::new("In CraftCloud"))
-            .clicked()
-        {
+        let pending = panel.craftcloud_pending;
+        let button = ui.add_enabled(
+            !panel.busy && !pending,
+            egui::Button::new(if pending {
+                "Asking CraftCloud…"
+            } else {
+                "In CraftCloud"
+            }),
+        );
+        crate::views::name_field(ui, &button, "In CraftCloud");
+        if button.clicked() {
             actions.push(SyncAction::UseCraftCloud);
         }
         help(

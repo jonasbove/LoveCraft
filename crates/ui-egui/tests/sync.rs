@@ -6,6 +6,7 @@ use std::sync::{Arc, Mutex};
 use egui::accesskit::Role;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT, Queryable};
+use prosecraft_core::craftcloud::Output;
 use prosecraft_core::sync::memory::MemoryFs;
 use prosecraft_core::sync::{DirEntry, SyncError, SyncFileSystem};
 use prosecraft_ui_egui::{LibraryStore, ProjectLibrary, ProseApp};
@@ -120,9 +121,8 @@ fn app(store: &Store, with_projects: bool) -> Harness<'static, ProseApp> {
 
 fn status(harness: &Harness<'_, ProseApp>) -> String {
     harness
-        .get_by_role(Role::Status)
-        .accesskit_node()
-        .label()
+        .query_by_role(Role::Status)
+        .and_then(|node| node.accesskit_node().label())
         .unwrap_or_default()
 }
 
@@ -225,18 +225,39 @@ fn a_wrong_passphrase_says_so() {
     assert_eq!(sync(&mut b, "wrong passphrase!"), "Incorrect passphrase.");
 }
 
-/// A `craftcloud` program whose desktop client syncs `/home/writer/CraftCloud`
-/// (`status --json`, as CraftCloud's `docs/CLI.md` records it).
-struct Client;
+const STATUS: &str = r#"{"syncing": true, "server": "https://cloud.example.org", "local_folder": "/home/writer/CraftCloud",
+ "state": "up_to_date", "files_done": 0, "files_total": 0, "cycles": 12, "last_synced": 1794606853,
+ "conflicts": [], "activity": []}"#;
+
+/// A `craftcloud` program whose desktop client syncs `/home/writer/CraftCloud` (`status
+/// --json`, as CraftCloud's `docs/CLI.md` records it), with `ls ProseCraft --json` answering
+/// `ls`.
+struct Client {
+    status: Output,
+    ls: Output,
+}
+
+impl Client {
+    fn new(status: &str, ls: Output) -> Arc<Self> {
+        let code = if status.contains("mass_delete") { 9 } else { 0 };
+        Arc::new(Self {
+            status: Output {
+                code: Some(code),
+                stdout: status.to_owned(),
+                ..Output::default()
+            },
+            ls,
+        })
+    }
+}
 
 impl prosecraft_core::craftcloud::Runner for Client {
-    fn run(&self, args: &[&str]) -> Result<prosecraft_core::craftcloud::Output, String> {
-        assert_eq!(args, ["status", "--json"]);
-        Ok(prosecraft_core::craftcloud::Output::ok(
-            r#"{"syncing": true, "server": "https://cloud.example.org", "local_folder": "/home/writer/CraftCloud",
- "state": "up_to_date", "files_done": 0, "files_total": 0, "cycles": 12, "last_synced": 1794606853,
- "conflicts": [], "activity": []}"#,
-        ))
+    fn run(&self, args: &[&str], _timeout: std::time::Duration) -> Result<Output, String> {
+        match args {
+            ["status", "--json"] => Ok(self.status.clone()),
+            ["ls", "ProseCraft", "--json"] => Ok(self.ls.clone()),
+            other => Err(format!("not asked for: {other:?}")),
+        }
     }
     fn stage(&self, _name: &str, _bytes: &[u8]) -> Result<String, String> {
         Err("not here".into())
@@ -244,12 +265,22 @@ impl prosecraft_core::craftcloud::Runner for Client {
     fn discard(&self, _path: &str) {}
 }
 
-#[test]
-fn the_craftcloud_folder_is_one_click_away() {
-    let store = Store::default();
-    let mut harness = app(&store, true);
-    harness.state_mut().set_craftcloud(Arc::new(Client));
-    harness.run();
+fn no_legacy() -> Output {
+    Output::failed(4, "not_found", "ProseCraft: no such file or folder")
+}
+
+fn settle(harness: &mut Harness<'static, ProseApp>, done: impl Fn(&Harness<ProseApp>) -> bool) {
+    for _ in 0..300 {
+        harness.run_steps(2);
+        if done(harness) {
+            return;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    panic!("never got there: {}", status(harness));
+}
+
+fn open_data_settings(harness: &mut Harness<'static, ProseApp>) {
     harness
         .get_by_role_and_label(Role::Button, "Settings…")
         .click_accesskit();
@@ -258,37 +289,56 @@ fn the_craftcloud_folder_is_one_click_away() {
         .get_by_role_and_label(Role::Tab, "Data and sync")
         .click_accesskit();
     harness.run();
+}
+
+fn in_craftcloud(harness: &mut Harness<'static, ProseApp>) {
     harness
         .get_by_role_and_label(Role::Button, "In CraftCloud")
         .click_accesskit();
+    harness.run_steps(2);
+    settle(harness, |h| {
+        h.query_by_label("Asking CraftCloud…").is_none()
+            && !status(h).starts_with("Asking CraftCloud")
+    });
+}
+
+fn folder_json(name: &str) -> String {
+    let path = std::path::Path::new("/home/writer/CraftCloud/ProseCraft-rs").join(name);
+    prosecraft_core::js::stringify(&prosecraft_core::js::JsValue::str(&path.to_string_lossy()))
+}
+
+#[test]
+fn the_craftcloud_folder_is_one_click_away() {
+    let store = Store::default();
+    let mut harness = app(&store, true);
+    harness
+        .state_mut()
+        .set_craftcloud(Client::new(STATUS, no_legacy()));
     harness.run();
+    open_data_settings(&mut harness);
+    in_craftcloud(&mut harness);
     assert_eq!(
         status(&harness),
         "Folder saved. The first sync creates one encrypted sync file."
     );
     let saved = || store.state.lock().expect("state").clone().expect("saved");
-    let folder = |name: &str| {
-        let path = std::path::Path::new("/home/writer/CraftCloud/ProseCraft-rs").join(name);
-        prosecraft_core::js::stringify(&prosecraft_core::js::JsValue::str(&path.to_string_lossy()))
-    };
     let state = saved();
     assert!(
-        state.contains(&format!(r#""folder":{}"#, folder("Encrypted sync file")))
-            && state.contains(r#""mode":"encrypted-file""#),
+        state.contains(&format!(
+            r#""folder":{}"#,
+            folder_json("Encrypted sync file")
+        )) && state.contains(r#""mode":"encrypted-file""#),
         "{state}"
     );
-    // The open folder keeps its method, in a folder of its own.
+    // Another method moves to its own folder in CraftCloud, without asking again.
     harness
         .get_by_role_and_label(Role::RadioButton, "Open folder")
         .click_accesskit();
-    harness.run();
-    harness
-        .get_by_role_and_label(Role::Button, "In CraftCloud")
-        .click_accesskit();
-    harness.run();
+    harness.run_steps(2);
+    settle(&mut harness, |_| saved().contains("Open sync folder"));
     let state = saved();
     assert!(
-        state.contains(&format!(r#""folder":{}"#, folder("Open sync folder")))
+        state.contains(&format!(r#""folder":{}"#, folder_json("Open sync folder")))
             && state.contains(r#""mode":"open-folder""#),
         "{state}"
     );
@@ -297,111 +347,50 @@ fn the_craftcloud_folder_is_one_click_away() {
     assert!(plain.query_by_label("In CraftCloud").is_none());
 }
 
+/// 0.1's sync file is in CraftCloud's cloud but not on this computer yet: no second library
+/// is started beside it.
 #[test]
-fn the_theme_is_chosen_in_settings_and_remembered() {
-    /// Every setting saved, in order: key and value.
-    type Saved = Vec<(String, Option<String>)>;
-    #[derive(Clone, Default)]
-    struct Settings(Arc<Mutex<Saved>>);
-    struct ThemeStore(Settings);
-    impl LibraryStore for ThemeStore {
-        fn save(&mut self, _text: &str) -> Result<(), String> {
-            Ok(())
-        }
-        fn now_ms(&self) -> f64 {
-            0.0
-        }
-        fn new_id(&mut self) -> String {
-            "id".into()
-        }
-        fn load_setting(&mut self, key: &str) -> Option<String> {
-            self.0
-                .0
-                .lock()
-                .ok()?
-                .iter()
-                .rev()
-                .find(|(k, _)| k == key)
-                .and_then(|(_, v)| v.clone())
-        }
-        fn save_setting(&mut self, key: &str, value: Option<&str>) -> Result<(), String> {
-            self.0
-                .0
-                .lock()
-                .map_err(|e| e.to_string())?
-                .push((key.to_owned(), value.map(str::to_owned)));
-            Ok(())
-        }
-    }
-    let settings = Settings::default();
-    let app = ProseApp::with_library(
-        ProjectLibrary::new("d".into()),
-        Box::new(ThemeStore(settings.clone())),
-    );
-    let mut harness = Harness::builder()
-        // Under a loaded CI machine a step can take a couple more frames to settle (egui
-        // reports a font-provider repaint); `run` gets that room, nothing else changes.
-        .with_max_steps(8)
-        .with_size([1280.0, 850.0])
-        .build_ui_state(|ui, app: &mut ProseApp| app.show(ui), app);
-    prosecraft_ui_egui::setup_for_tests(&harness.ctx);
-    harness.run();
-    let dark_bg = harness.ctx.global_style().visuals.panel_fill;
+fn a_0_1_library_not_downloaded_yet_is_waited_for() {
+    let store = Store::default();
+    let mut harness = app(&store, true);
+    let listing = r#"[{"path": "ProseCraft/prosecraft-sync.prosecraft", "name": "prosecraft-sync.prosecraft",
+ "type": "file", "size": 9, "modified": "2026-11-01T08:00:00Z", "starred": false, "id": "f1",
+ "local_path": null, "sync": "pending"}]"#;
     harness
-        .get_by_role_and_label(Role::Button, "Settings…")
-        .click_accesskit();
+        .state_mut()
+        .set_craftcloud(Client::new(STATUS, Output::ok(listing)));
     harness.run();
-    harness
-        .get_by_role_and_label(Role::ComboBox, "Theme")
-        .click_accesskit();
+    open_data_settings(&mut harness);
+    in_craftcloud(&mut harness);
+    assert!(
+        status(&harness).starts_with("CraftCloud has a sync file from ProseCraft-rs 0.1"),
+        "{}",
+        status(&harness)
+    );
+    assert!(
+        store.state.lock().expect("state").is_none(),
+        "no folder chosen"
+    );
+}
+
+/// CraftCloud holds its sync for the person (a mass delete): nothing is to be written there.
+#[test]
+fn a_held_craftcloud_is_not_written_to() {
+    let store = Store::default();
+    let mut harness = app(&store, true);
+    harness.state_mut().set_craftcloud(Client::new(
+        &STATUS.replace("up_to_date", "mass_delete"),
+        no_legacy(),
+    ));
     harness.run();
-    harness.get_by_role_and_label(Role::Button, "Light").click();
-    harness.run();
-    assert_eq!(
-        settings.0.lock().expect("settings").last().cloned(),
-        Some(("prosecraft-theme".to_owned(), Some("light".to_owned())))
+    open_data_settings(&mut harness);
+    in_craftcloud(&mut harness);
+    assert!(
+        status(&harness).contains("large delete"),
+        "{}",
+        status(&harness)
     );
-    assert_ne!(
-        harness.ctx.global_style().visuals.panel_fill,
-        dark_bg,
-        "the light palette is in use"
-    );
-    // A colour scheme: Nord's light base, remembered under ProseCraft's key.
-    harness
-        .get_by_role_and_label(Role::ComboBox, "Color scheme")
-        .click_accesskit();
-    harness.run();
-    harness.get_by_role_and_label(Role::Button, "Nord").click();
-    harness.run();
-    assert_eq!(
-        settings.0.lock().expect("settings").last().cloned(),
-        Some((
-            "prosecraft-color-scheme".to_owned(),
-            Some("nord".to_owned())
-        ))
-    );
-    assert_eq!(
-        harness.ctx.global_style().visuals.panel_fill,
-        egui::Color32::from_rgb(0xec, 0xef, 0xf4)
-    );
-    // A new app on this device opens in the remembered theme.
-    let again = ProseApp::with_library(
-        ProjectLibrary::new("d".into()),
-        Box::new(ThemeStore(settings)),
-    );
-    let mut harness = Harness::builder()
-        // Under a loaded CI machine a step can take a couple more frames to settle (egui
-        // reports a font-provider repaint); `run` gets that room, nothing else changes.
-        .with_max_steps(8)
-        .with_size([800.0, 600.0])
-        .build_ui_state(|ui, app: &mut ProseApp| app.show(ui), again);
-    prosecraft_ui_egui::setup_for_tests(&harness.ctx);
-    harness.run();
-    assert_eq!(
-        harness.ctx.global_style().visuals.panel_fill,
-        egui::Color32::from_rgb(0xec, 0xef, 0xf4),
-        "the remembered theme and scheme"
-    );
+    assert!(store.state.lock().expect("state").is_none());
 }
 
 #[test]

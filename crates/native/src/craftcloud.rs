@@ -6,6 +6,8 @@
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::sync::mpsc;
+use std::time::{Duration, Instant, SystemTime};
 
 use prosecraft_core::craftcloud::{MAX_OUTPUT_BYTES, Output, Runner};
 
@@ -25,6 +27,34 @@ pub fn find_on_path() -> Option<PathBuf> {
 
 /// The prefix of the temporary folders a save goes through.
 const STAGE_PREFIX: &str = "prosecraft-rs-craftcloud-";
+
+/// Removes what earlier saves left in the temporary folder (a crash, a power cut): folders
+/// this runner made, untouched for more than `age`, in `temp` (the system's temporary
+/// folder). Best effort; how many went.
+pub fn clean_stale_stages(temp: &Path, age: Duration) -> usize {
+    let Ok(entries) = std::fs::read_dir(temp) else {
+        return 0;
+    };
+    let now = SystemTime::now();
+    let mut removed = 0;
+    for entry in entries.flatten() {
+        let ours = entry
+            .file_name()
+            .to_string_lossy()
+            .starts_with(STAGE_PREFIX)
+            && entry.file_type().is_ok_and(|t| t.is_dir());
+        let old = entry
+            .metadata()
+            .and_then(|m| m.modified())
+            .ok()
+            .and_then(|t| now.duration_since(t).ok())
+            .is_some_and(|d| d >= age);
+        if ours && old && std::fs::remove_dir_all(entry.path()).is_ok() {
+            removed += 1;
+        }
+    }
+    removed
+}
 
 /// Starts the `craftcloud` program at `program`.
 pub struct ProcessRunner {
@@ -51,7 +81,7 @@ fn read_capped(mut from: impl Read, cap: usize) -> String {
 }
 
 impl Runner for ProcessRunner {
-    fn run(&self, args: &[&str]) -> Result<Output, String> {
+    fn run(&self, args: &[&str], timeout: Duration) -> Result<Output, String> {
         let mut command = Command::new(&self.program);
         command
             .args(args)
@@ -66,28 +96,60 @@ impl Runner for ProcessRunner {
             command.creation_flags(CREATE_NO_WINDOW);
         }
         let mut child = command.spawn().map_err(|e| e.to_string())?;
-        let stderr = child.stderr.take();
-        let errors = std::thread::Builder::new()
-            .name("craftcloud-stderr".into())
-            .spawn(move || {
-                stderr
-                    .map(|s| read_capped(s, 1024 * 1024))
-                    .unwrap_or_default()
-            });
-        let stdout = child
-            .stdout
-            .take()
-            .map(|s| read_capped(s, MAX_OUTPUT_BYTES))
-            .unwrap_or_default();
-        let status = child.wait().map_err(|e| e.to_string())?;
-        let stderr = errors
-            .ok()
-            .and_then(|thread| thread.join().ok())
-            .unwrap_or_default();
+        // Both streams are read on threads of their own, so the wait below can give up.
+        let reader = |stream: Option<Box<dyn Read + Send>>, cap: usize, name: &str| {
+            let (send, receive) = mpsc::channel();
+            let started = std::thread::Builder::new()
+                .name(name.to_owned())
+                .spawn(move || {
+                    let _ = send.send(stream.map(|s| read_capped(s, cap)).unwrap_or_default());
+                });
+            started.ok().map(|_| receive)
+        };
+        let stdout = reader(
+            child
+                .stdout
+                .take()
+                .map(|s| Box::new(s) as Box<dyn Read + Send>),
+            MAX_OUTPUT_BYTES,
+            "craftcloud-stdout",
+        );
+        let stderr = reader(
+            child
+                .stderr
+                .take()
+                .map(|s| Box::new(s) as Box<dyn Read + Send>),
+            1024 * 1024,
+            "craftcloud-stderr",
+        );
+        let deadline = Instant::now() + timeout;
+        let mut timed_out = false;
+        let status = loop {
+            if let Some(status) = child.try_wait().map_err(|e| e.to_string())? {
+                break Some(status);
+            }
+            if Instant::now() >= deadline {
+                timed_out = true;
+                let _ = child.kill();
+                break child.wait().ok();
+            }
+            std::thread::sleep(Duration::from_millis(20));
+        };
+        // A child of the program may still hold the pipes; their text is not waited on long.
+        let take = |receive: Option<mpsc::Receiver<String>>| {
+            receive
+                .and_then(|r| r.recv_timeout(Duration::from_secs(2)).ok())
+                .unwrap_or_default()
+        };
         Ok(Output {
-            code: status.code(),
-            stdout,
-            stderr,
+            code: if timed_out {
+                None
+            } else {
+                status.and_then(|s| s.code())
+            },
+            stdout: take(stdout),
+            stderr: take(stderr),
+            timed_out,
         })
     }
 
@@ -128,7 +190,45 @@ impl Runner for ProcessRunner {
 mod tests {
     use prosecraft_core::craftcloud::Runner;
 
-    use super::ProcessRunner;
+    use std::time::Duration;
+
+    use super::{ProcessRunner, STAGE_PREFIX, clean_stale_stages};
+
+    /// A program that doesn't answer is stopped at the deadline: the window never waits on it.
+    #[cfg(unix)]
+    #[test]
+    fn a_program_that_hangs_is_stopped_at_the_deadline() {
+        let started = std::time::Instant::now();
+        let output = ProcessRunner::new("/bin/sh")
+            .run(
+                &["-c", "printf 'half'; exec sleep 30"],
+                Duration::from_millis(300),
+            )
+            .expect("ran");
+        assert!(output.timed_out && output.code.is_none(), "{output:?}");
+        assert!(
+            started.elapsed() < Duration::from_secs(10),
+            "{:?}",
+            started.elapsed()
+        );
+    }
+
+    #[test]
+    fn stale_temporary_folders_are_cleaned_up_and_nothing_else() {
+        let temp = tempfile::tempdir().expect("dir");
+        let stale = temp.path().join(format!("{STAGE_PREFIX}old"));
+        std::fs::create_dir_all(&stale).expect("dir");
+        std::fs::write(stale.join("Book.prosecraft"), "x").expect("write");
+        let other = temp.path().join("someone-elses");
+        std::fs::create_dir_all(&other).expect("dir");
+        assert_eq!(
+            clean_stale_stages(temp.path(), Duration::from_secs(3600)),
+            0,
+            "too new"
+        );
+        assert_eq!(clean_stale_stages(temp.path(), Duration::ZERO), 1);
+        assert!(!stale.exists() && other.exists());
+    }
 
     #[test]
     fn a_staged_file_keeps_its_name_and_goes_again() {
@@ -161,7 +261,11 @@ mod tests {
     #[test]
     fn a_missing_program_is_an_error_not_a_crash() {
         let runner = ProcessRunner::new("/nonexistent/craftcloud-for-a-test");
-        assert!(runner.run(&["status", "--json"]).is_err());
+        assert!(
+            runner
+                .run(&["status", "--json"], Duration::from_secs(5))
+                .is_err()
+        );
     }
 
     /// The exit code, standard output and standard error of a real program.
@@ -170,7 +274,10 @@ mod tests {
     fn reads_what_the_program_says_and_its_exit_code() {
         let runner = ProcessRunner::new("/bin/sh");
         let output = runner
-            .run(&["-c", "printf '[]'; printf 'oops' >&2; exit 5"])
+            .run(
+                &["-c", "printf '[]'; printf 'oops' >&2; exit 5"],
+                Duration::from_secs(30),
+            )
             .expect("ran");
         assert_eq!(
             (output.code, output.stdout.as_str(), output.stderr.as_str()),

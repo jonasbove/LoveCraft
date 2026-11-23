@@ -136,7 +136,8 @@ impl ProseApp {
         self.state.sync.status = folder_saved_message(self.state.sync.mode, same).to_owned();
     }
 
-    pub(crate) fn handle_sync_actions(&mut self) {
+    pub(crate) fn handle_sync_actions(&mut self, ctx: &egui::Context) {
+        self.poll_craftcloud_folder();
         for action in std::mem::take(&mut self.state.sync_actions) {
             if self.state.sync.busy {
                 continue;
@@ -155,12 +156,16 @@ impl ProseApp {
                     } else {
                         "Sync method changed. Use a folder already set up for this method, or an empty folder.".to_owned()
                     };
+                    // A CraftCloud folder has one folder for each method: move to this one's.
+                    let in_craftcloud =
+                        prosecraft_core::craftcloud::craftcloud_root_of(&self.state.sync.folder)
+                            .is_some();
+                    if in_craftcloud && self.state.cloud.runner.is_some() {
+                        self.start_craftcloud_folder(ctx);
+                    }
                 }
                 SyncAction::SetMode(_) => {}
-                SyncAction::UseCraftCloud => match self.craftcloud_sync_folder() {
-                    Ok(folder) => self.set_sync_folder(folder),
-                    Err(why) => self.state.sync.status = why,
-                },
+                SyncAction::UseCraftCloud => self.start_craftcloud_folder(ctx),
                 SyncAction::Forget => {
                     if let Some(home) = self.home.as_mut() {
                         let _ = home.store.save_setting(SYNC_STATE_KEY, None);
@@ -174,31 +179,84 @@ impl ProseApp {
         }
     }
 
-    /// "In CraftCloud": device sync's folder for the chosen method inside the folder CraftCloud
-    /// keeps in step (`prosecraft_core::craftcloud::device_sync_folder`). Every method works
-    /// there: CraftCloud's conflict copies and files in progress are left alone and reported.
-    fn craftcloud_sync_folder(&mut self) -> Result<String, String> {
+    /// "In CraftCloud": asks CraftCloud where its sync folder is, on a background thread (the
+    /// program can take a while, or not answer), and then picks device sync's folder there
+    /// for the chosen method ([`Self::poll_craftcloud_folder`]).
+    fn start_craftcloud_folder(&mut self, ctx: &egui::Context) {
         use prosecraft_core::craftcloud;
-        let runner = self
-            .state
-            .cloud
-            .runner
-            .clone()
-            .ok_or("CraftCloud isn't installed.")?;
-        let root = craftcloud::sync_folder(runner.as_ref()).map_err(|f| f.message())?;
+        let Some(runner) = self.state.cloud.runner.clone() else {
+            self.state.sync.status = "CraftCloud isn't installed.".into();
+            return;
+        };
+        if self.state.cloud.folder_job.is_some() {
+            return;
+        }
         let mode = self.state.sync.mode;
-        let legacy = std::path::Path::new(&root)
-            .join(craftcloud::LEGACY_SYNC_FOLDER)
-            .to_string_lossy()
-            .into_owned();
-        let legacy_in_use = mode == SyncMode::EncryptedFile
-            && self.home.as_mut().is_some_and(|home| {
-                home.store.sync_fs(&legacy).is_some_and(|mut fs| {
-                    fs.exists(prosecraft_core::sync::BUNDLE_FILE)
-                        .unwrap_or(false)
-                })
-            });
-        Ok(craftcloud::device_sync_folder(&root, mode, legacy_in_use))
+        let receiver = crate::craftcloud::spawn(ctx, "craftcloud-status", move || {
+            let root = craftcloud::sync_folder(runner.as_ref())?;
+            // 0.1's sync file in the cloud, not necessarily downloaded here yet.
+            let legacy_in_cloud = mode == SyncMode::EncryptedFile
+                && craftcloud::legacy_sync_file_in_cloud(runner.as_ref());
+            Ok((root, legacy_in_cloud))
+        });
+        self.state.cloud.folder_job = Some(crate::craftcloud::FolderJob { receiver, mode });
+        self.state.sync.craftcloud_pending = true;
+        self.state.sync.status = "Asking CraftCloud where its folder is…".into();
+    }
+
+    /// CraftCloud's answer for "In CraftCloud": the folder for the method, an existing one
+    /// first. A 0.1 library's sync file that CraftCloud has but hasn't downloaded here is
+    /// waited for, rather than starting a second library beside it.
+    fn poll_craftcloud_folder(&mut self) {
+        use prosecraft_core::craftcloud;
+        use prosecraft_core::sync::BUNDLE_FILE;
+        let Some(job) = self.state.cloud.folder_job.as_ref() else {
+            return;
+        };
+        let answer = match job.receiver.try_recv() {
+            Ok(answer) => answer,
+            Err(std::sync::mpsc::TryRecvError::Empty) => return,
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                Err(craftcloud::Failure::Other(String::new()))
+            }
+        };
+        let mode = job.mode;
+        self.state.cloud.folder_job = None;
+        self.state.sync.craftcloud_pending = false;
+        let (root, legacy_in_cloud) = match answer {
+            Ok(found) => found,
+            Err(failure) => {
+                self.state.sync.status = failure.message();
+                return;
+            }
+        };
+        if mode != self.state.sync.mode {
+            // The method changed meanwhile; the next answer is for it.
+            return;
+        }
+        let mut has_bundle = |folder: &str| {
+            self.home.as_mut().is_some_and(|home| {
+                home.store
+                    .sync_fs(folder)
+                    .is_some_and(|mut fs| fs.exists(BUNDLE_FILE).unwrap_or(false))
+            })
+        };
+        let legacy = craftcloud::device_sync_folder(&root, mode, true);
+        let folder = craftcloud::device_sync_folder(&root, mode, false);
+        let folder = if mode != SyncMode::EncryptedFile || has_bundle(&folder) {
+            folder
+        } else if has_bundle(&legacy) {
+            legacy
+        } else if legacy_in_cloud {
+            self.state.sync.status = format!(
+                "CraftCloud has a sync file from ProseCraft-rs 0.1 in its {} folder that isn't on this computer yet. Let CraftCloud download it (the folder must be synced here), then choose In CraftCloud again, so this computer joins that library instead of starting another.",
+                craftcloud::LEGACY_SYNC_FOLDER
+            );
+            return;
+        } else {
+            folder
+        };
+        self.set_sync_folder(folder);
     }
 
     fn start_sync(&mut self) {

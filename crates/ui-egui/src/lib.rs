@@ -1274,7 +1274,12 @@ impl ProseApp {
     /// Save to CraftCloud…: the open project as a backup of its own, named after it, into
     /// CraftCloud's ProseCraft-rs folder. Everything typed so far is in it.
     fn save_to_craftcloud(&mut self, ctx: &egui::Context) {
-        if self.state.cloud.runner.is_none() || self.state.cloud.save.is_some() {
+        if self.state.cloud.runner.is_none() {
+            return;
+        }
+        if let Some(save) = self.state.cloud.save.as_mut() {
+            // One at a time: the one on its way shows again.
+            save.show();
             return;
         }
         self.commit_draft();
@@ -2901,7 +2906,7 @@ impl ProseApp {
             about_window::open(&mut self.state, now);
         }
         about_window::show(ui.ctx(), &mut self.state);
-        self.handle_sync_actions();
+        self.handle_sync_actions(ui.ctx());
         self.save_custom_starters();
         if let Some(prefs) = self.state.proofread_choice.take() {
             // `setHarperEnabled`, `setHarperDialect`.

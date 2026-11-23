@@ -22,12 +22,35 @@ pub(crate) struct Cloud {
     pub runner: Option<Arc<dyn Runner>>,
     pub open: Option<OpenDialog>,
     pub save: Option<SaveDialog>,
+    /// "In CraftCloud" asking where CraftCloud's folder is.
+    pub folder_job: Option<FolderJob>,
+}
+
+/// Where CraftCloud's sync folder is, and whether 0.1's sync file is in its cloud.
+pub(crate) type FolderAnswer = Result<(String, bool), Failure>;
+
+/// "In CraftCloud" waiting for CraftCloud, for this sync method.
+pub(crate) struct FolderJob {
+    pub receiver: Receiver<FolderAnswer>,
+    pub mode: prosecraft_core::sync::SyncMode,
+}
+
+impl SaveDialog {
+    /// Brings a save that was put aside back into view.
+    pub fn show(&mut self) {
+        self.hidden = false;
+    }
 }
 
 impl Cloud {
-    /// Whether a dialog of this module is open (the menus' items wait).
+    /// Whether a dialog of this module waits for an answer (the menus' items wait too). A save
+    /// on its way doesn't: the app stays usable while CraftCloud uploads.
     pub fn busy(&self) -> bool {
-        self.open.is_some() || self.save.is_some()
+        self.open.is_some()
+            || self
+                .save
+                .as_ref()
+                .is_some_and(|s| !matches!(s.step, SaveStep::Saving(_)))
     }
 }
 
@@ -45,18 +68,24 @@ pub(crate) struct SaveDialog {
     file_name: String,
     bytes: Arc<Vec<u8>>,
     step: SaveStep,
+    /// Put aside while it saves; it says in the status line how it ended.
+    hidden: bool,
 }
 
 enum SaveStep {
     Saving(Receiver<Result<Saved, Failure>>),
-    /// A file of that name is there: replace it? CraftCloud's own words with it.
-    Replace(String),
+    /// A file of that name is there: replace it? CraftCloud's own words with it, and when the
+    /// file there last changed.
+    Replace {
+        said: String,
+        modified: Option<String>,
+    },
     Failed(String),
 }
 
 /// Runs `work` on a background thread and hands back where its answer arrives. The window is
 /// asked to draw again once it has.
-fn spawn<T: Send + 'static>(
+pub(crate) fn spawn<T: Send + 'static>(
     ctx: &egui::Context,
     name: &str,
     work: impl FnOnce() -> T + Send + 'static,
@@ -112,6 +141,7 @@ pub(crate) fn start_save(
         file_name,
         bytes,
         step: SaveStep::Saving(saving),
+        hidden: false,
     });
 }
 
@@ -269,41 +299,85 @@ fn file_row(ui: &mut Ui, palette: crate::theme::Palette, file: &CloudFile) -> bo
     chosen
 }
 
+/// How a save that was on its way ended: said in the status line (`Ok`) or as a failure.
+enum Ended {
+    Said(String),
+    Failed(String),
+}
+
+/// The save's answer, once it has come: the next step, or how it ended.
+fn take_answer(dialog: &mut SaveDialog, ctx: &egui::Context) -> Option<Ended> {
+    let SaveStep::Saving(receiver) = &dialog.step else {
+        return None;
+    };
+    let ended = match receiver.try_recv() {
+        Ok(Ok(saved)) => Ended::Said(saved_message(&saved)),
+        Ok(Err(Failure::Exists { message, modified })) => {
+            dialog.step = SaveStep::Replace {
+                said: message,
+                modified,
+            };
+            dialog.hidden = false;
+            return None;
+        }
+        // Saved, beside a change made in the cloud meanwhile: never to be forced.
+        Ok(Err(failure @ Failure::BothKept(_))) => Ended::Said(failure.message()),
+        // `--wait` was cut short: the backup is in the sync folder and uploads later.
+        Ok(Err(Failure::NoClient(_))) => Ended::Said(format!(
+            "{} is in your CraftCloud folder. The CraftCloud desktop client stopped before uploading it; it uploads when CraftCloud runs again.",
+            dialog.file_name
+        )),
+        Ok(Err(failure)) => Ended::Failed(failure.message()),
+        Err(TryRecvError::Disconnected) => Ended::Failed(Failure::Other(String::new()).message()),
+        Err(TryRecvError::Empty) => {
+            ctx.request_repaint_after(std::time::Duration::from_millis(100));
+            return None;
+        }
+    };
+    Some(ended)
+}
+
+/// "Replace?": the file there, and when it last changed (two projects can share a name).
+fn replace_text(file_name: &str, modified: Option<&str>) -> String {
+    let when = modified
+        .and_then(|m| chrono::DateTime::parse_from_rfc3339(m).ok())
+        .map(|t| {
+            t.with_timezone(&chrono::Utc)
+                .format(" (last changed %-d %b %Y, %H:%M UTC)")
+                .to_string()
+        })
+        .unwrap_or_default();
+    format!(
+        "There is already a {file_name}{when} in CraftCloud's {} folder. Replace it with this backup? CraftCloud keeps the one it replaces among its earlier versions.",
+        cc::FOLDER
+    )
+}
+
 fn save_dialog(ui: &mut Ui, state: &mut AppState) {
     let palette = state.palette;
     let Some(dialog) = state.cloud.save.as_mut() else {
         return;
     };
-    let mut done: Option<String> = None;
-    if let SaveStep::Saving(receiver) = &dialog.step {
-        match receiver.try_recv() {
-            Ok(Ok(saved)) => done = Some(saved_message(&saved)),
-            Ok(Err(Failure::Exists(said))) => dialog.step = SaveStep::Replace(said),
-            // `--wait` was cut short: the backup is in the sync folder and uploads later.
-            Ok(Err(Failure::NoClient(_))) => {
-                done = Some(format!(
-                    "{} is in your CraftCloud folder. The CraftCloud desktop client stopped before uploading it; it uploads when CraftCloud runs again.",
-                    dialog.file_name
-                ));
-            }
-            Ok(Err(failure)) => dialog.step = SaveStep::Failed(failure.message()),
-            Err(TryRecvError::Disconnected) => {
-                dialog.step = SaveStep::Failed(Failure::Other(String::new()).message());
-            }
-            Err(TryRecvError::Empty) => {
-                ui.ctx()
-                    .request_repaint_after(std::time::Duration::from_millis(100));
-            }
+    match take_answer(dialog, ui.ctx()) {
+        Some(Ended::Said(message)) => {
+            state.cloud.save = None;
+            state.info(message);
+            return;
         }
+        Some(Ended::Failed(message)) if dialog.hidden => {
+            state.cloud.save = None;
+            state.error(message);
+            return;
+        }
+        Some(Ended::Failed(message)) => dialog.step = SaveStep::Failed(message),
+        None => {}
     }
-    if let Some(message) = done {
-        state.cloud.save = None;
-        state.info(message);
+    if dialog.hidden {
         return;
     }
     let mut close = false;
+    let mut hide = false;
     let mut replace = false;
-    let saving = matches!(dialog.step, SaveStep::Saving(_));
     egui::Window::new("Save to CraftCloud")
         .collapsible(false)
         .resizable(false)
@@ -317,18 +391,15 @@ fn save_dialog(ui: &mut Ui, state: &mut AppState) {
                         ui.label(format!("Saving {} to CraftCloud…", dialog.file_name));
                     });
                     ui.label(
-                        RichText::new("You can keep writing; this finishes once CraftCloud has uploaded it.")
+                        RichText::new("It goes on in the background; the status line says when CraftCloud has uploaded it.")
                             .size(12.0)
                             .color(palette.text_muted),
                     );
+                    hide = ui.button("Continue in background").clicked();
                 }
-                SaveStep::Replace(said) => {
+                SaveStep::Replace { said, modified } => {
                     ui.label(RichText::new("Replace?").strong().color(palette.text_heading));
-                    ui.label(format!(
-                        "There is already a {} in CraftCloud's {} folder. Replace it with this backup? CraftCloud keeps the one it replaces among its earlier versions.",
-                        dialog.file_name,
-                        cc::FOLDER
-                    ));
+                    ui.label(replace_text(&dialog.file_name, modified.as_deref()));
                     if !said.is_empty() {
                         ui.label(RichText::new(said).size(11.0).color(palette.text_muted));
                     }
@@ -345,10 +416,17 @@ fn save_dialog(ui: &mut Ui, state: &mut AppState) {
                 }
             }
         });
-    if !saving && ui.input(|i| i.key_pressed(Key::Escape)) {
-        close = true;
+    let saving = matches!(dialog.step, SaveStep::Saving(_));
+    if ui.input(|i| i.key_pressed(Key::Escape)) {
+        if saving {
+            hide = true;
+        } else {
+            close = true;
+        }
     }
-    if close {
+    if hide {
+        dialog.hidden = true;
+    } else if close {
         state.cloud.save = None;
     } else if replace {
         let (name, bytes) = (dialog.file_name.clone(), dialog.bytes.clone());

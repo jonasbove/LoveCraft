@@ -32,7 +32,8 @@ $Temp = if ($env:RUNNER_TEMP) { $env:RUNNER_TEMP } else { [IO.Path]::GetTempPath
 $Work = Join-Path $Temp "msi-test-$([IO.Path]::GetRandomFileName())"
 New-Item -ItemType Directory -Force -Path $Work | Out-Null
 $StartMenu = [Environment]::GetFolderPath('Programs')
-$UninstallKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall'
+# The products installed under the MSI's UpgradeCode, which ProseCraft-rs's had too.
+$UpgradeCode = '{' + ([xml] (Get-Content -Raw (Join-Path $PSScriptRoot 'lovecraft.wxs'))).Wix.Package.UpgradeCode + '}'
 # The key the MSI keeps its folder under; it keeps the app's former name (lovecraft.wxs).
 $AppKey = 'HKCU:\Software\ProseCraft-rs'
 
@@ -102,9 +103,16 @@ function Assert-Mcp([string] $Exe) {
   Ok "$name answers initialize and tools/list"
 }
 
+# Asked of Windows Installer itself: a per-user install isn't listed under HKCU's Uninstall key.
 function Get-Products {
-  return @(Get-ChildItem $UninstallKey -ErrorAction SilentlyContinue | Get-ItemProperty |
-      Where-Object { $_.PSObject.Properties['DisplayName'] -and $_.DisplayName -in @('LoveCraft', 'ProseCraft-rs') })
+  $installer = New-Object -ComObject WindowsInstaller.Installer
+  return @(@($installer.RelatedProducts($UpgradeCode)) | Where-Object { $_ } | ForEach-Object {
+      [pscustomobject] @{
+        Code = $_
+        DisplayName = $installer.ProductInfo($_, 'ProductName')
+        DisplayVersion = $installer.ProductInfo($_, 'VersionString')
+      }
+    })
 }
 
 function Get-UserPath { return [Environment]::GetEnvironmentVariable('Path', 'User') }

@@ -163,7 +163,7 @@ The design language (colour tokens, type, layout and components) is written up i
 
 ## Status
 
-ProseCraft-rs is **early**: 0.1.1 is the current release. It matches ProseCraft up to upstream
+ProseCraft-rs is **early**: 0.1.2 is the current release. It matches ProseCraft up to upstream
 [`8cdc694`](https://github.com/jennraeross/ProseCraft/commit/8cdc694) (v0.6.1).
 
 **Different on purpose:** the look is ProseCraft's, but where a web page and a native egui app differ, it
@@ -180,7 +180,7 @@ not, and cloud sync is planned through [CraftCloud](https://github.com/jonasbove
 > Keep a backup of your book, and keep your ProseCraft copy until you trust ProseCraft-rs with it.
 
 ## Downloads
-Every release from the one after 0.1.1 on the [releases page](https://github.com/jonasbove/ProseCraft-rs/releases) has
+Every release from 0.1.2 on, on the [releases page](https://github.com/jonasbove/ProseCraft-rs/releases) has
 packages for every system, each with the app and the MCP server (`prosecraft-mcp`). The app also comes from the
 Nix flake or from source. `<ver>` is the version number, for example `0.2.0`.
 

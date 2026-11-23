@@ -26,10 +26,8 @@ The draft is made only when:
   `.prosecraft` file type), the MCP server answers `initialize` and `tools/list` over stdio, the app opens its
   window on a virtual X display (Xvfb with Mesa's software OpenGL) and keeps running, the package is upgraded from
   the previous published release when that release has packages (0.1.0 and 0.1.1 have none), and removed again;
-- not yet: the **workspace tests on Windows** (`windows-test`). The job runs on every release, but some tests
-  fail on Windows (a stack overflow in prosecraft-core's unit tests, line endings in the byte-for-byte fixtures,
-  `/` in two MCP tests' paths), so it doesn't hold the draft back until they are fixed. Read its result before
-  publishing.
+- the **workspace tests on Windows** (`windows-test`: `cargo test --workspace` on Windows x64), which `ci.yml`
+  runs on Linux only.
 
 The macOS job checks the DMG as shipped (`packaging/macos/verify.sh`: both architectures in both binaries, the
 icon, `--version`, the signature's integrity); the Windows jobs check each exe's architecture and PE subsystem

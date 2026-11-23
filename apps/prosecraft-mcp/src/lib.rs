@@ -31,11 +31,12 @@ use serde_json::{Value, json};
 
 pub use tools::ProseCraftTools;
 
-/// Who the server says it is, as the TypeScript server does ("prosecraft" 0.1.0).
+/// Who the server says it is: the TypeScript server's name ("prosecraft"), with this app's title
+/// and its real version (the TypeScript server always says 0.1.0).
 pub const INFO: Info = Info {
     name: "prosecraft",
     title: "ProseCraft-rs",
-    version: "0.1.0",
+    version: env!("CARGO_PKG_VERSION"),
     // A write carries a whole scene; this leaves room for a long novel chapter many times over.
     max_line: 64 * 1024 * 1024,
 };

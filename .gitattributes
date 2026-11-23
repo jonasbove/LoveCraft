@@ -1,0 +1,4 @@
+# Fixtures are compared byte for byte, so keep their line endings exactly as committed
+# (a Windows checkout would otherwise turn LF into CRLF).
+crates/core/tests/fixtures/** -text
+apps/prosecraft-mcp/tests/fixtures/** -text

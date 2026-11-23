@@ -63,6 +63,10 @@ fn serves_tool_calls_with_the_typescript_results() {
     );
     assert_eq!(replies[0]["result"]["serverInfo"]["name"], "prosecraft");
     assert_eq!(
+        replies[0]["result"]["serverInfo"]["version"],
+        env!("CARGO_PKG_VERSION")
+    );
+    assert_eq!(
         replies[1]["result"]["content"][0]["text"],
         "[\n  {\n    \"id\": \"project-1\",\n    \"name\": \"Novel\",\n    \"dirName\": \"project-1\"\n  }\n]"
     );

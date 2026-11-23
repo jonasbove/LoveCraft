@@ -24,6 +24,9 @@ param(
   [string] $Previous = ''
 )
 $ErrorActionPreference = 'Stop'
+# msiexec takes full Windows paths.
+$Msi = (Resolve-Path -LiteralPath $Msi).Path
+if ($Previous) { $Previous = (Resolve-Path -LiteralPath $Previous).Path }
 
 $Temp = if ($env:RUNNER_TEMP) { $env:RUNNER_TEMP } else { [IO.Path]::GetTempPath() }
 $Work = Join-Path $Temp "msi-test-$([IO.Path]::GetRandomFileName())"

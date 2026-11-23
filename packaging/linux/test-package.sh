@@ -425,7 +425,11 @@ check_previous_replaced() { # package name
       ;;
     rpm) if rpm -q "$old" >/dev/null 2>&1; then fail "$old is still installed beside lovecraft: $(rpm -q "$old")"; fi ;;
     # By name: `pacman -Q prosecraft-rs` would find lovecraft, which provides it.
-    arch) if pacman -Qq | grep -qx -- "$old"; then fail "$old is still installed beside lovecraft"; fi ;;
+    arch)
+      local installed
+      installed="$(pacman -Qq)"
+      if grep -qx -- "$old" <<<"$installed"; then fail "$old is still installed beside lovecraft"; fi
+      ;;
     tar) [[ ! -f "$PREFIX_BIN/$old" || -L "$PREFIX_BIN/$old" ]] || fail "$PREFIX_BIN/$old is still the previous binary" ;;
   esac
   ok "$old was replaced by lovecraft"

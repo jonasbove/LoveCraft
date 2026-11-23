@@ -20,8 +20,10 @@ ProseCraft-rs is now LoveCraft, and it syncs through CraftCloud.
   - **The packages replace the old ones:** the release files are named `lovecraft-<ver>-…`. The `.deb`, `.rpm`
     and Arch packages are named `lovecraft` and replace `prosecraft-rs` when installed (pacman asks to remove
     `prosecraft-rs`: answer yes); the AUR recipes are `lovecraft` and `lovecraft-bin`. The Windows installer
-    updates a ProseCraft-rs install in its folder (the Start menu entry becomes LoveCraft). The Flatpak updates
-    the old one (same app id), and the AppImage takes over the menu entry the old one added. On macOS, drag
+    updates a ProseCraft-rs install in its folder (the Start menu entry becomes LoveCraft). The Flatpak has the
+    same app id as the old one, so it replaces it and keeps its data, and the AppImage takes over the menu entry
+    the old one added. A 0.1.2 AppImage's own updater doesn't find 0.2.0 (it looks for files named
+    `prosecraft-rs-…`): download the LoveCraft AppImage once by hand. On macOS, drag
     `LoveCraft.app` to Applications and delete `ProseCraft-rs.app`; an MCP client configured with a path inside
     `ProseCraft-rs.app` needs the new path, `LoveCraft.app/Contents/MacOS/lovecraft-mcp`. The Nix flake's package
     is `lovecraft` (`nix run github:jonasbove/LoveCraft`). The web download is `lovecraft-web-<ver>.zip`.

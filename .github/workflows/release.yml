@@ -5,6 +5,8 @@
 #
 # Runs on version tags and by hand. Files (packaging/*, packaging/README-desktop.md says which is which):
 #   lovecraft-<ver>-linux-{x86_64,aarch64}.{AppImage,AppImage.zsync,deb,rpm,tar.gz,flatpak,pkg.tar.zst}
+#   prosecraft-rs-<ver>-linux-{x86_64,aarch64}.AppImage.zsync (the same .zsync, which 0.1 AppImages
+#     look for: their updater then gets the lovecraft AppImage)
 #   lovecraft-<ver>-windows-{x64,arm64}.msi    lovecraft-<ver>-windows-{x64,arm64}-portable.zip
 #   lovecraft-<ver>-macos-universal.dmg
 #   lovecraft-web-<ver>.zip (the web app, for CraftCloud and any static host; packaging/web/package.sh)
@@ -68,6 +70,9 @@ env:
   # `_fonts` in packaging/arch/lovecraft/PKGBUILD and the craft-fonts input in flake.nix.
   CRAFT_FONTS_REF: cc9269cd8d8258785dac603fba3122e5d2556795
   CRAFT_FONTS_REQUIRED: "1"
+  # The last release named ProseCraft-rs. The upgrade tests also start from it while people may
+  # still update across the rename (deb, rpm, Arch, AppImage, tar.gz, MSI, macOS).
+  LAST_PROSECRAFT_RS: v0.1.2
 
 jobs:
   linux:
@@ -125,6 +130,13 @@ jobs:
           for appimage in dist/release/*.AppImage; do
             chmod +x "$appimage"
             APPIMAGE_EXTRACT_AND_RUN=1 PROSECRAFT_NO_DESKTOP_INTEGRATION=1 "$appimage" --version
+          done
+          # The .zsync under the 0.1 name (package.sh) is the AppImage's own, so a ProseCraft-rs 0.1
+          # AppImage's updater gets this AppImage.
+          for zsync in dist/release/lovecraft-*.AppImage.zsync; do
+            old="dist/release/prosecraft-rs-${zsync#dist/release/lovecraft-}"
+            cmp "$zsync" "$old" || { echo "::error::$old is missing or differs from $zsync"; exit 1; }
+            sed -n '1,/^$/p' "$old" | grep -E '^(Filename|URL):'
           done
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -348,6 +360,44 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: packaging/macos/verify.sh --arch universal
+      # As the Linux and Windows jobs do: the update from the previous release's DMG, and from the
+      # last ProseCraft-rs one (ProseCraft-rs.app stays beside LoveCraft.app), with every app on the
+      # same library (packaging/macos/test-update.sh). A missing DMG is an error.
+      - name: Update from the previous releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)"
+          prev="$(gh release list --repo "$GITHUB_REPOSITORY" --exclude-drafts --exclude-pre-releases --limit 20 \
+            --json tagName --jq '.[].tagName' | grep -Fvx "v$version" | head -1 || true)"
+          if [ -z "$prev" ]; then
+            echo "::notice::No earlier published release, so the update isn't tested."
+            exit 0
+          fi
+          # Oldest first, as a person updates: the last ProseCraft-rs release, then the previous one.
+          tags=()
+          if [ "$prev" != "$LAST_PROSECRAFT_RS" ] && [ "v$version" != "$LAST_PROSECRAFT_RS" ]; then
+            tags+=("$LAST_PROSECRAFT_RS")
+          fi
+          tags+=("$prev")
+          args=()
+          shopt -s nullglob
+          for tag in "${tags[@]}"; do
+            dir="$RUNNER_TEMP/previous/$tag"
+            mkdir -p "$dir"
+            for prefix in lovecraft prosecraft-rs; do
+              gh release download "$tag" --repo "$GITHUB_REPOSITORY" --dir "$dir" --pattern "$prefix-*-macos-universal.dmg" 2>/dev/null || true
+              files=("$dir"/"$prefix"-*-macos-universal.dmg)
+              if [ "${#files[@]}" -gt 0 ]; then break; fi
+            done
+            if [ "${#files[@]}" -ne 1 ]; then
+              echo "::error::$tag has ${#files[@]} files named lovecraft-*-macos-universal.dmg or prosecraft-rs-*-macos-universal.dmg; the update can't be tested"
+              exit 1
+            fi
+            echo "Updating from $tag: ${files[0]}"
+            args+=(--previous "${files[0]}")
+          done
+          packaging/macos/test-update.sh "${args[@]}" "dist/release/lovecraft-$version-macos-universal.dmg"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release-macos
@@ -407,8 +457,9 @@ jobs:
           AZURE_SIGNING_ACCOUNT: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
           AZURE_CERT_PROFILE: ${{ secrets.AZURE_CERT_PROFILE }}
         run: ./packaging/windows/package.ps1 -Arch ${{ matrix.arch }}
-      # As package-test does for Linux: the MSI installed, updating the previous release's (0.1.2 is
-      # the first with one; ProseCraft-rs's, which LoveCraft's replaces in place), then removed.
+      # As package-test does for Linux: the MSI installed, updating the previous release's, then
+      # removed; and again from the last ProseCraft-rs release's (LAST_PROSECRAFT_RS), which
+      # LoveCraft's replaces in place.
       - name: Install, update from the previous release, remove (MSI)
         shell: pwsh
         env:
@@ -426,19 +477,24 @@ jobs:
             ./packaging/windows/test-msi.ps1 -Msi $msi
             exit 0
           }
-          $dir = Join-Path $env:RUNNER_TEMP 'previous'
-          New-Item -ItemType Directory -Force -Path $dir | Out-Null
-          # Named lovecraft-… from 0.2.0 on, prosecraft-rs-… before (LoveCraft was ProseCraft-rs).
-          $old = $null
-          foreach ($prefix in 'lovecraft', 'prosecraft-rs') {
-            gh release download $prev --repo $env:GITHUB_REPOSITORY --dir $dir --pattern "$prefix-*-windows-$env:ARCH.msi" 2>$null
-            $old = Get-ChildItem $dir -Filter "$prefix-*-windows-$env:ARCH.msi" | Select-Object -First 1
-            if ($old) { break }
+          $from = @($prev)
+          if ($prev -ne $env:LAST_PROSECRAFT_RS -and "v$version" -ne $env:LAST_PROSECRAFT_RS) { $from += $env:LAST_PROSECRAFT_RS }
+          foreach ($tag in $from) {
+            $dir = Join-Path $env:RUNNER_TEMP "previous-$tag"
+            New-Item -ItemType Directory -Force -Path $dir | Out-Null
+            # Named lovecraft-… from 0.2.0 on, prosecraft-rs-… before (LoveCraft was ProseCraft-rs).
+            $old = $null
+            foreach ($prefix in 'lovecraft', 'prosecraft-rs') {
+              gh release download $tag --repo $env:GITHUB_REPOSITORY --dir $dir --pattern "$prefix-*-windows-$env:ARCH.msi" 2>$null
+              $old = Get-ChildItem $dir -Filter "$prefix-*-windows-$env:ARCH.msi" | Select-Object -First 1
+              if ($old) { break }
+            }
+            $global:LASTEXITCODE = 0
+            if (-not $old) { throw "$tag has no MSI for $env:ARCH, so the update can't be tested" }
+            Write-Output "Updating from $tag`: $($old.Name)"
+            ./packaging/windows/test-msi.ps1 -Msi $msi -Previous $old.FullName
+            if ($LASTEXITCODE -ne 0) { throw "test-msi.ps1 failed updating from $tag" }
           }
-          $global:LASTEXITCODE = 0
-          if (-not $old) { throw "$prev has no MSI for $env:ARCH, so the update can't be tested" }
-          Write-Output "Updating from $prev`: $($old.Name)"
-          ./packaging/windows/test-msi.ps1 -Msi $msi -Previous $old.FullName
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release-windows-${{ matrix.arch }}
@@ -705,29 +761,38 @@ jobs:
             echo "::notice::No earlier published release, so the upgrade isn't tested."
             exit 0
           fi
-          dir="$RUNNER_TEMP/previous"
-          mkdir -p "$dir"
+          # And the last ProseCraft-rs release, across the rename, when that is another one.
+          tags=("$prev")
+          if [ "$prev" != "$LAST_PROSECRAFT_RS" ] && [ "v$version" != "$LAST_PROSECRAFT_RS" ]; then
+            tags+=("$LAST_PROSECRAFT_RS")
+          fi
           # Every published release since 0.1.2 has every one of these files, named lovecraft-… from
           # 0.2.0 on and prosecraft-rs-… before (LoveCraft was ProseCraft-rs). A missing one is an
           # error, not a skipped test: the upgrade is what people do.
           shopt -s nullglob
-          for prefix in lovecraft prosecraft-rs; do
-            gh release download "$prev" --repo "$GITHUB_REPOSITORY" --dir "$dir" --pattern "$prefix-*-linux-$ARCH.$EXT" 2>/dev/null || true
-            files=("$dir"/"$prefix"-*-linux-"$ARCH"."$EXT")
-            if [ "${#files[@]}" -gt 0 ]; then break; fi
+          found=()
+          for tag in "${tags[@]}"; do
+            dir="$RUNNER_TEMP/previous/$tag"
+            mkdir -p "$dir"
+            for prefix in lovecraft prosecraft-rs; do
+              gh release download "$tag" --repo "$GITHUB_REPOSITORY" --dir "$dir" --pattern "$prefix-*-linux-$ARCH.$EXT" 2>/dev/null || true
+              files=("$dir"/"$prefix"-*-linux-"$ARCH"."$EXT")
+              if [ "${#files[@]}" -gt 0 ]; then break; fi
+            done
+            if [ "${#files[@]}" -ne 1 ]; then
+              echo "::error::$tag has ${#files[@]} files named lovecraft-*-linux-$ARCH.$EXT or prosecraft-rs-*-linux-$ARCH.$EXT; the upgrade can't be tested: ${files[*]}"
+              exit 1
+            fi
+            echo "Upgrading from $tag: ${files[0]}"
+            found+=("${files[0]}")
           done
-          if [ "${#files[@]}" -ne 1 ]; then
-            echo "::error::$prev has ${#files[@]} files named lovecraft-*-linux-$ARCH.$EXT or prosecraft-rs-*-linux-$ARCH.$EXT; the upgrade can't be tested: ${files[*]}"
-            exit 1
-          fi
-          echo "Upgrading from $prev: ${files[0]}"
-          echo "file=${files[0]}" >> "$GITHUB_OUTPUT"
+          echo "files=${found[*]}" >> "$GITHUB_OUTPUT"
       - name: Install, run, upgrade, remove
         env:
           ARCH: ${{ matrix.arch }}
           EXT: ${{ matrix.ext }}
           IMAGE: ${{ matrix.image }}
-          PREVIOUS: ${{ steps.previous.outputs.file }}
+          PREVIOUS: ${{ steps.previous.outputs.files }}
         run: |
           shopt -s nullglob
           files=(dist/linux/lovecraft-*-linux-"$ARCH"."$EXT")
@@ -736,7 +801,8 @@ jobs:
             exit 1
           fi
           args=(--image "$IMAGE")
-          if [ -n "$PREVIOUS" ]; then args+=(--previous "$PREVIOUS"); fi
+          # Space-separated paths under $RUNNER_TEMP (release file names have no spaces).
+          for previous in $PREVIOUS; do args+=(--previous "$previous"); done
           packaging/linux/test-package.sh "${args[@]}" "${files[0]}"
 
   # Every required file is there, by name. On every run (by hand too), so a dry run shows it.
@@ -767,6 +833,9 @@ jobs:
             for ext in AppImage AppImage.zsync deb rpm tar.gz flatpak pkg.tar.zst; do
               [ -f "$b-linux-$arch.$ext" ] || missing="$missing $b-linux-$arch.$ext"
             done
+            # The AppImage's .zsync under the 0.1 name, which ProseCraft-rs 0.1 AppImages update from.
+            old="prosecraft-rs-$version-linux-$arch.AppImage.zsync"
+            [ -f "$old" ] || missing="$missing $old"
           done
           for arch in x64 arm64; do
             [ -f "$b-windows-$arch.msi" ] || missing="$missing $b-windows-$arch.msi"
@@ -888,12 +957,23 @@ jobs:
           verify_home="$(mktemp -d)"
           gpg --homedir "$verify_home" --batch --quiet --import release-signing-key.asc
           gpg --homedir "$verify_home" --batch --export > "$verify_home/trusted.gpg"
-          for f in lovecraft-*; do
+          # Every release file: lovecraft-…, and the AppImages' .zsync under the 0.1 name
+          # (prosecraft-rs-…, see packaging/linux/package.sh).
+          signed=0
+          for f in lovecraft-* prosecraft-rs-*; do
+            [ -f "$f" ] || continue
             case "$f" in *.asc) continue ;; esac
             gpg --batch --yes --local-user "$FPR!" --armor --detach-sign -o "$f.asc" "$f"
             gpgv --quiet --keyring "$verify_home/trusted.gpg" "$f.asc" "$f"
+            signed=$((signed + 1))
           done
           rm -rf "$verify_home"
+          # Nothing but the key and the signatures is left unsigned.
+          for f in *; do
+            case "$f" in *.asc) continue ;; esac
+            [ -f "$f.asc" ] || { echo "::error::$f was not signed"; exit 1; }
+          done
+          echo "signed $signed files"
       - name: Checksums
         working-directory: dist
         env:

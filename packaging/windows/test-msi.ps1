@@ -16,8 +16,8 @@
   Changes the current user's installed programs: run it on a CI runner or a throwaway machine.
 
 .EXAMPLE
-  pwsh packaging/windows/test-msi.ps1 -Msi dist/release/lovecraft-0.2.0-windows-x64.msi `
-    -Previous prosecraft-rs-0.1.2-windows-x64.msi
+  pwsh packaging/windows/test-msi.ps1 -Msi dist/release/lovecraft-0.3.0-windows-x64.msi `
+    -Previous lovecraft-0.2.0-windows-x64.msi
 #>
 param(
   [Parameter(Mandatory = $true)] [string] $Msi,

@@ -232,7 +232,10 @@ builds under `/apps/<app>/` (this one as `/apps/prosecraft-rs/`), and its web fi
 through the Craft host messages. Given a `.prosecraft` backup that way, the app edits that file instead of the
 browser's library: it shows the file's projects, and sends them back to be saved as a ProseCraft backup under the
 same name, after a pause in writing (at most every 15 seconds) or at once with Ctrl+S (⌘S). It tells the host
-when there are unsaved changes, so the host can warn before you leave. A file from a newer ProseCraft and an
+when there are unsaved changes, so the host can warn before you leave. It sends one save at a time and the next only once the
+host has answered `saved` (a save unanswered after 30 seconds is reported, and holds the next one back), so a
+host must store a file's saves in the order they come, one after another. When the page is hidden or closed,
+what was typed is sent at once. A file from a newer ProseCraft and an
 encrypted backup open read-only and are never written back; a file that isn't a backup is refused with a message.
 The browser's own library is not opened or changed while the app runs inside CraftCloud. Any page on the same
 origin can host it the same way: it speaks `craft-web-host`'s messages (`prosecraft-rs:open`, `:save`,

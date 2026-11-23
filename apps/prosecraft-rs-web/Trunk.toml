@@ -8,3 +8,10 @@ filehash = true
 [serve]
 addresses = ["127.0.0.1"]
 port = 8781
+
+# The tools' versions, pinned: wasm-bindgen equal to the `wasm-bindgen` crate in Cargo.lock (they
+# must match), and Binaryen's wasm-opt. Trunk uses an installed copy of that version and downloads
+# one otherwise (the release workflow installs both, checked by sha256).
+[tools]
+wasm_bindgen = "0.2.130"
+wasm_opt = "version_130"

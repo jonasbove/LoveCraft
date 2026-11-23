@@ -7,7 +7,7 @@ use egui_kittest::kittest::Queryable;
 use prosecraft_core::js::{self, JsValue};
 use prosecraft_ui_egui::{LibraryStore, ProjectLibrary, ProseApp};
 
-use super::{Bridge, Effect, SAVE_EVERY, SAVE_TIMEOUT};
+use super::{Bridge, Effect, SAVE_EVERY, SAVE_TIMEOUT, SAVE_TIMEOUT_PER_MB};
 
 const NAME: &str = "Lighthouse.prosecraft";
 
@@ -49,7 +49,7 @@ struct Page {
 
 impl Page {
     fn open(name: &str, text: &str) -> Self {
-        let mut bridge = Bridge::new();
+        let mut bridge = Bridge::new("test");
         let app = bridge
             .open(
                 name,
@@ -213,17 +213,17 @@ fn saves_are_gathered_one_at_a_time_and_ctrl_s_sends_at_once() {
 }
 
 #[test]
-fn an_unanswered_save_is_reported_and_sent_again() {
+fn an_unanswered_save_is_reported_and_holds_the_next_one_back() {
     let mut harness = harness(Page::open(NAME, &fixture("bundle-plain.prosecraft")));
     harness.run();
     add_chapter(&mut harness);
-    let (_, text, id) = harness.state().saves()[0].clone();
+    let (_, _, id) = harness.state().saves()[0].clone();
 
-    harness.state_mut().at(SAVE_TIMEOUT);
+    harness.state_mut().at(SAVE_TIMEOUT + 1.0);
     let page = harness.state();
     assert!(page.posted.contains(&Effect::Failed {
         error: format!(
-            "{NAME} wasn't saved: the host didn't confirm the save. It will be sent again."
+            "{NAME} isn't saved yet: the host hasn't confirmed the save. Your changes are kept here."
         ),
         id: Some(id.clone()),
     }));
@@ -232,36 +232,73 @@ fn an_unanswered_save_is_reported_and_sent_again() {
         page.app
             .state()
             .status()
-            .is_some_and(|s| s.contains("wasn't saved")),
+            .is_some_and(|s| s.contains("isn't saved yet")),
         "the person is told"
     );
 
-    harness.state_mut().at(SAVE_TIMEOUT + SAVE_EVERY);
-    let saves = harness.state().saves();
-    assert_eq!(saves.len(), 2, "sent again");
-    assert_eq!(saves[1].1, text);
-    let retry = saves[1].2.clone();
-    assert_ne!(retry, id);
+    // More changes, Ctrl+S, time: nothing goes beside the unanswered save (the host would get
+    // two writes of the file at once), and it is reported once.
+    add_chapter(&mut harness);
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::S);
+    harness.run();
+    harness.state_mut().at(SAVE_TIMEOUT * 5.0);
+    let failed = |page: &Page| {
+        page.posted
+            .iter()
+            .filter(|e| matches!(e, Effect::Failed { .. }))
+            .count()
+    };
+    assert_eq!(harness.state().saves().len(), 1);
+    assert_eq!(failed(harness.state()), 1);
 
-    // The first answer comes late, then the retry's: both count, nothing more is sent.
+    // Its answer comes late: the waiting changes go next.
     harness.state_mut().bridge.saved(&id);
-    harness.state_mut().bridge.saved(&retry);
-    harness.state_mut().at(SAVE_TIMEOUT * 4.0);
-    assert_eq!(harness.state().saves().len(), 2);
+    harness.state_mut().at(SAVE_TIMEOUT * 5.0 + 0.5);
+    let saves = harness.state().saves();
+    assert_eq!(saves.len(), 2);
+    assert!(saves[1].1.contains("Chapter 2"));
+    harness.state_mut().bridge.saved(&saves[1].2.clone());
+    harness.state_mut().at(SAVE_TIMEOUT * 5.0 + 1.0);
     assert_eq!(harness.state().dirty(), [true, false]);
 }
 
 #[test]
-fn a_late_answer_for_a_timed_out_save_clears_what_waits() {
-    let mut harness = harness(Page::open(NAME, &fixture("bundle-plain.prosecraft")));
+fn a_larger_file_gets_longer_to_save() {
+    // About 3 MB: the fixture with a long scene.
+    let mut bundle = js::parse(&fixture("bundle-plain.prosecraft")).expect("the fixture");
+    let long = format!("<p>{}</p>", "word ".repeat(600_000));
+    if let Some(JsValue::Array(documents)) = projects(&mut bundle)[1]
+        .as_object_mut()
+        .and_then(|p| p.get_mut("project"))
+        .and_then(JsValue::as_object_mut)
+        .and_then(|p| p.get_mut("documents"))
+        && let Some(document) = documents.first_mut().and_then(JsValue::as_object_mut)
+    {
+        document.insert("content", JsValue::str(&long));
+    }
+    let mut harness = harness(Page::open(NAME, &js::stringify(&bundle)));
     harness.run();
     add_chapter(&mut harness);
-    let id = harness.state().saves()[0].2.clone();
-    harness.state_mut().at(SAVE_TIMEOUT);
-    harness.state_mut().bridge.saved(&id);
-    harness.state_mut().at(SAVE_TIMEOUT + 1.0);
     assert_eq!(harness.state().saves().len(), 1);
-    assert_eq!(harness.state().dirty(), [true, false]);
+    harness.state_mut().at(SAVE_TIMEOUT + 1.0);
+    assert!(
+        !harness
+            .state()
+            .posted
+            .iter()
+            .any(|e| matches!(e, Effect::Failed { .. })),
+        "3 MB get 30 s more"
+    );
+    harness
+        .state_mut()
+        .at(SAVE_TIMEOUT + 4.0 * SAVE_TIMEOUT_PER_MB);
+    assert!(
+        harness
+            .state()
+            .posted
+            .iter()
+            .any(|e| matches!(e, Effect::Failed { .. }))
+    );
 }
 
 #[test]
@@ -270,11 +307,201 @@ fn a_save_that_could_not_be_posted_waits_for_the_next_turn() {
     harness.run();
     add_chapter(&mut harness);
     let (_, text, id) = harness.state().saves()[0].clone();
-    harness.state_mut().bridge.not_sent(&id);
+    harness.state_mut().bridge.not_sent(&id, text.clone());
     harness.state_mut().at(SAVE_EVERY);
     let saves = harness.state().saves();
     assert_eq!(saves.len(), 2);
     assert_eq!(saves[1].1, text);
+}
+
+#[test]
+fn save_ids_name_their_session() {
+    let mut harness = harness(Page::open(NAME, &fixture("bundle-plain.prosecraft")));
+    harness.run();
+    add_chapter(&mut harness);
+    let (_, _, id) = harness.state().saves()[0].clone();
+    assert_eq!(id, "save-test-1");
+    // A `saved` from an earlier page of the same file (another session) confirms nothing.
+    harness.state_mut().bridge.saved("save-earlier-1");
+    harness.state_mut().at(1.0);
+    assert_eq!(harness.state().dirty(), [true]);
+}
+
+#[test]
+fn typing_is_reported_unsaved_before_its_pause() {
+    let page = Page::open(NAME, &fixture("bundle-plain.prosecraft"));
+    let mut harness = Harness::builder()
+        .with_max_steps(8)
+        .with_step_dt(0.1)
+        .with_size([1280.0, 850.0])
+        .build_ui_state(|ui, page: &mut Page| page.frame(ui), page);
+    prosecraft_ui_egui::setup_for_tests(&harness.ctx);
+    harness.run();
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness.get_by_label("Scene text").focus();
+    harness.step();
+    // Keystrokes 0.1 s apart: the editor never pauses long enough to commit them.
+    for _ in 0..10 {
+        harness.get_by_label("Scene text").type_text("a");
+        harness.step();
+    }
+    assert_eq!(harness.state().dirty(), [true]);
+    assert_eq!(harness.state().saves(), []);
+    // Once the pauses pass, the typing goes to the host.
+    harness.run_steps(20);
+    harness.state_mut().at(SAVE_EVERY);
+    let saves = harness.state().saves();
+    assert!(saves.iter().any(|s| s.1.contains(&"a".repeat(10))));
+}
+
+#[test]
+fn leaving_the_page_sends_the_typing_at_once() {
+    let page = Page::open(NAME, &fixture("bundle-plain.prosecraft"));
+    let mut harness = Harness::builder()
+        .with_max_steps(8)
+        .with_step_dt(0.1)
+        .with_size([1280.0, 850.0])
+        .build_ui_state(|ui, page: &mut Page| page.frame(ui), page);
+    prosecraft_ui_egui::setup_for_tests(&harness.ctx);
+    harness.run();
+    add_chapter(&mut harness);
+    assert_eq!(harness.state().saves().len(), 1);
+    let first = harness.state().saves()[0].2.clone();
+    harness.state_mut().bridge.saved(&first);
+    harness
+        .get_by_role_and_label(Role::TreeItem, "Opening Scene")
+        .click();
+    harness.run();
+    harness.get_by_label("Scene text").focus();
+    harness.step();
+    harness.get_by_label("Scene text").type_text("bye");
+    harness.step();
+    // Hidden one second later: well inside SAVE_EVERY, and before the editor's pause.
+    let page = harness.state_mut();
+    page.now = 1.0;
+    page.bridge.leaving(1.0, &mut page.app);
+    page.posted.extend(page.bridge.take_effects());
+    let saves = harness.state().saves();
+    assert_eq!(saves.len(), 2, "sent at once");
+    assert!(saves[1].1.contains("bye"), "with what was being typed");
+}
+
+#[test]
+fn projects_not_edited_go_back_exactly_as_they_came() {
+    // The second project holds HTML the sanitizer rewrites: a remote picture, an h4, a comment.
+    let mut bundle = js::parse(&fixture("bundle-plain.prosecraft")).expect("the fixture");
+    if let Some(JsValue::Array(documents)) = projects(&mut bundle)[1]
+        .as_object_mut()
+        .and_then(|p| p.get_mut("project"))
+        .and_then(JsValue::as_object_mut)
+        .and_then(|p| p.get_mut("documents"))
+        && let Some(document) = documents.first_mut().and_then(JsValue::as_object_mut)
+    {
+        document.insert(
+            "content",
+            JsValue::str(
+                "<p>Map: <img src=\"https://example.com/map.png\"></p><h4>Part</h4><p>x<!-- keep --></p>",
+            ),
+        );
+    }
+    let opened = projects(&mut bundle).clone();
+    let mut harness = harness(Page::open(NAME, &js::stringify(&bundle)));
+    harness.run();
+    add_chapter(&mut harness);
+    let (_, saved, _) = harness.state().saves()[0].clone();
+    let mut saved = js::parse(&saved).expect("json");
+    let saved = projects(&mut saved);
+    assert_ne!(saved[0], opened[0], "the open project was edited");
+    assert_eq!(saved[1], opened[1], "the other one is as it came");
+}
+
+#[test]
+fn an_edited_project_is_sanitized_as_an_opened_backup_is() {
+    let mut bundle = js::parse(&fixture("bundle-plain.prosecraft")).expect("the fixture");
+    if let Some(JsValue::Array(documents)) = projects(&mut bundle)[0]
+        .as_object_mut()
+        .and_then(|p| p.get_mut("project"))
+        .and_then(JsValue::as_object_mut)
+        .and_then(|p| p.get_mut("documents"))
+        && let Some(document) = documents.first_mut().and_then(JsValue::as_object_mut)
+    {
+        document.insert(
+            "content",
+            JsValue::str("<p>Hi<img src=\"https://example.com/track.png\"></p>"),
+        );
+    }
+    let mut harness = harness(Page::open(NAME, &js::stringify(&bundle)));
+    harness.run();
+    add_chapter(&mut harness);
+    let (_, saved, _) = harness.state().saves()[0].clone();
+    assert!(!saved.contains("example.com/track.png"), "{saved}");
+}
+
+#[test]
+fn unknown_fields_inside_an_edited_project_are_kept() {
+    let mut bundle = js::parse(&fixture("bundle-plain.prosecraft")).expect("the fixture");
+    if let Some(project) = projects(&mut bundle)[0].as_object_mut() {
+        project.insert("futureField", JsValue::str("keep"));
+        if let Some(entities) = project.get_mut("entities").and_then(JsValue::as_object_mut) {
+            entities.insert(
+                "futureKind",
+                js::parse(r#"{"x":{"updatedAt":1,"revision":1,"updatedBy":"d","deletedAt":null}}"#)
+                    .expect("json"),
+            );
+        }
+    }
+    let mut harness = harness(Page::open(NAME, &js::stringify(&bundle)));
+    harness.run();
+    assert!(harness.state().app.state().is_editable());
+    add_chapter(&mut harness);
+    let (_, saved, _) = harness.state().saves()[0].clone();
+    let mut saved = js::parse(&saved).expect("json");
+    let project = &projects(&mut saved)[0];
+    assert!(
+        js::stringify(project).contains("Chapter 1"),
+        "the edit landed"
+    );
+    assert_eq!(project.get("futureField"), Some(&JsValue::str("keep")));
+    assert!(
+        project
+            .get("entities")
+            .and_then(|e| e.get("futureKind"))
+            .is_some()
+    );
+}
+
+#[test]
+fn a_newer_project_merged_in_makes_the_file_read_only() {
+    let mut harness = harness(Page::open(NAME, &fixture("bundle-plain.prosecraft")));
+    harness.run();
+    // "Open backup…" with a project from a newer ProseCraft (and one this build reads).
+    let mut bundle = js::parse(&fixture("bundle-plain.prosecraft")).expect("the fixture");
+    let mut newer = projects(&mut bundle)[0].clone();
+    if let Some(stored) = newer.as_object_mut() {
+        stored.insert("schemaVersion", JsValue::Number(99.0));
+        stored.insert("id", JsValue::str("project-new"));
+        if let Some(data) = stored.get_mut("project").and_then(JsValue::as_object_mut) {
+            data.insert("id", JsValue::str("project-new"));
+        }
+    }
+    projects(&mut bundle).insert(0, newer);
+    harness
+        .state_mut()
+        .app
+        .open_backup("Other.prosecraft", &js::stringify(&bundle));
+    harness.run();
+    assert!(
+        !harness.state().app.state().is_editable(),
+        "nothing can be edited"
+    );
+    harness.get_by_label_contains("newer version of ProseCraft");
+    // Even a save the app made would stay here.
+    *harness.state().bridge.outbox.borrow_mut() = Some("anything".into());
+    harness.state_mut().at(SAVE_EVERY * 3.0);
+    assert_eq!(harness.state().saves(), []);
 }
 
 fn projects(bundle: &mut JsValue) -> &mut Vec<JsValue> {
@@ -366,7 +593,7 @@ fn what_is_not_a_backup_is_refused_and_the_host_told() {
         (vec![0xff, 0xfe, 0x00], "it isn't a ProseCraft backup"),
         (Vec::new(), "Couldn't open notes.prosecraft:"),
     ] {
-        let mut bridge = Bridge::new();
+        let mut bridge = Bridge::new("test");
         let opened = bridge.open(
             "notes.prosecraft",
             &bytes,

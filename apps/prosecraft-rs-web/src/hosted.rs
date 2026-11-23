@@ -27,8 +27,13 @@ pub const APP_ID: &str = "prosecraft-rs";
 /// gathered. Ctrl+S sends at once.
 pub const SAVE_EVERY: f64 = 15.0;
 
-/// A save the host hasn't confirmed (`saved`) by then is reported as failed and sent again.
+/// A save the host hasn't confirmed (`saved`) by then is reported as failed; a larger file gets
+/// [`SAVE_TIMEOUT_PER_MB`] more per megabyte. No other save is sent until it is confirmed: the
+/// host must not get two writes of the file at once.
 pub const SAVE_TIMEOUT: f64 = 30.0;
+
+/// Extra time a save may take per megabyte of the file.
+pub const SAVE_TIMEOUT_PER_MB: f64 = 10.0;
 
 /// What the session asks the host page for.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -87,25 +92,31 @@ struct File {
     name: String,
     /// Saves go back to the host (not read-only, not encrypted).
     writable: bool,
+    /// The projects as opened: sent back exactly so while they are not edited.
+    opened: Vec<prosecraft_core::js::JsValue>,
 }
 
 /// A save posted to the host.
 struct Flight {
     id: String,
-    text: String,
     sent_at: f64,
+    /// When it counts as unanswered.
+    timeout: f64,
+    /// Already reported as unanswered.
+    reported: bool,
 }
 
 /// One hosted file's session: what was opened, what has been sent, what the host confirmed.
 pub struct Bridge {
+    /// Names this page's saves apart from an earlier page's (a reload of the same file).
+    session: String,
     file: Option<File>,
     outbox: Outbox,
-    /// The save waiting for `saved`. One at a time: the host writes each over the last.
+    /// The save waiting for `saved`. One at a time: the host writes each over the last, and
+    /// one that went unanswered still holds the next back.
     flight: Option<Flight>,
-    /// A save that timed out: if its `saved` comes after all, it still counts.
-    late: Option<Flight>,
     last_sent: Option<f64>,
-    /// Ctrl+S: send the next save without waiting for [`SAVE_EVERY`].
+    /// Ctrl+S or the page going away: send the next save without waiting for [`SAVE_EVERY`].
     save_now: bool,
     next_id: u64,
     /// The unsaved state last reported to the host.
@@ -113,19 +124,14 @@ pub struct Bridge {
     effects: Vec<Effect>,
 }
 
-impl Default for Bridge {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Bridge {
-    pub fn new() -> Self {
+    /// A session whose save ids start with `session` (random in the browser).
+    pub fn new(session: &str) -> Self {
         Self {
+            session: session.to_owned(),
             file: None,
             outbox: Rc::default(),
             flight: None,
-            late: None,
             last_sent: None,
             save_now: false,
             next_id: 1,
@@ -192,12 +198,10 @@ impl Bridge {
             Ok(_) if !rewritable(text) => Ok(self.read_only(name, text)),
             Ok(_) => {
                 // Read as the library file is, so records this build can't read are kept and
-                // written back as they are; the projects sanitized as an opened backup's are.
+                // written back as they are. Projects are sanitized as an opened backup's are,
+                // but only once edited ([`Self::outgoing`]): untouched ones go back as they came.
                 let mut library = ProjectLibrary::from_text(text).map_err(|_| not_a_backup())?;
-                let projects: Vec<_> = library.projects().cloned().collect();
-                for project in projects {
-                    library.put(prosecraft_core::library::sanitize_stored_project(project));
-                }
+                let opened = library.projects().cloned().collect();
                 library.device_id = device_id;
                 let writable = !library.is_read_only();
                 let store = HostStore {
@@ -207,6 +211,7 @@ impl Bridge {
                 self.file = Some(File {
                     name: name.to_owned(),
                     writable,
+                    opened,
                 });
                 Ok(ProseApp::with_library(library, Box::new(store)))
             }
@@ -223,6 +228,7 @@ impl Bridge {
         self.file = Some(File {
             name: name.to_owned(),
             writable: false,
+            opened: Vec::new(),
         });
         app
     }
@@ -243,26 +249,56 @@ impl Bridge {
         }
     }
 
+    /// The page is hidden or going away (`visibilitychange`, `pagehide`): what was typed goes to
+    /// the host now, without waiting for [`SAVE_EVERY`] (but never beside an unconfirmed save).
+    pub fn leaving(&mut self, now: f64, app: &mut ProseApp) {
+        self.save_now(app);
+        self.tick(now, app);
+    }
+
     /// `saved`: the host stored the save with this `id`. Other ids are ignored.
     pub fn saved(&mut self, id: &str) {
         if self.flight.as_ref().is_some_and(|f| f.id == id) {
             self.flight = None;
-            self.late = None;
-        } else if let Some(late) = self.late.take_if(|l| l.id == id) {
-            // The save that timed out was stored after all: unless something newer was saved
-            // since, there is nothing left to send.
-            let mut outbox = self.outbox.borrow_mut();
-            if outbox.as_deref() == Some(late.text.as_str()) {
-                *outbox = None;
-            }
         }
     }
 
-    /// A save that couldn't be posted: it waits for the next turn.
-    pub fn not_sent(&mut self, id: &str) {
-        if let Some(flight) = self.flight.take_if(|f| f.id == id) {
-            self.outbox.borrow_mut().get_or_insert(flight.text);
+    /// A save that couldn't be posted: it waits for the next turn, unless something newer does.
+    pub fn not_sent(&mut self, id: &str, text: String) {
+        if self.flight.take_if(|f| f.id == id).is_some() {
+            self.outbox.borrow_mut().get_or_insert(text);
         }
+    }
+
+    /// The file to send for the library's `text`: projects not edited since the file was opened
+    /// exactly as they came, edited ones sanitized as an opened backup's are.
+    fn outgoing(&self, text: String) -> String {
+        let Some(file) = self.file.as_ref() else {
+            return text;
+        };
+        let Ok(mut library) = ProjectLibrary::from_text(&text) else {
+            return text;
+        };
+        let mut changed = false;
+        let projects: Vec<_> = library.projects().cloned().collect();
+        for project in projects {
+            if file.opened.contains(&project) {
+                continue;
+            }
+            let clean = prosecraft_core::library::sanitize_stored_project(project.clone());
+            if clean != project {
+                library.put(clean);
+                changed = true;
+            }
+        }
+        if !changed {
+            return text;
+        }
+        let saved_at = prosecraft_core::js::parse(&text)
+            .ok()
+            .and_then(|b| b.get("exportedAt").and_then(|t| t.as_number()))
+            .unwrap_or_default();
+        library.to_text(saved_at)
     }
 
     /// After each frame (`now` in seconds): a save that went unanswered, the next save, and
@@ -271,49 +307,52 @@ impl Bridge {
         let Some(file) = self.file.as_ref() else {
             return;
         };
-        if !file.writable {
+        // Read-only from the start, or since a backup from a newer ProseCraft was merged in.
+        if !file.writable || !app.state().is_editable() {
             // Nothing is ever sent back; the app shows why.
             self.outbox.borrow_mut().take();
+            self.save_now = false;
             return;
         }
         let name = file.name.clone();
-        if let Some(flight) = self.flight.take_if(|f| now - f.sent_at >= SAVE_TIMEOUT) {
+        if let Some(flight) = self
+            .flight
+            .as_mut()
+            .filter(|f| !f.reported && now - f.sent_at >= f.timeout)
+        {
+            flight.reported = true;
             let error = format!(
-                "{name} wasn't saved: the host didn't confirm the save. It will be sent again."
+                "{name} isn't saved yet: the host hasn't confirmed the save. Your changes are kept here."
             );
             app.report(&error);
-            self.effects.push(Effect::Failed {
-                error,
-                id: Some(flight.id.clone()),
-            });
-            self.outbox
-                .borrow_mut()
-                .get_or_insert_with(|| flight.text.clone());
-            self.late = Some(flight);
-            // The next try waits its turn.
-            self.last_sent = Some(now);
+            let id = Some(flight.id.clone());
+            self.effects.push(Effect::Failed { error, id });
         }
         let due = self.save_now || self.last_sent.is_none_or(|at| now - at >= SAVE_EVERY);
         if self.flight.is_none() && due {
             let next = self.outbox.borrow_mut().take();
             if let Some(text) = next {
-                let id = format!("save-{}", self.next_id);
+                let text = self.outgoing(text);
+                let id = format!("save-{}-{}", self.session, self.next_id);
                 self.next_id += 1;
+                let megabytes = text.len() as f64 / 1_000_000.0;
+                self.flight = Some(Flight {
+                    id: id.clone(),
+                    sent_at: now,
+                    timeout: SAVE_TIMEOUT + SAVE_TIMEOUT_PER_MB * megabytes,
+                    reported: false,
+                });
                 self.effects.push(Effect::Save {
                     name,
-                    bytes: text.as_bytes().to_vec(),
-                    id: id.clone(),
-                });
-                self.flight = Some(Flight {
+                    bytes: text.into_bytes(),
                     id,
-                    text,
-                    sent_at: now,
                 });
                 self.last_sent = Some(now);
             }
             self.save_now = false;
         }
         let dirty = app.state().save_state() != &SaveState::Saved
+            || app.has_unsaved_draft()
             || self.outbox.borrow().is_some()
             || self.flight.is_some();
         if dirty != self.dirty {
@@ -325,7 +364,7 @@ impl Bridge {
     /// When, in seconds from `now`, the session next has something to do on its own.
     pub fn wake_in(&self, now: f64) -> Option<f64> {
         if let Some(flight) = &self.flight {
-            return Some((flight.sent_at + SAVE_TIMEOUT - now).max(0.0));
+            return (!flight.reported).then(|| (flight.sent_at + flight.timeout - now).max(0.0));
         }
         if self.outbox.borrow().is_some() {
             let at = self.last_sent.map_or(now, |t| t + SAVE_EVERY);

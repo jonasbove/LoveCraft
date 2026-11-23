@@ -54,6 +54,12 @@ env:
   WIX_VERSION: "5.0.2"
   TRUNK_VERSION: "0.22.0"
   TRUNK_SHA256: f78c1989240c56592d8cfc4df5cc27399a3ff66a3f9cc819e16f1e3d809ce7c2 # trunk-x86_64-unknown-linux-gnu.tar.gz
+  # The web build's tools, as apps/prosecraft-rs-web/Trunk.toml pins them (wasm-bindgen equal to the
+  # crate in Cargo.lock). Installed here, checked by sha256, so trunk doesn't download them unchecked.
+  WASM_BINDGEN_VERSION: "0.2.130"
+  WASM_BINDGEN_SHA256: 9687f3bb551b9f66f37ed32a40d7913a00f7962db653054e56857bc306c3227f # x86_64-unknown-linux-musl.tar.gz
+  BINARYEN_VERSION: "130"
+  BINARYEN_SHA256: 0a18362361ad05465118cd8eeb72edaeec89de6894bc283576ef4e07aa3babcc # x86_64-linux.tar.gz
   # The storytold/craft-fonts commit the builds embed Inter and Source Serif 4 from. It is newer
   # than the suite's pin in craft-common-actions, which predates those fonts. Keep it equal to
   # `_fonts` in packaging/arch/prosecraft-rs/PKGBUILD and the craft-fonts input in flake.nix.
@@ -157,10 +163,35 @@ jobs:
           mkdir -p "$RUNNER_TEMP/bin"
           tar -xz -C "$RUNNER_TEMP/bin" -f "$RUNNER_TEMP/$archive" trunk
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: wasm-bindgen and wasm-opt
+        run: |
+          bindgen="wasm-bindgen-${WASM_BINDGEN_VERSION}-x86_64-unknown-linux-musl"
+          curl --proto '=https' -fsSL --retry 3 -o "$RUNNER_TEMP/$bindgen.tar.gz" \
+            "https://github.com/wasm-bindgen/wasm-bindgen/releases/download/${WASM_BINDGEN_VERSION}/$bindgen.tar.gz"
+          echo "$WASM_BINDGEN_SHA256  $RUNNER_TEMP/$bindgen.tar.gz" | sha256sum -c -
+          binaryen="binaryen-version_${BINARYEN_VERSION}"
+          curl --proto '=https' -fsSL --retry 3 -o "$RUNNER_TEMP/$binaryen.tar.gz" \
+            "https://github.com/WebAssembly/binaryen/releases/download/version_${BINARYEN_VERSION}/$binaryen-x86_64-linux.tar.gz"
+          echo "$BINARYEN_SHA256  $RUNNER_TEMP/$binaryen.tar.gz" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/tools"
+          tar -xz -C "$RUNNER_TEMP/tools" -f "$RUNNER_TEMP/$bindgen.tar.gz"
+          tar -xz -C "$RUNNER_TEMP/tools" -f "$RUNNER_TEMP/$binaryen.tar.gz"
+          echo "$RUNNER_TEMP/tools/$bindgen" >> "$GITHUB_PATH"
+          echo "$RUNNER_TEMP/tools/$binaryen/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/tools/$bindgen/wasm-bindgen" --version
+          "$RUNNER_TEMP/tools/$binaryen/bin/wasm-opt" --version
       - name: Build and package (zip)
         env:
           CRAFT_FONTS_DIR: ${{ github.workspace }}/craft-fonts
-        run: packaging/web/package.sh
+        run: |
+          packaging/web/package.sh
+          # The pinned tools installed above were used: trunk keeps the tools it downloads in its
+          # cache folder, and there is none.
+          if [ -e "$HOME/.cache/trunk" ]; then
+            ls -R "$HOME/.cache/trunk"
+            echo "::error::trunk downloaded a tool instead of using the pinned, checked one"
+            exit 1
+          fi
       - name: Check the zip
         run: |
           version="$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)"

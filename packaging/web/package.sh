@@ -11,8 +11,10 @@
 #
 # Usage: packaging/web/package.sh [--skip-build]
 #
-# Needs: trunk (it fetches the wasm-bindgen matching Cargo.lock, and wasm-opt), the
-# wasm32-unknown-unknown target, zip, and a craft-fonts checkout (CRAFT_FONTS_DIR, see ../env.sh).
+# Needs: trunk, wasm-bindgen and wasm-opt at the versions apps/prosecraft-rs-web/Trunk.toml pins
+# (trunk downloads them when they aren't installed), the wasm32-unknown-unknown target, zip, and
+# a craft-fonts checkout (CRAFT_FONTS_DIR, see ../env.sh). The build uses Cargo.lock as it is
+# (`--locked`).
 set -euo pipefail
 # shellcheck source=../env.sh
 . "$(dirname "${BASH_SOURCE[0]}")/../env.sh"
@@ -32,7 +34,7 @@ STAGE="$CARGO_TARGET_DIR/web-stage"
 
 if [[ "$SKIP_BUILD" == 0 ]]; then
   rm -rf "$WEB_DIST"
-  (cd "$ROOT/apps/prosecraft-rs-web" && trunk build --release --public-url ./ --dist "$WEB_DIST")
+  (cd "$ROOT/apps/prosecraft-rs-web" && trunk build --release --locked --public-url ./ --dist "$WEB_DIST")
 fi
 [[ -f "$WEB_DIST/index.html" ]] || { echo "error: no $WEB_DIST/index.html (build first)" >&2; exit 1; }
 

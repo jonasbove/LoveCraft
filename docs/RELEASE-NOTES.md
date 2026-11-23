@@ -7,11 +7,17 @@ release links to its section here. The newest version is at the top.
 
 - **The web app runs inside CraftCloud.** Opened from CraftCloud's file browser (framed with `?host=parent`), the
   web app edits the `.prosecraft` backup CraftCloud sends and saves it back there under the same name, after a
-  pause in writing (at most every 15 seconds) or at once with Ctrl+S, through the Craft apps' shared host messages
-  (`craft-web-host`). It reports unsaved changes, so CraftCloud can warn before you leave, and says so when a save
-  goes unconfirmed (then sends it again). A file from a newer ProseCraft and an encrypted backup open read-only and
-  are never written back; a file that isn't a backup is refused. Outside a host, nothing changes, and the browser's
-  library is never touched by a hosted file.
+  pause in writing (at most every 15 seconds), at once with Ctrl+S, and when the page is hidden or closed, through
+  the Craft apps' shared host messages (`craft-web-host`). It reports unsaved changes, typing included, so
+  CraftCloud can warn before you leave, and says so when a save goes unconfirmed (the next waits for it). Projects
+  you don't edit go back exactly as they came. A file from a newer ProseCraft and an encrypted backup open
+  read-only and are never written back; a file that isn't a backup is refused. Outside a host, nothing changes,
+  and the browser's library is never touched by a hosted file.
+- **Nothing a newer release added to a project is lost when it is edited.** Saving a project keeps the fields
+  and record kinds this version doesn't know, instead of rebuilding it from the ones it does (as ProseCraft
+  does).
+- **A backup with a project from a newer ProseCraft, opened into the library, leaves the app read-only**, so no
+  edit is made that could never be saved.
 - **A web download.** Each release now has `prosecraft-rs-web-<ver>.zip`, the web app to put on any static host,
   under any path (the zip CraftCloud pins). It is checksummed and signed like the other files.
 

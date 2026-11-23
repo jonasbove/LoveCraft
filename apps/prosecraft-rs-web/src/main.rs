@@ -31,6 +31,7 @@ mod web {
     use std::rc::Rc;
 
     use eframe::wasm_bindgen::JsCast;
+    use eframe::wasm_bindgen::closure::Closure;
     use prosecraft_core::library::{Library, new_device_id};
     use prosecraft_ui_egui::{HostRequest, ProseApp};
 
@@ -53,7 +54,12 @@ mod web {
         Dropped,
     }
 
+    /// The page's app, shared with the listeners that save when the page goes away.
     struct WebApp {
+        page: Rc<RefCell<Page>>,
+    }
+
+    struct Page {
         app: ProseApp,
         inbox: Inbox<Then>,
         /// The Craft host framing the app, when there is one.
@@ -95,7 +101,7 @@ mod web {
             let _ = host.post_ready(env!("CARGO_PKG_VERSION"), false);
             Self {
                 host,
-                bridge: Bridge::new(),
+                bridge: Bridge::new(&session_id()),
                 messages,
                 device_id,
             }
@@ -129,11 +135,20 @@ mod web {
         fn send(&mut self, app: &mut ProseApp, ctx: &eframe::egui::Context) {
             let now = ctx.input(|i| i.time);
             self.bridge.tick(now, app);
+            self.post(app);
+            if let Some(seconds) = self.bridge.wake_in(now) {
+                ctx.request_repaint_after(std::time::Duration::from_secs_f64(seconds.max(0.1)));
+            }
+        }
+
+        /// What the session asks for, posted to the host.
+        fn post(&mut self, app: &mut ProseApp) {
             for effect in self.bridge.take_effects() {
                 match effect {
                     Effect::Save { name, bytes, id } => {
                         if let Err(error) = self.host.post_save(&name, &bytes, Some(&id), false) {
-                            self.bridge.not_sent(&id);
+                            self.bridge
+                                .not_sent(&id, String::from_utf8_lossy(&bytes).into_owned());
                             app.report(&format!("{name} couldn't be sent to be saved: {error}"));
                         }
                     }
@@ -143,9 +158,47 @@ mod web {
                     }
                 }
             }
-            if let Some(seconds) = self.bridge.wake_in(now) {
-                ctx.request_repaint_after(std::time::Duration::from_secs_f64(seconds.max(0.1)));
+        }
+    }
+
+    /// A random name for this page's saves, so a `saved` meant for an earlier page (before a
+    /// reload) never confirms one of this page's.
+    fn session_id() -> String {
+        let mut bytes = [0u8; 6];
+        let _ =
+            prosecraft_core::storage::crypto::RandomSource::fill(&mut BrowserRandom, &mut bytes);
+        bytes.iter().map(|b| format!("{b:02x}")).collect()
+    }
+
+    /// When the page is hidden or goes away (`visibilitychange`, `pagehide`), what was typed is
+    /// sent to the host at once: a hidden page may get no more frames.
+    fn save_when_leaving(page: &Rc<RefCell<Page>>, ctx: &eframe::egui::Context) {
+        let Some(window) = web_sys::window() else {
+            return;
+        };
+        let Some(document) = window.document() else {
+            return;
+        };
+        let (shared, ctx) = (Rc::clone(page), ctx.clone());
+        let watched = document.clone();
+        let leave = Closure::<dyn Fn(web_sys::Event)>::new(move |event: web_sys::Event| {
+            if event.type_() == "visibilitychange" && !watched.hidden() {
+                return;
             }
+            if let Ok(mut page) = shared.try_borrow_mut() {
+                page.leaving(&ctx);
+            }
+        });
+        let listener = leave.as_ref().unchecked_ref();
+        let heard = document
+            .add_event_listener_with_callback("visibilitychange", listener)
+            .is_ok()
+            | window
+                .add_event_listener_with_callback("pagehide", listener)
+                .is_ok();
+        if heard {
+            // Listening for the page's life.
+            leave.forget();
         }
     }
 
@@ -235,7 +288,7 @@ mod web {
         }
     }
 
-    impl WebApp {
+    impl Page {
         fn receive(&mut self) {
             let chosen: Vec<_> = self.inbox.borrow_mut().drain(..).collect();
             for file in chosen {
@@ -265,6 +318,15 @@ mod web {
                     }
                     Then::Dropped => self.app.open_backup_bytes(&file.name, &file.bytes),
                 }
+            }
+        }
+
+        /// The page is hidden or going away: the hosted file is sent now.
+        fn leaving(&mut self, ctx: &eframe::egui::Context) {
+            if let Some(hosted) = self.hosted.as_mut() {
+                let now = ctx.input(|i| i.time);
+                hosted.bridge.leaving(now, &mut self.app);
+                hosted.post(&mut self.app);
             }
         }
 
@@ -320,6 +382,15 @@ mod web {
 
     impl eframe::App for WebApp {
         fn ui(&mut self, ui: &mut eframe::egui::Ui, _frame: &mut eframe::Frame) {
+            // Only a page-leave listener could hold it, and it never runs inside a frame.
+            if let Ok(mut page) = self.page.try_borrow_mut() {
+                page.frame(ui);
+            }
+        }
+    }
+
+    impl Page {
+        fn frame(&mut self, ui: &mut eframe::egui::Ui) {
             let dropped = ui.ctx().input(|input| input.raw.dropped_files.clone());
             for file in dropped {
                 browser::read_dropped(file, Then::Dropped, &self.inbox, ui.ctx());
@@ -407,11 +478,16 @@ mod web {
                         let hosted = host.map(|host| Hosted::start(host, device_id, &cc.egui_ctx));
                         // Hosted, the clipboard is installed for the opened file's app.
                         let app = prepare(app, &cc.egui_ctx, hosted.is_none());
-                        Ok(Box::new(WebApp {
+                        let hosting = hosted.is_some();
+                        let page = Rc::new(RefCell::new(Page {
                             app,
                             inbox: Default::default(),
                             hosted,
-                        }))
+                        }));
+                        if hosting {
+                            save_when_leaving(&page, &cc.egui_ctx);
+                        }
+                        Ok(Box::new(WebApp { page }))
                     }),
                 )
                 .await;

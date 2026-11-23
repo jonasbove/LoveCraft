@@ -171,10 +171,12 @@ jobs:
           [ "$top" = "prosecraft-rs-web-$version" ] || { echo "::error::the zip's top folder is '$top'"; exit 1; }
           [ -f "$check/$top/index.html" ] || { echo "::error::no index.html in the zip"; exit 1; }
           # Every file index.html names is in the zip, at the same relative path.
-          for ref in $(grep -oE '\./[A-Za-z0-9_./-]+\.(js|wasm|png)' "$check/$top/index.html" | sort -u); do
+          grep -oE '\./[A-Za-z0-9_./-]+\.(js|wasm|png)' "$check/$top/index.html" | sort -u > "$RUNNER_TEMP/refs.txt"
+          [ -s "$RUNNER_TEMP/refs.txt" ] || { echo "::error::index.html loads no app files"; exit 1; }
+          while read -r ref; do
             [ -f "$check/$top/$ref" ] || { echo "::error::index.html loads $ref, which isn't in the zip"; exit 1; }
             echo "ok: $ref"
-          done
+          done < "$RUNNER_TEMP/refs.txt"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release-web

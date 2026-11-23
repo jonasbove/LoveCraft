@@ -1,7 +1,7 @@
 //! Files that another sync program puts in a sync folder, which are never one of ProseCraft's
 //! records: its conflict copies, its own folder and its files in progress.
 //!
-//! CraftCloud (`jonasbove/craftcloud`) is the sync program prosecraft-rs is made for. When a
+//! CraftCloud (`jonasbove/craftcloud`) is the sync program LoveCraft is made for. When a
 //! file changed on two computers, it keeps the cloud's version under the original name and this
 //! computer's under a conflict name, `doc-1 (conflict 2026-11-13 14.32 Studio).md` (a second
 //! one on the same minute counts on: `… Studio 2).md`), and uploads both. It keeps its own
@@ -10,7 +10,7 @@
 //! Nextcloud (`doc-1 (conflicted copy 2026-11-13 143200).md`) and Dropbox (`doc-1 (Jane's
 //! conflicted copy 2026-11-13).md`) name theirs differently.
 //!
-//! The names prosecraft-rs writes are `safe_name`s: letters, digits, `.`, `_`, `-` and `~`,
+//! The names LoveCraft writes are `safe_name`s: letters, digits, `.`, `_`, `-` and `~`,
 //! never a space or a parenthesis, so a CraftCloud, Nextcloud or Dropbox conflict mark is never
 //! one of its own. A Syncthing-like stamp or a `.craft_tmp` ending can be part of an id, so the
 //! names of the records a project knows always count as its own ([`foreign`]).

@@ -1,12 +1,18 @@
 [package]
 name = "prosecraft-mcp"
-description = "prosecraft-rs MCP server: a ProseCraft open sync folder over stdio"
+description = "LoveCraft MCP server: a ProseCraft open sync folder over stdio"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 repository.workspace = true
 publish = false
+
+# The command is `lovecraft-mcp`; the package keeps its first name (`cargo run -p prosecraft-mcp`).
+# The packages also install `prosecraft-mcp`, the 0.1 command, as an alias of it.
+[[bin]]
+name = "lovecraft-mcp"
+path = "src/main.rs"
 
 [lints]
 workspace = true

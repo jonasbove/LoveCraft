@@ -1,14 +1,18 @@
 <#
 .SYNOPSIS
-  Build, sign and package ProseCraft-rs for Windows.
+  Build, sign and package LoveCraft for Windows.
 
 .DESCRIPTION
   Produces, in $env:DIST (default: dist/release):
-    prosecraft-rs-<version>-windows-<arch>.msi            per-user installer with a setup wizard (WiX v5)
-    prosecraft-rs-<version>-windows-<arch>-portable.zip   prosecraft-rs.exe, prosecraft-mcp.exe and the notices, to run from anywhere
+    lovecraft-<version>-windows-<arch>.msi            per-user installer with a setup wizard (WiX v5)
+    lovecraft-<version>-windows-<arch>-portable.zip   lovecraft.exe, lovecraft-mcp.exe and the notices, to run from anywhere
 
-  prosecraft-rs.exe is a window program (PE subsystem 2: no console opens with it);
-  prosecraft-mcp.exe, the MCP server an MCP client starts over stdio, is a console program
+  Both also hold prosecraft-rs.exe and prosecraft-mcp.exe, copies of the two programs under their
+  0.1 names (LoveCraft was ProseCraft-rs until 0.2.0), so shortcuts, scripts and MCP client
+  configurations that name them keep working after an update (packaging/windows/lovecraft.wxs).
+
+  lovecraft.exe is a window program (PE subsystem 2: no console opens with it);
+  lovecraft-mcp.exe, the MCP server an MCP client starts over stdio, is a console program
   (subsystem 3). Both link the C runtime statically (.cargo/config.toml), so neither needs the
   Visual C++ redistributable. The fonts come from a craft-fonts checkout (CRAFT_FONTS_DIR; a
   release build without them fails unless CRAFT_FONTS_REQUIRED=0). Signing goes through sign.ps1,
@@ -32,9 +36,11 @@ param(
 $ErrorActionPreference = 'Stop'
 $Root = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 
-$Pkg = 'prosecraft-rs'    # cargo package and binary: the app
-$McpPkg = 'prosecraft-mcp'  # cargo package and binary: the MCP server
-$AppName = 'ProseCraft-rs'
+$Pkg = 'prosecraft-rs'      # cargo package: the app
+$McpPkg = 'prosecraft-mcp'   # cargo package: the MCP server
+$Name = 'lovecraft'          # the app's program, the installer's sources and the release files
+$McpName = 'lovecraft-mcp'   # the MCP server's program
+$AppName = 'LoveCraft'
 
 function Invoke-Native([string] $What, [scriptblock] $Block) {
   Write-Output "==> $What"
@@ -70,8 +76,11 @@ if (-not $SkipBuild) {
 }
 
 $Bin = Join-Path $TargetDir "$Target\release"
-$Exe = "$Pkg.exe"
-$McpExe = "$McpPkg.exe"
+$Exe = "$Name.exe"
+$McpExe = "$McpName.exe"
+# The 0.1 programs' names, given to copies of the two.
+$OldExe = 'prosecraft-rs.exe'
+$OldMcpExe = 'prosecraft-mcp.exe'
 
 # Check the PE header before packaging. Machine (COFF header) must match -Arch, so an x64 build
 # can never ship labelled arm64. Subsystem (optional header) must be 2 = Windows GUI for the app,
@@ -93,11 +102,11 @@ foreach ($check in @(@{ File = $Exe; Subsystem = 2 }, @{ File = $McpExe; Subsyst
 $Stage = Join-Path $TargetDir "windows-package\$Arch"
 Remove-Item -Recurse -Force $Stage -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $Stage | Out-Null
-$Icon = Join-Path $PSScriptRoot "$Pkg.ico"
+$Icon = Join-Path $PSScriptRoot 'prosecraft-rs.ico'
 Copy-Item -LiteralPath (Join-Path $Root 'NOTICE') -Destination $Stage
 Copy-Item (Join-Path $Bin $Exe) $Stage
 Copy-Item (Join-Path $Bin $McpExe) $Stage
-Copy-Item $Icon $Stage
+Copy-Item $Icon (Join-Path $Stage "$Name.ico")
 
 & (Join-Path $PSScriptRoot 'sign.ps1') (Join-Path $Stage $Exe) (Join-Path $Stage $McpExe)
 
@@ -112,11 +121,11 @@ if (($Arch -eq 'arm64') -eq $hostIsArm) {
 }
 
 # ---- MSI ---------------------------------------------------------------------------------------
-$Msi = Join-Path $Dist "$Pkg-$Version-windows-$Arch.msi"
+$Msi = Join-Path $Dist "$Name-$Version-windows-$Arch.msi"
 Invoke-Native 'wix build' {
-  wix build (Join-Path $PSScriptRoot "$Pkg.wxs") -arch $Arch `
+  wix build (Join-Path $PSScriptRoot "$Name.wxs") -arch $Arch `
     -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext `
-    -culture en-US -loc (Join-Path $PSScriptRoot "$Pkg.en-us.wxl") `
+    -culture en-US -loc (Join-Path $PSScriptRoot "$Name.en-us.wxl") `
     -d "Version=$MsiVersion" -d "DisplayVersion=$Version" -d "BinDir=$Stage" -d "IconPath=$Icon" `
     -o $Msi
 }
@@ -128,19 +137,22 @@ Remove-Item -Force -ErrorAction SilentlyContinue ([IO.Path]::ChangeExtension($Ms
 & (Join-Path $PSScriptRoot 'sign.ps1') $Msi
 
 # ---- portable zip ------------------------------------------------------------------------------
-# The same two programs without an installer (not on PATH). The app keeps its library in
-# %APPDATA% like the installed one.
-$Portable = Join-Path $TargetDir "windows-package\$Pkg-$Version-windows-$Arch-portable"
+# The same two programs without an installer (not on PATH), with their 0.1 names too: a folder
+# that held ProseCraft-rs, unpacked over, keeps working under the old names. The app keeps its
+# library in %APPDATA% like the installed one.
+$Portable = Join-Path $TargetDir "windows-package\$Name-$Version-windows-$Arch-portable"
 Remove-Item -Recurse -Force $Portable -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $Portable | Out-Null
 Copy-Item (Join-Path $Stage $Exe) $Portable
 Copy-Item (Join-Path $Stage $McpExe) $Portable
+Copy-Item (Join-Path $Stage $Exe) (Join-Path $Portable $OldExe)
+Copy-Item (Join-Path $Stage $McpExe) (Join-Path $Portable $OldMcpExe)
 foreach ($f in 'LICENSE-MIT', 'LICENSE-APACHE', 'NOTICE') {
   $p = Join-Path $Root $f
   if (Test-Path $p) { Copy-Item $p $Portable }
 }
 Copy-Item (Join-Path $Root 'packaging\README-desktop.md') (Join-Path $Portable 'README.md')
-$Zip = Join-Path $Dist "$Pkg-$Version-windows-$Arch-portable.zip"
+$Zip = Join-Path $Dist "$Name-$Version-windows-$Arch-portable.zip"
 Remove-Item -Force $Zip -ErrorAction SilentlyContinue
 Compress-Archive -Path $Portable -DestinationPath $Zip
 

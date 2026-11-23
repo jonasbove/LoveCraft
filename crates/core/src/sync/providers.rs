@@ -45,7 +45,7 @@ pub trait SyncProvider {
         projects
     }
     /// Files in the folder that look like another sync tool's conflict copies of this
-    /// layout's files. prosecraft-rs never deletes them; it says they are there.
+    /// layout's files. LoveCraft never deletes them; it says they are there.
     fn conflict_files(&mut self) -> Result<Vec<String>, SyncError> {
         Ok(Vec::new())
     }

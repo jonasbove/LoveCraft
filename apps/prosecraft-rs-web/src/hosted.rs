@@ -17,10 +17,11 @@ use std::rc::Rc;
 
 use prosecraft_ui_egui::{Library, LibraryStore, OpenError, ProjectLibrary, ProseApp, SaveState};
 
-/// The app's id in the host's messages (`prosecraft-rs:open`). It is also the prefix of the web
-/// build's release file (`prosecraft-rs-web-<version>.zip`), which CraftCloud's `apps.toml` finds
-/// by its table name, and the folder the build is served from (`/apps/prosecraft-rs/`).
-pub const APP_ID: &str = "prosecraft-rs";
+/// The app's id in the host's messages (`prosecraft-rs:open`), CraftCloud's id for the app (the
+/// table name in its `apps.toml`) and the folder the build is served from (`/apps/prosecraft-rs/`).
+/// It keeps the app's former name, ProseCraft-rs: a host page speaks to the app by it. The web
+/// build's release file is named for the app (`lovecraft-web-<version>.zip`) since 0.2.0.
+pub const APP_ID: &str = prosecraft_core::about::ids::HOST_MESSAGE_PREFIX;
 
 /// Least time, in seconds, between two saves sent while the person writes. The app saves after
 /// every pause in typing; each save the host stores is a new version of the file, so they are

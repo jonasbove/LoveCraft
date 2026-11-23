@@ -1,23 +1,26 @@
-# Release builds of ProseCraft-rs, with the same file set as CraftCloud's and the Craft apps'
+# Release builds of LoveCraft, with the same file set as CraftCloud's and the Craft apps'
 # releases, through this repository's own workflow (adapted from CraftCloud's release.yml, MIT OR
 # Apache-2.0): storytold/craft-common-actions' release workflow needs an organisation's larger macOS
 # runner. Standard GitHub-hosted runners only; the Arm runners are free in public repositories.
 #
 # Runs on version tags and by hand. Files (packaging/*, packaging/README-desktop.md says which is which):
-#   prosecraft-rs-<ver>-linux-{x86_64,aarch64}.{AppImage,AppImage.zsync,deb,rpm,tar.gz,flatpak,pkg.tar.zst}
-#   prosecraft-rs-<ver>-windows-{x64,arm64}.msi    prosecraft-rs-<ver>-windows-{x64,arm64}-portable.zip
-#   prosecraft-rs-<ver>-macos-universal.dmg
-#   prosecraft-rs-web-<ver>.zip (the web app, for CraftCloud and any static host; packaging/web/package.sh)
-#   and, when their builds succeed (never tried yet, so they may not):
-#   prosecraft-rs-<ver>-freebsd-{x86_64,aarch64}.tar.gz    prosecraft-rs-<ver>-linux-riscv64.{deb,rpm,tar.gz}
-# Each holds the app (prosecraft-rs) and the MCP server (prosecraft-mcp). Every build embeds the
+#   lovecraft-<ver>-linux-{x86_64,aarch64}.{AppImage,AppImage.zsync,deb,rpm,tar.gz,flatpak,pkg.tar.zst}
+#   lovecraft-<ver>-windows-{x64,arm64}.msi    lovecraft-<ver>-windows-{x64,arm64}-portable.zip
+#   lovecraft-<ver>-macos-universal.dmg
+#   lovecraft-web-<ver>.zip (the web app, for CraftCloud and any static host; packaging/web/package.sh)
+#   and, when their builds succeed (untested, so they may not):
+#   lovecraft-<ver>-freebsd-{x86_64,aarch64}.tar.gz    lovecraft-<ver>-linux-riscv64.{deb,rpm,tar.gz}
+# Each holds the app (lovecraft) and the MCP server (lovecraft-mcp), and their 0.1 names
+# (prosecraft-rs, prosecraft-mcp) as aliases: LoveCraft was ProseCraft-rs until 0.2.0, whose files
+# were named prosecraft-rs-<ver>-…. Every build embeds the
 # interface and manuscript fonts from storytold/craft-fonts at CRAFT_FONTS_REF (below), and fails
 # without them (CRAFT_FONTS_REQUIRED=1).
 #
 # `package-test` installs the Linux files in clean distro containers (packaging/linux/test-package.sh:
 # install, version, files, the MCP server, the window on a virtual display, upgrade from the
 # previous release, removal). `files` checks that every required file was built. Both run on every
-# run, also by hand from a branch, and the draft is made only when they pass.
+# run, also by hand from a branch, and the draft is made only when they pass. The Windows jobs test
+# their MSI the same way (packaging/windows/test-msi.ps1: update from the previous release's MSI).
 #
 # `windows-test` runs the workspace tests (`cargo test --workspace`, as `cargo xtask ci` does) on
 # Windows x64, which ci.yml runs on Linux only. As in CraftCloud, no draft unless they pass.
@@ -62,7 +65,7 @@ env:
   BINARYEN_SHA256: 0a18362361ad05465118cd8eeb72edaeec89de6894bc283576ef4e07aa3babcc # x86_64-linux.tar.gz
   # The storytold/craft-fonts commit the builds embed Inter and Source Serif 4 from. It is newer
   # than the suite's pin in craft-common-actions, which predates those fonts. Keep it equal to
-  # `_fonts` in packaging/arch/prosecraft-rs/PKGBUILD and the craft-fonts input in flake.nix.
+  # `_fonts` in packaging/arch/lovecraft/PKGBUILD and the craft-fonts input in flake.nix.
   CRAFT_FONTS_REF: cc9269cd8d8258785dac603fba3122e5d2556795
   CRAFT_FONTS_REQUIRED: "1"
 
@@ -131,8 +134,8 @@ jobs:
           retention-days: 30
 
   # The web app (Trunk, release mode, with the fonts), zipped as the Craft apps' web builds are:
-  # prosecraft-rs-web-<ver>/ with Trunk's dist and relative asset URLs, so CraftCloud serves it
-  # under /apps/prosecraft-rs/ (its apps.toml pins the zip by its GitHub sha256 digest).
+  # lovecraft-web-<ver>/ with Trunk's dist and relative asset URLs, so CraftCloud serves it
+  # under /apps/prosecraft-rs/, the app's id (its apps.toml pins the zip by its GitHub sha256 digest).
   web:
     name: Web
     runs-on: ubuntu-24.04
@@ -195,11 +198,11 @@ jobs:
       - name: Check the zip
         run: |
           version="$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)"
-          zip="dist/release/prosecraft-rs-web-$version.zip"
+          zip="dist/release/lovecraft-web-$version.zip"
           check="$RUNNER_TEMP/web-check"
           rm -rf "$check" && mkdir -p "$check" && unzip -q "$zip" -d "$check"
           top="$(ls "$check")"
-          [ "$top" = "prosecraft-rs-web-$version" ] || { echo "::error::the zip's top folder is '$top'"; exit 1; }
+          [ "$top" = "lovecraft-web-$version" ] || { echo "::error::the zip's top folder is '$top'"; exit 1; }
           [ -f "$check/$top/index.html" ] || { echo "::error::no index.html in the zip"; exit 1; }
           # Every file index.html names is in the zip, at the same relative path.
           grep -oE '\./[A-Za-z0-9_./-]+\.(js|wasm|png)' "$check/$top/index.html" | sort -u > "$RUNNER_TEMP/refs.txt"
@@ -246,9 +249,9 @@ jobs:
           ARCH: ${{ matrix.arch }}
         run: |
           shopt -s nullglob
-          tarballs=(dist/linux/prosecraft-rs-*-linux-"$ARCH".tar.gz)
+          tarballs=(dist/linux/lovecraft-*-linux-"$ARCH".tar.gz)
           if [ "${#tarballs[@]}" -ne 1 ]; then
-            echo "::error::expected one prosecraft-rs tarball for $ARCH, found ${#tarballs[@]}: ${tarballs[*]}"
+            echo "::error::expected one lovecraft tarball for $ARCH, found ${#tarballs[@]}: ${tarballs[*]}"
             exit 1
           fi
           packaging/linux/flatpak-bundle.sh "${tarballs[0]}"
@@ -282,9 +285,9 @@ jobs:
           ARCH: ${{ matrix.arch }}
         run: |
           shopt -s nullglob
-          tarballs=(dist/linux/prosecraft-rs-*-linux-"$ARCH".tar.gz)
+          tarballs=(dist/linux/lovecraft-*-linux-"$ARCH".tar.gz)
           if [ "${#tarballs[@]}" -ne 1 ]; then
-            echo "::error::expected one prosecraft-rs tarball for $ARCH, found ${#tarballs[@]}: ${tarballs[*]}"
+            echo "::error::expected one lovecraft tarball for $ARCH, found ${#tarballs[@]}: ${tarballs[*]}"
             exit 1
           fi
           mkdir -p dist/release
@@ -404,6 +407,38 @@ jobs:
           AZURE_SIGNING_ACCOUNT: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
           AZURE_CERT_PROFILE: ${{ secrets.AZURE_CERT_PROFILE }}
         run: ./packaging/windows/package.ps1 -Arch ${{ matrix.arch }}
+      # As package-test does for Linux: the MSI installed, updating the previous release's (0.1.2 is
+      # the first with one; ProseCraft-rs's, which LoveCraft's replaces in place), then removed.
+      - name: Install, update from the previous release, remove (MSI)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          $version = (Select-String -Path Cargo.toml -Pattern '^version = "([^"]+)"' | Select-Object -First 1).Matches[0].Groups[1].Value
+          $msi = "dist/release/lovecraft-$version-windows-$env:ARCH.msi"
+          if (-not (Test-Path $msi)) { throw "no $msi" }
+          $tags = @(gh release list --repo $env:GITHUB_REPOSITORY --exclude-drafts --exclude-pre-releases --limit 20 --json tagName --jq '.[].tagName')
+          if ($LASTEXITCODE -ne 0) { throw 'gh release list failed' }
+          $prev = $tags | Where-Object { $_ -ne "v$version" } | Select-Object -First 1
+          if (-not $prev) {
+            Write-Output '::notice::No earlier published release, so the update isn''t tested.'
+            ./packaging/windows/test-msi.ps1 -Msi $msi
+            exit 0
+          }
+          $dir = Join-Path $env:RUNNER_TEMP 'previous'
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          # Named lovecraft-… from 0.2.0 on, prosecraft-rs-… before (LoveCraft was ProseCraft-rs).
+          $old = $null
+          foreach ($prefix in 'lovecraft', 'prosecraft-rs') {
+            gh release download $prev --repo $env:GITHUB_REPOSITORY --dir $dir --pattern "$prefix-*-windows-$env:ARCH.msi" 2>$null
+            $old = Get-ChildItem $dir -Filter "$prefix-*-windows-$env:ARCH.msi" | Select-Object -First 1
+            if ($old) { break }
+          }
+          $global:LASTEXITCODE = 0
+          if (-not $old) { throw "$prev has no MSI for $env:ARCH, so the update can't be tested" }
+          Write-Output "Updating from $prev`: $($old.Name)"
+          ./packaging/windows/test-msi.ps1 -Msi $msi -Previous $old.FullName
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release-windows-${{ matrix.arch }}
@@ -434,8 +469,8 @@ jobs:
       - name: cargo test
         run: cargo test --workspace --locked --no-fail-fast
 
-  # ProseCraft-rs has never been built on FreeBSD: this job may fail, and the release goes out
-  # without its files when it does. The VM is x86_64; aarch64 is cross-compiled in it with
+  # FreeBSD is built but untested: this job may fail, and the release goes out without its files
+  # when it does. The VM is x86_64; aarch64 is cross-compiled in it with
   # FreeBSD's own Rust (aarch64-unknown-freebsd is a tier-3 target), as the Craft apps do.
   freebsd:
     name: FreeBSD ${{ matrix.arch }} (untried)
@@ -557,8 +592,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  # ProseCraft-rs has never been built for riscv64 either: cross-compiled on Ubuntu 24.04 (glibc
-  # 2.39), smoke-tested with qemu. The release goes out without these files when this fails.
+  # riscv64 is untested too: cross-compiled on Ubuntu 24.04 (glibc 2.39), smoke-tested with qemu. The release goes out without these files when this fails.
   linux-riscv64:
     name: Linux riscv64 (untried)
     runs-on: ubuntu-24.04
@@ -658,7 +692,6 @@ jobs:
           path: dist/linux
       - name: The previous release's package
         id: previous
-        if: matrix.ext != 'AppImage' && matrix.ext != 'tar.gz'
         env:
           GH_TOKEN: ${{ github.token }}
           ARCH: ${{ matrix.arch }}
@@ -674,19 +707,21 @@ jobs:
           fi
           dir="$RUNNER_TEMP/previous"
           mkdir -p "$dir"
-          # 0.1.0 and 0.1.1 were source-only releases: no packages, so no upgrade test from them.
-          if ! gh release download "$prev" --repo "$GITHUB_REPOSITORY" --dir "$dir" --pattern "prosecraft-rs-*-linux-$ARCH.$EXT"; then
-            echo "::notice::$prev has no prosecraft-rs-*-linux-$ARCH.$EXT, so the upgrade isn't tested."
-            exit 0
-          fi
+          # Every published release since 0.1.2 has every one of these files, named lovecraft-… from
+          # 0.2.0 on and prosecraft-rs-… before (LoveCraft was ProseCraft-rs). A missing one is an
+          # error, not a skipped test: the upgrade is what people do.
           shopt -s nullglob
-          files=("$dir"/prosecraft-rs-*-linux-"$ARCH"."$EXT")
-          if [ "${#files[@]}" -eq 1 ]; then
-            echo "Upgrading from $prev: ${files[0]}"
-            echo "file=${files[0]}" >> "$GITHUB_OUTPUT"
-          else
-            echo "::notice::$prev has ${#files[@]} files matching prosecraft-rs-*-linux-$ARCH.$EXT, so the upgrade isn't tested."
+          for prefix in lovecraft prosecraft-rs; do
+            gh release download "$prev" --repo "$GITHUB_REPOSITORY" --dir "$dir" --pattern "$prefix-*-linux-$ARCH.$EXT" 2>/dev/null || true
+            files=("$dir"/"$prefix"-*-linux-"$ARCH"."$EXT")
+            if [ "${#files[@]}" -gt 0 ]; then break; fi
+          done
+          if [ "${#files[@]}" -ne 1 ]; then
+            echo "::error::$prev has ${#files[@]} files named lovecraft-*-linux-$ARCH.$EXT or prosecraft-rs-*-linux-$ARCH.$EXT; the upgrade can't be tested: ${files[*]}"
+            exit 1
           fi
+          echo "Upgrading from $prev: ${files[0]}"
+          echo "file=${files[0]}" >> "$GITHUB_OUTPUT"
       - name: Install, run, upgrade, remove
         env:
           ARCH: ${{ matrix.arch }}
@@ -695,9 +730,9 @@ jobs:
           PREVIOUS: ${{ steps.previous.outputs.file }}
         run: |
           shopt -s nullglob
-          files=(dist/linux/prosecraft-rs-*-linux-"$ARCH"."$EXT")
+          files=(dist/linux/lovecraft-*-linux-"$ARCH"."$EXT")
           if [ "${#files[@]}" -ne 1 ]; then
-            echo "::error::expected one prosecraft-rs-*-linux-$ARCH.$EXT, found ${#files[@]}: ${files[*]}"
+            echo "::error::expected one lovecraft-*-linux-$ARCH.$EXT, found ${#files[@]}: ${files[*]}"
             exit 1
           fi
           args=(--image "$IMAGE")
@@ -726,7 +761,7 @@ jobs:
           version="$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)"
           cd dist
           # A release without one of these is a mistake, not a release.
-          b="prosecraft-rs-$version"
+          b="lovecraft-$version"
           missing=""
           for arch in x86_64 aarch64; do
             for ext in AppImage AppImage.zsync deb rpm tar.gz flatpak pkg.tar.zst; do
@@ -738,7 +773,7 @@ jobs:
             [ -f "$b-windows-$arch-portable.zip" ] || missing="$missing $b-windows-$arch-portable.zip"
           done
           [ -f "$b-macos-universal.dmg" ] || missing="$missing $b-macos-universal.dmg"
-          [ -f "prosecraft-rs-web-$version.zip" ] || missing="$missing prosecraft-rs-web-$version.zip"
+          [ -f "lovecraft-web-$version.zip" ] || missing="$missing lovecraft-web-$version.zip"
           ls -l
           if [ -n "$missing" ]; then
             echo "::error::missing release files:$missing"
@@ -853,7 +888,7 @@ jobs:
           verify_home="$(mktemp -d)"
           gpg --homedir "$verify_home" --batch --quiet --import release-signing-key.asc
           gpg --homedir "$verify_home" --batch --export > "$verify_home/trusted.gpg"
-          for f in prosecraft-rs-*; do
+          for f in lovecraft-*; do
             case "$f" in *.asc) continue ;; esac
             gpg --batch --yes --local-user "$FPR!" --armor --detach-sign -o "$f.asc" "$f"
             gpgv --quiet --keyring "$verify_home/trusted.gpg" "$f.asc" "$f"
@@ -900,7 +935,7 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" dist/* \
             --draft --verify-tag \
-            --title "ProseCraft-rs v$VERSION" \
+            --title "LoveCraft v$VERSION" \
             --notes-file notes.md
 
   # The untried builds, added to the draft once they finish, signed and checksummed like the rest.
@@ -960,9 +995,9 @@ jobs:
           ls -l
           # The draft's checksums, extended with these files.
           gh release download "$GITHUB_REF_NAME" --repo "$REPO" --pattern SHA256SUMS.txt --dir ..
-          sha256sum -- prosecraft-rs-* >> ../SHA256SUMS.txt
+          sha256sum -- lovecraft-* >> ../SHA256SUMS.txt
           mv ../SHA256SUMS.txt .
-          for f in prosecraft-rs-* SHA256SUMS.txt; do
+          for f in lovecraft-* SHA256SUMS.txt; do
             gpg --batch --yes --local-user "$fpr!" --armor --detach-sign -o "$f.asc" "$f"
             gpgv --quiet --keyring "$verify_home/trusted.gpg" "$f.asc" "$f"
           done

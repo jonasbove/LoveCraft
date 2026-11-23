@@ -1,4 +1,4 @@
-//! prosecraft-rs on the desktop: where the library lives, and saving it without ever losing it.
+//! LoveCraft on the desktop: where the library lives, and saving it without ever losing it.
 //!
 //! The library is one file, `library.prosecraft` (a plain ProseCraft backup, see
 //! `prosecraft_core::library`), in the platform's data folder (`~/.local/share/prosecraft-rs` on
@@ -21,12 +21,13 @@ pub mod wiki_files;
 use std::io;
 use std::path::{Path, PathBuf};
 
-/// The app's folder name under the platform's data folder.
-pub const APP_DIR: &str = "prosecraft-rs";
+/// The app's folder name under the platform's data folder. It keeps the app's former name
+/// (ProseCraft-rs), so an updated app finds the library where 0.1 kept it.
+pub const APP_DIR: &str = prosecraft_core::about::ids::DATA_DIR;
 /// The library file in it.
 pub const LIBRARY_FILE: &str = "library.prosecraft";
 /// Set to a folder to keep the library somewhere else (tests, portable use).
-pub const DATA_DIR_ENV: &str = "PROSECRAFT_RS_DATA_DIR";
+pub const DATA_DIR_ENV: &str = prosecraft_core::about::ids::DATA_DIR_ENV;
 /// A library far larger than this isn't one; it is never read into memory.
 pub const MAX_LIBRARY_BYTES: u64 = 1024 * 1024 * 1024;
 
@@ -175,6 +176,22 @@ pub fn read_backup_file(path: &Path, max: u64) -> Result<Vec<u8>, String> {
 #[cfg(test)]
 mod tests {
     use super::LibraryFile;
+
+    /// LoveCraft was ProseCraft-rs until 0.2.0: an updated app must find the library where 0.1
+    /// kept it, so the folder keeps the former name.
+    #[test]
+    fn the_library_folder_keeps_the_former_name() {
+        assert_eq!(super::APP_DIR, "prosecraft-rs");
+        assert_eq!(super::DATA_DIR_ENV, "PROSECRAFT_RS_DATA_DIR");
+        if std::env::var_os(super::DATA_DIR_ENV).is_none()
+            && let Some(dir) = super::data_dir()
+        {
+            assert_eq!(
+                dir.file_name().and_then(|n| n.to_str()),
+                Some("prosecraft-rs")
+            );
+        }
+    }
 
     #[test]
     fn a_backup_that_cannot_be_read_says_why() {

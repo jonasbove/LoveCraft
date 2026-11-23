@@ -1,4 +1,4 @@
-//! prosecraft-rs user interface, drawn with egui. The desktop and web apps both host [`ProseApp`].
+//! LoveCraft user interface, drawn with egui. The desktop and web apps both host [`ProseApp`].
 //!
 //! The page composition follows ProseCraft's (`src/routes/+page.svelte`, upstream `7dae544`): the
 //! binder on the left, the workspace views in the middle (Outline, Write, Storyboard, Timeline,
@@ -1277,7 +1277,7 @@ impl ProseApp {
     }
 
     /// Save to CraftCloud…: the open project as a backup of its own, named after it, into
-    /// CraftCloud's ProseCraft-rs folder. Everything typed so far is in it.
+    /// CraftCloud's LoveCraft folder. Everything typed so far is in it.
     fn save_to_craftcloud(&mut self, ctx: &egui::Context) {
         if self.state.cloud.runner.is_none() {
             return;

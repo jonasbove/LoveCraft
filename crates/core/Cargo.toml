@@ -1,6 +1,6 @@
 [package]
 name = "prosecraft-core"
-description = "prosecraft-rs core: the project model, storage formats and editing logic, with no UI"
+description = "LoveCraft core: the project model, storage formats and editing logic, with no UI"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

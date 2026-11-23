@@ -19,7 +19,7 @@ pub struct Group {
     pub entries: &'static [Shortcut],
 }
 
-const TITLE: &str = "ProseCraft keyboard shortcuts";
+const TITLE: &str = "LoveCraft keyboard shortcuts";
 
 /// `SHORTCUT_GROUPS`.
 pub const GROUPS: [Group; 4] = [
@@ -278,7 +278,7 @@ mod tests {
         let text = plain_text(&GROUPS[2..3], false);
         assert_eq!(
             text,
-            "ProseCraft keyboard shortcuts\n\nSearch\n------\nSearch the project  Ctrl+Shift+F\n"
+            "LoveCraft keyboard shortcuts\n\nSearch\n------\nSearch the project  Ctrl+Shift+F\n"
         );
     }
 

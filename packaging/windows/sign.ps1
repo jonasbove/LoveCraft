@@ -18,7 +18,7 @@
   (MIT OR Apache-2.0; see NOTICE).
 
 .EXAMPLE
-  pwsh packaging/windows/sign.ps1 dist/prosecraft-rs.exe dist/prosecraft-rs.msi
+  pwsh packaging/windows/sign.ps1 dist/lovecraft.exe dist/lovecraft.msi
 #>
 param(
   [Parameter(Mandatory = $true, ValueFromRemainingArguments = $true)]
@@ -58,7 +58,7 @@ if (-not $haveCert -and -not $haveAzure) {
 }
 
 $script:SignTool = Find-SignTool
-$common = @('sign', '/v', '/fd', 'SHA256', '/td', 'SHA256', '/d', 'ProseCraft-rs', '/du', 'https://github.com/jonasbove/ProseCraft-rs')
+$common = @('sign', '/v', '/fd', 'SHA256', '/td', 'SHA256', '/d', 'LoveCraft', '/du', 'https://github.com/jonasbove/LoveCraft')
 $tmp = Join-Path ([IO.Path]::GetTempPath()) "prosecraft-sign-$([IO.Path]::GetRandomFileName())"
 New-Item -ItemType Directory -Path $tmp | Out-Null
 

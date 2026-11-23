@@ -1,12 +1,12 @@
-# ProseCraft-rs design
+# LoveCraft design
 
-How ProseCraft-rs looks and why, as the code draws it today. There is no separate design file: the source of
+How LoveCraft looks and why, as the code draws it today. There is no separate design file: the source of
 truth is `crates/ui-egui`, and every value below names the place it comes from. The pictures are rendered from
 the real palette and the real app (see [Screenshots](#screenshots)).
 
 ## Principles
 
-- **ProseCraft's look, kept.** ProseCraft-rs is a rewrite of [ProseCraft](https://github.com/jennraeross/ProseCraft),
+- **ProseCraft's look, kept.** LoveCraft is a rewrite of [ProseCraft](https://github.com/jennraeross/ProseCraft),
   and its pages are composed as ProseCraft composes them: the same views, the same order of things on each page,
   the same palette and words. Someone moving over from ProseCraft finds everything where it was.
 - **egui and Craft conventions where they truly conflict.** Where a web page and a native app differ (menus,
@@ -122,7 +122,7 @@ installed is used, otherwise Source Serif 4. Text size scales the manuscript (Se
 
 The window is a menu bar over three columns, managed by `craft_ui`'s pane host (`lib.rs` `ProseApp::show`):
 
-- **Menu bar** (`app_menu.rs`): ProseCraft-rs, File, Edit, View, drawn by `craft-menu`; on macOS the native menu.
+- **Menu bar** (`app_menu.rs`): LoveCraft, File, Edit, View, drawn by `craft-menu`; on macOS the native menu.
 - **Binder** (left pane, docked, 280 wide, `binder.rs`): the project picker, its settings gear, Trash and "+",
   the author; CHAPTERS with the label filter and the chapter and scene rows (each with its label dot and a "⋯"
   menu, drag to reorder; every chapter starts open, and its chevron folds its scenes away for the session);

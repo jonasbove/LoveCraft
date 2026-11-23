@@ -9,7 +9,7 @@
 //! - **Open from CraftCloud:** [`list_backups`], `craftcloud files --app prosecraft-rs --json`.
 //!   A CraftCloud that doesn't know the app id yet refuses it (exit 2); the listing is then asked
 //!   for unfiltered and filtered here by extension.
-//! - **Save to CraftCloud:** [`save_backup`], `craftcloud save <file> --to ProseCraft-rs --wait
+//! - **Save to CraftCloud:** [`save_backup`], `craftcloud save <file> --to LoveCraft --wait
 //!   --json`, `--force` once the person agreed to replace the file that is there.
 //! - **The sync folder:** [`sync_folder`], `local_folder` of `craftcloud status --json`.
 
@@ -17,12 +17,13 @@ use crate::js::{self, JsValue};
 use crate::sync::SyncMode;
 use std::time::Duration;
 
-/// ProseCraft-rs' app id in CraftCloud's `apps.toml`.
-pub const APP_ID: &str = "prosecraft-rs";
-/// The extension of the files ProseCraft-rs opens from CraftCloud: its backups.
+/// The app's id in CraftCloud's `apps.toml`. It keeps the app's former name (ProseCraft-rs), as
+/// CraftCloud knows the app by it.
+pub const APP_ID: &str = crate::about::ids::CRAFTCLOUD_APP_ID;
+/// The extension of the files the app opens from CraftCloud: its backups.
 pub const EXTENSION: &str = "prosecraft";
 /// The cloud folder backups are saved into, and device sync's folder is made in.
-pub const FOLDER: &str = "ProseCraft-rs";
+pub const FOLDER: &str = "LoveCraft";
 /// The longest answer read from the program: a listing of every file in a large cloud is a few
 /// megabytes; anything past this is not read.
 pub const MAX_OUTPUT_BYTES: usize = 64 * 1024 * 1024;
@@ -266,7 +267,7 @@ impl SyncState {
 /// One file CraftCloud has.
 #[derive(Clone, Debug, PartialEq)]
 pub struct CloudFile {
-    /// The path in the cloud (`ProseCraft-rs/The Glass Orchard.prosecraft`).
+    /// The path in the cloud (`LoveCraft/The Glass Orchard.prosecraft`).
     pub path: String,
     pub name: String,
     pub size: Option<u64>,
@@ -471,7 +472,7 @@ pub fn sync_folder(runner: &dyn Runner) -> Result<String, Failure> {
 /// The folder 0.1 synced through, inside CraftCloud's: one encrypted sync file.
 pub const LEGACY_SYNC_FOLDER: &str = "ProseCraft";
 
-/// Device sync's folder inside CraftCloud's sync folder `root`: `ProseCraft-rs/<method>`, one
+/// Device sync's folder inside CraftCloud's sync folder `root`: `LoveCraft/<method>`, one
 /// folder for each sync method, so changing the method never meets a folder set up for another,
 /// and none of them is where backups are saved. A library that synced as one encrypted file
 /// through 0.1's `ProseCraft` folder keeps it (`legacy_in_use`: that folder has the sync file),
@@ -502,7 +503,7 @@ pub fn legacy_sync_file_in_cloud(runner: &dyn Runner) -> bool {
 }
 
 /// The CraftCloud sync folder a device-sync folder is inside, when it is one this app made
-/// there: `<root>/ProseCraft-rs/<method>` or 0.1's `<root>/ProseCraft`.
+/// there: `<root>/LoveCraft/<method>` or 0.1's `<root>/ProseCraft`.
 pub fn craftcloud_root_of(folder: &str) -> Option<String> {
     let path = std::path::Path::new(folder);
     let name = path.file_name()?.to_str()?;
@@ -519,7 +520,7 @@ pub fn craftcloud_root_of(folder: &str) -> Option<String> {
     Some(root.to_string_lossy().into_owned())
 }
 
-/// The folders device sync uses in `ProseCraft-rs/`, one for each method.
+/// The folders device sync uses in `LoveCraft/`, one for each method.
 const METHOD_FOLDERS: [&str; 3] = [
     "Encrypted sync file",
     "Open sync folder",

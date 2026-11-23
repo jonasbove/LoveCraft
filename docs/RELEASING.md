@@ -1,6 +1,7 @@
-# Releasing ProseCraft-rs
+# Releasing LoveCraft
 
-How a version goes out. Everything happens on https://github.com/jonasbove/ProseCraft-rs: the code, its pull
+How a version goes out. Everything happens on https://github.com/jonasbove/LoveCraft (called
+jonasbove/ProseCraft-rs until 0.2.0; GitHub redirects the old address): the code, its pull
 requests, the tags and the releases. Adapted from CraftCloud's `docs/RELEASING.md`.
 
 ## What a release is
@@ -8,19 +9,21 @@ requests, the tags and the releases. Adapted from CraftCloud's `docs/RELEASING.m
 A `v<version>` tag on `main`, whose version matches `[workspace.package] version` in `Cargo.toml`. Pushed to
 GitHub, the tag starts the **Release** workflow (`.github/workflows/release.yml`). It builds the packages for
 Linux, Windows and macOS (`packaging/`, see [packaging/README-desktop.md](../packaging/README-desktop.md)), each
-with the app (`prosecraft-rs`) and the MCP server (`prosecraft-mcp`), and the fonts from
+with the app (`lovecraft`) and the MCP server (`lovecraft-mcp`), and their 0.1 names (`prosecraft-rs`,
+`prosecraft-mcp`) as aliases, and the fonts from
 [storytold/craft-fonts](https://github.com/storytold/craft-fonts) at `CRAFT_FONTS_REF`. Then it makes a **draft**
-GitHub release titled `ProseCraft-rs v<version>`, with the files, `SHA256SUMS.txt`, GPG signatures (`.asc`),
+GitHub release titled `LoveCraft v<version>`, with the files, `SHA256SUMS.txt`, GPG signatures (`.asc`),
 `release-signing-key.asc` and build-provenance attestations. Its text has the Craft apps' layout: `## What's
 Changed` (GitHub's generated notes: each pull request merged since the previous release, with its author) and
 `**Full Changelog**`, plus a link to [RELEASE-NOTES.md](RELEASE-NOTES.md) when it has a section for the version.
 FreeBSD and riscv64 are added to the draft later by the `late` job, when (and if) they build.
 
 The web app is built too (`web`, `packaging/web/package.sh`): Trunk in release mode with the same fonts, zipped as
-`prosecraft-rs-web-<version>.zip` with one top-level folder `prosecraft-rs-web-<version>/` holding Trunk's dist
+`lovecraft-web-<version>.zip` with one top-level folder `lovecraft-web-<version>/` holding Trunk's dist
 (`index.html`, the JS and wasm, relative URLs) and the licence files, the layout of the Craft apps' web zips. The
 job checks that every file `index.html` loads is in the zip. CraftCloud's `apps.toml` pins it as
-`[apps.prosecraft-rs]` with `asset = "prosecraft-rs-web-<version>.zip"`, `bridge = "native"` and the sha256
+`[apps.prosecraft-rs]` (the app's id keeps its former name) with `asset = "lovecraft-web-<version>.zip"` (it was
+`prosecraft-rs-web-<version>.zip` before 0.2.0), `bridge = "native"` and the sha256
 GitHub shows for the published asset (`cargo xtask bump-apps` there reads it), so a published release is all it
 needs.
 
@@ -30,12 +33,18 @@ The draft is made only when:
 - the **package tests** pass (`package-test`, `packaging/linux/test-package.sh`): every Linux package is installed
   in a clean container with its distro's package manager (`.deb` on Debian 12, Ubuntu 22.04 and 24.04; `.rpm` on
   Fedora 41 and 42; both on x86_64 and aarch64; the Arch package on Arch Linux; the AppImage and the tarball on
-  Ubuntu 22.04), checked (`--version`, the binaries, the desktop entry, icons, AppStream file and the
-  `.prosecraft` file type), the MCP server answers `initialize` and `tools/list` over stdio, the app opens its
-  window on a virtual X display (Xvfb with Mesa's software OpenGL) and keeps running, the package is upgraded from
-  the previous published release when that release has packages (0.1.0 and 0.1.1 have none), and removed again;
+  Ubuntu 22.04), checked (`--version`, the binaries and their 0.1 names, the desktop entry, icons, AppStream file
+  and the `.prosecraft` file type), the MCP server answers `initialize` and `tools/list` over stdio, the app opens
+  its window, titled LoveCraft, on a virtual X display (Xvfb with Mesa's software OpenGL) and keeps running, the
+  package is upgraded from the previous published release (0.1.2 is the first with packages; for 0.2.0 that is
+  ProseCraft-rs 0.1.2, whose `prosecraft-rs` package `lovecraft` replaces, its commands still working), and
+  removed again. The AppImage takes over the previous one's menu entry, and the tarball's `install.sh` installs
+  over the previous one's;
 - the **workspace tests on Windows** (`windows-test`: `cargo test --workspace` on Windows x64), which `ci.yml`
-  runs on Linux only.
+  runs on Linux only;
+- the **MSI tests** in the Windows jobs (`packaging/windows/test-msi.ps1`, x64 and arm64): the previous published
+  release's MSI is installed, this one updates it in place (one product left, in the same folder, the 0.1
+  program names still working), the MCP server answers, and uninstalling removes it all.
 
 The macOS job checks the DMG as shipped (`packaging/macos/verify.sh`: both architectures in both binaries, the
 icon, `--version`, the signature's integrity); the Windows jobs check each exe's architecture and PE subsystem
@@ -59,9 +68,9 @@ explicit confirmation.
    (`.deb`), each with a desktop session, and check what containers can't: the Open and Save dialogs (through
    the desktop portal), double-clicking a `.prosecraft` backup in the file manager, the icon in the dock, and a
    real GPU. On a Mac: the DMG opens with right-click › Open, and the native menu works. On Windows: the
-   installer, the Start menu shortcut, and `prosecraft-mcp` on PATH in a new terminal.
+   installer, the Start menu shortcut, and `lovecraft-mcp` on PATH in a new terminal.
 5. **Tag** `main` after the release pull request is merged: `git pull`, then
-   `git tag -a v<version> -m "ProseCraft-rs <version>"` on the merge commit and `git push origin v<version>`.
+   `git tag -a v<version> -m "LoveCraft <version>"` on the merge commit and `git push origin v<version>`.
    Tags can't be moved or deleted afterwards, so check the commit first.
 6. **Watch** the Release run. A failed package test means no draft: its log shows the distro, the step and the
    app's own output; fix it and tag a new version. When the draft has every file (and FreeBSD/riscv64, or their
@@ -72,7 +81,8 @@ explicit confirmation.
 
 ## The signing key
 
-- Releases are signed with the key `29E57E45001D294F72E2EC80C42E3F3BDD6A7FF4` ("ProseCraft-rs releases"); its
+- Releases are signed with the key `29E57E45001D294F72E2EC80C42E3F3BDD6A7FF4`, named "ProseCraft-rs releases"
+  (LoveCraft's former name: a user ID can only be added with the offline main key, so the key keeps it); its
   public part is [release-signing-key.asc](../release-signing-key.asc), attached to every release too.
 - The main key is certify-only and kept offline. GitHub holds only its signing subkey
   `F518B82ABC37347A5ADF0CB322B89C26692F6185` (ed25519), without a passphrase, as the `RELEASE_SIGNING_KEY` secret

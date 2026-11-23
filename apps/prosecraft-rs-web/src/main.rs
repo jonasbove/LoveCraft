@@ -1,4 +1,4 @@
-//! prosecraft-rs in the browser. Build with `trunk build --release` from this folder.
+//! LoveCraft in the browser. Build with `trunk build --release` from this folder.
 //!
 //! The library is kept in the browser (IndexedDB), files are chosen with the browser's file
 //! picker and exports are downloads. Folders can't be opened from a web page, so the folder
@@ -504,5 +504,5 @@ fn main() {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
-    eprintln!("prosecraft-rs-web runs in the browser: build it with `trunk build --release`.");
+    eprintln!("LoveCraft's web app runs in the browser: build it with `trunk build --release`.");
 }

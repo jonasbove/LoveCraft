@@ -26,7 +26,7 @@ pub fn find_on_path() -> Option<PathBuf> {
 }
 
 /// The prefix of the temporary folders a save goes through.
-const STAGE_PREFIX: &str = "prosecraft-rs-craftcloud-";
+const STAGE_PREFIX: &str = "lovecraft-craftcloud-";
 
 /// Removes what earlier saves left in the temporary folder (a crash, a power cut): folders
 /// this runner made, untouched for more than `age`, in `temp` (the system's temporary

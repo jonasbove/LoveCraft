@@ -1,8 +1,13 @@
 #!/bin/sh
-# Adds ProseCraft-rs to your app menu (no root needed): the app and the MCP server to ~/.local/bin,
+# Adds LoveCraft to your app menu (no root needed): the app and the MCP server to ~/.local/bin,
 # the menu entry, the .prosecraft file type, the AppStream file and icons to ~/.local/share. Run
-# from the unpacked release tarball (prosecraft-rs-<ver>-linux-<arch>/): ./install.sh
+# from the unpacked release tarball (lovecraft-<ver>-linux-<arch>/): ./install.sh
 # Undo: ./install.sh --remove (your library and projects are not touched).
+#
+# LoveCraft was ProseCraft-rs until 0.2.0. Its 0.1 commands, prosecraft-rs and prosecraft-mcp,
+# become links to lovecraft and lovecraft-mcp, replacing a ProseCraft-rs install.sh put there, so
+# scripts and MCP client configurations made for them keep working; --remove takes them off too.
+# The menu entry, file type and icons keep their file names (the app id), so they are replaced.
 # Adapted from CraftCloud's packaging/linux/install.sh (MIT OR Apache-2.0; see NOTICE).
 set -eu
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -23,21 +28,24 @@ refresh() {
 }
 
 if [ "${1:-}" = --remove ]; then
-    rm -f "$bin/prosecraft-rs" "$bin/prosecraft-mcp" "$data/applications/$id.desktop" \
-        "$data/metainfo/$id.metainfo.xml" "$data/mime/packages/$id.xml"
+    rm -f "$bin/lovecraft" "$bin/lovecraft-mcp" "$bin/prosecraft-rs" "$bin/prosecraft-mcp" \
+        "$data/applications/$id.desktop" "$data/metainfo/$id.metainfo.xml" "$data/mime/packages/$id.xml"
     for icon in "$data"/icons/hicolor/*/apps/"$id".png; do rm -f "$icon"; done
     refresh
-    echo "Removed ProseCraft-rs from the app menu. Your library and projects are untouched."
+    echo "Removed LoveCraft from the app menu. Your library and projects are untouched."
     exit 0
 fi
 
-[ -x "$here/bin/prosecraft-rs" ] || { echo "error: run this from the unpacked prosecraft-rs-<ver>-linux-<arch> folder" >&2; exit 1; }
-install -Dm755 "$here/bin/prosecraft-rs" "$bin/prosecraft-rs"
-install -Dm755 "$here/bin/prosecraft-mcp" "$bin/prosecraft-mcp"
+[ -x "$here/bin/lovecraft" ] || { echo "error: run this from the unpacked lovecraft-<ver>-linux-<arch> folder" >&2; exit 1; }
+install -Dm755 "$here/bin/lovecraft" "$bin/lovecraft"
+install -Dm755 "$here/bin/lovecraft-mcp" "$bin/lovecraft-mcp"
+# The 0.1 names, as links (-f replaces a ProseCraft-rs binary there).
+ln -sf lovecraft "$bin/prosecraft-rs"
+ln -sf lovecraft-mcp "$bin/prosecraft-mcp"
 # The menu entry starts the installed copy by its full path, so ~/.local/bin needn't be on PATH.
 tmp="$data/applications/.$id.desktop.tmp"
 mkdir -p "$data/applications"
-sed -e "s|^Exec=prosecraft-rs|Exec=\"$bin/prosecraft-rs\"|" -e "s|^TryExec=.*|TryExec=$bin/prosecraft-rs|" \
+sed -e "s|^Exec=lovecraft|Exec=\"$bin/lovecraft\"|" -e "s|^TryExec=.*|TryExec=$bin/lovecraft|" \
     "$here/share/applications/$id.desktop" > "$tmp"
 mv -f "$tmp" "$data/applications/$id.desktop"
 install -Dm644 "$here/share/metainfo/$id.metainfo.xml" "$data/metainfo/$id.metainfo.xml"
@@ -46,4 +54,4 @@ install -Dm644 "$here/share/mime/packages/$id.xml" "$data/mime/packages/$id.xml"
     install -Dm644 "$here/share/icons/hicolor/$rel" "$data/icons/hicolor/$rel"
 done
 refresh
-echo "Installed: ProseCraft-rs is in your app menu (binaries: $bin/prosecraft-rs, $bin/prosecraft-mcp)."
+echo "Installed: LoveCraft is in your app menu (binaries: $bin/lovecraft, $bin/lovecraft-mcp; $bin/prosecraft-rs and $bin/prosecraft-mcp link to them)."

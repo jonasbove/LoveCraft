@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-# Build and package ProseCraft-rs for FreeBSD (untried: ProseCraft-rs has never been built on
-# FreeBSD; the release workflow runs this with continue-on-error):
+# Build and package LoveCraft for FreeBSD (the release workflow runs this with continue-on-error):
 #
-#   $DIST/prosecraft-rs-<version>-freebsd-<arch>.tar.gz   a /usr/local-style tree:
-#       prosecraft-rs-<version>-freebsd-<arch>/{bin, share/applications, share/icons, share/metainfo,
-#       share/mime/packages, share/doc/prosecraft-rs}, with bin/prosecraft-rs and bin/prosecraft-mcp
+#   $DIST/lovecraft-<version>-freebsd-<arch>.tar.gz   a /usr/local-style tree:
+#       lovecraft-<version>-freebsd-<arch>/{bin, share/applications, share/icons, share/metainfo,
+#       share/mime/packages, share/doc/lovecraft}, with bin/lovecraft and bin/lovecraft-mcp, and
+#       bin/prosecraft-rs and bin/prosecraft-mcp (the 0.1 commands, LoveCraft having been
+#       ProseCraft-rs until 0.2.0) as links to them
 #
 # Install by copying the tree's contents into /usr/local:
-#   tar -xzf prosecraft-rs-<version>-freebsd-x86_64.tar.gz --strip-components 1 -C /usr/local
+#   tar -xzf lovecraft-<version>-freebsd-x86_64.tar.gz --strip-components 1 -C /usr/local
 #
 # Usage: packaging/freebsd/package.sh [--skip-build] [--dry-run]
 #   --dry-run   stage the tree from a stub binary and list it, without building (works on any OS)
@@ -22,8 +23,10 @@ set -euo pipefail
 . "$(dirname "${BASH_SOURCE[0]}")/../env.sh"
 LINUX="$ROOT/packaging/linux"
 APP_ID=io.github.jonasbove.prosecraft_rs
-PKG=prosecraft-rs
-MCP=prosecraft-mcp
+CRATE=prosecraft-rs     # cargo packages
+CRATE_MCP=prosecraft-mcp
+PKG=lovecraft           # the commands and the release file
+MCP=lovecraft-mcp
 
 SKIP_BUILD=0
 DRY_RUN=0
@@ -31,7 +34,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --skip-build) SKIP_BUILD=1; shift ;;
     --dry-run) DRY_RUN=1; SKIP_BUILD=1; shift ;;
-    -h | --help) sed -n '2,19p' "$0"; exit 0 ;;
+    -h | --help) sed -n '2,20p' "$0"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -57,11 +60,11 @@ if [[ "$DRY_RUN" = 0 ]] && [[ "$(uname -s)" != FreeBSD ]]; then
 fi
 BASENAME="$PKG-$VERSION-freebsd-$ARCH"
 
-echo "==> ProseCraft-rs $VERSION for FreeBSD $ARCH"
+echo "==> LoveCraft $VERSION for FreeBSD $ARCH"
 
 export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-4}"
 if [[ "$SKIP_BUILD" = 0 ]]; then
-  (cd "$ROOT" && cargo build --release --locked -p "$PKG" -p "$MCP" ${CARGO_BUILD_TARGET:+--target "$CARGO_BUILD_TARGET"})
+  (cd "$ROOT" && cargo build --release --locked -p "$CRATE" -p "$CRATE_MCP" ${CARGO_BUILD_TARGET:+--target "$CARGO_BUILD_TARGET"})
 fi
 WORK="$CARGO_TARGET_DIR/freebsd-package"
 STAGE="$WORK/$BASENAME"
@@ -89,6 +92,8 @@ for b in "$PKG" "$MCP"; do
   install -m 755 "$BIN/$b" "$STAGE/bin/"
   strip "$STAGE/bin/$b" 2>/dev/null || true
 done
+ln -s "$PKG" "$STAGE/bin/prosecraft-rs"
+ln -s "$MCP" "$STAGE/bin/prosecraft-mcp"
 # The desktop entry, metainfo and icons are the freedesktop files Linux ships.
 install -m 644 "$LINUX/$APP_ID.desktop" "$STAGE/share/applications/$APP_ID.desktop"
 install -m 644 "$LINUX/$APP_ID.mime.xml" "$STAGE/share/mime/packages/$APP_ID.xml"
@@ -97,7 +102,7 @@ sed -e "s/@VERSION@/$VERSION/g" -e "s/@DATE@/$PROSECRAFT_BUILD_DATE/g" \
 cp -R "$LINUX/icons/hicolor" "$STAGE/share/icons/"
 copy_docs "$STAGE/share/doc/$PKG"
 
-for f in "bin/$PKG" "bin/$MCP" "share/mime/packages/$APP_ID.xml" "share/applications/$APP_ID.desktop" "share/icons/hicolor/256x256/apps/$APP_ID.png" \
+for f in "bin/$PKG" "bin/$MCP" "bin/prosecraft-rs" "bin/prosecraft-mcp" "share/mime/packages/$APP_ID.xml" "share/applications/$APP_ID.desktop" "share/icons/hicolor/256x256/apps/$APP_ID.png" \
   "share/doc/$PKG/LICENSE-MIT" "share/doc/$PKG/LICENSE-APACHE"; do
   if [[ ! -e "$STAGE/$f" ]]; then echo "error: $f is missing from the package" >&2; exit 1; fi
 done

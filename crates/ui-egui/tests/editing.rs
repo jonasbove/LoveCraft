@@ -2588,7 +2588,7 @@ fn export_an_edited_library_for_prosecraft() {
     harness.run();
     let body = harness.get_by_label("Scene text");
     body.focus();
-    body.type_text("Written in prosecraft-rs & read by ProseCraft <3");
+    body.type_text("Written in LoveCraft & read by ProseCraft <3");
     harness.run_steps(12);
     let text = memory
         .saved

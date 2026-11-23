@@ -558,7 +558,7 @@ fn welcome(ui: &mut Ui, palette: &Palette) {
     let how = if cfg!(target_arch = "wasm32") {
         "Create a project with Create project, or open a ProseCraft backup: drop a .prosecraft file on this page, or use Open backup."
     } else {
-        "Create a project with Create project, or open a ProseCraft backup: drop a .prosecraft file on this window, or start prosecraft-rs with the file's path."
+        "Create a project with Create project, or open a ProseCraft backup: drop a .prosecraft file on this window, or start lovecraft with the file's path."
     };
     ui.label(RichText::new(how).size(14.0).color(palette.text_body));
     ui.add_space(18.0);

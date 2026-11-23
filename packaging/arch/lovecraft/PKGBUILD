@@ -1,16 +1,19 @@
-# Maintainer: ProseCraft-rs contributors <https://github.com/jonasbove/ProseCraft-rs>
+# Maintainer: LoveCraft contributors <https://github.com/jonasbove/LoveCraft>
 #
-# AUR recipe that builds ProseCraft-rs from the release's source tarball with cargo, with the
+# AUR recipe that builds LoveCraft from the release's source tarball with cargo, with the
 # interface and manuscript fonts from storytold/craft-fonts at the commit the release workflow
 # uses (CRAFT_FONTS_REF in .github/workflows/release.yml). See ../README.md for publishing it
 # (updpkgsums, .SRCINFO). Adapted from CraftCloud's packaging/arch/craftcloud/PKGBUILD
 # (MIT OR Apache-2.0; see NOTICE).
-pkgname=prosecraft-rs
-pkgver=0.1.1
+#
+# LoveCraft was ProseCraft-rs until 0.2.0: this recipe replaces the prosecraft-rs one, and keeps its
+# commands (prosecraft-rs, prosecraft-mcp) as links. The cargo packages keep their names.
+pkgname=lovecraft
+pkgver=0.2.0
 pkgrel=1
 pkgdesc='Novel-writing app: outline, write and publish (a Rust rewrite of ProseCraft)'
 arch=('x86_64' 'aarch64')
-url='https://github.com/jonasbove/ProseCraft-rs'
+url='https://github.com/jonasbove/LoveCraft'
 license=('MIT OR Apache-2.0')
 depends=('glibc' 'gcc-libs' 'hicolor-icon-theme' 'libglvnd' 'libxkbcommon' 'libxkbcommon-x11' 'wayland'
   'libx11' 'libxcursor' 'libxi' 'libxrandr')
@@ -21,17 +24,19 @@ optdepends=(
   'mesa: OpenGL drivers'
   'shared-mime-info: the .prosecraft file type'
 )
-provides=('prosecraft-rs')
-conflicts=('prosecraft-rs-bin' 'prosecraft-rs-git')
+provides=('lovecraft' 'prosecraft-rs')
+conflicts=('lovecraft-bin' 'lovecraft-git' 'prosecraft-rs' 'prosecraft-rs-bin' 'prosecraft-rs-git')
+replaces=('prosecraft-rs')
 options=('!lto')
 _fonts=cc9269cd8d8258785dac603fba3122e5d2556795
-source=("${pkgname}-${pkgver}.tar.gz::https://github.com/jonasbove/ProseCraft-rs/archive/refs/tags/v${pkgver}.tar.gz"
+source=("${pkgname}-${pkgver}.tar.gz::https://github.com/jonasbove/LoveCraft/archive/refs/tags/v${pkgver}.tar.gz"
   "craft-fonts::git+https://github.com/storytold/craft-fonts.git#commit=${_fonts}")
 # Filled in by updpkgsums for each release (the git checkout is pinned by its commit).
 sha256sums=('TODO' 'SKIP')
 
 _id=io.github.jonasbove.prosecraft_rs
-_src=ProseCraft-rs-${pkgver}
+# GitHub names the archive's folder after the repository.
+_src=LoveCraft-${pkgver}
 
 prepare() {
   cd "${_src}"
@@ -50,13 +55,15 @@ build() {
 
 check() {
   cd "${_src}"
-  ./target/release/prosecraft-rs --version
+  ./target/release/lovecraft --version
 }
 
 package() {
   cd "${_src}"
-  install -Dm755 target/release/prosecraft-rs "${pkgdir}/usr/bin/prosecraft-rs"
-  install -Dm755 target/release/prosecraft-mcp "${pkgdir}/usr/bin/prosecraft-mcp"
+  install -Dm755 target/release/lovecraft "${pkgdir}/usr/bin/lovecraft"
+  install -Dm755 target/release/lovecraft-mcp "${pkgdir}/usr/bin/lovecraft-mcp"
+  ln -s lovecraft "${pkgdir}/usr/bin/prosecraft-rs"
+  ln -s lovecraft-mcp "${pkgdir}/usr/bin/prosecraft-mcp"
   install -Dm644 "packaging/linux/${_id}.desktop" "${pkgdir}/usr/share/applications/${_id}.desktop"
   install -Dm644 "packaging/linux/${_id}.mime.xml" "${pkgdir}/usr/share/mime/packages/${_id}.xml"
   install -dm755 "${pkgdir}/usr/share/metainfo"

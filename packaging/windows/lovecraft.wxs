@@ -1,22 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  ProseCraft-rs MSI (WiX Toolset v5: `dotnet tool install -g wix`, plus the UI and Util extensions:
+  LoveCraft MSI (WiX Toolset v5: `dotnet tool install -g wix`, plus the UI and Util extensions:
   `wix extension add -g WixToolset.UI.wixext/5.0.2 WixToolset.Util.wixext/5.0.2`). Built by
   package.ps1:
 
-    wix build prosecraft-rs.wxs -arch x64 -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext
-      -culture en-US -loc prosecraft-rs.en-us.wxl -d Version=1.2.3 -d DisplayVersion=1.2.3-rc.1
+    wix build lovecraft.wxs -arch x64 -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext
+      -culture en-US -loc lovecraft.en-us.wxl -d Version=1.2.3 -d DisplayVersion=1.2.3-rc.1
       -d BinDir=... -d IconPath=... -o out.msi
 
-  Per-user install (no UAC prompt), by default into %LOCALAPPDATA%\Programs\ProseCraft-rs, with a
+  Per-user install (no UAC prompt), by default into %LOCALAPPDATA%\Programs\LoveCraft, with a
   Start menu shortcut. The shortcut carries the AppUserModelID io.github.jonasbove.prosecraft_rs,
   which groups the app's taskbar button. The setup wizard is WiX's own (WixUI_InstallDir without
   the licence page: the code is MIT OR Apache-2.0, so there is nothing to accept). Its Finish page
-  offers to start ProseCraft-rs.
+  offers to start LoveCraft.
 
-  The MCP server: prosecraft-mcp.exe (a console program, for an MCP client to start over stdio)
+  The MCP server: lovecraft-mcp.exe (a console program, for an MCP client to start over stdio)
   sits next to the app, and the install folder goes at the end of the user's PATH (taken off it
-  again on uninstall), so an MCP client's configuration can name `prosecraft-mcp`.
+  again on uninstall), so an MCP client's configuration can name `lovecraft-mcp`.
+
+  LoveCraft was ProseCraft-rs until 0.2.0, and this MSI updates a ProseCraft-rs one in place: the
+  UpgradeCode is the same, the update installs into the folder the previous version is in
+  (%LOCALAPPDATA%\Programs\ProseCraft-rs for a 0.1 install, found through the registry key
+  Software\ProseCraft-rs, which keeps its name for that), and prosecraft-rs.exe and
+  prosecraft-mcp.exe, the 0.1 programs, stay there as copies of lovecraft.exe and
+  lovecraft-mcp.exe, so pinned shortcuts, scripts and MCP client configurations that name them
+  keep working. The AppUserModelID, the ProgID and the App Paths entry keep their names too.
 
   .prosecraft backups: the app is offered under "Open with" for them (an OpenWithProgids entry
   and its ProgID, ProseCraftRs.Backup, under HKCU\Software\Classes). It doesn't take over the
@@ -27,41 +35,43 @@
 
   Adapted from CraftCloud's packaging/windows/craftcloud.wxs, whose structure comes from
   craft-launcher's packaging/windows (MIT OR Apache-2.0; see NOTICE). The UpgradeCode and
-  component GUIDs are ProseCraft-rs's own: never reuse them in another product.
+  component GUIDs are LoveCraft's own (the UpgradeCode since ProseCraft-rs 0.1): never reuse them
+  in another product, and never change the UpgradeCode.
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
      xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
   <Package
-      Name="ProseCraft-rs"
-      Manufacturer="ProseCraft-rs"
+      Name="LoveCraft"
+      Manufacturer="LoveCraft"
       Version="$(var.Version)"
       UpgradeCode="07465EE2-B69A-4F40-901E-7732DB3D00A8"
       Scope="perUser"
       Compressed="yes"
       Language="1033">
-    <SummaryInformation Description="ProseCraft-rs: outline, write and publish a novel" Manufacturer="ProseCraft-rs" />
+    <SummaryInformation Description="LoveCraft: outline, write and publish a novel" Manufacturer="LoveCraft" />
     <!-- Same-version upgrades let successive pre-releases of one X.Y.Z replace each other
          (MSI versions are numeric, so 1.2.3-rc.1 and 1.2.3-rc.2 are both 1.2.3). -->
     <MajorUpgrade AllowSameVersionUpgrades="yes"
-        DowngradeErrorMessage="A newer version of ProseCraft-rs is already installed." />
+        DowngradeErrorMessage="A newer version of LoveCraft is already installed." />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
 
     <!-- The Apps & features icon and the shortcut's icon (the exe has no icon of its own yet).
          The Id keeps the .exe extension: ICE50 wants a shortcut's icon to match its target's. -->
     <Icon Id="ProseCraftRsIcon.exe" SourceFile="$(var.IconPath)" />
     <Property Id="ARPPRODUCTICON" Value="ProseCraftRsIcon.exe" />
-    <Property Id="ARPURLINFOABOUT" Value="https://github.com/jonasbove/ProseCraft-rs" />
-    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/jonasbove/ProseCraft-rs/releases" />
-    <Property Id="ARPHELPLINK" Value="https://github.com/jonasbove/ProseCraft-rs/issues" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/jonasbove/LoveCraft" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/jonasbove/LoveCraft/releases" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/jonasbove/LoveCraft/issues" />
 
     <StandardDirectory Id="LocalAppDataFolder">
       <Directory Id="LocalProgramsFolder" Name="Programs">
-        <Directory Id="INSTALLFOLDER" Name="ProseCraft-rs" />
+        <Directory Id="INSTALLFOLDER" Name="LoveCraft" />
       </Directory>
     </StandardDirectory>
     <StandardDirectory Id="ProgramMenuFolder" />
 
-    <!-- An update installs where the person put the previous version. -->
+    <!-- An update installs where the person put the previous version. The key keeps the app's
+         former name, so an update from ProseCraft-rs finds it. -->
     <Property Id="INSTALLFOLDER" Secure="yes" />
     <Property Id="PREVIOUSINSTALLFOLDER" Secure="yes">
       <RegistrySearch Id="PreviousInstallFolder" Root="HKCU" Key="Software\ProseCraft-rs" Name="InstallDir" Type="raw" />
@@ -69,7 +79,7 @@
     <SetProperty Id="INSTALLFOLDER" Action="ProseCraftRsRestoreFolder" Value="[PREVIOUSINSTALLFOLDER]"
         Before="CostInitialize" Sequence="both" Condition="PREVIOUSINSTALLFOLDER AND NOT INSTALLFOLDER" />
 
-    <Feature Id="Main" Title="ProseCraft-rs" Level="1">
+    <Feature Id="Main" Title="LoveCraft" Level="1">
       <ComponentGroupRef Id="ProseCraftRsFiles" />
     </Feature>
 
@@ -83,36 +93,42 @@
     </UI>
 
     <!-- The full version (Version is numeric, so it drops a pre-release tag), shown on the wizard's
-         pages through prosecraft-rs.en-us.wxl. -->
+         pages through lovecraft.en-us.wxl. -->
     <Property Id="ProseCraftRsVersion" Value="$(var.DisplayVersion)" />
 
-    <Property Id="WIXUI_EXITDIALOGOPTIONALTEXT" Value="ProseCraft-rs $(var.DisplayVersion) is installed. Start it from the Start menu." />
-    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Start ProseCraft-rs" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALTEXT" Value="LoveCraft $(var.DisplayVersion) is installed. Start it from the Start menu." />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Start LoveCraft" />
     <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
     <Property Id="WixShellExecTarget" Value="[#ProseCraftRsExe]" />
-    <!-- Runs in the wizard's own process, so ProseCraft-rs starts as the person, not elevated. -->
+    <!-- Runs in the wizard's own process, so LoveCraft starts as the person, not elevated. -->
     <CustomAction Id="LaunchProseCraftRs" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixShellExec" Impersonate="yes" Return="ignore" />
   </Package>
 
   <Fragment>
     <ComponentGroup Id="ProseCraftRsFiles">
-      <Component Id="ProseCraftRsApp" Directory="INSTALLFOLDER" Guid="7BE732DD-F761-42B4-8B6B-4FE4D9B611EC">
+      <!-- New GUIDs in 0.2.0, as the programs' names changed. -->
+      <Component Id="ProseCraftRsApp" Directory="INSTALLFOLDER" Guid="22033294-FAA8-4565-B12C-083E68F9B37E">
         <File Id="ProseCraftRsNotice" Source="$(var.BinDir)\NOTICE" KeyPath="no" />
-        <File Id="ProseCraftRsExe" Source="$(var.BinDir)\prosecraft-rs.exe" KeyPath="no" />
+        <File Id="ProseCraftRsExe" Source="$(var.BinDir)\lovecraft.exe" KeyPath="no" />
+        <!-- The 0.1 program, a copy of lovecraft.exe (one source, so WiX stores it once). -->
+        <File Id="ProseCraftRsAliasExe" Source="$(var.BinDir)\lovecraft.exe" Name="prosecraft-rs.exe" KeyPath="no" />
         <!-- The .prosecraft file type's icon. -->
-        <File Id="ProseCraftRsIco" Source="$(var.BinDir)\prosecraft-rs.ico" KeyPath="no" />
+        <File Id="ProseCraftRsIco" Source="$(var.BinDir)\lovecraft.ico" KeyPath="no" />
         <!-- Read back by the next version's installer. -->
         <RegistryValue Root="HKCU" Key="Software\ProseCraft-rs" Name="InstallDir" Value="[INSTALLFOLDER]" Type="string" KeyPath="yes" />
-        <!-- Win+R "prosecraft-rs". -->
-        <RegistryValue Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\prosecraft-rs.exe" Value="[#ProseCraftRsExe]" Type="string" />
+        <!-- Win+R "lovecraft", and "prosecraft-rs" as before. -->
+        <RegistryValue Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\lovecraft.exe" Value="[#ProseCraftRsExe]" Type="string" />
+        <RegistryValue Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\prosecraft-rs.exe" Value="[#ProseCraftRsAliasExe]" Type="string" />
         <RemoveFolder Id="RemoveInstallFolder" Directory="INSTALLFOLDER" On="uninstall" />
         <RemoveFolder Id="RemoveLocalProgramsFolder" Directory="LocalProgramsFolder" On="uninstall" />
       </Component>
 
       <!-- The MCP server, with the install folder on the user's PATH (appended; uninstall takes
            off just that part). New terminals and newly started MCP clients see it. -->
-      <Component Id="ProseCraftRsMcp" Directory="INSTALLFOLDER" Guid="8601FA52-73E0-48D9-9C70-D4ED69A4FA1E">
-        <File Id="ProseCraftRsMcpExe" Source="$(var.BinDir)\prosecraft-mcp.exe" KeyPath="no" />
+      <Component Id="ProseCraftRsMcp" Directory="INSTALLFOLDER" Guid="9B6FB06E-04CE-48C5-B3B7-F78AAB084C7D">
+        <File Id="ProseCraftRsMcpExe" Source="$(var.BinDir)\lovecraft-mcp.exe" KeyPath="no" />
+        <!-- The 0.1 MCP server, a copy of lovecraft-mcp.exe, for MCP client configurations that name it. -->
+        <File Id="ProseCraftRsMcpAliasExe" Source="$(var.BinDir)\lovecraft-mcp.exe" Name="prosecraft-mcp.exe" KeyPath="no" />
         <Environment Id="ProseCraftRsPath" Name="PATH" Value="[INSTALLFOLDER]" Action="set" Part="last" System="no" Permanent="no" />
         <RegistryValue Root="HKCU" Key="Software\ProseCraft-rs" Name="McpServer" Value="1" Type="integer" KeyPath="yes" />
       </Component>
@@ -127,8 +143,8 @@
         <RegistryValue Root="HKCU" Key="Software\Classes\.prosecraft\OpenWithProgids" Name="ProseCraftRs.Backup" Value="" Type="string" />
       </Component>
 
-      <Component Id="ProseCraftRsShortcut" Directory="ProgramMenuFolder" Guid="839970B2-EC66-4CF5-9635-7B8ABEFAB41E">
-        <Shortcut Id="StartMenuShortcut" Name="ProseCraft-rs"
+      <Component Id="ProseCraftRsShortcut" Directory="ProgramMenuFolder" Guid="1C6CA379-A800-48F8-B19C-9740D0C17DC1">
+        <Shortcut Id="StartMenuShortcut" Name="LoveCraft"
             Description="Outline, write and publish a novel"
             Target="[#ProseCraftRsExe]" WorkingDirectory="INSTALLFOLDER" Icon="ProseCraftRsIcon.exe">
           <ShortcutProperty Key="System.AppUserModel.ID" Value="io.github.jonasbove.prosecraft_rs" />

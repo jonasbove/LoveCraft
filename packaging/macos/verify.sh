@@ -3,9 +3,9 @@
 # Adapted from CraftCloud's packaging/macos/verify.sh, itself adapted from craft-launcher's
 # (MIT OR Apache-2.0; see NOTICE).
 #
-#   $DIST/prosecraft-rs-<version>-macos-<arch>.dmg   signed, notarized, ticket stapled; the
-#                                                       app inside is Developer ID signed with the
-#                                                       hardened runtime and carries every arch
+#   $DIST/lovecraft-<version>-macos-<arch>.dmg   signed, notarized, ticket stapled; the app
+#                                                   inside is Developer ID signed with the
+#                                                   hardened runtime and carries every arch
 #
 # Usage: packaging/macos/verify.sh [--arch universal|aarch64|x86_64]
 #
@@ -18,9 +18,9 @@ set -euo pipefail
 # shellcheck source=../env.sh
 . "$(dirname "${BASH_SOURCE[0]}")/../env.sh"
 
-PKG=prosecraft-rs
-MCP=prosecraft-mcp
-APP_NAME="ProseCraft-rs"
+PKG=lovecraft
+MCP=lovecraft-mcp
+APP_NAME="LoveCraft"
 
 ARCH=universal
 while [[ $# -gt 0 ]]; do
@@ -131,6 +131,14 @@ want="$APP_NAME $VERSION"
 got="$("$EXE" --version)"
 [[ "$got" = "$want" ]] || { echo "error: $APP_NAME --version said '$got', expected '$want'" >&2; exit 1; }
 echo "ok   --version: $got"
+# The 0.1 command names (LoveCraft was ProseCraft-rs until 0.2.0) are links to the two programs.
+for alias in prosecraft-rs:"$PKG" prosecraft-mcp:"$MCP"; do
+  link="$APP/Contents/MacOS/${alias%%:*}"
+  [[ -L "$link" && "$(readlink "$link")" = "${alias#*:}" ]] || { echo "error: $APP_NAME.app has no link ${alias%%:*} -> ${alias#*:}" >&2; exit 1; }
+done
+got="$("$APP/Contents/MacOS/prosecraft-rs" --version)"
+[[ "$got" = "$want" ]] || { echo "error: prosecraft-rs --version said '$got', expected '$want'" >&2; exit 1; }
+echo "ok   prosecraft-rs --version: $got"
 
 # Integrity first: this must hold even for ad-hoc builds, and with --strict, on the app in the
 # image and on a copy installed from it with ditto. A valid DMG signature says nothing about the

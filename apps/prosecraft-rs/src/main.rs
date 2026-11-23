@@ -1,6 +1,6 @@
-//! prosecraft-rs on the desktop.
+//! LoveCraft on the desktop.
 // A window app on Windows: release builds open no console window beside it (the MCP server,
-// prosecraft-mcp, stays a console program for its stdio). Debug builds keep the console for logs.
+// lovecraft-mcp, stays a console program for its stdio). Debug builds keep the console for logs.
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 #![deny(
     clippy::unwrap_used,
@@ -24,8 +24,9 @@ use prosecraft_core::library::{Library, new_device_id};
 use prosecraft_native::{LibraryFile, OsRandom};
 use prosecraft_ui_egui::{HostRequest, LibraryStore, ProseApp, window_title};
 
-/// The window's app id (Wayland app id, X11 class). A placeholder until the bundle id is decided.
-const APP_ID: &str = "io.github.jonasbove.prosecraft_rs";
+/// The window's app id (Wayland app id, X11 class). It keeps the app's former name, ProseCraft-rs,
+/// as the desktop entry and the docks know the app by it.
+const APP_ID: &str = prosecraft_core::about::ids::APP_ID;
 
 /// The window's icon (the title bar, taskbar and X11 docks; Wayland docks find the icon by the
 /// app id), rendered from the app icon's master by packaging/icons/render.sh.
@@ -670,7 +671,7 @@ fn main() -> ExitCode {
     // eframe keeps the window's state in a folder named after this; it stays the name the
     // first builds used, so a renamed app keeps it.
     let result = eframe::run_native(
-        "prosecraft-rs",
+        prosecraft_core::about::ids::WINDOW_STATE_KEY,
         options,
         Box::new(|cc| {
             prosecraft_ui_egui::setup(&cc.egui_ctx);

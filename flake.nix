@@ -2,10 +2,14 @@
   # Adapted from CraftCloud's flake.nix (MIT OR Apache-2.0), itself modelled on craft-launcher's
   # (MIT OR Apache-2.0, Copyright (c) 2026 ArtCraft Team); see NOTICE.
   #
-  #   nix run github:jonasbove/ProseCraft-rs                 # the app
-  #   nix run github:jonasbove/ProseCraft-rs#prosecraft-mcp  # the MCP server (PROSECRAFT_OPEN_DIR=…)
-  #   nix develop                                            # a shell for cargo and `cargo xtask ci`
-  description = "ProseCraft-rs: a novel-writing app (outline, write, publish), and its MCP server";
+  #   nix run github:jonasbove/LoveCraft                 # the app
+  #   nix run github:jonasbove/LoveCraft#lovecraft-mcp   # the MCP server (PROSECRAFT_OPEN_DIR=…)
+  #   nix develop                                        # a shell for cargo and `cargo xtask ci`
+  #
+  # LoveCraft was ProseCraft-rs until 0.2.0: the package also installs the old commands
+  # (prosecraft-rs, prosecraft-mcp) as links, and `packages.prosecraft-rs` and
+  # `apps.prosecraft-mcp` remain as aliases.
+  description = "LoveCraft: a novel-writing app (outline, write, publish), and its MCP server";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -42,6 +46,7 @@
         rustPlatform = pkgs.makeRustPlatform { cargo = rustMinimal; rustc = rustMinimal; };
 
         version = (builtins.fromTOML (builtins.readFile ./Cargo.toml)).workspace.package.version;
+        # Keeps the app's former name: desktops know the app by it.
         appId = "io.github.jonasbove.prosecraft_rs";
 
         # What the window loads at run time (dlopen, so not ELF NEEDED entries): winit's Wayland and
@@ -59,8 +64,8 @@
           libxcb
         ];
 
-        prosecraft-rs = rustPlatform.buildRustPackage {
-          pname = "prosecraft-rs";
+        lovecraft = rustPlatform.buildRustPackage {
+          pname = "lovecraft";
           inherit version;
           # Only what the Rust workspace builds from, and the Linux desktop files.
           src = lib.fileset.toSource {
@@ -72,6 +77,7 @@
             # Git dependencies (the storytold egui/winit forks, craft-libs) at their locked revisions.
             allowBuiltinFetchGit = true;
           };
+          # The cargo packages keep their first names; their binaries are lovecraft and lovecraft-mcp.
           cargoBuildFlags = [ "-p" "prosecraft-rs" "-p" "prosecraft-mcp" ];
           env = {
             CRAFT_FONTS_DIR = "${craft-fonts}";
@@ -85,7 +91,9 @@
           # The app menu entry, the .prosecraft file type, the AppStream file and icons, all named
           # for the window's app id. Opening links and wiki files uses the desktop's own xdg-open.
           postInstall = ''
-            remove-references-to -t ${rustMinimal} $out/bin/prosecraft-rs $out/bin/prosecraft-mcp
+            remove-references-to -t ${rustMinimal} $out/bin/lovecraft $out/bin/lovecraft-mcp
+            ln -s lovecraft $out/bin/prosecraft-rs
+            ln -s lovecraft-mcp $out/bin/prosecraft-mcp
             install -Dm644 packaging/linux/${appId}.desktop $out/share/applications/${appId}.desktop
             install -Dm644 packaging/linux/${appId}.mime.xml $out/share/mime/packages/${appId}.xml
             mkdir -p $out/share/metainfo $out/share/icons
@@ -98,31 +106,38 @@
           doInstallCheck = true;
           installCheckPhase = ''
             runHook preInstallCheck
-            [ "$($out/bin/prosecraft-rs --version)" = "ProseCraft-rs ${version}" ]
+            [ "$($out/bin/lovecraft --version)" = "LoveCraft ${version}" ]
+            [ "$($out/bin/prosecraft-rs --version)" = "LoveCraft ${version}" ]
             runHook postInstallCheck
           '';
           meta = {
             description = "Novel-writing app: outline, write and publish (a Rust rewrite of ProseCraft)";
-            homepage = "https://github.com/jonasbove/ProseCraft-rs";
+            homepage = "https://github.com/jonasbove/LoveCraft";
             license = with lib.licenses; [ mit asl20 ];
-            mainProgram = "prosecraft-rs";
+            mainProgram = "lovecraft";
             platforms = [ "x86_64-linux" "aarch64-linux" ];
           };
         };
       in
       {
-        packages.default = prosecraft-rs;
-        packages.prosecraft-rs = prosecraft-rs;
+        packages.default = lovecraft;
+        packages.lovecraft = lovecraft;
+        packages.prosecraft-rs = lovecraft;
 
         apps.default = {
           type = "app";
-          program = "${prosecraft-rs}/bin/prosecraft-rs";
-          meta.description = "ProseCraft-rs, the app";
+          program = "${lovecraft}/bin/lovecraft";
+          meta.description = "LoveCraft, the app";
+        };
+        apps.lovecraft-mcp = {
+          type = "app";
+          program = "${lovecraft}/bin/lovecraft-mcp";
+          meta.description = "lovecraft-mcp, the MCP server for a ProseCraft open sync folder";
         };
         apps.prosecraft-mcp = {
           type = "app";
-          program = "${prosecraft-rs}/bin/prosecraft-mcp";
-          meta.description = "prosecraft-mcp, the MCP server for a ProseCraft open sync folder";
+          program = "${lovecraft}/bin/lovecraft-mcp";
+          meta.description = "lovecraft-mcp under its 0.1 name";
         };
 
         # cargo, clippy, rustfmt and the wasm target for `cargo xtask ci`, trunk for the web build,

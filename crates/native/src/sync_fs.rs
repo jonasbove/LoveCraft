@@ -147,13 +147,6 @@ mod tests {
         let dir = tempfile::tempdir().expect("dir");
         std::fs::write(dir.path().join("note.txt"), "x").expect("write");
         let mut fs = FolderFs::new(dir.path());
-        let names: Vec<String> = fs
-            .list_dir("")
-            .expect("list")
-            .into_iter()
-            .map(|e| e.name)
-            .collect();
-        assert_eq!(names, ["note.txt"]);
         let quick = VaultOptions {
             memory_kib: Some(64),
             iterations: Some(1),
@@ -173,6 +166,13 @@ mod tests {
             )
         };
         assert!(sync(&mut fs).expect("first sync").created);
+        let names: Vec<String> = fs
+            .list_dir("")
+            .expect("list")
+            .into_iter()
+            .map(|e| e.name)
+            .collect();
+        assert_eq!(names, ["note.txt", "prosecraft-sync.prosecraft"]);
         std::fs::copy(
             dir.path().join("prosecraft-sync.prosecraft"),
             dir.path()

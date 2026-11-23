@@ -182,6 +182,7 @@ done
 ok "bundle id $id, as before"
 check_data_folder "$APP/Contents/MacOS/lovecraft"
 check_data_folder "$APP/Contents/MacOS/prosecraft-rs"
-apps="$(cd "$APPS" && ls -d -- *.app | tr '\n' ' ')"
+apps=""
+for app in "$APPS"/*.app; do apps="$apps$(basename "$app") "; done
 echo
 echo "==> all checks passed: LoveCraft $PKG_VERSION over $(for d in "${PREVIOUS[@]}"; do basename "$d"; done | tr '\n' ' ')(Applications: $apps)"

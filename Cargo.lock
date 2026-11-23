@@ -6373,7 +6373,7 @@ checksum = "3d595e54a326bc53c1c197b32d295e14b169e3cfeaa8dc82b529f947fba6bcf5"
 
 [[package]]
 name = "prosecraft-core"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "argon2",
  "base64 0.23.1",
@@ -6409,7 +6409,7 @@ dependencies = [
 
 [[package]]
 name = "prosecraft-mcp"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "chrono",
  "craft-atomic",
@@ -6423,7 +6423,7 @@ dependencies = [
 
 [[package]]
 name = "prosecraft-native"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "craft-atomic",
  "dirs",
@@ -6433,7 +6433,7 @@ dependencies = [
 
 [[package]]
 name = "prosecraft-rs"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "arboard",
  "chrono",
@@ -6448,7 +6448,7 @@ dependencies = [
 
 [[package]]
 name = "prosecraft-rs-web"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "craft-web-host",
  "eframe",
@@ -6463,7 +6463,7 @@ dependencies = [
 
 [[package]]
 name = "prosecraft-ui-egui"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "base64 0.23.1",
  "chrono",
@@ -9868,7 +9868,7 @@ checksum = "ec7a2a501ed189703dba8b08142f057e887dfc4b2cc4db2d343ac6376ba3e0b9"
 
 [[package]]
 name = "xtask"
-version = "0.1.2"
+version = "0.2.0"
 
 [[package]]
 name = "yansi"

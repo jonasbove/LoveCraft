@@ -300,7 +300,7 @@ fn device_sync(ui: &mut Ui, state: &mut AppState) {
         help(
             ui,
             &palette,
-            "Syncs through a ProseCraft-rs folder inside the one CraftCloud keeps in step between your computers, with the method chosen above.",
+            "Syncs through a LoveCraft folder inside the one CraftCloud keeps in step between your computers, with the method chosen above.",
         );
     }
     if !panel.folder.is_empty() {

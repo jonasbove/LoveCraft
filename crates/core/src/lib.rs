@@ -1,4 +1,4 @@
-//! prosecraft-rs core: the project model, the storage formats and the editing logic.
+//! LoveCraft core: the project model, the storage formats and the editing logic.
 //!
 //! Nothing here depends on a UI toolkit, and everything builds for `wasm32-unknown-unknown`.
 #![deny(

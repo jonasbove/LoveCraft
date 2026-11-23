@@ -55,7 +55,7 @@ impl Runner for Fake {
     }
     fn stage(&self, name: &str, _bytes: &[u8]) -> Result<String, String> {
         self.staged.lock().expect("staged").push(name.to_owned());
-        Ok(format!("/tmp/prosecraft-rs-craftcloud-x/{name}"))
+        Ok(format!("/tmp/lovecraft-craftcloud-x/{name}"))
     }
     fn discard(&self, _path: &str) {}
 }
@@ -125,9 +125,9 @@ const FILES: &str = r#"[
  {"path": "Backups/old.prosecraft", "name": "old.prosecraft", "type": "file", "size": 812,
   "modified": "2026-10-01T08:02:11Z", "starred": false,
   "local_path": "/home/john/CraftCloud/Backups/old.prosecraft", "sync": "synced"},
- {"path": "ProseCraft-rs/The Glass Orchard.prosecraft", "name": "The Glass Orchard.prosecraft",
+ {"path": "LoveCraft/The Glass Orchard.prosecraft", "name": "The Glass Orchard.prosecraft",
   "type": "file", "size": 18234, "modified": "2026-11-13T21:54:00Z", "starred": false,
-  "local_path": "/home/john/CraftCloud/ProseCraft-rs/The Glass Orchard.prosecraft", "sync": "pending"},
+  "local_path": "/home/john/CraftCloud/LoveCraft/The Glass Orchard.prosecraft", "sync": "pending"},
  {"path": "Shared/Draft.prosecraft", "name": "Draft.prosecraft", "type": "file", "size": 9,
   "modified": "2026-11-14T08:02:11Z", "starred": false, "id": "f7fc37c9",
   "local_path": null, "sync": "excluded"}
@@ -178,7 +178,7 @@ fn open_lists_the_backups_newest_first_and_opens_one_by_keyboard() {
             .accesskit_node()
             .is_disabled()
     );
-    harness.get_by_label_contains("ProseCraft-rs · 13 Nov 2026, 21:54 UTC");
+    harness.get_by_label_contains("LoveCraft · 13 Nov 2026, 21:54 UTC");
     harness
         .get_by_role_and_label(Role::Button, "The Glass Orchard.prosecraft")
         .focus();
@@ -193,7 +193,7 @@ fn open_lists_the_backups_newest_first_and_opens_one_by_keyboard() {
         requests
             .iter()
             .any(|r| matches!(r, HostRequest::OpenBackupPath(p)
-            if p == "/home/john/CraftCloud/ProseCraft-rs/The Glass Orchard.prosecraft")),
+            if p == "/home/john/CraftCloud/LoveCraft/The Glass Orchard.prosecraft")),
         "opened as Open backup opens a file"
     );
 }
@@ -231,15 +231,15 @@ fn a_listing_that_fails_says_why_and_can_be_tried_again() {
 }
 
 /// `save --json` through the desktop client, after it replaced a file.
-const SAVED: &str = r#"{"path": "ProseCraft-rs/The Lighthouse 🌊 Keeper.prosecraft",
- "local_path": "/home/john/CraftCloud/ProseCraft-rs/The Lighthouse 🌊 Keeper.prosecraft",
+const SAVED: &str = r#"{"path": "LoveCraft/The Lighthouse 🌊 Keeper.prosecraft",
+ "local_path": "/home/john/CraftCloud/LoveCraft/The Lighthouse 🌊 Keeper.prosecraft",
  "via": "client", "state": "synced", "replaced": true, "size": 812}"#;
 
-/// `files --in ProseCraft-rs --json`: the file already there.
-const EXISTING: &str = r#"[{"path": "ProseCraft-rs/The Lighthouse 🌊 Keeper.prosecraft",
+/// `files --in LoveCraft --json`: the file already there.
+const EXISTING: &str = r#"[{"path": "LoveCraft/The Lighthouse 🌊 Keeper.prosecraft",
  "name": "The Lighthouse 🌊 Keeper.prosecraft", "type": "file", "size": 900,
  "modified": "2026-11-13T21:54:00Z", "starred": false,
- "local_path": "/home/john/CraftCloud/ProseCraft-rs/The Lighthouse 🌊 Keeper.prosecraft", "sync": "synced"}]"#;
+ "local_path": "/home/john/CraftCloud/LoveCraft/The Lighthouse 🌊 Keeper.prosecraft", "sync": "synced"}]"#;
 
 #[test]
 fn save_asks_before_replacing_and_then_forces() {
@@ -247,7 +247,7 @@ fn save_asks_before_replacing_and_then_forces() {
         Output::failed(
             5,
             "conflict",
-            "ProseCraft-rs/The Lighthouse 🌊 Keeper.prosecraft is already in CraftCloud (--force replaces it; the old version is kept)",
+            "LoveCraft/The Lighthouse 🌊 Keeper.prosecraft is already in CraftCloud (--force replaces it; the old version is kept)",
         ),
         Output::ok(EXISTING),
         Output::ok(SAVED),
@@ -258,7 +258,7 @@ fn save_asks_before_replacing_and_then_forces() {
         .get_by_role_and_label(Role::MenuItem, "Save to CraftCloud…")
         .click();
     settle(&mut harness, |h| h.query_by_label("Replace?").is_some());
-    harness.get_by_label_contains("There is already a The Lighthouse 🌊 Keeper.prosecraft (last changed 13 Nov 2026, 21:54 UTC) in CraftCloud's ProseCraft-rs folder");
+    harness.get_by_label_contains("There is already a The Lighthouse 🌊 Keeper.prosecraft (last changed 13 Nov 2026, 21:54 UTC) in CraftCloud's LoveCraft folder");
     harness.get_by_label_contains("is already in CraftCloud (--force replaces it");
     harness
         .get_by_role_and_label(Role::Button, "Replace")
@@ -274,15 +274,15 @@ fn save_asks_before_replacing_and_then_forces() {
     assert_eq!(
         harness.state().state().status(),
         Some(
-            "Saved to CraftCloud as ProseCraft-rs/The Lighthouse 🌊 Keeper.prosecraft. The one it replaced is kept among CraftCloud's earlier versions."
+            "Saved to CraftCloud as LoveCraft/The Lighthouse 🌊 Keeper.prosecraft. The one it replaced is kept among CraftCloud's earlier versions."
         )
     );
     assert_eq!(
         fake.asked(),
         [
-            "save /tmp/prosecraft-rs-craftcloud-x/The Lighthouse 🌊 Keeper.prosecraft --to ProseCraft-rs --wait --json",
-            "files --in ProseCraft-rs --json",
-            "save /tmp/prosecraft-rs-craftcloud-x/The Lighthouse 🌊 Keeper.prosecraft --to ProseCraft-rs --wait --json --force",
+            "save /tmp/lovecraft-craftcloud-x/The Lighthouse 🌊 Keeper.prosecraft --to LoveCraft --wait --json",
+            "files --in LoveCraft --json",
+            "save /tmp/lovecraft-craftcloud-x/The Lighthouse 🌊 Keeper.prosecraft --to LoveCraft --wait --json --force",
         ]
     );
     settle(&mut harness, |h| {
@@ -355,7 +355,7 @@ fn a_save_put_aside_says_how_it_ended() {
     for (answer, says) in [
         (
             Output::ok(SAVED),
-            "Saved to CraftCloud as ProseCraft-rs/The Lighthouse",
+            "Saved to CraftCloud as LoveCraft/The Lighthouse",
         ),
         (
             Output::failed(8, "unreachable", "cloud.example.org: connection refused"),
@@ -396,7 +396,7 @@ fn a_save_kept_beside_a_cloud_change_is_reported_as_saved() {
     let fake = Fake::new([Output::failed(
         5,
         "conflict",
-        "ProseCraft-rs/The Lighthouse 🌊 Keeper.prosecraft changed in the cloud too: both versions were kept",
+        "LoveCraft/The Lighthouse 🌊 Keeper.prosecraft changed in the cloud too: both versions were kept",
     )]);
     let mut harness = app(Some(fake.clone()));
     open_file_menu(&mut harness);

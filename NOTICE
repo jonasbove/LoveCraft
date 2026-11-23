@@ -1,5 +1,5 @@
-ProseCraft-rs
-Copyright (c) 2026 the ProseCraft-rs contributors
+LoveCraft (called ProseCraft-rs until version 0.2.0)
+Copyright (c) 2026 the LoveCraft contributors
 Licensed under the MIT licence or the Apache License 2.0, at your option.
 
 This software is a Rust rewrite of ProseCraft (https://github.com/jennraeross/ProseCraft),
@@ -25,8 +25,9 @@ contributors, MIT OR Apache-2.0, whose packaging is in turn adapted from ArtCraf
 Launcher contributors, MIT OR Apache-2.0, and from storytold/craft-common-actions (MIT OR
 Apache-2.0). No CraftCloud or ArtCraft logo, mark, icon or installer art is used.
 
-The ProseCraft-rs logo (packaging/icons/) is an engraved octopus, artwork provided by Jonas Bové
-for ProseCraft-rs; its background, crop and icon sizes are made in this repository.
+The LoveCraft logo (packaging/icons/) is an engraved octopus, artwork provided by Jonas Bové
+for this app (then called ProseCraft-rs); its background, crop and icon sizes are made in this
+repository.
 
-ProseCraft-rs is an independent project. It is not affiliated with or endorsed by the
+LoveCraft is an independent project. It is not affiliated with or endorsed by the
 ProseCraft project or its author.

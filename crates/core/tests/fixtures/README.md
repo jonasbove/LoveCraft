@@ -59,7 +59,7 @@ this repository): `src/rust-fixtures.gen.test.ts` on the `tools/rust-fixtures` b
 fork. It replaces `crypto.getRandomValues` with a fixed stream, so the output is reproducible:
 
 ```sh
-PROSECRAFT_FIXTURE_OUT=/path/to/prosecraft-rs/crates/core/tests/fixtures \
+PROSECRAFT_FIXTURE_OUT=/path/to/LoveCraft/crates/core/tests/fixtures \
   npx vitest run src/rust-fixtures.gen.test.ts
 ```
 

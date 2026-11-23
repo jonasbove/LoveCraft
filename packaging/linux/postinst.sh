@@ -1,6 +1,6 @@
 #!/bin/sh
 # deb/rpm post-install and post-remove: refresh the desktop, MIME and icon caches, so the menu
-# shows ProseCraft-rs and file managers offer it for .prosecraft backups (the desktop entry's
+# shows LoveCraft and file managers offer it for .prosecraft backups (the desktop entry's
 # MimeType=application/x-prosecraft, defined in /usr/share/mime/packages/). Every tool is
 # optional; missing ones are skipped. Per-user choices (xdg-mime default) are left to the person:
 # a system package doesn't write into home folders.

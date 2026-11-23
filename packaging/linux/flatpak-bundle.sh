@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
-# Repackage a ProseCraft-rs Linux tarball as a single-file Flatpak bundle:
+# Repackage a LoveCraft Linux tarball as a single-file Flatpak bundle:
 #
-#   $DIST/prosecraft-rs-<version>-linux-<arch>.flatpak
+#   $DIST/lovecraft-<version>-linux-<arch>.flatpak
 #
 # Usage: packaging/linux/flatpak-bundle.sh [--no-test] [TARBALL]
 #
-# TARBALL defaults to $DIST/prosecraft-rs-<version>-linux-<arch>.tar.gz from package.sh. The bundle is
+# TARBALL defaults to $DIST/lovecraft-<version>-linux-<arch>.tar.gz from package.sh. The bundle is
 # built for the host architecture (x86_64 or aarch64), which must match the tarball's. Needs
 # flatpak and flatpak-builder; the freedesktop runtime and SDK named in the manifest are installed
 # per-user from Flathub. Unless --no-test, the bundle is then installed per-user, and the binary
 # answers --version inside the sandbox as a smoke test.
 # Manifest: packaging/linux/flatpak/io.github.jonasbove.prosecraft_rs.yml. No OCI image is pushed.
+# The app id keeps the app's former name (ProseCraft-rs), so this bundle updates a 0.1 one.
 #
 # Adapted from CraftCloud's packaging/linux/flatpak-bundle.sh, itself adapted from craft-launcher's
 # (MIT OR Apache-2.0; see NOTICE).
@@ -19,7 +20,7 @@ set -euo pipefail
 . "$(dirname "${BASH_SOURCE[0]}")/../env.sh"
 HERE="$ROOT/packaging/linux"
 APP_ID=io.github.jonasbove.prosecraft_rs
-PKG=prosecraft-rs
+PKG=lovecraft
 FLATHUB=https://dl.flathub.org/repo/flathub.flatpakrepo
 
 TEST=1
@@ -46,7 +47,7 @@ for tool in flatpak flatpak-builder; do
   command -v "$tool" >/dev/null || { echo "error: $tool not found (apt install flatpak flatpak-builder)" >&2; exit 1; }
 done
 
-echo "==> ProseCraft-rs $VERSION Flatpak bundle for $ARCH from $(basename "$TARBALL")"
+echo "==> LoveCraft $VERSION Flatpak bundle for $ARCH from $(basename "$TARBALL")"
 
 WORK="$CARGO_TARGET_DIR/flatpak-bundle"
 rm -rf "$WORK"
@@ -68,7 +69,7 @@ echo "wrote $OUT"
 if [[ "$TEST" = 1 ]]; then
   flatpak install --user -y --noninteractive --reinstall "$OUT"
   flatpak info --user "$APP_ID"
-  flatpak run --command=sh "$APP_ID" -c 'ls /app/share/applications /app/share/metainfo /app/share/mime/packages /app/share/icons/hicolor/256x256/apps && /app/bin/prosecraft-rs --version && test -x /app/bin/prosecraft-mcp'
+  flatpak run --command=sh "$APP_ID" -c 'ls /app/share/applications /app/share/metainfo /app/share/mime/packages /app/share/icons/hicolor/256x256/apps && /app/bin/lovecraft --version && test -x /app/bin/lovecraft-mcp && /app/bin/prosecraft-rs --version && test -x /app/bin/prosecraft-mcp'
 fi
 echo "==> done"
 ls -lh "$OUT"

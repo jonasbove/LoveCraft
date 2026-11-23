@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
-# Build and package ProseCraft-rs for Linux (<arch> is x86_64, aarch64 or riscv64):
+# Build and package LoveCraft for Linux (<arch> is x86_64, aarch64 or riscv64):
 #
-#   $DIST/prosecraft-rs-<version>-linux-<arch>.AppImage        any distro with glibc >= the build host's
-#   $DIST/prosecraft-rs-<version>-linux-<arch>.AppImage.zsync  delta updates (needs zsyncmake)
-#   $DIST/prosecraft-rs-<version>-linux-<arch>.deb             Debian, Ubuntu, Mint, Pop!_OS, ...
-#   $DIST/prosecraft-rs-<version>-linux-<arch>.rpm             Fedora, openSUSE, RHEL, ...
-#   $DIST/prosecraft-rs-<version>-linux-<arch>.tar.gz          prosecraft-rs-<version>-linux-<arch>/{bin,share}
-#                                                              plus install.sh and README.md
+#   $DIST/lovecraft-<version>-linux-<arch>.AppImage        any distro with glibc >= the build host's
+#   $DIST/lovecraft-<version>-linux-<arch>.AppImage.zsync  delta updates (needs zsyncmake)
+#   $DIST/lovecraft-<version>-linux-<arch>.deb             Debian, Ubuntu, Mint, Pop!_OS, ...
+#   $DIST/lovecraft-<version>-linux-<arch>.rpm             Fedora, openSUSE, RHEL, ...
+#   $DIST/lovecraft-<version>-linux-<arch>.tar.gz          lovecraft-<version>-linux-<arch>/{bin,share}
+#                                                          plus install.sh and README.md
 #
-# Every format holds the app (prosecraft-rs) and the MCP server (prosecraft-mcp).
+# Every format holds the app (lovecraft) and the MCP server (lovecraft-mcp), and their 0.1 names
+# (prosecraft-rs, prosecraft-mcp) as symlinks to them, so shortcuts, scripts and MCP client
+# configurations made for ProseCraft-rs keep working.
 #
 # Usage: packaging/linux/package.sh [--skip-build] [--formats "appimage deb rpm tar" or appimage,deb,rpm,tar]
 #
@@ -28,9 +30,14 @@ set -euo pipefail
 # shellcheck source=../env.sh
 . "$(dirname "${BASH_SOURCE[0]}")/../env.sh"
 HERE="$ROOT/packaging/linux"
+# The app id keeps the app's former name (ProseCraft-rs): desktops know the app by it.
 APP_ID=io.github.jonasbove.prosecraft_rs
-PKG=prosecraft-rs
-MCP=prosecraft-mcp
+CRATE=prosecraft-rs     # cargo packages
+CRATE_MCP=prosecraft-mcp
+PKG=lovecraft           # the app's command, the package and the release files
+MCP=lovecraft-mcp       # the MCP server's command
+OLD_PKG=prosecraft-rs   # the 0.1 commands, kept as symlinks
+OLD_MCP=prosecraft-mcp
 # Verify a downloaded file's sha256 against its expected hex digest.
 check_sha256() {
   local expected="$1"
@@ -65,10 +72,10 @@ case "$ARCH" in
 esac
 BASENAME="$PKG-$VERSION-linux-$ARCH"
 
-echo "==> ProseCraft-rs $VERSION for Linux $ARCH ($FORMATS)"
+echo "==> LoveCraft $VERSION for Linux $ARCH ($FORMATS)"
 
 if [[ "$SKIP_BUILD" = 0 ]]; then
-  (cd "$ROOT" && cargo build --release --locked -p "$PKG" -p "$MCP" ${CROSS_TARGET:+--target "$CROSS_TARGET"})
+  (cd "$ROOT" && cargo build --release --locked -p "$CRATE" -p "$CRATE_MCP" ${CROSS_TARGET:+--target "$CROSS_TARGET"})
 fi
 BIN="$CARGO_TARGET_DIR/${CROSS_TARGET:+$CROSS_TARGET/}release"
 WORK="$CARGO_TARGET_DIR/linux-package"
@@ -80,6 +87,8 @@ for b in "$PKG" "$MCP"; do
   install -Dm755 "$BIN/$b" "$STAGE/usr/bin/$b"
   "${CROSS_COMPILE:-}strip" "$STAGE/usr/bin/$b" 2>/dev/null || true
 done
+ln -s "$PKG" "$STAGE/usr/bin/$OLD_PKG"
+ln -s "$MCP" "$STAGE/usr/bin/$OLD_MCP"
 install -Dm644 "$HERE/$APP_ID.desktop" "$STAGE/usr/share/applications/$APP_ID.desktop"
 install -Dm644 "$HERE/$APP_ID.mime.xml" "$STAGE/usr/share/mime/packages/$APP_ID.xml"
 mkdir -p "$STAGE/usr/share/metainfo"
@@ -144,7 +153,7 @@ if has appimage; then
     echo "no pinned AppImage runtime for $ARCH; build the AppImage on x86_64 or aarch64" >&2
     exit 2
   fi
-  APPDIR="$WORK/ProseCraft-rs.AppDir"
+  APPDIR="$WORK/LoveCraft.AppDir"
   cp -R "$STAGE" "$APPDIR"
   # AppRun is a script, not a symlink: it installs the menu entry and icons into $XDG_DATA_HOME
   # before starting, so a Wayland compositor finds the window's icon by its app id.
@@ -189,7 +198,7 @@ if has appimage; then
   # Update information: AppImageUpdate and the like read it from the file and fetch only the
   # blocks that changed, through the .zsync published next to each AppImage. `latest` is the
   # newest published release that is not a pre-release. A fork's builds point at its own releases.
-  REPO="${GITHUB_REPOSITORY:-jonasbove/ProseCraft-rs}"
+  REPO="${GITHUB_REPOSITORY:-jonasbove/LoveCraft}"
   UPDATE_INFO="gh-releases-zsync|${REPO%%/*}|${REPO#*/}|latest|$PKG-*-linux-$ARCH.AppImage.zsync"
   # Extract-and-run: works without FUSE (containers, CI). With zsyncmake on the host appimagetool
   # also writes the .zsync, into its working directory, hence the cd.

@@ -1,6 +1,6 @@
 [package]
 name = "prosecraft-native"
-description = "prosecraft-rs on the desktop: the library file, its folder and atomic saves"
+description = "LoveCraft on the desktop: the library file, its folder and atomic saves"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

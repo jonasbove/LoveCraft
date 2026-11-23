@@ -383,7 +383,7 @@ impl ProseApp {
                         // A copy holds the other computer's version of a scene, chapter or
                         // storyboard: plain text, read beside the original.
                         SyncMode::OpenFolder => {
-                            " A conflict copy is one computer's version of a file that changed on two; the original beside it is what syncs. Open the copy in a text editor, bring what you need into ProseCraft-rs, then delete the copy."
+                            " A conflict copy is one computer's version of a file that changed on two; the original beside it is what syncs. Open the copy in a text editor, bring what you need into LoveCraft, then delete the copy."
                         }
                         SyncMode::EncryptedFolder => "",
                     };

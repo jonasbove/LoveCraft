@@ -1,11 +1,12 @@
 <p align="center">
-  <img src="packaging/linux/icons/hicolor/256x256/apps/io.github.jonasbove.prosecraft_rs.png" width="128" height="128" alt="ProseCraft-rs icon: an engraved octopus on an oxblood rounded square">
+  <img src="packaging/linux/icons/hicolor/256x256/apps/io.github.jonasbove.prosecraft_rs.png" width="128" height="128" alt="LoveCraft icon: an engraved octopus on an oxblood rounded square">
 </p>
 
-<h1 align="center">ProseCraft-rs</h1>
+<h1 align="center">LoveCraft</h1>
 
 <p align="center">
-  <b>Outline. Write. Publish.</b> A novel-writing app, written in Rust with egui.
+  <b>LoveCraft: a native Rust rewrite of ProseCraft.</b> Outline, write and publish a novel, in an app written
+  in Rust with egui.
 </p>
 
 <p align="center">
@@ -15,12 +16,12 @@
 </p>
 
 > [!NOTE]
-> **ProseCraft-rs is an independent Rust rewrite of [ProseCraft](https://github.com/jennraeross/ProseCraft)** by Jennifer Roylance and contributors, used under the MIT licence. It is not affiliated with or endorsed by the ProseCraft project. For the original app, go to [ProseCraft](https://github.com/jennraeross/ProseCraft). Report problems with ProseCraft-rs here, not there.
+> **LoveCraft is an independent Rust rewrite of [ProseCraft](https://github.com/jennraeross/ProseCraft)** by Jennifer Roylance and contributors, used under the MIT licence. It is not affiliated with or endorsed by the ProseCraft project. For the original app, go to [ProseCraft](https://github.com/jennraeross/ProseCraft). Report problems with LoveCraft here, not there. Until version 0.2.0 it was called **ProseCraft-rs**; its old commands (`prosecraft-rs`, `prosecraft-mcp`) still work, and updating keeps your library.
 
 > [!CAUTION]
-> 🚧 **0.1.x: an early release.** It does what ProseCraft does (up to upstream `8cdc694`, v0.6.1), but it is
+> 🚧 **0.2: an early release.** It does what ProseCraft does (up to upstream `8cdc694`, v0.6.1), but it is
 > new: it has not been run on a Mac yet, and it hasn't carried a whole book. Keep backups, and keep your
-> ProseCraft copy until you trust it. Report problems as [issues](https://github.com/jonasbove/ProseCraft-rs/issues).
+> ProseCraft copy until you trust it. Report problems as [issues](https://github.com/jonasbove/LoveCraft/issues).
 
 <p align="center">
   <img alt="Written in Rust" src="https://img.shields.io/badge/written%20in-Rust-536d58?style=flat-square&logo=rust&logoColor=white">
@@ -163,7 +164,7 @@ The design language (colour tokens, type, layout and components) is written up i
 
 ## Status
 
-ProseCraft-rs is **early**: 0.1.2 is the current release. It matches ProseCraft up to upstream
+LoveCraft is **early**: 0.2.0 is the current release. It matches ProseCraft up to upstream
 [`8cdc694`](https://github.com/jennraeross/ProseCraft/commit/8cdc694) (v0.6.1).
 
 **Different on purpose:** the look is ProseCraft's, but where a web page and a native egui app differ, it
@@ -177,11 +178,13 @@ not; cloud sync goes through [CraftCloud](https://github.com/jonasbove/craftclou
 - on the web, pasting a copied image file does nothing.
 
 > [!IMPORTANT]
-> Keep a backup of your book, and keep your ProseCraft copy until you trust ProseCraft-rs with it.
+> Keep a backup of your book, and keep your ProseCraft copy until you trust LoveCraft with it.
 
 ## Downloads
-Every release from 0.1.2 on, on the [releases page](https://github.com/jonasbove/ProseCraft-rs/releases) has
-packages for every system, each with the app and the MCP server (`prosecraft-mcp`). The app also comes from the
+Every release from 0.1.2 on, on the [releases page](https://github.com/jonasbove/LoveCraft/releases) has
+packages for every system, each with the app (`lovecraft`) and the MCP server (`lovecraft-mcp`). Before 0.2.0
+the files and commands were named `prosecraft-rs`; every package still installs `prosecraft-rs` and
+`prosecraft-mcp` as aliases (deprecated), and the 0.2 packages replace the `prosecraft-rs` ones. The app also comes from the
 Nix flake or from source. `<ver>` is the version number, for example `0.2.0`.
 
 The builds are **not code-signed** by Apple or Microsoft yet, so your system asks once before the first start.
@@ -190,45 +193,45 @@ The builds are **not code-signed** by Apple or Microsoft yet, so your system ask
 
 | File | What it is |
 |---|---|
-| `prosecraft-rs-<ver>-windows-{x64,arm64}.msi` | Installer, for you only (no administrator rights). SmartScreen: **More info › Run anyway**. Adds ProseCraft-rs to the Start menu and to "Open with" for `.prosecraft` backups, and puts `prosecraft-mcp` on your PATH |
-| `prosecraft-rs-<ver>-windows-{x64,arm64}-portable.zip` | The same `prosecraft-rs.exe` and `prosecraft-mcp.exe`, to run without installing |
+| `lovecraft-<ver>-windows-{x64,arm64}.msi` | Installer, for you only (no administrator rights). SmartScreen: **More info › Run anyway**. Adds LoveCraft to the Start menu and to "Open with" for `.prosecraft` backups, and puts `lovecraft-mcp` on your PATH. It updates a ProseCraft-rs install in its folder |
+| `lovecraft-<ver>-windows-{x64,arm64}-portable.zip` | The same `lovecraft.exe` and `lovecraft-mcp.exe`, to run without installing |
 
 **macOS** (11 or later, Apple silicon and Intel)
 
 | File | What it is |
 |---|---|
-| `prosecraft-rs-<ver>-macos-universal.dmg` | Drag `ProseCraft-rs.app` to Applications, then **right-click › Open › Open** the first time (or `xattr -dr com.apple.quarantine /Applications/ProseCraft-rs.app`). The MCP server is `ProseCraft-rs.app/Contents/MacOS/prosecraft-mcp` |
+| `lovecraft-<ver>-macos-universal.dmg` | Drag `LoveCraft.app` to Applications, then **right-click › Open › Open** the first time (or `xattr -dr com.apple.quarantine /Applications/LoveCraft.app`). The MCP server is `LoveCraft.app/Contents/MacOS/lovecraft-mcp`. Updating from ProseCraft-rs, delete `ProseCraft-rs.app` afterwards |
 
 **Linux** (x86_64 and aarch64)
 
 | File | What it is |
 |---|---|
-| `prosecraft-rs-<ver>-linux-<arch>.deb` | Debian, Ubuntu, Mint, Pop!_OS (`sudo apt install ./prosecraft-rs-….deb`) |
-| `prosecraft-rs-<ver>-linux-<arch>.rpm` | Fedora, openSUSE, RHEL (`sudo dnf install ./prosecraft-rs-….rpm`) |
-| `prosecraft-rs-<ver>-linux-<arch>.pkg.tar.zst` | Arch Linux (`sudo pacman -U prosecraft-rs-….pkg.tar.zst`); AUR recipes are in `packaging/arch/` |
-| `prosecraft-rs-<ver>-linux-<arch>.flatpak` | Flatpak (`flatpak install --user prosecraft-rs-….flatpak`); the MCP server is `flatpak run --command=prosecraft-mcp io.github.jonasbove.prosecraft_rs` |
-| `prosecraft-rs-<ver>-linux-<arch>.AppImage` | Any distro: make it executable and run it; with `--mcp` first it runs the MCP server. The `.zsync` next to it lets AppImage updaters fetch only what changed |
-| `prosecraft-rs-<ver>-linux-<arch>.tar.gz` | The binaries, menu entry, file type, icons and `install.sh` |
+| `lovecraft-<ver>-linux-<arch>.deb` | Debian, Ubuntu, Mint, Pop!_OS (`sudo apt install ./lovecraft-….deb`) |
+| `lovecraft-<ver>-linux-<arch>.rpm` | Fedora, openSUSE, RHEL (`sudo dnf install ./lovecraft-….rpm`) |
+| `lovecraft-<ver>-linux-<arch>.pkg.tar.zst` | Arch Linux (`sudo pacman -U lovecraft-….pkg.tar.zst`); AUR recipes are in `packaging/arch/` |
+| `lovecraft-<ver>-linux-<arch>.flatpak` | Flatpak (`flatpak install --user lovecraft-….flatpak`); the MCP server is `flatpak run --command=lovecraft-mcp io.github.jonasbove.prosecraft_rs` |
+| `lovecraft-<ver>-linux-<arch>.AppImage` | Any distro: make it executable and run it; with `--mcp` first it runs the MCP server. The `.zsync` next to it lets AppImage updaters fetch only what changed |
+| `lovecraft-<ver>-linux-<arch>.tar.gz` | The binaries, menu entry, file type, icons and `install.sh` |
 
 ```sh
-tar xzf prosecraft-rs-<ver>-linux-x86_64.tar.gz
-cd prosecraft-rs-<ver>-linux-x86_64
+tar xzf lovecraft-<ver>-linux-x86_64.tar.gz
+cd lovecraft-<ver>-linux-x86_64
 ./install.sh            # to ~/.local, no root; ./install.sh --remove undoes it
 ```
 
-The packages register ProseCraft-rs for `.prosecraft` backups, so the file manager opens them with it.
-FreeBSD (`prosecraft-rs-<ver>-freebsd-{x86_64,aarch64}.tar.gz`) and Linux riscv64 (`.deb`, `.rpm`, `.tar.gz`)
-builds are attempted too, but ProseCraft-rs has never been tried there; a release may come without them.
+The packages register LoveCraft for `.prosecraft` backups, so the file manager opens them with it.
+FreeBSD (`lovecraft-<ver>-freebsd-{x86_64,aarch64}.tar.gz`) and Linux riscv64 (`.deb`, `.rpm`, `.tar.gz`)
+builds are made too, but LoveCraft has not been tried on them; a release may come without them.
 Installing, updating or removing a package never touches your library.
 
 **Web** (any current browser)
 
 | File | What it is |
 |---|---|
-| `prosecraft-rs-web-<ver>.zip` | The web app: one folder, `prosecraft-rs-web-<ver>/`, to put on any static web server, at the top or under a sub-path (its file URLs are relative). It keeps its library in the browser (IndexedDB) |
+| `lovecraft-web-<ver>.zip` | The web app: one folder, `lovecraft-web-<ver>/`, to put on any static web server, at the top or under a sub-path (its file URLs are relative). It keeps its library in the browser (IndexedDB) |
 
 **Running inside CraftCloud.** [CraftCloud](https://github.com/jonasbove/craftcloud) serves the Craft apps' web
-builds under `/apps/<app>/` (this one as `/apps/prosecraft-rs/`), and its web file browser opens a file in its app
+builds under `/apps/<app>/` (this one under its id, as `/apps/prosecraft-rs/`), and its web file browser opens a file in its app
 through the Craft host messages. Given a `.prosecraft` backup that way, the app edits that file instead of the
 browser's library: it shows the file's projects, and sends them back to be saved as a ProseCraft backup under the
 same name, after a pause in writing (at most every 15 seconds) or at once with Ctrl+S (⌘S). It tells the host
@@ -249,33 +252,33 @@ Every release has `SHA256SUMS.txt`. Check the files you downloaded against it:
 sha256sum -c SHA256SUMS.txt --ignore-missing              # macOS: shasum -a 256 -c SHA256SUMS.txt --ignore-missing
 ```
 
-Every file also has a GPG signature (`.asc`) next to it, made with the ProseCraft-rs release key
-`29E57E45001D294F72E2EC80C42E3F3BDD6A7FF4` ("ProseCraft-rs releases"; its signing subkey is
+Every file also has a GPG signature (`.asc`) next to it, made with the release key
+`29E57E45001D294F72E2EC80C42E3F3BDD6A7FF4`, named "ProseCraft-rs releases" (LoveCraft's former name; its signing subkey is
 `F518B82ABC37347A5ADF0CB322B89C26692F6185`, valid until 2028-11-18). Its public key is `release-signing-key.asc`,
 on every release and in this repository. Import it once and check that the fingerprint matches, then:
 
 ```sh
 gpg --import release-signing-key.asc
 gpg --verify SHA256SUMS.txt.asc SHA256SUMS.txt
-gpg --verify prosecraft-rs-<ver>-linux-x86_64.AppImage.asc prosecraft-rs-<ver>-linux-x86_64.AppImage
+gpg --verify lovecraft-<ver>-linux-x86_64.AppImage.asc lovecraft-<ver>-linux-x86_64.AppImage
 ```
 
 Each file also carries a signed build-provenance attestation that ties it to this repository's release workflow
 and the commit it was built from ([GitHub CLI](https://cli.github.com)):
 
 ```sh
-gh attestation verify prosecraft-rs-<ver>-macos-universal.dmg --repo jonasbove/ProseCraft-rs
+gh attestation verify lovecraft-<ver>-macos-universal.dmg --repo jonasbove/LoveCraft
 ```
 
 **Nix and NixOS**
 
 ```sh
-nix run github:jonasbove/ProseCraft-rs                  # the app
-nix run github:jonasbove/ProseCraft-rs#prosecraft-mcp   # the MCP server
+nix run github:jonasbove/LoveCraft                  # the app
+nix run github:jonasbove/LoveCraft#lovecraft-mcp   # the MCP server
 ```
 
 To keep it installed, add the flake as an input and install its package
-(`inputs.prosecraft-rs.packages.${pkgs.stdenv.hostPlatform.system}.default`, in `environment.systemPackages` or
+(`inputs.lovecraft.packages.${pkgs.stdenv.hostPlatform.system}.default`, in `environment.systemPackages` or
 Home Manager's `home.packages`). It brings its own menu entry, file type and icons.
 
 How a release is made: [docs/RELEASING.md](docs/RELEASING.md). What changed: [docs/RELEASE-NOTES.md](docs/RELEASE-NOTES.md).
@@ -289,14 +292,14 @@ and your system's fonts.
 ```sh
 git clone https://github.com/storytold/craft-fonts ../craft-fonts
 export CRAFT_FONTS_DIR=$PWD/../craft-fonts
-cargo run -p prosecraft-rs            # desktop
+cargo run -p prosecraft-rs            # desktop (the crates keep their first name)
 cargo xtask ci                        # fmt, clippy, tests, layers, wasm check
 cd apps/prosecraft-rs-web && trunk build --release   # web build into dist/web
 ```
 
 ## CraftCloud
 
-[CraftCloud](https://github.com/jonasbove/craftcloud) is the Craft apps' self-hosted sync, and how ProseCraft-rs
+[CraftCloud](https://github.com/jonasbove/craftcloud) is the Craft apps' self-hosted sync, and how LoveCraft
 syncs between computers instead of ProseCraft's Google Drive. With CraftCloud's desktop client installed (its
 `craftcloud` program on `PATH`), the desktop app offers:
 
@@ -304,32 +307,32 @@ syncs between computers instead of ProseCraft's Google Drive. With CraftCloud's 
   has, newest first, each with how it stands with the sync. One that isn't on this computer yet is greyed out;
   the others open as Open backup… opens a file.
 - **File › Save to CraftCloud…**: the open project as a backup of its own, `<project>.prosecraft`, into
-  CraftCloud's `ProseCraft-rs` folder. The window stays usable while CraftCloud uploads it; a file of that name
+  CraftCloud's `LoveCraft` folder. The window stays usable while CraftCloud uploads it; a file of that name
   already there is replaced only after you say so, and CraftCloud keeps the one it replaced among its versions.
 - **Settings › Data and sync › In CraftCloud**: device sync through a folder inside CraftCloud's sync folder,
-  `ProseCraft-rs/<method>`, with any of the three methods. When a file changed on two computers, CraftCloud keeps
+  `LoveCraft/<method>`, with any of the three methods. When a file changed on two computers, CraftCloud keeps
   both: the original syncs, and its conflict copy (`doc-1 (conflict 2026-11-13 14.32 Laptop).md`) is never read
   as a second scene and never deleted. The sync says which copies it found, so you can bring in what they hold.
 
-ProseCraft-rs never talks to the CraftCloud server and never sees your sign-in: it runs `craftcloud … --json`, as
+LoveCraft never talks to the CraftCloud server and never sees your sign-in: it runs `craftcloud … --json`, as
 CraftCloud's [integration contract](https://github.com/jonasbove/craftcloud/blob/main/docs/CRAFT-INTEGRATION.md)
 describes. Without CraftCloud none of this shows, and the web build doesn't offer it.
 
 ## The Craft App Suite
 
-ProseCraft-rs follows the house rules of the Craft apps, a family of native creative tools written in Rust:
+LoveCraft follows the house rules of the Craft apps, a family of native creative tools written in Rust:
 [getartcraft.com/apps](https://getartcraft.com/apps). Its sister project
 [CraftCloud](https://github.com/jonasbove/craftcloud) is a self-hosted sync folder for them, and the way
-ProseCraft-rs is meant to sync between computers.
+LoveCraft is meant to sync between computers.
 
 ## License and credits
 
 `MIT OR Apache-2.0`, see [LICENSE-MIT](LICENSE-MIT) and [LICENSE-APACHE](LICENSE-APACHE).
 
-ProseCraft-rs is a rewrite of ProseCraft, © 2026 Jennifer Roylance, MIT licence. That copyright and permission notice is kept in [LICENSE-MIT](LICENSE-MIT) and [NOTICE](NOTICE), and every asset or text taken from ProseCraft is listed in [ATTRIBUTION.md](ATTRIBUTION.md). Thank you to Jennifer and the ProseCraft contributors for building it and sharing it openly.
+LoveCraft is a rewrite of ProseCraft, © 2026 Jennifer Roylance, MIT licence. That copyright and permission notice is kept in [LICENSE-MIT](LICENSE-MIT) and [NOTICE](NOTICE), and every asset or text taken from ProseCraft is listed in [ATTRIBUTION.md](ATTRIBUTION.md). Thank you to Jennifer and the ProseCraft contributors for building it and sharing it openly.
 
-ProseCraft-rs is independent: it is not affiliated with or endorsed by the ProseCraft project. Report problems
-with ProseCraft-rs [here](https://github.com/jonasbove/ProseCraft-rs/issues), not to ProseCraft.
+LoveCraft is independent: it is not affiliated with or endorsed by the ProseCraft project. Report problems
+with LoveCraft [here](https://github.com/jonasbove/LoveCraft/issues), not to ProseCraft.
 
 The screenshots, and *The Glass Orchard*, the novel in them, are original to this repository (see
 [ATTRIBUTION.md](ATTRIBUTION.md)).

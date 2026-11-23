@@ -10,11 +10,13 @@ use prosecraft_core::storage::crypto::{CryptoError, RandomSource};
 use prosecraft_ui_egui::LibraryStore;
 use wasm_bindgen_futures::JsFuture;
 
-const DATABASE: &str = "prosecraft-rs";
+/// The IndexedDB database. It and the settings' prefix keep the app's former name
+/// (ProseCraft-rs), so an updated app finds the library and settings the browser has.
+const DATABASE: &str = prosecraft_core::about::ids::WEB_DATABASE;
 const STORE: &str = "library";
 const LIBRARY_KEY: &str = "library";
 /// Settings live in `localStorage` under this prefix (they are a few bytes each).
-const SETTING_PREFIX: &str = "prosecraft-rs:";
+const SETTING_PREFIX: &str = prosecraft_core::about::ids::WEB_SETTING_PREFIX;
 
 fn window() -> Option<web_sys::Window> {
     web_sys::window()

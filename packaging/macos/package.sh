@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Build, sign and (with Apple secrets) notarize the macOS release file:
 #
-#   $DIST/prosecraft-rs-<version>-macos-<arch>.dmg   ProseCraft-rs.app beside an Applications link
+#   $DIST/lovecraft-<version>-macos-<arch>.dmg   LoveCraft.app beside an Applications link
 #
-# The app's Contents/MacOS holds the app (prosecraft-rs) and the MCP server (prosecraft-mcp).
+# The app's Contents/MacOS holds the app (lovecraft) and the MCP server (lovecraft-mcp), and their
+# 0.1 names (prosecraft-rs, prosecraft-mcp: LoveCraft was ProseCraft-rs until 0.2.0) as links.
 #
 # Usage: packaging/macos/package.sh [--arch universal|aarch64|x86_64] [--skip-build]
 #
@@ -25,9 +26,11 @@ set -euo pipefail
 . "$(dirname "${BASH_SOURCE[0]}")/../env.sh"
 HERE="$ROOT/packaging/macos"
 
-PKG=prosecraft-rs        # cargo package and binary; the bundle's executable
-MCP=prosecraft-mcp       # the MCP server, next to it in Contents/MacOS
-APP_NAME="ProseCraft-rs" # display name: bundle and DMG volume
+CRATE=prosecraft-rs      # cargo packages
+CRATE_MCP=prosecraft-mcp
+PKG=lovecraft            # binary, the bundle's executable, and the release file
+MCP=lovecraft-mcp        # the MCP server, next to it in Contents/MacOS
+APP_NAME="LoveCraft"     # display name: bundle and DMG volume
 
 ARCH=universal
 SKIP_BUILD=0
@@ -69,7 +72,7 @@ echo "==> $APP_NAME $VERSION for macOS ($ARCH), identity: $IDENTITY, notarize: $
 if [[ "$SKIP_BUILD" = 0 ]]; then
   args=()
   for t in "${TARGETS[@]}"; do args+=(--target "$t"); done
-  (cd "$ROOT" && cargo build --release --locked -p "$PKG" -p "$MCP" "${args[@]}")
+  (cd "$ROOT" && cargo build --release --locked -p "$CRATE" -p "$CRATE_MCP" "${args[@]}")
 fi
 
 rm -rf "$WORK"
@@ -138,11 +141,14 @@ for n in 16 32 128 256 512; do
 done
 iconutil --convert icns --output "$WORK/$PKG.icns" "$ICONSET"
 
-# ---- ProseCraft-rs.app -------------------------------------------------------------------------
+# ---- LoveCraft.app -----------------------------------------------------------------------------
 echo "==> assembling $APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$WORK/bin/$PKG" "$APP/Contents/MacOS/$PKG"
 cp "$WORK/bin/$MCP" "$APP/Contents/MacOS/$MCP"
+# The 0.1 command names, for scripts and MCP client configurations made for them.
+ln -s "$PKG" "$APP/Contents/MacOS/prosecraft-rs"
+ln -s "$MCP" "$APP/Contents/MacOS/prosecraft-mcp"
 cp "$WORK/$PKG.icns" "$APP/Contents/Resources/$PKG.icns"
 cp "$ROOT/NOTICE" "$APP/Contents/Resources/"
 sed -e "s/@VERSION@/$VERSION/g" -e "s/@SHORT_VERSION@/$SHORT_VERSION/g" \

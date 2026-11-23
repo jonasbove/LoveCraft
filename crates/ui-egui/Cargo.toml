@@ -1,6 +1,6 @@
 [package]
 name = "prosecraft-ui-egui"
-description = "prosecraft-rs user interface in egui, shared by the desktop and web apps"
+description = "LoveCraft user interface in egui, shared by the desktop and web apps"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

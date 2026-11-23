@@ -5,10 +5,30 @@ release links to its section here. The newest version is at the top.
 
 ## Unreleased
 
+## 0.2.0
+
+ProseCraft-rs is now LoveCraft, and it syncs through CraftCloud.
+
 ### When updating
 
+- **ProseCraft-rs is now called LoveCraft.** Only the name changes; your library, settings and window are kept
+  (the data folder, the web app's browser storage, the app id and CraftCloud's id for the app keep their old
+  names), and backups are still `.prosecraft` files.
+  - **New command names:** the app is `lovecraft` and the MCP server `lovecraft-mcp`. The old names,
+    `prosecraft-rs` and `prosecraft-mcp`, are still installed as aliases, so desktop shortcuts, scripts and MCP
+    client configurations keep working, but they are **deprecated**: switch to the new ones.
+  - **The packages replace the old ones:** the release files are named `lovecraft-<ver>-…`. The `.deb`, `.rpm`
+    and Arch packages are named `lovecraft` and replace `prosecraft-rs` when installed (pacman asks to remove
+    `prosecraft-rs`: answer yes); the AUR recipes are `lovecraft` and `lovecraft-bin`. The Windows installer
+    updates a ProseCraft-rs install in its folder (the Start menu entry becomes LoveCraft). The Flatpak updates
+    the old one (same app id), and the AppImage takes over the menu entry the old one added. On macOS, drag
+    `LoveCraft.app` to Applications and delete `ProseCraft-rs.app`; an MCP client configured with a path inside
+    `ProseCraft-rs.app` needs the new path, `LoveCraft.app/Contents/MacOS/lovecraft-mcp`. The Nix flake's package
+    is `lovecraft` (`nix run github:jonasbove/LoveCraft`). The web download is `lovecraft-web-<ver>.zip`.
+  - **The repository moved** to https://github.com/jonasbove/LoveCraft; GitHub redirects the old address. The
+    release signing key is the same, still named "ProseCraft-rs releases".
 - **"Use the CraftCloud folder" is now "In CraftCloud"**, and it keeps the sync method you chose instead of always
-  switching to the encrypted file. Its folder is now `ProseCraft-rs/<method>` inside CraftCloud's sync folder. A
+  switching to the encrypted file. Its folder is now `LoveCraft/<method>` inside CraftCloud's sync folder. A
   library already syncing through `ProseCraft` there (0.1's folder) keeps that folder: nothing moves, and a second
   computer choosing In CraftCloud with the encrypted file finds it.
 
@@ -16,7 +36,7 @@ release links to its section here. The newest version is at the top.
 
 - **CraftCloud on the desktop.** With CraftCloud's `craftcloud` program installed, File has **Open from
   CraftCloud…** (the `.prosecraft` backups CraftCloud has, newest first, with their sync state; files not on this
-  computer greyed out) and **Save to CraftCloud…** (the open project's backup into CraftCloud's `ProseCraft-rs`
+  computer greyed out) and **Save to CraftCloud…** (the open project's backup into CraftCloud's `LoveCraft`
   folder, in the background, asking before it replaces a file and saying clearly when CraftCloud isn't signed in
   or its server can't be reached; a save can carry on in the background). "Replace?" says when the file already
   there last changed, and a save that CraftCloud kept beside a change made in the cloud meanwhile is reported as
@@ -32,7 +52,7 @@ release links to its section here. The newest version is at the top.
   you don't edit go back exactly as they came. A file from a newer ProseCraft and an encrypted backup open
   read-only and are never written back; a file that isn't a backup is refused. Outside a host, nothing changes,
   and the browser's library is never touched by a hosted file.
-- **A web download.** Each release now has `prosecraft-rs-web-<ver>.zip`, the web app to put on any static host,
+- **A web download.** Each release now has `lovecraft-web-<ver>.zip`, the web app to put on any static host,
   under any path (the zip CraftCloud pins). It is checksummed and signed like the other files.
 
 ### Fixes

@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # Build the web app and package it for hosting:
 #
-#   $DIST/prosecraft-rs-web-<version>.zip   prosecraft-rs-web-<version>/{index.html,*.js,*.wasm,...}
-#                                           plus README.md, LICENSE-MIT, LICENSE-APACHE, NOTICE and
-#                                           ATTRIBUTION.md
+#   $DIST/lovecraft-web-<version>.zip   lovecraft-web-<version>/{index.html,*.js,*.wasm,...}
+#                                       plus README.md, LICENSE-MIT, LICENSE-APACHE, NOTICE and
+#                                       ATTRIBUTION.md
 #
 # The layout of the Craft apps' web zips (wordcraft-web-<version>.zip): one top-level folder with
 # Trunk's dist inside, which CraftCloud's `cargo xtask fetch-apps` unpacks to /apps/<app>/. Asset
-# URLs are relative (`--public-url ./`), so the app works under any sub-path.
+# URLs are relative (`--public-url ./`), so the app works under any sub-path. The zip is named for
+# the app (LoveCraft) since 0.2.0 (prosecraft-rs-web-<version>.zip before); CraftCloud still knows
+# the app by its id, prosecraft-rs (apps/prosecraft-rs-web/src/hosted.rs).
 #
 # Usage: packaging/web/package.sh [--skip-build]
 #
@@ -23,12 +25,12 @@ SKIP_BUILD=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --skip-build) SKIP_BUILD=1; shift ;;
-    -h | --help) sed -n '2,16p' "$0"; exit 0 ;;
+    -h | --help) sed -n '2,18p' "$0"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
 
-NAME="prosecraft-rs-web-$VERSION"
+NAME="lovecraft-web-$VERSION"
 WEB_DIST="$CARGO_TARGET_DIR/web-dist"
 STAGE="$CARGO_TARGET_DIR/web-stage"
 

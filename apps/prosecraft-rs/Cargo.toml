@@ -1,12 +1,18 @@
 [package]
 name = "prosecraft-rs"
-description = "prosecraft-rs desktop app"
+description = "LoveCraft desktop app"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 repository.workspace = true
 publish = false
+
+# The command is `lovecraft`; the package keeps its first name (`cargo run -p prosecraft-rs`).
+# The packages also install `prosecraft-rs`, the 0.1 command, as an alias of it.
+[[bin]]
+name = "lovecraft"
+path = "src/main.rs"
 
 [lints]
 workspace = true

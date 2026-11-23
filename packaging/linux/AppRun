@@ -1,5 +1,5 @@
 #!/bin/sh
-# ProseCraft-rs AppImage entry point (packaging/linux/AppRun; installed by package.sh).
+# LoveCraft AppImage entry point (packaging/linux/AppRun; installed by package.sh).
 #
 # On Wayland the compositor resolves a window's dock icon by taking the window's
 # app_id (io.github.jonasbove.prosecraft_rs) and looking up an installed .desktop file.
@@ -11,9 +11,12 @@
 # and users with PROSECRAFT_NO_DESKTOP_INTEGRATION=1. Nothing is installed
 # while another entry (appimaged, AppImageLauncher, Gear Lever) runs this AppImage.
 #
-# `prosecraft-rs-<ver>-linux-<arch>.AppImage --mcp` runs the bundled MCP server (prosecraft-mcp) instead of the
-# app, for an MCP client's configuration; nothing is integrated then, and stdout stays the
+# `lovecraft-<ver>-linux-<arch>.AppImage --mcp` runs the bundled MCP server (lovecraft-mcp) instead
+# of the app, for an MCP client's configuration; nothing is integrated then, and stdout stays the
 # server's alone.
+#
+# LoveCraft was ProseCraft-rs until 0.2.0. The app id, and so the menu entry's file name, kept the
+# old name; an entry a ProseCraft-rs AppImage wrote is taken over and pointed at this one.
 #
 # Adapted from CraftCloud's packaging/linux/AppRun (MIT OR Apache-2.0; see NOTICE).
 
@@ -112,7 +115,10 @@ own_entry() {
   [ "$existing_exec" = "$generated_exec" ] || return 1
   expected_body="$(sed -e '/^Exec=/d' -e '/^TryExec=/d' "$src_desktop")" || return 1
   existing_body="$(sed -e '/^Exec=/d' -e '/^X-ProseCraft-Generated-Exec=/d' "$1")" || return 1
-  [ "$expected_body" = "$existing_body" ]
+  [ "$expected_body" = "$existing_body" ] && return 0
+  # The entry ProseCraft-rs 0.1 wrote: the same, but for the name.
+  legacy_body="$(printf '%s\n' "$expected_body" | sed -e 's/^Name=LoveCraft$/Name=ProseCraft-rs/')" || return 1
+  [ "$legacy_body" = "$existing_body" ]
 }
 
 # True when a visible entry in $1 other than ours runs the AppImage $2 and has our window class.
@@ -144,7 +150,7 @@ other_entry_runs() {
 
 if [ "${1:-}" = --mcp ]; then
   shift
-  exec "$APPDIR/usr/bin/prosecraft-mcp" "$@"
+  exec "$APPDIR/usr/bin/lovecraft-mcp" "$@"
 fi
 integrate
-exec "$APPDIR/usr/bin/prosecraft-rs" "$@"
+exec "$APPDIR/usr/bin/lovecraft" "$@"

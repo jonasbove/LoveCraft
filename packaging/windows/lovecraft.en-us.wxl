@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Overrides for the setup wizard's WixUI strings, so its pages name the version being installed
-  ([ProseCraftRsVersion] is the full version, pre-release tag included, set in prosecraft-rs.wxs)
-  and say what ProseCraft-rs is for. Adapted from CraftCloud's craftcloud.en-us.wxl (MIT OR
+  ([ProseCraftRsVersion] is the full version, pre-release tag included, set in lovecraft.wxs)
+  and say what LoveCraft is for. Adapted from CraftCloud's craftcloud.en-us.wxl (MIT OR
   Apache-2.0; see NOTICE).
 -->
 <WixLocalization Culture="en-US" xmlns="http://wixtoolset.org/schemas/v4/wxl">
   <String Id="WelcomeDlgTitle" Value="{\WixUI_Font_Bigger}Welcome to [ProductName] [ProseCraftRsVersion]" />
-  <String Id="WelcomeDlgDescription" Value="ProseCraft-rs is a novel-writing app: outline, write and publish your book.&#13;&#10;&#13;&#10;It installs for you only, so no administrator rights are needed. Click Next to continue." />
+  <String Id="WelcomeDlgDescription" Value="LoveCraft is a novel-writing app: outline, write and publish your book.&#13;&#10;&#13;&#10;It installs for you only, so no administrator rights are needed. Click Next to continue." />
   <String Id="VerifyReadyDlgInstallTitle" Value="{\WixUI_Font_Title}Ready to install [ProductName] [ProseCraftRsVersion]" />
   <!-- Also shown after a repair or removal from the same wizard, so it doesn't say "installed". -->
   <String Id="ExitDialogTitle" Value="{\WixUI_Font_Bigger}Completed the [ProductName] [ProseCraftRsVersion] Setup Wizard" />

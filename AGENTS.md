@@ -63,9 +63,11 @@ Dependencies and assets use SPDX identifiers. An expression is allowed when ever
 `LicenseRef-Storyteller-Trademark` is not in this list. It covers Storyteller brand marks only, where a repository already says so.
 <!-- craft-house-rules:end -->
 
-# prosecraft-rs: instructions for agents
+# LoveCraft: instructions for agents
 
-prosecraft-rs is a native Rust/egui novel-writing app: outline, write, storyboard and publish. It is a rewrite of [ProseCraft](https://github.com/jennraeross/ProseCraft) by Jennifer Roylance and its contributors, which is MIT-licensed and written in SvelteKit/TypeScript in a Tauri shell. That copyright and licence notice is kept in `LICENSE` and `NOTICE`. Credit the original project wherever the app describes where it comes from (About window, README, store text).
+LoveCraft (called ProseCraft-rs until 0.2.0) is a native Rust/egui novel-writing app: outline, write, storyboard and publish. It is a rewrite of [ProseCraft](https://github.com/jennraeross/ProseCraft) by Jennifer Roylance and its contributors, which is MIT-licensed and written in SvelteKit/TypeScript in a Tauri shell. That copyright and licence notice is kept in `LICENSE` and `NOTICE`. Credit the original project wherever the app describes where it comes from (About window, README, store text).
+
+The name people see is `prosecraft_core::about::APP_NAME`. The crates, the cargo packages and every id stored on people's computers or known to other programs keep the former name (`prosecraft-rs`, `io.github.jonasbove.prosecraft_rs`; see `prosecraft_core::about::ids`): never rename them. The commands are `lovecraft` and `lovecraft-mcp` (`[[bin]]` names); the packages install `prosecraft-rs` and `prosecraft-mcp` as aliases.
 
 ## Start every session here
 Read [`docs/ROADMAP.md`](docs/ROADMAP.md) and [`docs/upstream-sync.md`](docs/upstream-sync.md). `plan/` is an optional gitignored notebook. Do not ask for it, and do not stop if it is missing.

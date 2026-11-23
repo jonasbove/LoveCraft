@@ -1,23 +1,26 @@
 #!/usr/bin/env bash
 # Build the release's Arch Linux package from the Linux tarball, with makepkg:
 #
-#   $DIST/prosecraft-rs-<version>-linux-<arch>.pkg.tar.zst     (pacman -U it)
+#   $DIST/lovecraft-<version>-linux-<arch>.pkg.tar.zst     (pacman -U it)
 #
 # Usage: packaging/arch/package.sh [TARBALL] [ARCH]
 #
-# TARBALL defaults to $DIST/prosecraft-rs-<version>-linux-<ARCH>.tar.gz from packaging/linux/package.sh,
+# TARBALL defaults to $DIST/lovecraft-<version>-linux-<ARCH>.tar.gz from packaging/linux/package.sh,
 # ARCH to the host's (x86_64 or aarch64). It only repackages the tarball's bin/ and share/, so an
 # x86_64 host can build the aarch64 package. Needs makepkg (Arch, or the archlinux:base-devel
 # container as an unprivileged user: makepkg refuses to run as root).
 #
 # Adapted from CraftCloud's packaging/arch/package.sh, which follows craft-common-actions'
-# arch-package (MIT OR Apache-2.0; see NOTICE), with ProseCraft-rs's own dependencies. The AUR
-# recipes are in prosecraft-rs-bin/ and prosecraft-rs/.
+# arch-package (MIT OR Apache-2.0; see NOTICE), with LoveCraft's own dependencies. The AUR
+# recipes are in lovecraft-bin/ and lovecraft/.
+#
+# LoveCraft was the prosecraft-rs package until 0.2.0: this one replaces it (pacman -U asks to
+# remove prosecraft-rs) and keeps its commands, prosecraft-rs and prosecraft-mcp, as links.
 set -euo pipefail
 # shellcheck source=../env.sh
 . "$(dirname "${BASH_SOURCE[0]}")/../env.sh"
-PKG=prosecraft-rs
-MCP=prosecraft-mcp
+PKG=lovecraft
+MCP=lovecraft-mcp
 
 ARCH="${2:-$(uname -m)}"
 case "$ARCH" in
@@ -66,13 +69,13 @@ EOF
 # pacman's own hooks (shared-mime-info, desktop-file-utils, gtk-update-icon-cache) refresh the
 # MIME, menu and icon caches.
 cat >"$WORK/PKGBUILD" <<EOF
-# Maintainer: ProseCraft-rs contributors <https://github.com/jonasbove/ProseCraft-rs>
+# Maintainer: LoveCraft contributors <https://github.com/jonasbove/LoveCraft>
 pkgname=$PKG
 pkgver=$PKGVER
 pkgrel=1
 pkgdesc='Novel-writing app: outline, write and publish (a Rust rewrite of ProseCraft)'
 arch=($ARCH)
-url='https://github.com/jonasbove/ProseCraft-rs'
+url='https://github.com/jonasbove/LoveCraft'
 license=('MIT OR Apache-2.0')
 depends=('glibc' 'gcc-libs' 'hicolor-icon-theme' 'libglvnd' 'libxkbcommon' 'libxkbcommon-x11' 'wayland'
   'libx11' 'libxcursor' 'libxi' 'libxrandr')
@@ -82,13 +85,16 @@ optdepends=(
   'mesa: OpenGL drivers'
   'shared-mime-info: the .prosecraft file type'
 )
-provides=('$PKG')
-conflicts=('$PKG-bin' '$PKG-git')
+provides=('$PKG' 'prosecraft-rs')
+conflicts=('$PKG-bin' '$PKG-git' 'prosecraft-rs' 'prosecraft-rs-bin' 'prosecraft-rs-git')
+replaces=('prosecraft-rs')
 options=('!strip' '!debug')
 
 package() {
   install -Dm755 "$WORK/stage/bin/$PKG" "\$pkgdir/usr/bin/$PKG"
   install -Dm755 "$WORK/stage/bin/$MCP" "\$pkgdir/usr/bin/$MCP"
+  ln -s $PKG "\$pkgdir/usr/bin/prosecraft-rs"
+  ln -s $MCP "\$pkgdir/usr/bin/prosecraft-mcp"
   cp -dr --no-preserve=ownership "$WORK/stage/share" "\$pkgdir/usr/"
   install -Dm644 "$WORK/stage/share/doc/$PKG/LICENSE-MIT" "\$pkgdir/usr/share/licenses/$PKG/LICENSE-MIT"
   install -Dm644 "$WORK/stage/share/doc/$PKG/LICENSE-APACHE" "\$pkgdir/usr/share/licenses/$PKG/LICENSE-APACHE"

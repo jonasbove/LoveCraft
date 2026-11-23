@@ -1,7 +1,34 @@
 //! What the app is and where it comes from, for the About window, `--version` and diagnostics.
 
-/// The name people see. A working name until the branding is decided.
-pub const APP_NAME: &str = "ProseCraft-rs";
+/// The name people see. Until 0.2.0 it was ProseCraft-rs, which the ids in [`ids`] keep.
+pub const APP_NAME: &str = "LoveCraft";
+
+/// The ids and folder names that are stored on people's computers or that other programs find
+/// the app by. They keep the app's former name, ProseCraft-rs: changing one would lose a library,
+/// its settings or the window's state on update, or break a pairing with CraftCloud or an MCP
+/// client. So they never follow [`APP_NAME`].
+pub mod ids {
+    /// The desktop app id: the Wayland app id and X11 class, the Linux desktop entry, AppStream
+    /// and Flatpak id, and the Windows AppUserModelID.
+    pub const APP_ID: &str = "io.github.jonasbove.prosecraft_rs";
+    /// The library's folder under the platform's data folder.
+    pub const DATA_DIR: &str = "prosecraft-rs";
+    /// The variable that puts the library somewhere else.
+    pub const DATA_DIR_ENV: &str = "PROSECRAFT_RS_DATA_DIR";
+    /// The name eframe keeps the window's state under.
+    pub const WINDOW_STATE_KEY: &str = "prosecraft-rs";
+    /// The web app's IndexedDB database.
+    pub const WEB_DATABASE: &str = "prosecraft-rs";
+    /// The prefix of the web app's `localStorage` keys.
+    pub const WEB_SETTING_PREFIX: &str = "prosecraft-rs:";
+    /// The app's id in CraftCloud (`craftcloud files --app prosecraft-rs`, its `apps.toml`).
+    pub const CRAFTCLOUD_APP_ID: &str = "prosecraft-rs";
+    /// The prefix of the messages a Craft host page and the web app send each other
+    /// (`prosecraft-rs:open`).
+    pub const HOST_MESSAGE_PREFIX: &str = "prosecraft-rs";
+    /// The MCP server's protocol name, ProseCraft's own server's (MCP clients may key on it).
+    pub const MCP_SERVER_NAME: &str = "prosecraft";
+}
 
 /// This build's version, from the workspace manifest.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -25,7 +52,7 @@ pub fn credit_line() -> String {
     )
 }
 
-/// `prosecraft-rs 0.1.0`.
+/// `LoveCraft 0.2.0`.
 pub fn name_and_version() -> String {
     format!("{APP_NAME} {VERSION}")
 }
@@ -174,7 +201,7 @@ mod diagnostics_tests {
         let report = diagnostics_report(&input, "2026-01-02T03:04:05.000Z");
         assert_eq!(
             report,
-            "app: ProseCraft-rs 0.4.6\ndate: 2026-01-02T03:04:05.000Z\nos: Linux, egui\nstorage backend: IndexedDB\nonline: false\nprojects: 5\nchapters: 10\nscenes: 20\nwiki pages: 3\nwords: 15000\ncomments: 50\nsnapshots: 2\ndarkMode: on\nautosave: off"
+            "app: LoveCraft 0.4.6\ndate: 2026-01-02T03:04:05.000Z\nos: Linux, egui\nstorage backend: IndexedDB\nonline: false\nprojects: 5\nchapters: 10\nscenes: 20\nwiki pages: 3\nwords: 15000\ncomments: 50\nsnapshots: 2\ndarkMode: on\nautosave: off"
         );
         let unknown = Diagnostics {
             online: None,
@@ -199,8 +226,27 @@ mod tests {
     #[test]
     fn version_line_has_name_and_semver() {
         let line = name_and_version();
-        let version = line.strip_prefix("ProseCraft-rs ").unwrap_or_default();
+        let version = line.strip_prefix("LoveCraft ").unwrap_or_default();
         assert_eq!(version.split('.').count(), 3, "{line}");
+    }
+
+    /// The rename to LoveCraft must not move anything a 0.1 install stored or paired with.
+    #[test]
+    fn persisted_ids_keep_the_former_name() {
+        use super::ids;
+        assert_eq!(super::APP_NAME, "LoveCraft");
+        assert_eq!(ids::APP_ID, "io.github.jonasbove.prosecraft_rs");
+        assert_eq!(ids::DATA_DIR, "prosecraft-rs");
+        assert_eq!(ids::DATA_DIR_ENV, "PROSECRAFT_RS_DATA_DIR");
+        assert_eq!(ids::WINDOW_STATE_KEY, "prosecraft-rs");
+        assert_eq!(ids::WEB_DATABASE, "prosecraft-rs");
+        assert_eq!(ids::WEB_SETTING_PREFIX, "prosecraft-rs:");
+        assert_eq!(ids::CRAFTCLOUD_APP_ID, "prosecraft-rs");
+        assert_eq!(ids::HOST_MESSAGE_PREFIX, "prosecraft-rs");
+        assert_eq!(ids::MCP_SERVER_NAME, "prosecraft");
+        assert_eq!(crate::craftcloud::APP_ID, ids::CRAFTCLOUD_APP_ID);
+        // 0.1's sync folder inside CraftCloud's stays where 0.1 put it.
+        assert_eq!(crate::craftcloud::LEGACY_SYNC_FOLDER, "ProseCraft");
     }
 
     #[test]

@@ -1,8 +1,10 @@
 # The app icon
 
-ProseCraft-rs's icon is an engraved octopus, artwork provided by Jonas Bové for ProseCraft-rs, on
-a solid "ritual oxblood" (`#4b171e`) rounded square (corner radius 18 % of the side, transparent
-outside the corners), the octopus scaled to 92 % and centred.
+LoveCraft's icon is an engraved octopus, artwork provided by Jonas Bové for this app (then called
+ProseCraft-rs), on a solid "ritual oxblood" (`#4b171e`) rounded square (corner radius 18 % of the
+side, transparent outside the corners), the octopus scaled to 92 % and centred.
+
+The files keep the app's former name in theirs (`prosecraft-rs-…`); only their content is shipped.
 
 | File | What it is |
 |---|---|

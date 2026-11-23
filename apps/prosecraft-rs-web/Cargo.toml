@@ -1,6 +1,6 @@
 [package]
 name = "prosecraft-rs-web"
-description = "prosecraft-rs in the browser (built with Trunk)"
+description = "LoveCraft in the browser (built with Trunk)"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

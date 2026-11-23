@@ -49,7 +49,7 @@ impl Runner for Fake {
             .lock()
             .unwrap()
             .push((name.to_owned(), bytes.to_vec()));
-        Ok(format!("/tmp/prosecraft-rs-x/{name}"))
+        Ok(format!("/tmp/lovecraft-x/{name}"))
     }
     fn discard(&self, path: &str) {
         self.discarded.lock().unwrap().push(path.to_owned());
@@ -62,9 +62,9 @@ const FILES: &str = r#"[
  {"path": "Backups/old.prosecraft", "name": "old.prosecraft", "type": "file", "size": 812,
   "modified": "2026-10-01T08:02:11Z", "starred": false,
   "local_path": "/home/john/CraftCloud/Backups/old.prosecraft", "sync": "synced"},
- {"path": "ProseCraft-rs/The Glass Orchard.prosecraft", "name": "The Glass Orchard.prosecraft",
+ {"path": "LoveCraft/The Glass Orchard.prosecraft", "name": "The Glass Orchard.prosecraft",
   "type": "file", "size": 18234, "modified": "2026-11-13T21:54:00Z", "starred": false,
-  "local_path": "/home/john/CraftCloud/ProseCraft-rs/The Glass Orchard.prosecraft", "sync": "pending"},
+  "local_path": "/home/john/CraftCloud/LoveCraft/The Glass Orchard.prosecraft", "sync": "pending"},
  {"path": "Shared/Draft.PROSECRAFT", "name": "Draft.PROSECRAFT", "type": "file", "size": 9,
   "modified": "2026-11-14T08:02:11+01:00", "starred": true, "id": "f7fc37c9-0000",
   "local_path": null, "sync": "excluded"}
@@ -77,14 +77,14 @@ const EVERYTHING: &str = r#"[
  {"path": "Documents/notes.md", "name": "notes.md", "type": "file", "size": 11,
   "modified": "2026-11-13T21:53:39Z", "starred": false,
   "local_path": "/home/john/CraftCloud/Documents/notes.md", "sync": "synced"},
- {"path": "ProseCraft-rs/Book.prosecraft", "name": "Book.prosecraft", "type": "file", "size": 99,
+ {"path": "LoveCraft/Book.prosecraft", "name": "Book.prosecraft", "type": "file", "size": 99,
   "modified": "2026-11-15T10:00:00Z", "starred": false,
-  "local_path": "/home/john/CraftCloud/ProseCraft-rs/Book.prosecraft", "sync": "synced"},
- {"path": "ProseCraft-rs/.prosecraft", "name": ".prosecraft", "type": "file", "size": 1,
+  "local_path": "/home/john/CraftCloud/LoveCraft/Book.prosecraft", "sync": "synced"},
+ {"path": "LoveCraft/.prosecraft", "name": ".prosecraft", "type": "file", "size": 1,
   "modified": "2026-11-15T10:00:00Z", "starred": false},
- {"path": "ProseCraft-rs/Encrypted sync file/prosecraft-sync.prosecraft", "name": "prosecraft-sync.prosecraft",
+ {"path": "LoveCraft/Encrypted sync file/prosecraft-sync.prosecraft", "name": "prosecraft-sync.prosecraft",
   "type": "file", "size": 1, "modified": "2026-11-16T10:00:00Z", "starred": false,
-  "local_path": "/home/john/CraftCloud/ProseCraft-rs/Encrypted sync file/prosecraft-sync.prosecraft", "sync": "synced"}
+  "local_path": "/home/john/CraftCloud/LoveCraft/Encrypted sync file/prosecraft-sync.prosecraft", "sync": "synced"}
 ]"#;
 
 #[test]
@@ -104,7 +104,7 @@ fn backups_are_listed_newest_first_with_where_they_stand() {
     );
     assert_eq!(files[1].sync, SyncState::Pending);
     assert_eq!(files[1].sync.badge(), "Waiting to sync");
-    assert_eq!(files[1].folder(), "ProseCraft-rs");
+    assert_eq!(files[1].folder(), "LoveCraft");
     assert!(files[1].is_here());
     assert_eq!(files[0].local_path, None);
     assert!(!files[0].is_here());
@@ -128,7 +128,7 @@ fn a_craftcloud_without_the_app_lists_everything_and_the_backups_are_kept_here()
         ["files --app prosecraft-rs --json", "files --json"]
     );
     assert_eq!(files.len(), 1);
-    assert_eq!(files[0].path, "ProseCraft-rs/Book.prosecraft");
+    assert_eq!(files[0].path, "LoveCraft/Book.prosecraft");
     assert_eq!(files[0].sync, SyncState::Synced);
 }
 
@@ -187,8 +187,8 @@ fn each_exit_code_says_what_to_do() {
 }
 
 /// `save --json` through the desktop client, with `--wait`.
-const SAVED: &str = r#"{"path": "ProseCraft-rs/The Glass Orchard.prosecraft",
- "local_path": "/home/john/CraftCloud/ProseCraft-rs/The Glass Orchard.prosecraft",
+const SAVED: &str = r#"{"path": "LoveCraft/The Glass Orchard.prosecraft",
+ "local_path": "/home/john/CraftCloud/LoveCraft/The Glass Orchard.prosecraft",
  "via": "client", "state": "synced", "replaced": true, "size": 812}"#;
 
 #[test]
@@ -197,7 +197,7 @@ fn a_save_goes_through_a_temporary_file_named_for_the_backup() {
         Output::failed(
             5,
             "conflict",
-            "ProseCraft-rs/The Glass Orchard.prosecraft is already in CraftCloud (--force replaces it; the old version is kept)",
+            "LoveCraft/The Glass Orchard.prosecraft is already in CraftCloud (--force replaces it; the old version is kept)",
         ),
         Output::ok(FILES),
         Output::ok(SAVED),
@@ -206,7 +206,7 @@ fn a_save_goes_through_a_temporary_file_named_for_the_backup() {
         &fake,
         "The Glass Orchard.prosecraft",
         b"{}",
-        "ProseCraft-rs",
+        "LoveCraft",
         false,
     )
     .unwrap_err();
@@ -220,23 +220,23 @@ fn a_save_goes_through_a_temporary_file_named_for_the_backup() {
         &fake,
         "The Glass Orchard.prosecraft",
         b"{}",
-        "ProseCraft-rs",
+        "LoveCraft",
         true,
     )
     .expect("saved");
     assert_eq!(
         fake.asked(),
         [
-            "save /tmp/prosecraft-rs-x/The Glass Orchard.prosecraft --to ProseCraft-rs --wait --json",
-            "files --in ProseCraft-rs --json",
-            "save /tmp/prosecraft-rs-x/The Glass Orchard.prosecraft --to ProseCraft-rs --wait --json --force",
+            "save /tmp/lovecraft-x/The Glass Orchard.prosecraft --to LoveCraft --wait --json",
+            "files --in LoveCraft --json",
+            "save /tmp/lovecraft-x/The Glass Orchard.prosecraft --to LoveCraft --wait --json --force",
         ]
     );
     let timeouts = fake.timeouts.lock().unwrap().clone();
     assert_eq!(timeouts, [super::UPLOAD, super::QUICK, super::UPLOAD]);
     assert!(saved.replaced);
     assert_eq!(saved.state, "synced");
-    assert_eq!(saved.path, "ProseCraft-rs/The Glass Orchard.prosecraft");
+    assert_eq!(saved.path, "LoveCraft/The Glass Orchard.prosecraft");
     assert_eq!(
         fake.discarded.lock().unwrap().len(),
         2,
@@ -252,13 +252,13 @@ fn a_save_kept_beside_a_cloud_change_is_saved_not_refused() {
     let fake = Fake::new([Output::failed(
         5,
         "conflict",
-        "ProseCraft-rs/The Glass Orchard.prosecraft changed in the cloud too: both versions were kept",
+        "LoveCraft/The Glass Orchard.prosecraft changed in the cloud too: both versions were kept",
     )]);
     let result = save_backup(
         &fake,
         "The Glass Orchard.prosecraft",
         b"{}",
-        "ProseCraft-rs",
+        "LoveCraft",
         false,
     );
     assert!(matches!(&result, Err(Failure::BothKept(_))), "{result:?}");
@@ -266,9 +266,9 @@ fn a_save_kept_beside_a_cloud_change_is_saved_not_refused() {
     let fake = Fake::new([Output::failed(
         5,
         "conflict",
-        "ProseCraft-rs/x.prosecraft is a folder",
+        "LoveCraft/x.prosecraft is a folder",
     )]);
-    let result = save_backup(&fake, "x.prosecraft", b"{}", "ProseCraft-rs", false);
+    let result = save_backup(&fake, "x.prosecraft", b"{}", "LoveCraft", false);
     assert!(matches!(&result, Err(Failure::Conflict(_))), "{result:?}");
     assert_eq!(fake.discarded.lock().unwrap().len(), 1);
 }
@@ -329,7 +329,7 @@ fn the_0_1_sync_file_is_looked_for_in_the_cloud() {
     assert!(!super::legacy_sync_file_in_cloud(&Fake::new([missing])));
     let root = |p: &str| super::craftcloud_root_of(p).map(std::path::PathBuf::from);
     let path = |p: &str| Some(std::path::PathBuf::from(p));
-    assert_eq!(root("/c/ProseCraft-rs/Open sync folder"), path("/c"));
+    assert_eq!(root("/c/LoveCraft/Open sync folder"), path("/c"));
     assert_eq!(root("/c/ProseCraft"), path("/c"));
     assert_eq!(root("/c/Other/Open sync folder"), None);
     assert_eq!(root("/home/me/sync"), None);
@@ -371,15 +371,15 @@ fn device_sync_has_a_folder_for_each_method() {
     let path = |p: &str| std::path::PathBuf::from(p);
     assert_eq!(
         path(&at(SyncMode::OpenFolder, false)),
-        path("/home/john/CraftCloud/ProseCraft-rs/Open sync folder")
+        path("/home/john/CraftCloud/LoveCraft/Open sync folder")
     );
     assert_eq!(
         path(&at(SyncMode::EncryptedFile, false)),
-        path("/home/john/CraftCloud/ProseCraft-rs/Encrypted sync file")
+        path("/home/john/CraftCloud/LoveCraft/Encrypted sync file")
     );
     assert_eq!(
         path(&at(SyncMode::EncryptedFolder, true)),
-        path("/home/john/CraftCloud/ProseCraft-rs/Encrypted sync folder")
+        path("/home/john/CraftCloud/LoveCraft/Encrypted sync folder")
     );
     assert_eq!(
         path(&at(SyncMode::EncryptedFile, true)),

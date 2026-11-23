@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- The file type of a ProseCraft backup (`.prosecraft`), so file managers offer ProseCraft-rs for
+<!-- The file type of a ProseCraft backup (`.prosecraft`), so file managers offer LoveCraft for
      it (the desktop entry's MimeType). Installed as /usr/share/mime/packages/<app id>.xml; the
      packages' scripts run update-mime-database. -->
 <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">

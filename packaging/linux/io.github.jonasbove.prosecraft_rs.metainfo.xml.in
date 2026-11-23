@@ -1,20 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- AppStream metadata (software centres, Flathub). Template: package.sh and the other packaging
-     scripts substitute @VERSION@ and @DATE@ from Cargo.toml and the build date. -->
+     scripts substitute @VERSION@ and @DATE@ from Cargo.toml and the build date. The id keeps the
+     app's former name (ProseCraft-rs, until 0.2.0): software centres and Flatpak know the app by it. -->
 <component type="desktop-application">
   <id>io.github.jonasbove.prosecraft_rs</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT OR Apache-2.0</project_license>
-  <name>ProseCraft-rs</name>
+  <name>LoveCraft</name>
   <summary>Outline, write and publish a novel</summary>
   <developer id="io.github.jonasbove">
-    <name>ProseCraft-rs contributors</name>
+    <name>LoveCraft contributors</name>
   </developer>
   <description>
     <p>
-      ProseCraft-rs is a novel-writing app: plan the book, write it, and publish it, in one native
+      LoveCraft is a novel-writing app: plan the book, write it, and publish it, in one native
       window. It is an independent Rust rewrite of ProseCraft by Jennifer Roylance and its
       contributors, and opens ProseCraft backups and sync folders without losing anything.
+      It was called ProseCraft-rs until version 0.2.0.
     </p>
     <ul>
       <li>Chapters and scenes in a binder with labels, drag and drop and a split view</li>
@@ -27,9 +29,9 @@
   <launchable type="desktop-id">io.github.jonasbove.prosecraft_rs.desktop</launchable>
   <icon type="stock">io.github.jonasbove.prosecraft_rs</icon>
   <!-- Only url types known to appstream 0.15 (Ubuntu 22.04, where CI builds): no vcs-browser. -->
-  <url type="homepage">https://github.com/jonasbove/ProseCraft-rs</url>
-  <url type="bugtracker">https://github.com/jonasbove/ProseCraft-rs/issues</url>
-  <url type="help">https://github.com/jonasbove/ProseCraft-rs#readme</url>
+  <url type="homepage">https://github.com/jonasbove/LoveCraft</url>
+  <url type="bugtracker">https://github.com/jonasbove/LoveCraft/issues</url>
+  <url type="help">https://github.com/jonasbove/LoveCraft#readme</url>
   <categories>
     <category>Office</category>
     <category>WordProcessor</category>
@@ -49,6 +51,9 @@
     <control>pointing</control>
   </supports>
   <provides>
+    <binary>lovecraft</binary>
+    <binary>lovecraft-mcp</binary>
+    <!-- The 0.1 commands, links to the two above. -->
     <binary>prosecraft-rs</binary>
     <binary>prosecraft-mcp</binary>
     <mediatype>application/x-prosecraft</mediatype>

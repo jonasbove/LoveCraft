@@ -3,7 +3,7 @@
 # exports VERSION, NFPM_ARCH, GLIBC_FLOOR (the build host's glibc) and PROSECRAFT_MAINTAINER.
 # Adapted from CraftCloud's packaging/linux/nfpm.yaml, itself adapted from craft-launcher's
 # (MIT OR Apache-2.0; see NOTICE).
-name: prosecraft-rs
+name: lovecraft
 arch: ${NFPM_ARCH}
 platform: linux
 version: ${VERSION}
@@ -13,17 +13,25 @@ release: 1
 section: editors
 priority: optional
 maintainer: ${PROSECRAFT_MAINTAINER}
-vendor: ProseCraft-rs
-homepage: https://github.com/jonasbove/ProseCraft-rs
+vendor: LoveCraft
+homepage: https://github.com/jonasbove/LoveCraft
 license: MIT OR Apache-2.0
 description: |-
   Novel-writing app: outline, write and publish
-  ProseCraft-rs plans, writes and publishes a book in one native window:
+  LoveCraft plans, writes and publishes a book in one native window:
   chapters and scenes, a wiki, outline, storyboard and timeline, a rich-text
   editor with footnotes, citations and proofreading, and publishing to PDF,
   EPUB, DOCX and more. An independent Rust rewrite of ProseCraft; it opens
-  ProseCraft backups and sync folders. Also ships prosecraft-mcp, an MCP
-  server for a ProseCraft open sync folder.
+  ProseCraft backups and sync folders. Also ships lovecraft-mcp, an MCP
+  server for a ProseCraft open sync folder. LoveCraft was called
+  ProseCraft-rs until 0.2.0; prosecraft-rs and prosecraft-mcp remain as
+  aliases of its commands.
+
+# LoveCraft was the prosecraft-rs package until 0.2.0 (the last one was 0.1.2). Installing
+# lovecraft replaces it: the package manager removes prosecraft-rs and lovecraft takes over its
+# files, the old command names included (symlinks below).
+provides:
+  - prosecraft-rs
 
 # The binary links only glibc and libgcc_s directly. Windowing (X11/Wayland, xkbcommon) and
 # OpenGL (egui's glow renderer, through EGL on Wayland and GLX or EGL on X11) are loaded at
@@ -52,6 +60,10 @@ overrides:
       - libgl1-mesa-dri
       - xdg-desktop-portal
       - xdg-utils
+    conflicts:
+      - prosecraft-rs
+    replaces:
+      - prosecraft-rs
   rpm:
     # Soname provides, so the same requirements resolve on Fedora/RHEL and openSUSE.
     depends:
@@ -72,14 +84,25 @@ overrides:
       - mesa-dri-drivers
       - xdg-desktop-portal
       - xdg-utils
+    # Obsoletes: (nfpm writes rpm's `replaces` as Obsoletes), versioned so it never applies to
+    # the prosecraft-rs this package provides.
+    replaces:
+      - prosecraft-rs < 0.2.0
 
 contents:
-  - src: ${STAGE}/usr/bin/prosecraft-rs
+  - src: ${STAGE}/usr/bin/lovecraft
+    dst: /usr/bin/lovecraft
+    file_info: { mode: 0755 }
+  - src: ${STAGE}/usr/bin/lovecraft-mcp
+    dst: /usr/bin/lovecraft-mcp
+    file_info: { mode: 0755 }
+  # The 0.1 command names, for shortcuts, scripts and MCP client configurations made for them.
+  - src: lovecraft
     dst: /usr/bin/prosecraft-rs
-    file_info: { mode: 0755 }
-  - src: ${STAGE}/usr/bin/prosecraft-mcp
+    type: symlink
+  - src: lovecraft-mcp
     dst: /usr/bin/prosecraft-mcp
-    file_info: { mode: 0755 }
+    type: symlink
   - src: ${STAGE}/usr/share/
     dst: /usr/share/
     type: tree

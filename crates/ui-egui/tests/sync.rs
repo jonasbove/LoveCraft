@@ -303,7 +303,7 @@ fn in_craftcloud(harness: &mut Harness<'static, ProseApp>) {
 }
 
 fn folder_json(name: &str) -> String {
-    let path = std::path::Path::new("/home/writer/CraftCloud/ProseCraft-rs").join(name);
+    let path = std::path::Path::new("/home/writer/CraftCloud/LoveCraft").join(name);
     prosecraft_core::js::stringify(&prosecraft_core::js::JsValue::str(&path.to_string_lossy()))
 }
 

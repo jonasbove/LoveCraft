@@ -1,6 +1,6 @@
-# Roadmap: ProseCraft-rs
+# Roadmap: LoveCraft
 
-ProseCraft-rs is a native Rust/egui rewrite of [ProseCraft](https://github.com/jennraeross/ProseCraft), the MIT-licensed novel-writing app by Jennifer Roylance and its contributors. The aim is the same app: outline, write, storyboard and publish. It would run natively on Linux, macOS, Windows and BSD and on the web, with no webview, TypeScript or Tauri, and would follow the Craft suite's house rules.
+LoveCraft (called ProseCraft-rs until 0.2.0) is a native Rust/egui rewrite of [ProseCraft](https://github.com/jennraeross/ProseCraft), the MIT-licensed novel-writing app by Jennifer Roylance and its contributors. The aim is the same app: outline, write, storyboard and publish. It would run natively on Linux, macOS, Windows and BSD and on the web, with no webview, TypeScript or Tauri, and would follow the Craft suite's house rules.
 
 Status: 0.1.0 has ProseCraft's feature set up to upstream `8cdc694` (v0.6.1). P10 for 0.2.0: local folder sync with conflict handling is done; on the desktop, CraftCloud's half is built (Open from CraftCloud…, Save to CraftCloud…, device sync in a CraftCloud folder that leaves CraftCloud's conflict copies and part files alone and reports them, through the `craftcloud` program; see the README's CraftCloud section). Still open for P10: CraftCloud's web-app bridge in the browser. The rest of this document is the plan as it was written.
 
@@ -12,7 +12,7 @@ A manuscript must never be lost or corrupted. The design aims for:
 - Every save is atomic.
 - Compatibility with ProseCraft's backup (`.prosecraft`) and sync-folder formats is tested against fixtures made by the original app.
 
-The way to move work over: export a backup or set up folder sync in ProseCraft, then open that in ProseCraft-rs.
+The way to move work over: export a backup or set up folder sync in ProseCraft, then open that in LoveCraft.
 
 ## Proposed milestones
 | # | Milestone | Done when |
@@ -33,7 +33,12 @@ The way to move work over: export a backup or set up folder sync in ProseCraft, 
 P5 was folded into P1b.
 
 ## Open questions
-Name and branding, the scope of the web and phone experience, and whether to keep diagram rendering and WebDAV.
+The scope of the web and phone experience, and whether to keep diagram rendering and WebDAV.
+
+Resolved: **name and branding.** From 0.2.0 the app is LoveCraft, with the engraved octopus icon. The ids stored
+on people's computers or known to other programs (the app id `io.github.jonasbove.prosecraft_rs`, the data
+folder, the web database, the CraftCloud app id, the crates) keep the working name ProseCraft-rs, so updating
+loses nothing; the old commands stay as aliases.
 
 ## Credits
-ProseCraft © 2026 Jennifer Roylance, MIT licence. ProseCraft-rs keeps that notice (see `NOTICE`) and is an independent project, not affiliated with or endorsed by ProseCraft.
+ProseCraft © 2026 Jennifer Roylance, MIT licence. LoveCraft keeps that notice (see `NOTICE`) and is an independent project, not affiliated with or endorsed by ProseCraft.

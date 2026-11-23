@@ -5,6 +5,36 @@ release links to its section here. The newest version is at the top.
 
 ## Unreleased
 
+### When updating
+
+- **"Use the CraftCloud folder" is now "In CraftCloud"**, and it keeps the sync method you chose instead of always
+  switching to the encrypted file. Its folder is now `ProseCraft-rs/<method>` inside CraftCloud's sync folder. A
+  library already syncing through `ProseCraft` there (0.1's folder) keeps that folder: nothing moves, and a second
+  computer choosing In CraftCloud with the encrypted file finds it.
+
+### New
+
+- **CraftCloud on the desktop.** With CraftCloud's `craftcloud` program installed, File has **Open from
+  CraftCloud…** (the `.prosecraft` backups CraftCloud has, newest first, with their sync state; files not on this
+  computer greyed out) and **Save to CraftCloud…** (the open project's backup into CraftCloud's `ProseCraft-rs`
+  folder, in the background, asking before it replaces a file and saying clearly when CraftCloud isn't signed in
+  or its server can't be reached; a save can carry on in the background). "Replace?" says when the file already
+  there last changed, and a save that CraftCloud kept beside a change made in the cloud meanwhile is reported as
+  saved, as a conflict copy, never forced over it. CraftCloud is never waited on: every command runs in the
+  background and is stopped if it doesn't answer. Without CraftCloud nothing changes. It works with today's CraftCloud too, which
+  doesn't know the `prosecraft-rs` app yet: the listing is then filtered here.
+
+### Fixes
+
+- **Device sync leaves other sync programs' files alone.** In the open folder, a conflict copy that CraftCloud (or
+  Syncthing, Nextcloud, Dropbox) made of a scene, chapter, storyboard or project file stopped the sync ("Two
+  document files claim the id …"), and a copy that didn't would have been deleted by the next sync. Conflict
+  copies, CraftCloud's `.craftcloud` folder and its files in progress are now never read as records and never
+  removed, not even when the project they are in is deleted (its own files go, the copies and their folder
+  stay); the sync names the conflict copies it found. A failure to list them no longer fails a sync.
+- **The encrypted single file syncs on the desktop again.** Looking for conflict copies beside it failed with
+  "Invalid sync path." after every sync, so the sync reported a failure (the file itself was written).
+
 ## 0.1.2
 
 The first release with downloads for every system.

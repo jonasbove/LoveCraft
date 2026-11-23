@@ -123,6 +123,8 @@ mod web {
                     HostRequest::ChooseWikiRoot { .. } | HostRequest::PickWikiFiles { .. } => {
                         Ok(())
                     }
+                    // CraftCloud is the desktop's (`set_craftcloud` isn't called here).
+                    HostRequest::OpenBackupPath(_) => Ok(()),
                     HostRequest::ImportScrivenerFolder
                     | HostRequest::ImportMarkdownFolder
                     | HostRequest::ChooseSyncFolder => {

@@ -155,6 +155,29 @@ fn alert(ui: &mut Ui, color: egui::Color32, text: &str) {
     });
 }
 
+/// A dialog is centred by the size it had the frame before, so the frame its contents change
+/// size (the spinner gives way to a list, an error or "Replace?") it is drawn off centre, and
+/// moves under the pointer the next frame. That frame is drawn again at once, centred.
+fn redraw_if_resized<R>(
+    ctx: &egui::Context,
+    window: &str,
+    shown: Option<&egui::InnerResponse<Option<R>>>,
+) {
+    let Some(shown) = shown else {
+        return;
+    };
+    let id = egui::Id::unique(("craftcloud dialog size", window));
+    let size = shown.response.rect.size();
+    let before: Option<egui::Vec2> = ctx.data_mut(|d| {
+        let before = d.get_temp(id);
+        d.insert_temp(id, size);
+        before
+    });
+    if before.is_some_and(|before| (before - size).length() > 0.5) {
+        ctx.request_discard(format!("{window} changed size"));
+    }
+}
+
 /// "13 Nov 2026, 21:54 UTC" (CraftCloud's times are in UTC).
 fn when(file: &CloudFile) -> String {
     file.modified_utc()
@@ -196,7 +219,7 @@ fn open_dialog(ui: &mut Ui, state: &mut AppState) {
     let mut close = false;
     let mut retry = false;
     let mut chosen: Option<String> = None;
-    egui::Window::new("Open from CraftCloud")
+    let shown = egui::Window::new("Open from CraftCloud")
         .collapsible(false)
         .resizable(false)
         .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
@@ -236,6 +259,7 @@ fn open_dialog(ui: &mut Ui, state: &mut AppState) {
                 close |= button.clicked();
             });
         });
+    redraw_if_resized(ui.ctx(), "Open from CraftCloud", shown.as_ref());
     if ui.input(|i| i.key_pressed(Key::Escape)) {
         close = true;
     }
@@ -378,7 +402,7 @@ fn save_dialog(ui: &mut Ui, state: &mut AppState) {
     let mut close = false;
     let mut hide = false;
     let mut replace = false;
-    egui::Window::new("Save to CraftCloud")
+    let shown = egui::Window::new("Save to CraftCloud")
         .collapsible(false)
         .resizable(false)
         .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
@@ -416,6 +440,7 @@ fn save_dialog(ui: &mut Ui, state: &mut AppState) {
                 }
             }
         });
+    redraw_if_resized(ui.ctx(), "Save to CraftCloud", shown.as_ref());
     let saving = matches!(dialog.step, SaveStep::Saving(_));
     if ui.input(|i| i.key_pressed(Key::Escape)) {
         if saving {

@@ -320,7 +320,7 @@ fn a_save_that_fails_says_what_to_do() {
         harness
             .get_by_role_and_label(Role::Button, "Close Save to CraftCloud")
             .click();
-        // A closed window can take a frame or two to leave the tree on a loaded machine.
+        // It closes the frame after the click.
         settle(&mut harness, |h| h.query_by_role(Role::Alert).is_none());
     }
 }
@@ -411,4 +411,80 @@ fn a_save_kept_beside_a_cloud_change_is_reported_as_saved() {
     });
     assert!(harness.query_by_label("Replace?").is_none());
     assert_eq!(fake.asked().len(), 1);
+}
+
+/// A `craftcloud` that answers when the test says so.
+struct Held(Mutex<std::sync::mpsc::Receiver<Output>>);
+
+impl Runner for Held {
+    fn run(&self, _args: &[&str], _timeout: std::time::Duration) -> Result<Output, String> {
+        let answer = self.0.lock().expect("answer").recv();
+        answer.map_err(|_| "no answer".to_owned())
+    }
+    fn stage(&self, name: &str, _bytes: &[u8]) -> Result<String, String> {
+        Ok(format!("/tmp/lovecraft-craftcloud-x/{name}"))
+    }
+    fn discard(&self, _path: &str) {}
+}
+
+/// Draws one frame at a time until the answer shows, so that it shows in the last one drawn.
+fn step_until(harness: &mut Harness<'static, ProseApp>, done: impl Fn(&Harness<ProseApp>) -> bool) {
+    for _ in 0..300 {
+        harness.step();
+        if done(harness) {
+            return;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+    panic!("the answer never showed");
+}
+
+/// A dialog is centred by its size, which changes when the answer comes: its buttons are where
+/// they were first drawn, and clicked there in that same frame they work (the CI flake of
+/// `a_save_that_fails_says_what_to_do`: the click landed beside the moved Close button).
+#[test]
+fn a_dialog_whose_answer_changes_its_size_is_drawn_where_it_stays() {
+    let (answer, held) = std::sync::mpsc::channel();
+    let mut harness = app(None);
+    harness
+        .state_mut()
+        .set_craftcloud(Arc::new(Held(Mutex::new(held))));
+    harness.run_steps(2);
+    open_file_menu(&mut harness);
+    harness
+        .get_by_role_and_label(Role::MenuItem, "Save to CraftCloud…")
+        .click();
+    harness.run_steps(4);
+    harness.get_by_label("Continue in background");
+    answer
+        .send(Output::failed(3, "signed_out", "not signed in"))
+        .expect("send");
+    step_until(&mut harness, |h| h.query_by_role(Role::Alert).is_some());
+    let close = harness.get_by_label("Close Save to CraftCloud").rect();
+    harness.step();
+    assert_eq!(
+        harness.get_by_label("Close Save to CraftCloud").rect(),
+        close
+    );
+    harness
+        .get_by_role_and_label(Role::Button, "Close Save to CraftCloud")
+        .click();
+    harness.run_steps(2);
+    assert!(harness.query_by_role(Role::Alert).is_none(), "closed");
+
+    // Open from CraftCloud…, its listing failing.
+    harness
+        .get_by_role_and_label(Role::Button, "Open from CraftCloud…")
+        .click();
+    harness.run_steps(4);
+    answer
+        .send(Output::failed(8, "unreachable", "connection refused"))
+        .expect("send");
+    step_until(&mut harness, |h| h.query_by_role(Role::Alert).is_some());
+    let cancel = harness.get_by_label("Close Open from CraftCloud").rect();
+    harness.step();
+    assert_eq!(
+        harness.get_by_label("Close Open from CraftCloud").rect(),
+        cancel
+    );
 }

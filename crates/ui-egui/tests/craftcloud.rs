@@ -185,7 +185,9 @@ fn open_lists_the_backups_newest_first_and_opens_one_by_keyboard() {
     harness.run_steps(2);
     harness.key_press(Key::Enter);
     harness.run_steps(4);
-    assert!(harness.query_by_label("old.prosecraft").is_none(), "closed");
+    settle(&mut harness, |h| {
+        h.query_by_label("old.prosecraft").is_none()
+    });
     let requests = harness.state_mut().take_requests();
     assert!(
         requests
@@ -223,8 +225,9 @@ fn a_listing_that_fails_says_why_and_can_be_tried_again() {
             .is_some()
     });
     harness.key_press(Key::Escape);
-    harness.run_steps(2);
-    assert!(harness.query_by_label("Open from CraftCloud").is_none());
+    settle(&mut harness, |h| {
+        h.query_by_label("Open from CraftCloud").is_none()
+    });
 }
 
 /// `save --json` through the desktop client, after it replaced a file.
@@ -282,10 +285,9 @@ fn save_asks_before_replacing_and_then_forces() {
             "save /tmp/prosecraft-rs-craftcloud-x/The Lighthouse 🌊 Keeper.prosecraft --to ProseCraft-rs --wait --json --force",
         ]
     );
-    assert!(
-        harness.query_by_label("Save to CraftCloud").is_none(),
-        "closed"
-    );
+    settle(&mut harness, |h| {
+        h.query_by_label("Save to CraftCloud").is_none()
+    });
 }
 
 #[test]
@@ -318,8 +320,8 @@ fn a_save_that_fails_says_what_to_do() {
         harness
             .get_by_role_and_label(Role::Button, "Close Save to CraftCloud")
             .click();
-        harness.run_steps(2);
-        assert!(harness.query_by_role(Role::Alert).is_none());
+        // A closed window can take a frame or two to leave the tree on a loaded machine.
+        settle(&mut harness, |h| h.query_by_role(Role::Alert).is_none());
     }
 }
 
@@ -368,11 +370,9 @@ fn a_save_put_aside_says_how_it_ended() {
         harness.run_steps(2);
         harness.get_by_role_and_label(Role::Button, "Continue in background");
         harness.key_press(Key::Escape);
-        harness.run_steps(2);
-        assert!(
-            harness.query_by_label("Continue in background").is_none(),
-            "put aside"
-        );
+        settle(&mut harness, |h| {
+            h.query_by_label("Continue in background").is_none()
+        });
         // The menus aren't held while it saves.
         open_file_menu(&mut harness);
         assert!(

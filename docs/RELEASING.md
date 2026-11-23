@@ -18,6 +18,12 @@ Changed` (GitHub's generated notes: each pull request merged since the previous 
 `**Full Changelog**`, plus a link to [RELEASE-NOTES.md](RELEASE-NOTES.md) when it has a section for the version.
 FreeBSD and riscv64 are added to the draft later by the `late` job, when (and if) they build.
 
+Each AppImage's `.zsync` is published twice: as `lovecraft-<version>-linux-<arch>.AppImage.zsync`, and as
+`prosecraft-rs-<version>-linux-<arch>.AppImage.zsync`, the name a ProseCraft-rs 0.1 AppImage's updater looks for
+(its update information names `jonasbove/ProseCraft-rs`, which GitHub redirects here, and
+`prosecraft-rs-*-linux-<arch>.AppImage.zsync`). Its URL is relative, so it fetches the LoveCraft AppImage beside
+it. Like every file, it is signed, checksummed, attested and required (`files`).
+
 The web app is built too (`web`, `packaging/web/package.sh`): Trunk in release mode with the same fonts, zipped as
 `lovecraft-web-<version>.zip` with one top-level folder `lovecraft-web-<version>/` holding Trunk's dist
 (`index.html`, the JS and wasm, relative URLs) and the licence files, the layout of the Craft apps' web zips. The
@@ -36,15 +42,21 @@ The draft is made only when:
   Ubuntu 22.04), checked (`--version`, the binaries and their 0.1 names, the desktop entry, icons, AppStream file
   and the `.prosecraft` file type), the MCP server answers `initialize` and `tools/list` over stdio, the app opens
   its window, titled LoveCraft, on a virtual X display (Xvfb with Mesa's software OpenGL) and keeps running, the
-  package is upgraded from the previous published release (0.1.2 is the first with packages; for 0.2.0 that is
-  ProseCraft-rs 0.1.2, whose `prosecraft-rs` package `lovecraft` replaces, its commands still working), and
-  removed again. The AppImage takes over the previous one's menu entry, and the tarball's `install.sh` installs
-  over the previous one's;
+  package is upgraded from the previous published release, and from ProseCraft-rs 0.1.2 (`LAST_PROSECRAFT_RS`,
+  the last release before the rename, whose `prosecraft-rs` package `lovecraft` replaces, its commands still
+  working), and removed again. The AppImage takes over the previous one's menu entry, and the tarball's
+  `install.sh` installs over the previous one's. A previous release without the file is an error;
 - the **workspace tests on Windows** (`windows-test`: `cargo test --workspace` on Windows x64), which `ci.yml`
   runs on Linux only;
 - the **MSI tests** in the Windows jobs (`packaging/windows/test-msi.ps1`, x64 and arm64): the previous published
   release's MSI is installed, this one updates it in place (one product left, in the same folder, the 0.1
-  program names still working), the MCP server answers, and uninstalling removes it all.
+  program names still working), the MCP server answers, and uninstalling removes it all; then the same from
+  ProseCraft-rs 0.1.2's MSI;
+- the **macOS update test** (`packaging/macos/test-update.sh`): ProseCraft-rs 0.1.2's and the previous
+  release's apps are copied from their DMGs into an Applications folder, then this one's `LoveCraft.app` over
+  them; each answers `--version`, the MCP servers answer, the 0.1 command names are links, the bundle id is
+  unchanged, and every app, old and new, reads the same library in
+  `~/Library/Application Support/prosecraft-rs` and leaves it alone.
 
 The macOS job checks the DMG as shipped (`packaging/macos/verify.sh`: both architectures in both binaries, the
 icon, `--version`, the signature's integrity); the Windows jobs check each exe's architecture and PE subsystem
@@ -58,8 +70,10 @@ explicit confirmation.
 
 1. **Release notes:** turn `## Unreleased` in [RELEASE-NOTES.md](RELEASE-NOTES.md) into `## <version>`, with what
    changed and, first, anything that needs care when updating. Start a new empty `## Unreleased` above it.
-2. **Version:** set `version` in the root `Cargo.toml` and run `cargo update -w`. Update the README if it names
-   the version, and `pkgver` in `packaging/arch/*/PKGBUILD` (their sums come after publishing, step 7).
+2. **Version:** set `version` in the root `Cargo.toml` and run `cargo update -w`. Update the README where it
+   names the version (Status, and the `<ver>` example under Downloads). The AUR recipes in `packaging/arch/`
+   stay on the published version: their sums are of the release's files, so they move after publishing
+   (step 7).
 3. **Gate:** `cargo xtask ci` must pass. To try the whole release without publishing anything, start the Release
    workflow by hand (Actions › Release › Run workflow, on `main` or a branch, or
    `gh workflow run release.yml --ref <branch>`): it builds every file and runs the package tests, and makes no
@@ -76,8 +90,11 @@ explicit confirmation.
    app's own output; fix it and tag a new version. When the draft has every file (and FreeBSD/riscv64, or their
    jobs have given up), read it over and **publish** it. Published releases are immutable: their files can't be
    changed afterwards.
-7. **After publishing:** update the AUR recipes in `packaging/arch/` (`pkgver`, `updpkgsums`,
-   `makepkg --printsrcinfo > .SRCINFO`) and push them to the AUR (`packaging/arch/README.md`).
+7. **After publishing:** move the AUR recipes in `packaging/arch/` to the new version in a pull request:
+   `pkgver=<version>` and `pkgrel=1` in both `PKGBUILD`s, `updpkgsums` (from `pacman-contrib`; it downloads
+   the published files and the tag's source archive and writes their sums), `makepkg --verifysource`, and
+   `makepkg --printsrcinfo > .SRCINFO`. [packaging/arch/README.md](../packaging/arch/README.md) has the exact
+   commands. Then push `PKGBUILD` and `.SRCINFO` to the AUR (a maintainer's decision).
 
 ## The signing key
 

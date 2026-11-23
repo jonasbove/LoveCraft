@@ -164,7 +164,7 @@ The design language (colour tokens, type, layout and components) is written up i
 
 ## Status
 
-LoveCraft is **early**: 0.2.0 is the current release. It matches ProseCraft up to upstream
+LoveCraft is **early**: 0.3.0 is the current release. It matches ProseCraft up to upstream
 [`8cdc694`](https://github.com/jennraeross/ProseCraft/commit/8cdc694) (v0.6.1).
 
 **Different on purpose:** the look is ProseCraft's, but where a web page and a native egui app differ, it
@@ -185,7 +185,7 @@ Every release from 0.1.2 on, on the [releases page](https://github.com/jonasbove
 packages for every system, each with the app (`lovecraft`) and the MCP server (`lovecraft-mcp`). Before 0.2.0
 the files and commands were named `prosecraft-rs`; every package still installs `prosecraft-rs` and
 `prosecraft-mcp` as aliases (deprecated), and the 0.2 packages replace the `prosecraft-rs` ones. The app also
-comes from the Nix flake or from source. `<ver>` is the version number, for example `0.2.0`.
+comes from the Nix flake or from source. `<ver>` is the version number, for example `0.3.0`.
 
 The builds are **not code-signed** by Apple or Microsoft yet, so your system asks once before the first start.
 
@@ -210,7 +210,7 @@ The builds are **not code-signed** by Apple or Microsoft yet, so your system ask
 | `lovecraft-<ver>-linux-<arch>.rpm` | Fedora, openSUSE, RHEL (`sudo dnf install ./lovecraft-….rpm`) |
 | `lovecraft-<ver>-linux-<arch>.pkg.tar.zst` | Arch Linux (`sudo pacman -U lovecraft-….pkg.tar.zst`); AUR recipes are in `packaging/arch/` |
 | `lovecraft-<ver>-linux-<arch>.flatpak` | Flatpak (`flatpak install --user lovecraft-….flatpak`); the MCP server is `flatpak run --command=lovecraft-mcp io.github.jonasbove.prosecraft_rs` |
-| `lovecraft-<ver>-linux-<arch>.AppImage` | Any distro: make it executable and run it; with `--mcp` first it runs the MCP server. The `.zsync` next to it lets AppImage updaters fetch only what changed |
+| `lovecraft-<ver>-linux-<arch>.AppImage` | Any distro: make it executable and run it; with `--mcp` first it runs the MCP server. The `.zsync` next to it lets AppImage updaters fetch only what changed (a copy named `prosecraft-rs-<ver>-…` is there for ProseCraft-rs 0.1 AppImages, whose updater looks for that name) |
 | `lovecraft-<ver>-linux-<arch>.tar.gz` | The binaries, menu entry, file type, icons and `install.sh` |
 
 ```sh

@@ -312,6 +312,27 @@ fn a_file_from_a_newer_prosecraft_is_shown_and_never_sent_back() {
 }
 
 #[test]
+fn a_file_in_a_newer_or_unknown_backup_format_is_shown_and_never_sent_back() {
+    for (key, value) in [
+        ("schemaVersion", JsValue::Number(3.0)),
+        ("futureField", JsValue::str("kept")),
+    ] {
+        let mut bundle = js::parse(&fixture("bundle-plain.prosecraft")).expect("the fixture");
+        if let Some(fields) = bundle.as_object_mut() {
+            fields.insert(key, value);
+        }
+        let mut harness = harness(Page::open(NAME, &js::stringify(&bundle)));
+        harness.run();
+        harness.get_by_role_and_label(Role::TreeItem, "Opening Scene");
+        harness.get_by_label_contains("Read-only: nothing is written back.");
+        *harness.state().bridge.outbox.borrow_mut() = Some("anything".into());
+        harness.state_mut().at(SAVE_EVERY * 2.0);
+        harness.run();
+        assert_eq!(harness.state().posted, [], "{key}");
+    }
+}
+
+#[test]
 fn an_encrypted_file_asks_for_its_passphrase_and_is_never_sent_back() {
     let mut harness = harness(Page::open(NAME, &fixture("bundle-encrypted.prosecraft")));
     harness.run();

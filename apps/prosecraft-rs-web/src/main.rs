@@ -365,18 +365,20 @@ mod web {
         }
     }
 
-    /// This browser's id for the changes it makes to a hosted file: its library's, read and
-    /// never written, or a new one.
-    async fn device_id() -> String {
-        let kept = browser::load_library()
-            .await
-            .ok()
-            .flatten()
-            .and_then(|text| Library::from_text(&text).ok())
-            .map(|library| library.device_id)
-            .filter(|id| !id.is_empty());
-        kept.or_else(|| new_device_id(&mut BrowserRandom).ok())
-            .unwrap_or_else(|| format!("browser-{}", js_sys::Date::now()))
+    /// This browser's id for the changes it makes to hosted files, kept in its settings
+    /// (`localStorage`; the browser's library isn't opened while hosted).
+    fn device_id() -> String {
+        use prosecraft_ui_egui::LibraryStore as _;
+        const KEY: &str = "hosted-device-id";
+        let mut settings = BrowserStore::new();
+        if let Some(id) = settings.load_setting(KEY).filter(|id| !id.is_empty()) {
+            return id;
+        }
+        let id = new_device_id(&mut BrowserRandom)
+            .unwrap_or_else(|_| format!("browser-{}", js_sys::Date::now()));
+        // Unkept, the next session takes a new id; changes still merge by time and revision.
+        let _ = settings.save_setting(KEY, Some(&id));
+        id
     }
 
     pub fn start() {
@@ -393,7 +395,7 @@ mod web {
             // parent on another origin), nothing changes.
             let host = craft_web_host::web::Host::connect(hosted::APP_ID, &canvas);
             let (app, device_id) = match host {
-                Some(_) => (ProseApp::new(), device_id().await),
+                Some(_) => (ProseApp::new(), device_id()),
                 None => (start_app().await, String::new()),
             };
             let _ = eframe::WebRunner::new()

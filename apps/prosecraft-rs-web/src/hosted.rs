@@ -188,6 +188,8 @@ impl Bridge {
         let not_a_backup = || format!("Couldn't open {name}: it isn't a ProseCraft backup.");
         let text = std::str::from_utf8(bytes).map_err(|_| not_a_backup())?;
         match Library::read(text) {
+            // Written back, it would lose what the app doesn't know about the file itself.
+            Ok(_) if !rewritable(text) => Ok(self.read_only(name, text)),
             Ok(_) => {
                 // Read as the library file is, so records this build can't read are kept and
                 // written back as they are; the projects sanitized as an opened backup's are.
@@ -208,18 +210,21 @@ impl Bridge {
                 });
                 Ok(ProseApp::with_library(library, Box::new(store)))
             }
-            Err(OpenError::Encrypted(_)) => {
-                // Without a library of its own the app shows the unlocked projects read-only.
-                let mut app = ProseApp::new();
-                app.open_backup(name, text);
-                self.file = Some(File {
-                    name: name.to_owned(),
-                    writable: false,
-                });
-                Ok(app)
-            }
+            Err(OpenError::Encrypted(_)) => Ok(self.read_only(name, text)),
             Err(OpenError::Unreadable(error)) => Err(format!("Couldn't open {name}: {error}")),
         }
+    }
+
+    /// The file shown and never written back: without a library of its own, the app shows the
+    /// backup's projects read-only, as "Open backup…" does there (an encrypted one once unlocked).
+    fn read_only(&mut self, name: &str, text: &str) -> ProseApp {
+        let mut app = ProseApp::new();
+        app.open_backup(name, text);
+        self.file = Some(File {
+            name: name.to_owned(),
+            writable: false,
+        });
+        app
     }
 
     /// Ctrl+S: the typing so far committed, and the file sent without waiting.
@@ -328,6 +333,26 @@ impl Bridge {
         }
         None
     }
+}
+
+/// Whether a plain backup can be written back as the app writes its library: the file is no
+/// newer than this build's format, and holds nothing but what that format has.
+fn rewritable(text: &str) -> bool {
+    const KNOWN: [&str; 5] = [
+        "format",
+        "schemaVersion",
+        "exportedAt",
+        "deviceId",
+        "projects",
+    ];
+    prosecraft_core::js::parse(text).is_ok_and(|bundle| {
+        prosecraft_core::storage::schema::newer_schema(&bundle).is_none()
+            && bundle.as_object().is_some_and(|fields| {
+                fields
+                    .iter()
+                    .all(|(key, _)| KNOWN.iter().any(|known| key.eq_str(known)))
+            })
+    })
 }
 
 #[cfg(test)]

@@ -227,11 +227,12 @@ Installing, updating or removing a package never touches your library.
 |---|---|
 | `prosecraft-rs-web-<ver>.zip` | The web app: one folder, `prosecraft-rs-web-<ver>/`, to put on any static web server, at the top or under a sub-path (its file URLs are relative). It keeps its library in the browser (IndexedDB) |
 
-**Running inside CraftCloud.** [CraftCloud](https://github.com/jonasbove/craftcloud) can serve the web app
-under `/apps/prosecraft-rs/` and open a `.prosecraft` backup from its file browser in it. The app then edits that
-file instead of the browser's library: it shows the file's projects, and saves them back to CraftCloud as a
-ProseCraft backup under the same name, after a pause in writing (at most every 15 seconds) or at once with
-Ctrl+S (⌘S). CraftCloud warns before you leave with unsaved changes. A file from a newer ProseCraft and an
+**Running inside CraftCloud.** [CraftCloud](https://github.com/jonasbove/craftcloud) serves the Craft apps' web
+builds under `/apps/<app>/` (this one as `/apps/prosecraft-rs/`), and its web file browser opens a file in its app
+through the Craft host messages. Given a `.prosecraft` backup that way, the app edits that file instead of the
+browser's library: it shows the file's projects, and sends them back to be saved as a ProseCraft backup under the
+same name, after a pause in writing (at most every 15 seconds) or at once with Ctrl+S (⌘S). It tells the host
+when there are unsaved changes, so the host can warn before you leave. A file from a newer ProseCraft and an
 encrypted backup open read-only and are never written back; a file that isn't a backup is refused with a message.
 The browser's own library is not opened or changed while the app runs inside CraftCloud. Any page on the same
 origin can host it the same way: it speaks `craft-web-host`'s messages (`prosecraft-rs:open`, `:save`,

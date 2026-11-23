@@ -37,9 +37,11 @@ source_aarch64=("${_release}/lovecraft-${pkgver}-linux-aarch64.tar.gz"{,.asc})
 # fingerprint: the signatures are made with its signing subkey.
 _fingerprint=29E57E45001D294F72E2EC80C42E3F3BDD6A7FF4
 validpgpkeys=("${_fingerprint}")
-# Filled in by updpkgsums for each release (the .asc files are checked by their signature).
-sha256sums_x86_64=('TODO' 'SKIP')
-sha256sums_aarch64=('TODO' 'SKIP')
+# Written by updpkgsums for each release (the .asc files are checked by their signature).
+sha256sums_x86_64=('0d4d36f59a85c348c4e8ce63d5337213f8321a5d74f1dfc5a88196b3386610a9'
+                   'SKIP')
+sha256sums_aarch64=('d295704198f0d4f761fc2b8b17099a9ffc7078203ee8286467fa853b739cb386'
+                    'SKIP')
 
 package() {
   local dir="lovecraft-${pkgver}-linux-${CARCH}"

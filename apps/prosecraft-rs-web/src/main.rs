@@ -3,6 +3,9 @@
 //! The library is kept in the browser (IndexedDB), files are chosen with the browser's file
 //! picker and exports are downloads. Folders can't be opened from a web page, so the folder
 //! imports and folder sync say so.
+//!
+//! Framed by a Craft host (CraftCloud, `?host=parent`), it edits the file the host sends instead
+//! and saves it back there ([`hosted`]).
 #![deny(
     clippy::unwrap_used,
     clippy::expect_used,
@@ -17,15 +20,22 @@ mod browser;
 #[cfg(target_arch = "wasm32")]
 mod clipboard;
 #[cfg(any(target_arch = "wasm32", test))]
+mod hosted;
+#[cfg(any(target_arch = "wasm32", test))]
 mod html_slot;
 
 #[cfg(target_arch = "wasm32")]
 mod web {
+    use std::cell::RefCell;
+    use std::collections::VecDeque;
+    use std::rc::Rc;
+
     use eframe::wasm_bindgen::JsCast;
     use prosecraft_core::library::{Library, new_device_id};
     use prosecraft_ui_egui::{HostRequest, ProseApp};
 
     use crate::browser::{self, BrowserRandom, BrowserStore, Inbox};
+    use crate::hosted::{self, Bridge, Effect};
 
     /// What a chosen file is for.
     enum Then {
@@ -46,6 +56,168 @@ mod web {
     struct WebApp {
         app: ProseApp,
         inbox: Inbox<Then>,
+        /// The Craft host framing the app, when there is one.
+        hosted: Option<Hosted>,
+    }
+
+    /// What the host sent, read into memory.
+    enum FromHost {
+        Open {
+            name: String,
+            bytes: Vec<u8>,
+        },
+        /// A file that couldn't be read (too large, or the browser failed to read it).
+        Refused(String),
+        Saved(String),
+    }
+
+    /// The connection to the host and the hosted file's session.
+    struct Hosted {
+        host: craft_web_host::web::Host,
+        bridge: Bridge,
+        messages: Rc<RefCell<VecDeque<FromHost>>>,
+        /// This browser's id in the changes it makes (its library's, or a new one).
+        device_id: String,
+    }
+
+    impl Hosted {
+        /// Hears the host, then tells it the app is ready for a file.
+        fn start(
+            host: craft_web_host::web::Host,
+            device_id: String,
+            ctx: &eframe::egui::Context,
+        ) -> Self {
+            let messages: Rc<RefCell<VecDeque<FromHost>>> = Rc::default();
+            let queue = Rc::clone(&messages);
+            let repaint = ctx.clone();
+            host.listen(move |message| hear(message, &queue, &repaint));
+            // Unsent, the host never sends a file; there is no one else to tell.
+            let _ = host.post_ready(env!("CARGO_PKG_VERSION"), false);
+            Self {
+                host,
+                bridge: Bridge::new(),
+                messages,
+                device_id,
+            }
+        }
+
+        /// The host's messages since the last frame. An opened file replaces the app.
+        fn receive(&mut self, app: &mut ProseApp, ctx: &eframe::egui::Context) {
+            let messages: Vec<_> = self.messages.borrow_mut().drain(..).collect();
+            for message in messages {
+                match message {
+                    FromHost::Open { name, bytes } => {
+                        let device = Box::new(BrowserStore::new());
+                        match self
+                            .bridge
+                            .open(&name, &bytes, self.device_id.clone(), device)
+                        {
+                            Ok(opened) => *app = prepare(opened, ctx, true),
+                            Err(error) => app.report(&error),
+                        }
+                    }
+                    FromHost::Refused(error) => {
+                        app.report(&error);
+                        self.bridge.refuse(error);
+                    }
+                    FromHost::Saved(id) => self.bridge.saved(&id),
+                }
+            }
+        }
+
+        /// After the frame: saves, the unsaved state and failures go to the host.
+        fn send(&mut self, app: &mut ProseApp, ctx: &eframe::egui::Context) {
+            let now = ctx.input(|i| i.time);
+            self.bridge.tick(now, app);
+            for effect in self.bridge.take_effects() {
+                match effect {
+                    Effect::Save { name, bytes, id } => {
+                        if let Err(error) = self.host.post_save(&name, &bytes, Some(&id), false) {
+                            self.bridge.not_sent(&id);
+                            app.report(&format!("{name} couldn't be sent to be saved: {error}"));
+                        }
+                    }
+                    Effect::Dirty(dirty) => self.host.post_dirty(dirty),
+                    Effect::Failed { error, id } => {
+                        let _ = self.host.post_failed(&error, id.as_deref());
+                    }
+                }
+            }
+            if let Some(seconds) = self.bridge.wake_in(now) {
+                ctx.request_repaint_after(std::time::Duration::from_secs_f64(seconds.max(0.1)));
+            }
+        }
+    }
+
+    /// A host message for the session, its file read into memory first (never one far too large
+    /// to be a backup).
+    fn hear(
+        message: craft_web_host::web::Message,
+        queue: &Rc<RefCell<VecDeque<FromHost>>>,
+        ctx: &eframe::egui::Context,
+    ) {
+        use craft_web_host::web::{FileData, Message};
+        let heard = match message {
+            Message::Open { name, data } => {
+                if let Some(why) = Bridge::too_large(&name, data.size()) {
+                    FromHost::Refused(why)
+                } else {
+                    match data {
+                        FileData::Bytes(array) => FromHost::Open {
+                            name,
+                            bytes: array.to_vec(),
+                        },
+                        FileData::Blob(blob) => {
+                            let (queue, ctx) = (Rc::clone(queue), ctx.clone());
+                            wasm_bindgen_futures::spawn_local(async move {
+                                let heard =
+                                    match wasm_bindgen_futures::JsFuture::from(blob.array_buffer())
+                                        .await
+                                    {
+                                        Ok(buffer) => FromHost::Open {
+                                            name,
+                                            bytes: js_sys::Uint8Array::new(&buffer).to_vec(),
+                                        },
+                                        Err(_) => FromHost::Refused(format!(
+                                            "Couldn't open {name}: the browser couldn't read it."
+                                        )),
+                                    };
+                                queue.borrow_mut().push_back(heard);
+                                ctx.request_repaint();
+                            });
+                            return;
+                        }
+                    }
+                }
+            }
+            Message::Saved { id } => FromHost::Saved(id),
+            // No PDFs to attach, and nothing is handed off.
+            Message::Host { .. } | Message::AttachPdf { .. } | Message::HandoffDone { .. } => {
+                return;
+            }
+        };
+        queue.borrow_mut().push_back(heard);
+        ctx.request_repaint();
+    }
+
+    /// The browser's parts of an app: randomness, the About window's platform, the clipboard.
+    fn prepare(mut app: ProseApp, ctx: &eframe::egui::Context, clipboard: bool) -> ProseApp {
+        // Keys and nonces for encrypted backups: the browser's `crypto.getRandomValues`.
+        app.set_random(|| Box::new(BrowserRandom));
+        // The About window's diagnostics: the browser's engine and system, never more of its
+        // user agent.
+        let agent = web_sys::window()
+            .and_then(|w| w.navigator().user_agent().ok())
+            .unwrap_or_default();
+        app.set_platform(prosecraft_ui_egui::Platform {
+            os: prosecraft_core::about::summarize_user_agent(&agent),
+            storage: "IndexedDB".into(),
+        });
+        if clipboard {
+            // Without it, paste and copy in the editor are plain text.
+            let _ = crate::clipboard::install(&mut app, ctx);
+        }
+        app
     }
 
     const NO_FOLDERS: &str = "Folders can't be opened from a web page. Import a zipped Scrivener project, or use the desktop app.";
@@ -153,8 +325,15 @@ mod web {
                 browser::read_dropped(file, Then::Dropped, &self.inbox, ui.ctx());
             }
             self.receive();
+            if let Some(hosted) = self.hosted.as_mut() {
+                hosted.receive(&mut self.app, ui.ctx());
+                hosted.bridge.keys(ui.ctx(), &mut self.app);
+            }
             eframe::egui::CentralPanel::default().show(ui, |ui| self.app.show(ui));
             self.answer(ui.ctx());
+            if let Some(hosted) = self.hosted.as_mut() {
+                hosted.send(&mut self.app, ui.ctx());
+            }
         }
     }
 
@@ -176,26 +355,28 @@ mod web {
                     .unwrap_or_else(|| "IndexedDB is unavailable".into())
             )),
         };
-        let mut app = match library {
+        match library {
             Ok(library) => ProseApp::with_library(library, Box::new(BrowserStore::new())),
             Err(why) => {
                 let mut app = ProseApp::new();
                 app.report(&why);
                 app
             }
-        };
-        // Keys and nonces for encrypted backups: the browser's `crypto.getRandomValues`.
-        app.set_random(|| Box::new(BrowserRandom));
-        // The About window's diagnostics: the browser's engine and system, never more of its
-        // user agent.
-        let agent = web_sys::window()
-            .and_then(|w| w.navigator().user_agent().ok())
-            .unwrap_or_default();
-        app.set_platform(prosecraft_ui_egui::Platform {
-            os: prosecraft_core::about::summarize_user_agent(&agent),
-            storage: "IndexedDB".into(),
-        });
-        app
+        }
+    }
+
+    /// This browser's id for the changes it makes to a hosted file: its library's, read and
+    /// never written, or a new one.
+    async fn device_id() -> String {
+        let kept = browser::load_library()
+            .await
+            .ok()
+            .flatten()
+            .and_then(|text| Library::from_text(&text).ok())
+            .map(|library| library.device_id)
+            .filter(|id| !id.is_empty());
+        kept.or_else(|| new_device_id(&mut BrowserRandom).ok())
+            .unwrap_or_else(|| format!("browser-{}", js_sys::Date::now()))
     }
 
     pub fn start() {
@@ -207,19 +388,27 @@ mod web {
             else {
                 return;
             };
-            let app = start_app().await;
+            // Framed by a Craft host, the app waits for the host's file and the browser's
+            // library stays closed. Without one (no `?host=parent` or `data-host="page"`, or a
+            // parent on another origin), nothing changes.
+            let host = craft_web_host::web::Host::connect(hosted::APP_ID, &canvas);
+            let (app, device_id) = match host {
+                Some(_) => (ProseApp::new(), device_id().await),
+                None => (start_app().await, String::new()),
+            };
             let _ = eframe::WebRunner::new()
                 .start(
                     canvas,
                     eframe::WebOptions::default(),
-                    Box::new(|cc| {
+                    Box::new(move |cc| {
                         prosecraft_ui_egui::setup(&cc.egui_ctx);
-                        let mut app = app;
-                        // Without it, paste and copy in the editor are plain text.
-                        let _ = crate::clipboard::install(&mut app, &cc.egui_ctx);
+                        let hosted = host.map(|host| Hosted::start(host, device_id, &cc.egui_ctx));
+                        // Hosted, the clipboard is installed for the opened file's app.
+                        let app = prepare(app, &cc.egui_ctx, hosted.is_none());
                         Ok(Box::new(WebApp {
                             app,
                             inbox: Default::default(),
+                            hosted,
                         }))
                     }),
                 )

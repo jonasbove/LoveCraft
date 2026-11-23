@@ -31,6 +31,7 @@ craft-wordmodel = { git = "https://github.com/storytold/craft-libs", rev = "8672
 craft-pdf = { git = "https://github.com/storytold/craft-libs", rev = "8672aff3d85ccad8f2a391304139d192a7d08dd5", version = "=0.1.0", default-features = false }
 craft-menu = { git = "https://github.com/storytold/craft-libs", rev = "8672aff3d85ccad8f2a391304139d192a7d08dd5", version = "=0.1.0" }
 craft-mcp-server = { git = "https://github.com/storytold/craft-libs", rev = "8672aff3d85ccad8f2a391304139d192a7d08dd5", version = "=0.1.0" }
+craft-web-host = { git = "https://github.com/storytold/craft-libs", rev = "8672aff3d85ccad8f2a391304139d192a7d08dd5", version = "=0.1.0" }
 
 # foundation
 thiserror = "2"

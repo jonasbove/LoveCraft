@@ -7,6 +7,7 @@
 #   prosecraft-rs-<ver>-linux-{x86_64,aarch64}.{AppImage,AppImage.zsync,deb,rpm,tar.gz,flatpak,pkg.tar.zst}
 #   prosecraft-rs-<ver>-windows-{x64,arm64}.msi    prosecraft-rs-<ver>-windows-{x64,arm64}-portable.zip
 #   prosecraft-rs-<ver>-macos-universal.dmg
+#   prosecraft-rs-web-<ver>.zip (the web app, for CraftCloud and any static host; packaging/web/package.sh)
 #   and, when their builds succeed (never tried yet, so they may not):
 #   prosecraft-rs-<ver>-freebsd-{x86_64,aarch64}.tar.gz    prosecraft-rs-<ver>-linux-riscv64.{deb,rpm,tar.gz}
 # Each holds the app (prosecraft-rs) and the MCP server (prosecraft-mcp). Every build embeds the
@@ -51,6 +52,8 @@ env:
   RUST_BACKTRACE: 1
   NFPM_VERSION: "2.48.0"
   WIX_VERSION: "5.0.2"
+  TRUNK_VERSION: "0.22.0"
+  TRUNK_SHA256: f78c1989240c56592d8cfc4df5cc27399a3ff66a3f9cc819e16f1e3d809ce7c2 # trunk-x86_64-unknown-linux-gnu.tar.gz
   # The storytold/craft-fonts commit the builds embed Inter and Source Serif 4 from. It is newer
   # than the suite's pin in craft-common-actions, which predates those fonts. Keep it equal to
   # `_fonts` in packaging/arch/prosecraft-rs/PKGBUILD and the craft-fonts input in flake.nix.
@@ -117,6 +120,64 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release-linux-${{ matrix.arch }}
+          path: dist/release/*
+          if-no-files-found: error
+          retention-days: 30
+
+  # The web app (Trunk, release mode, with the fonts), zipped as the Craft apps' web builds are:
+  # prosecraft-rs-web-<ver>/ with Trunk's dist and relative asset URLs, so CraftCloud serves it
+  # under /apps/prosecraft-rs/ (its apps.toml pins the zip by its GitHub sha256 digest).
+  web:
+    name: Web
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: storytold/craft-fonts
+          ref: ${{ env.CRAFT_FONTS_REF }}
+          path: craft-fonts
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # installs the toolchain named below
+        with:
+          toolchain: stable # as ci.yml's gate; there is no rust-toolchain.toml
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          key: release-web
+      - name: Trunk
+        run: |
+          archive=trunk-x86_64-unknown-linux-gnu.tar.gz
+          curl --proto '=https' -fsSL --retry 3 -o "$RUNNER_TEMP/$archive" \
+            "https://github.com/trunk-rs/trunk/releases/download/v${TRUNK_VERSION}/${archive}"
+          echo "$TRUNK_SHA256  $RUNNER_TEMP/$archive" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/bin"
+          tar -xz -C "$RUNNER_TEMP/bin" -f "$RUNNER_TEMP/$archive" trunk
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: Build and package (zip)
+        env:
+          CRAFT_FONTS_DIR: ${{ github.workspace }}/craft-fonts
+        run: packaging/web/package.sh
+      - name: Check the zip
+        run: |
+          version="$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)"
+          zip="dist/release/prosecraft-rs-web-$version.zip"
+          check="$RUNNER_TEMP/web-check"
+          rm -rf "$check" && mkdir -p "$check" && unzip -q "$zip" -d "$check"
+          top="$(ls "$check")"
+          [ "$top" = "prosecraft-rs-web-$version" ] || { echo "::error::the zip's top folder is '$top'"; exit 1; }
+          [ -f "$check/$top/index.html" ] || { echo "::error::no index.html in the zip"; exit 1; }
+          # Every file index.html names is in the zip, at the same relative path.
+          for ref in $(grep -oE '\./[A-Za-z0-9_./-]+\.(js|wasm|png)' "$check/$top/index.html" | sort -u); do
+            [ -f "$check/$top/$ref" ] || { echo "::error::index.html loads $ref, which isn't in the zip"; exit 1; }
+            echo "ok: $ref"
+          done
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-web
           path: dist/release/*
           if-no-files-found: error
           retention-days: 30
@@ -613,7 +674,7 @@ jobs:
   # Every required file is there, by name. On every run (by hand too), so a dry run shows it.
   files:
     name: every required file
-    needs: [linux, flatpak, arch, macos, windows]
+    needs: [linux, flatpak, arch, macos, windows, web]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -644,6 +705,7 @@ jobs:
             [ -f "$b-windows-$arch-portable.zip" ] || missing="$missing $b-windows-$arch-portable.zip"
           done
           [ -f "$b-macos-universal.dmg" ] || missing="$missing $b-macos-universal.dmg"
+          [ -f "prosecraft-rs-web-$version.zip" ] || missing="$missing prosecraft-rs-web-$version.zip"
           ls -l
           if [ -n "$missing" ]; then
             echo "::error::missing release files:$missing"
@@ -663,11 +725,12 @@ jobs:
     # the draft when they finish. Their artifacts are named `late-*`, so `release-*` never picks them up.
     # No draft unless every file is there, every Linux package passed its install test and the
     # Windows tests passed. Never on a run by hand (no tag).
-    needs: [linux, flatpak, arch, macos, windows, windows-test, files, package-test]
+    needs: [linux, flatpak, arch, macos, windows, web, windows-test, files, package-test]
     if: >-
       ${{ !cancelled() && startsWith(github.ref, 'refs/tags/v')
       && needs.linux.result == 'success' && needs.flatpak.result == 'success' && needs.arch.result == 'success'
-      && needs.macos.result == 'success' && needs.windows.result == 'success' && needs.files.result == 'success'
+      && needs.macos.result == 'success' && needs.windows.result == 'success' && needs.web.result == 'success'
+      && needs.files.result == 'success'
       && needs.package-test.result == 'success' && needs.windows-test.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20

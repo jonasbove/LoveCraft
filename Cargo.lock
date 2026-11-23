@@ -1943,6 +1943,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "craft-web-host"
+version = "0.1.0"
+source = "git+https://github.com/storytold/craft-libs?rev=8672aff3d85ccad8f2a391304139d192a7d08dd5#8672aff3d85ccad8f2a391304139d192a7d08dd5"
+dependencies = [
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
 name = "craft-wordmodel"
 version = "0.1.0"
 source = "git+https://github.com/storytold/craft-libs?rev=8672aff3d85ccad8f2a391304139d192a7d08dd5#8672aff3d85ccad8f2a391304139d192a7d08dd5"
@@ -6441,7 +6450,10 @@ dependencies = [
 name = "prosecraft-rs-web"
 version = "0.1.2"
 dependencies = [
+ "craft-web-host",
  "eframe",
+ "egui",
+ "egui_kittest",
  "js-sys",
  "prosecraft-core",
  "prosecraft-ui-egui",

@@ -2,7 +2,7 @@
 
 ProseCraft-rs is a native Rust/egui rewrite of [ProseCraft](https://github.com/jennraeross/ProseCraft), the MIT-licensed novel-writing app by Jennifer Roylance and its contributors. The aim is the same app: outline, write, storyboard and publish. It would run natively on Linux, macOS, Windows and BSD and on the web, with no webview, TypeScript or Tauri, and would follow the Craft suite's house rules.
 
-Status: 0.1.0 has ProseCraft's feature set up to upstream `8cdc694` (v0.6.1). Cloud sync is planned through CraftCloud (P10). The rest of this document is the plan as it was written.
+Status: 0.1.0 has ProseCraft's feature set up to upstream `8cdc694` (v0.6.1). P10 for 0.2.0: local folder sync with conflict handling is done; on the desktop, CraftCloud's half is built (Open from CraftCloud…, Save to CraftCloud…, device sync in a CraftCloud folder that leaves CraftCloud's conflict copies and part files alone and reports them, through the `craftcloud` program; see the README's CraftCloud section). Still open for P10: CraftCloud's web-app bridge in the browser. The rest of this document is the plan as it was written.
 
 ## The goal for writers' data
 A manuscript must never be lost or corrupted. The design aims for:

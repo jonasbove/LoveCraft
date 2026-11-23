@@ -169,7 +169,7 @@ ProseCraft-rs is **early**: 0.1.2 is the current release. It matches ProseCraft 
 **Different on purpose:** the look is ProseCraft's, but where a web page and a native egui app differ, it
 follows the egui and Craft conventions, and it publishes an AccessKit tree for screen readers. The few palette
 text colours that missed 4.5:1 contrast are adjusted. Folder sync is ported; ProseCraft's Google Drive sync is
-not, and cloud sync is planned through [CraftCloud](https://github.com/jonasbove/craftcloud) instead.
+not; cloud sync goes through [CraftCloud](https://github.com/jonasbove/craftcloud) instead (see [CraftCloud](#craftcloud)).
 
 **Known limits:**
 - the macOS native menu has only been compile-checked;
@@ -293,6 +293,27 @@ cargo run -p prosecraft-rs            # desktop
 cargo xtask ci                        # fmt, clippy, tests, layers, wasm check
 cd apps/prosecraft-rs-web && trunk build --release   # web build into dist/web
 ```
+
+## CraftCloud
+
+[CraftCloud](https://github.com/jonasbove/craftcloud) is the Craft apps' self-hosted sync, and how ProseCraft-rs
+syncs between computers instead of ProseCraft's Google Drive. With CraftCloud's desktop client installed (its
+`craftcloud` program on `PATH`), the desktop app offers:
+
+- **File › Open from CraftCloud…** (also beside Open backup… under the binder): the ProseCraft backups CraftCloud
+  has, newest first, each with how it stands with the sync. One that isn't on this computer yet is greyed out;
+  the others open as Open backup… opens a file.
+- **File › Save to CraftCloud…**: the open project as a backup of its own, `<project>.prosecraft`, into
+  CraftCloud's `ProseCraft-rs` folder. The window stays usable while CraftCloud uploads it; a file of that name
+  already there is replaced only after you say so, and CraftCloud keeps the one it replaced among its versions.
+- **Settings › Data and sync › In CraftCloud**: device sync through a folder inside CraftCloud's sync folder,
+  `ProseCraft-rs/<method>`, with any of the three methods. When a file changed on two computers, CraftCloud keeps
+  both: the original syncs, and its conflict copy (`doc-1 (conflict 2026-11-13 14.32 Laptop).md`) is never read
+  as a second scene and never deleted. The sync says which copies it found, so you can bring in what they hold.
+
+ProseCraft-rs never talks to the CraftCloud server and never sees your sign-in: it runs `craftcloud … --json`, as
+CraftCloud's [integration contract](https://github.com/jonasbove/craftcloud/blob/main/docs/CRAFT-INTEGRATION.md)
+describes. Without CraftCloud none of this shows, and the web build doesn't offer it.
 
 ## The Craft App Suite
 

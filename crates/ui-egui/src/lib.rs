@@ -22,6 +22,7 @@ mod character_sheet;
 mod citation_picker;
 mod clipboard_keys;
 mod cover_art;
+mod craftcloud;
 mod device_sync;
 mod editing;
 pub mod editor_fonts;
@@ -115,14 +116,6 @@ pub trait LibraryStore {
     fn load_setting(&mut self, _key: &str) -> Option<String> {
         None
     }
-    /// Whether CraftCloud's `craftcloud` program is installed (then its folder is offered).
-    fn has_craftcloud(&self) -> bool {
-        false
-    }
-    /// The folder to sync through inside CraftCloud's sync folder, or why there is none.
-    fn craftcloud_folder(&mut self) -> Result<String, String> {
-        Err("CraftCloud isn't installed.".into())
-    }
     /// Saves (or, with `None`, forgets) a device setting.
     fn save_setting(&mut self, _key: &str, _value: Option<&str>) -> Result<(), String> {
         Ok(())
@@ -143,6 +136,9 @@ pub enum SaveState {
 pub enum HostRequest {
     /// Ask for a backup to open, then call [`ProseApp::open_backup_bytes`].
     OpenBackup,
+    /// Read the backup at this path (one CraftCloud synced here), then call
+    /// [`ProseApp::open_backup_bytes`], as for a backup chosen with [`Self::OpenBackup`].
+    OpenBackupPath(String),
     /// Ask where to save this backup, then write it there.
     ExportBackup { file_name: String, text: String },
     /// Ask for an EPUB to import, then call [`ProseApp::import_epub`].
@@ -513,6 +509,8 @@ pub struct AppState {
     sync: settings::SyncPanel,
     /// What the Device sync group asked for this frame.
     sync_actions: Vec<settings::SyncAction>,
+    /// CraftCloud, when it is installed, and its Open and Save dialogs.
+    cloud: craftcloud::Cloud,
 }
 
 impl AppState {
@@ -848,6 +846,16 @@ impl ProseApp {
         if let Some(menu) = self.native_menu.as_mut() {
             menu.raw_input(raw);
         }
+    }
+
+    /// Offers CraftCloud through its `craftcloud` program (found on the desktop when it is
+    /// installed): Open from CraftCloud…, Save to CraftCloud… and its folder for device sync.
+    pub fn set_craftcloud(
+        &mut self,
+        runner: std::sync::Arc<dyn prosecraft_core::craftcloud::Runner>,
+    ) {
+        self.state.cloud.runner = Some(runner);
+        self.state.sync.craftcloud = true;
     }
 
     /// Lets the Sources dialog search Zotero through `transport` (a path in, the body or the
@@ -1212,6 +1220,8 @@ impl ProseApp {
             "import-epub" if self.state.has_home => {
                 self.state.requests.push(HostRequest::ImportEpub);
             }
+            "open-from-craftcloud" => craftcloud::start_open(ctx, &mut self.state),
+            "save-to-craftcloud" => self.save_to_craftcloud(ctx),
             "project-settings" => {
                 if let Some(project) = self
                     .state
@@ -1264,6 +1274,45 @@ impl ProseApp {
                 }
             }
         }
+    }
+
+    /// Save to CraftCloud…: the open project as a backup of its own, named after it, into
+    /// CraftCloud's ProseCraft-rs folder. Everything typed so far is in it.
+    fn save_to_craftcloud(&mut self, ctx: &egui::Context) {
+        if self.state.cloud.runner.is_none() {
+            return;
+        }
+        if let Some(save) = self.state.cloud.save.as_mut() {
+            // One at a time: the one on its way shows again.
+            save.show();
+            return;
+        }
+        self.commit_draft();
+        self.save_now();
+        let Some(id) = self.active_project_id() else {
+            return;
+        };
+        let name = self
+            .state
+            .library
+            .as_ref()
+            .and_then(|l| l.projects().get(self.state.active))
+            .map(|p| p.view.name.clone())
+            .unwrap_or_default();
+        let Some(home) = self.home.as_ref() else {
+            return;
+        };
+        let Some(text) = home.library.project_backup_text(&id, home.store.now_ms()) else {
+            return;
+        };
+        let file_name = prosecraft_core::craftcloud::backup_file_name(&name);
+        craftcloud::start_save(
+            ctx,
+            &mut self.state,
+            file_name,
+            std::sync::Arc::new(text.into_bytes()),
+            false,
+        );
     }
 
     /// `createDocument` (New Scene, Ctrl+N).
@@ -2862,12 +2911,13 @@ impl ProseApp {
         }
         self.passphrase_dialog(ui);
         self.encrypt_export_dialog(ui);
+        craftcloud::show(ui, &mut self.state);
         if std::mem::take(&mut self.state.about_wanted) {
             let now = self.home.as_ref().map_or(0.0, |h| h.store.now_ms());
             about_window::open(&mut self.state, now);
         }
         about_window::show(ui.ctx(), &mut self.state);
-        self.handle_sync_actions();
+        self.handle_sync_actions(ui.ctx());
         self.save_custom_starters();
         if let Some(prefs) = self.state.proofread_choice.take() {
             // `setHarperEnabled`, `setHarperDialect`.

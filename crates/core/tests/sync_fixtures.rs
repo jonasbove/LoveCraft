@@ -487,6 +487,68 @@ fn conflict_copies_are_reported_not_removed() {
     );
 }
 
+/// CraftCloud's conflict copies of a whole encrypted project folder (the plain one and the
+/// numbered one): not read as a second copy of the project, never removed, and reported.
+#[test]
+fn conflict_copies_of_an_encrypted_project_folder_are_left_alone() {
+    let f = fixture();
+    let none = JsValue::Object(Default::default());
+    let sync = |fs: &mut MemoryFs| {
+        sync_via(
+            &mut FolderProvider::new(fs),
+            &passphrase(&f),
+            &[],
+            &none,
+            1.0,
+            "d",
+            &mut OsRandom,
+            &mut || "x".to_owned(),
+        )
+        .expect("sync")
+    };
+    let mut plain = files(f.get("folder").expect("folder"));
+    let want = sync(&mut plain);
+    let mut fs = files(f.get("folder").expect("folder"));
+    let original: Vec<(String, String)> = fs
+        .files()
+        .iter()
+        .filter(|(k, _)| k.starts_with("projects/project-1/"))
+        .map(|(k, v)| (k.clone(), v.clone()))
+        .collect();
+    let copies = [
+        "projects/project-1 (conflict 2026-11-13 14.32 Studio)",
+        "projects/project-1 (conflict 2026-11-13 14.32 Studio 2)",
+    ];
+    let mut extra = Vec::new();
+    for copy in copies {
+        for (path, content) in &original {
+            let path = path.replacen("projects/project-1", copy, 1);
+            prosecraft_core::sync::SyncFileSystem::write_text(&mut fs, &path, content)
+                .expect("copy");
+            extra.push((path, content.clone()));
+        }
+    }
+    let result = sync(&mut fs);
+    let ids = |r: &prosecraft_core::sync::SyncResult| -> Vec<String> {
+        r.projects
+            .iter()
+            .filter_map(|p| p.get("id").and_then(JsValue::as_js_string))
+            .map(|s| s.to_string_lossy())
+            .collect()
+    };
+    assert_eq!(ids(&result), ids(&want), "one project-1, not three");
+    assert_eq!(result.projects.len(), want.projects.len());
+    for (path, content) in &extra {
+        assert_eq!(
+            fs.files().get(path),
+            Some(content),
+            "{path} is left as it was"
+        );
+    }
+    // Listed in name order: " 2)" sorts before ")".
+    assert_eq!(result.conflict_files, [copies[1], copies[0]]);
+}
+
 mod open_folder {
     use super::{files, text};
     use prosecraft_core::js::{self, JsString, JsValue};
@@ -660,5 +722,279 @@ mod open_folder {
                 .unwrap_or_default()
         );
         same_files(&fs, sync.get("after").expect("after"), "after sync");
+    }
+
+    /// What CraftCloud leaves in a synced open folder: conflict copies of a scene (two on the
+    /// same minute), a chapter, a project's header, the storyboard and the marker, a project
+    /// folder it had to rename, its own `.craftcloud` folder and a download in progress. The
+    /// sync reads none of them as a record (a scene's copy repeats its id), removes none of
+    /// them, and reports the conflict copies.
+    #[test]
+    fn craftcloud_files_in_the_folder_are_reported_and_left_alone() {
+        use prosecraft_core::sync::SyncFileSystem;
+        let f = fixture();
+        let sync = f.get("sync").expect("sync");
+        let mut fs = files(sync.get("files").expect("files"));
+        let copy = |fs: &MemoryFs, from: &str| fs.files().get(from).cloned().expect(from);
+        let doc = "projects/project-1/documents/doc-1.md";
+        let edited = copy(&fs, doc).replace("revision:", "revision: 7 #");
+        let extra = [
+            (
+                "projects/project-1/documents/doc-1 (conflict 2026-11-13 14.32 Studio).md",
+                edited.clone(),
+            ),
+            (
+                "projects/project-1/documents/doc-1 (conflict 2026-11-13 14.32 Studio 2).md",
+                edited,
+            ),
+            (
+                "projects/project-1/chapters/chapter-1 (conflict 2026-11-13 14.32 Jo's Laptop).json",
+                copy(&fs, "projects/project-1/chapters/chapter-1.json"),
+            ),
+            (
+                "projects/project-1/project (conflict 2026-11-13 14.32 Studio).json",
+                copy(&fs, "projects/project-1/project.json"),
+            ),
+            (
+                "projects/project-1/storyboard/rows (conflict 2026-11-13 14.32 Studio).json",
+                copy(&fs, "projects/project-1/storyboard/rows.json"),
+            ),
+            (
+                "prosecraft-folder (conflict 2026-11-13 14.32 Studio).json",
+                copy(&fs, "prosecraft-folder.json"),
+            ),
+            (
+                "projects/project-1 (conflict 2026-11-13 14.32 Studio)/project.json",
+                copy(&fs, "projects/project-1/project.json"),
+            ),
+            ("projects/.craftcloud/engine.lock", "1".to_owned()),
+            (
+                "projects/project-1/documents/.doc-9.md.d7fc8c633e524686-1794615066.craftcloud-part",
+                "half a download".to_owned(),
+            ),
+            (
+                "projects/project-1/documents/.ccpart-0123456789abcdef01234567.craftcloud-part",
+                "half a save".to_owned(),
+            ),
+        ];
+        for (path, content) in &extra {
+            fs.write_text(path, content).expect("write");
+        }
+        let mut suffix = || "x".to_owned();
+        let result = sync_via(
+            &mut OpenFolderProvider::new(&mut fs, now(&f)),
+            &JsString::from(""),
+            &list(sync, "local"),
+            sync.get("lastSynced").expect("lastSynced"),
+            now(&f),
+            "device-a",
+            &mut OsRandom,
+            &mut suffix,
+        )
+        .expect("CraftCloud's files don't stop the sync");
+        let want = sync.get("result").expect("result");
+        assert_eq!(
+            json(&result.projects),
+            json(&list(want, "projects")),
+            "the same projects as without them"
+        );
+        for (path, content) in &extra {
+            assert_eq!(
+                fs.files().get(*path),
+                Some(content),
+                "{path} is left as it was"
+            );
+        }
+        assert_eq!(
+            result.conflict_files,
+            [
+                "prosecraft-folder (conflict 2026-11-13 14.32 Studio).json",
+                "projects/project-1 (conflict 2026-11-13 14.32 Studio)",
+                "projects/project-1/project (conflict 2026-11-13 14.32 Studio).json",
+                "projects/project-1/documents/doc-1 (conflict 2026-11-13 14.32 Studio 2).md",
+                "projects/project-1/documents/doc-1 (conflict 2026-11-13 14.32 Studio).md",
+                "projects/project-1/chapters/chapter-1 (conflict 2026-11-13 14.32 Jo's Laptop).json",
+                "projects/project-1/storyboard/rows (conflict 2026-11-13 14.32 Studio).json",
+            ]
+        );
+        // Everything else is the folder a sync without them leaves.
+        let mut without = fs.clone();
+        for (path, _) in &extra {
+            without.remove(path).expect("remove");
+        }
+        without
+            .remove("projects/project-1 (conflict 2026-11-13 14.32 Studio)")
+            .expect("remove");
+        without.remove("projects/.craftcloud").expect("remove");
+        same_files(&without, sync.get("after").expect("after"), "after sync");
+    }
+
+    fn projects_with(f: &JsValue, from: &str, to: &str) -> Vec<JsValue> {
+        let text = js::stringify(f.get("projects").expect("projects"));
+        let text = text.replace(&format!("\"{from}\""), &format!("\"{to}\""));
+        js::parse(&text)
+            .expect("json")
+            .as_array()
+            .expect("array")
+            .to_vec()
+    }
+
+    fn doc_ids(projects: &[JsValue]) -> Vec<String> {
+        projects
+            .iter()
+            .flat_map(|p| {
+                p.get("project")
+                    .and_then(|p| p.get("documents"))
+                    .and_then(JsValue::as_array)
+                    .unwrap_or_default()
+                    .iter()
+                    .filter_map(|d| d.get("id").and_then(JsValue::as_js_string))
+                    .map(|s| s.to_string_lossy())
+                    .collect::<Vec<_>>()
+            })
+            .collect()
+    }
+
+    fn sync_open(
+        fs: &mut MemoryFs,
+        local: &[JsValue],
+        last: &JsValue,
+        now: f64,
+        device: &str,
+    ) -> prosecraft_core::sync::SyncResult {
+        sync_via(
+            &mut OpenFolderProvider::new(fs, now),
+            &JsString::from(""),
+            local,
+            last,
+            now,
+            device,
+            &mut OsRandom,
+            &mut || "x".to_owned(),
+        )
+        .expect("sync")
+    }
+
+    /// A scene whose id `safe_name` keeps as it is, but which looks like a Syncthing conflict
+    /// stamp, is the project's own: it reaches the second computer. (It was written and never
+    /// read back.)
+    #[test]
+    fn a_scene_whose_id_looks_like_a_conflict_stamp_reaches_the_other_computer() {
+        let f = fixture();
+        let id = "doc-2.sync-conflict-20261113-143200-A";
+        let local = projects_with(&f, "doc-2", id);
+        let none = JsValue::Object(Default::default());
+        let mut fs = MemoryFs::new();
+        sync_open(&mut fs, &local, &none, now(&f), "device-a");
+        let file = format!("projects/project-1/documents/{id}.md");
+        assert!(fs.files().contains_key(&file), "written");
+        let b = sync_open(&mut fs, &[], &none, now(&f) + 1.0, "device-b");
+        assert!(
+            doc_ids(&b.projects).iter().any(|d| d == id),
+            "{:?}",
+            doc_ids(&b.projects)
+        );
+        assert!(b.conflict_files.is_empty(), "{:?}", b.conflict_files);
+        assert!(fs.files().contains_key(&file), "still there after B's sync");
+    }
+
+    /// Deleting a project removes its files but not a conflict copy in its folder, which can be
+    /// the only copy of an edit; the folder stays for it, later syncs don't mistake it for a
+    /// damaged project, and the copy is reported.
+    #[test]
+    fn deleting_a_project_keeps_the_conflict_copies_in_its_folder() {
+        use prosecraft_core::sync::SyncFileSystem;
+        let f = fixture();
+        let local = list(&f, "projects");
+        let none = JsValue::Object(Default::default());
+        let mut fs = MemoryFs::new();
+        let a = sync_open(&mut fs, &local, &none, now(&f), "device-a");
+        let copy = "projects/project-1/documents/doc-1 (conflict 2026-11-13 14.32 Studio).md";
+        fs.write_text(copy, "the only copy of an edit made on Studio")
+            .expect("write");
+        let kept: Vec<JsValue> = a
+            .projects
+            .iter()
+            .filter(|p| {
+                !p.get("id")
+                    .and_then(JsValue::as_js_string)
+                    .is_some_and(|i| i.eq_str("project-1"))
+            })
+            .cloned()
+            .collect();
+        let a2 = sync_open(&mut fs, &kept, &a.last_synced, now(&f) + 1.0, "device-a");
+        assert_eq!(a2.removed, 1, "project-1 was deleted");
+        assert_eq!(
+            fs.files().get(copy).map(String::as_str),
+            Some("the only copy of an edit made on Studio")
+        );
+        let left: Vec<&String> = fs
+            .files()
+            .keys()
+            .filter(|k| k.starts_with("projects/project-1/"))
+            .collect();
+        assert_eq!(left, [copy], "only the copy is left of the project");
+        assert_eq!(a2.conflict_files, [copy]);
+        let again = sync_open(
+            &mut fs,
+            &a2.projects,
+            &a2.last_synced,
+            now(&f) + 2.0,
+            "device-a",
+        );
+        assert_eq!(
+            again.projects.len(),
+            kept.len(),
+            "the folder isn't read as a project"
+        );
+        assert_eq!(again.conflict_files, [copy]);
+    }
+
+    /// Listing conflict copies is only a report: when it fails, the sync (already written)
+    /// still succeeds.
+    #[test]
+    fn a_conflict_listing_that_fails_does_not_fail_the_sync() {
+        use prosecraft_core::storage::crypto::{RandomSource, VaultKey};
+        use prosecraft_core::sync::SyncError;
+        use prosecraft_core::sync::providers::Connection;
+        struct NoListing<'a>(OpenFolderProvider<'a>);
+        impl SyncProvider for NoListing<'_> {
+            fn connect(
+                &mut self,
+                passphrase: &JsString,
+                random: &mut dyn RandomSource,
+            ) -> Result<Connection, SyncError> {
+                self.0.connect(passphrase, random)
+            }
+            fn push(
+                &mut self,
+                projects: &[JsValue],
+                key: Option<&VaultKey>,
+                random: &mut dyn RandomSource,
+            ) -> Result<(), SyncError> {
+                self.0.push(projects, key, random)
+            }
+            fn remove(&mut self, ids: &[String]) -> Result<(), SyncError> {
+                self.0.remove(ids)
+            }
+            fn conflict_files(&mut self) -> Result<Vec<String>, SyncError> {
+                Err(SyncError::Io("Permission denied".into()))
+            }
+        }
+        let f = fixture();
+        let mut fs = MemoryFs::new();
+        let result = sync_via(
+            &mut NoListing(OpenFolderProvider::new(&mut fs, now(&f))),
+            &JsString::from(""),
+            &list(&f, "projects"),
+            &JsValue::Object(Default::default()),
+            now(&f),
+            "device-a",
+            &mut OsRandom,
+            &mut || "x".to_owned(),
+        )
+        .expect("the sync succeeds");
+        assert!(result.conflict_files.is_empty());
+        assert_eq!(result.projects.len(), 2);
     }
 }

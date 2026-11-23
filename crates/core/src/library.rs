@@ -118,6 +118,13 @@ impl Library {
         })
     }
 
+    /// One project as a backup of its own, in the plain format Export backup writes the
+    /// library in. `None` when there is no such project.
+    pub fn project_backup_text(&self, id: &str, saved_at: f64) -> Option<String> {
+        let project = self.project(id)?.clone();
+        Some(write_plain_bundle(&[project], saved_at, &self.device_id))
+    }
+
     /// Replaces a project with a new stored version (after an edit), or adds it.
     pub fn put(&mut self, stored: JsValue) {
         let id = stored.get("id").and_then(JsValue::as_js_string).cloned();

@@ -9,6 +9,7 @@
 //! merge the folder's projects with the library's ([`merge::merge_projects`]), write the result
 //! back, and delete projects deleted on this side.
 
+pub mod foreign;
 pub mod layout;
 pub mod memory;
 pub mod merge;
@@ -85,6 +86,14 @@ pub trait SyncFileSystem {
     fn create_dir(&mut self, path: &str) -> Result<(), SyncError>;
     /// Removes a file or a directory with everything in it; a missing path is not an error.
     fn remove(&mut self, path: &str) -> Result<(), SyncError>;
+    /// Removes a directory only if it is empty; one that isn't (a file arrived meanwhile) or is
+    /// missing is left as it is, which is not an error.
+    fn remove_empty_dir(&mut self, path: &str) -> Result<(), SyncError> {
+        if self.list_dir(path)?.is_empty() {
+            self.remove(path)?;
+        }
+        Ok(())
+    }
     fn exists(&mut self, path: &str) -> Result<bool, SyncError>;
     /// Moves a file, replacing the target (used to replace the single sync file atomically).
     fn rename(&mut self, from: &str, to: &str) -> Result<(), SyncError>;

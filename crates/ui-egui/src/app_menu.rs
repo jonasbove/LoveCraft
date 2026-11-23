@@ -45,6 +45,22 @@ pub(crate) fn bar(state: &AppState) -> MenuBar {
         ),
         Node::Separator,
     ];
+    // With CraftCloud installed: its Open and Save.
+    if state.cloud.runner.is_some() {
+        let mut save = Item::new(CommandRef::new("save-to-craftcloud"), "Save to CraftCloud…");
+        save.enabled = state.has_home
+            && state
+                .library
+                .as_ref()
+                .is_some_and(|l| l.projects().get(state.active).is_some());
+        // After Import EPUB….
+        let at = 3.min(file.len());
+        file.insert(at, Node::Item(save));
+        file.insert(
+            at,
+            item("open-from-craftcloud", "Open from CraftCloud…", None),
+        );
+    }
     let mut projects = Item::new(CommandRef::new("projects-label"), "Projects");
     projects.enabled = false;
     file.push(Node::Item(projects));
@@ -127,7 +143,7 @@ pub(crate) fn mac_layout(state: &AppState) -> craft_menu::Layout {
 /// What may run from the native menus this frame.
 pub(crate) fn gate(ctx: &egui::Context, state: &AppState) -> craft_menu::Gate {
     craft_menu::Gate {
-        modal: state.settings_open || state.encrypt_export.is_some(),
+        modal: state.settings_open || state.encrypt_export.is_some() || state.cloud.busy(),
         text_editing: ctx.egui_wants_keyboard_input(),
         ..Default::default()
     }
@@ -137,7 +153,7 @@ pub(crate) fn gate(ctx: &egui::Context, state: &AppState) -> craft_menu::Gate {
 pub(crate) fn show(ui: &mut egui::Ui, state: &AppState) -> Vec<CommandRef> {
     let bar = bar(state);
     let gate = craft_menu::Gate {
-        modal: state.settings_open || state.encrypt_export.is_some(),
+        modal: state.settings_open || state.encrypt_export.is_some() || state.cloud.busy(),
         ..Default::default()
     };
     MenuBarUi::new(&bar).gate(gate).show(ui)

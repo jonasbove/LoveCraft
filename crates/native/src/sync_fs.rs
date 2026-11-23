@@ -31,11 +31,20 @@ impl FolderFs {
         }
         Ok(segments.iter().fold(self.root.clone(), |p, s| p.join(s)))
     }
+
+    /// A path to read, where `""` is the folder itself: the layouts look at the folder's own
+    /// files for conflict copies. Writing and removing still need a path inside it.
+    fn resolve_to_read(&self, path: &str) -> Result<PathBuf, SyncError> {
+        if path.split(['/', '\\']).all(str::is_empty) {
+            return Ok(self.root.clone());
+        }
+        self.resolve(path)
+    }
 }
 
 impl SyncFileSystem for FolderFs {
     fn list_dir(&mut self, path: &str) -> Result<Vec<DirEntry>, SyncError> {
-        let dir = self.resolve(path)?;
+        let dir = self.resolve_to_read(path)?;
         if !dir.exists() {
             return Ok(Vec::new());
         }
@@ -76,6 +85,13 @@ impl SyncFileSystem for FolderFs {
             Ok(meta) if meta.is_dir() => std::fs::remove_dir_all(&target).map_err(io),
             Ok(_) => std::fs::remove_file(&target).map_err(io),
         }
+    }
+
+    /// `remove_dir`, which refuses a folder that isn't empty: a file another program put there
+    /// between the listing and now stays.
+    fn remove_empty_dir(&mut self, path: &str) -> Result<(), SyncError> {
+        let _ = std::fs::remove_dir(self.resolve(path)?);
+        Ok(())
     }
 
     fn exists(&mut self, path: &str) -> Result<bool, SyncError> {
@@ -125,6 +141,55 @@ mod tests {
         assert!(!fs.exists("b.tmp").expect("exists"));
         fs.remove("projects").expect("remove");
         assert!(!fs.exists("projects/a/project.enc").expect("exists"));
+    }
+
+    /// The single file's sync lists the folder itself for conflict copies (`list_dir("")`);
+    /// that was refused as an invalid path, and every sync of that layout on disk failed after
+    /// writing the file.
+    #[test]
+    fn the_encrypted_file_syncs_on_disk_and_its_conflict_copies_are_found() {
+        use prosecraft_core::js::{JsString, JsValue};
+        use prosecraft_core::storage::crypto::{OsRandom, VaultOptions};
+        use prosecraft_core::sync::{EncryptedFileProvider, sync_via};
+        let dir = tempfile::tempdir().expect("dir");
+        std::fs::write(dir.path().join("note.txt"), "x").expect("write");
+        let mut fs = FolderFs::new(dir.path());
+        let quick = VaultOptions {
+            memory_kib: Some(64),
+            iterations: Some(1),
+            parallelism: Some(1),
+            ..VaultOptions::default()
+        };
+        let sync = |fs: &mut FolderFs| {
+            sync_via(
+                &mut EncryptedFileProvider::new(fs, 1.0).with_vault_options(quick.clone()),
+                &JsString::from("a passphrase"),
+                &[],
+                &JsValue::Object(Default::default()),
+                1.0,
+                "device",
+                &mut OsRandom,
+                &mut || "x".to_owned(),
+            )
+        };
+        assert!(sync(&mut fs).expect("first sync").created);
+        let names: Vec<String> = fs
+            .list_dir("")
+            .expect("list")
+            .into_iter()
+            .map(|e| e.name)
+            .collect();
+        assert_eq!(names, ["note.txt", "prosecraft-sync.prosecraft"]);
+        std::fs::copy(
+            dir.path().join("prosecraft-sync.prosecraft"),
+            dir.path()
+                .join("prosecraft-sync (conflict 2026-11-13 14.32 Studio).prosecraft"),
+        )
+        .expect("copy");
+        assert_eq!(
+            sync(&mut fs).expect("second sync").conflict_files,
+            ["prosecraft-sync (conflict 2026-11-13 14.32 Studio).prosecraft"]
+        );
     }
 
     #[test]

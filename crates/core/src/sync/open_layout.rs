@@ -9,6 +9,7 @@
 //! what ProseCraft wrote; a file whose hash no longer matches was edited outside, and its record
 //! counts as changed by "external" now, so the next sync takes it.
 
+use super::foreign::{foreign, is_conflict_copy, left_alone, only_foreign, remove_keeping_foreign};
 use super::layout::{project_dir_name, safe_name};
 use super::providers::{Connection, SyncProvider};
 use super::{BUNDLE_FILE, OPEN_MARKER_FILE, PROJECTS_DIR, SyncError, SyncFileSystem, VAULT_FILE};
@@ -608,8 +609,17 @@ fn read_entity_files(
         decode,
     } = *files;
     let mut decoded: HashMap<String, Decoded> = HashMap::new();
+    let ours: HashSet<String> = known
+        .iter()
+        .map(|(id, _)| format!("{}{extension}", safe_name(&id.to_string_lossy())))
+        .collect();
     for entry in fs.list_dir(base)? {
-        if entry.is_directory || !entry.name.ends_with(extension) {
+        // Another sync program's conflict copy repeats its original's id: it is reported
+        // (`conflict_files`), never read as a second record.
+        if entry.is_directory
+            || !entry.name.ends_with(extension)
+            || foreign(&entry.name, |n| ours.contains(n))
+        {
             continue;
         }
         let path = format!("{base}/{}", entry.name);
@@ -956,13 +966,52 @@ pub fn read_open_projects(
 ) -> Result<Vec<JsValue>, SyncError> {
     let mut projects = Vec::new();
     for entry in fs.list_dir(PROJECTS_DIR)? {
-        if entry.is_directory {
+        if entry.is_directory && !foreign_project_dir(fs, &entry.name)? {
             projects.push(read_open_project(fs, &entry.name, now)?);
         }
     }
     let id = |p: &JsValue| text(p.get("id")).unwrap_or_default();
     projects.sort_by(|a, b| compare_strings(&id(a), &id(b)));
     Ok(projects)
+}
+
+/// The ids of a project folder's `project.json`, if it can be read: the folder's own id, and
+/// the file names of the documents and chapters it knows (deleted ones too).
+fn project_names(fs: &mut dyn SyncFileSystem, dir_name: &str) -> (Option<String>, HashSet<String>) {
+    let path = format!("{PROJECTS_DIR}/{dir_name}/{PROJECT_FILE}");
+    let Some(raw) = fs
+        .read_text(&path)
+        .ok()
+        .and_then(|text| js::parse(&text).ok())
+    else {
+        return (None, HashSet::new());
+    };
+    let mut names = HashSet::new();
+    for (kind, extension) in [("documents", ".md"), ("chapters", ".json")] {
+        if let Some(map) = raw
+            .get("entities")
+            .and_then(|e| e.get(kind))
+            .and_then(JsValue::as_object)
+        {
+            names.extend(
+                map.iter()
+                    .map(|(id, _)| format!("{}{extension}", safe_name(&id.to_string_lossy()))),
+            );
+        }
+    }
+    (text(raw.get("id")), names)
+}
+
+/// Whether a folder in `projects/` isn't a project of this layout: another sync program's
+/// (a conflict copy of a project folder: its `project.json` names another id), or what is left
+/// of a deleted project that held a conflict copy (nothing but other programs' files).
+fn foreign_project_dir(fs: &mut dyn SyncFileSystem, name: &str) -> Result<bool, SyncError> {
+    if left_alone(name) {
+        let (id, _) = project_names(fs, name);
+        return Ok(id.is_none_or(|id| safe_name(&id) != name));
+    }
+    let header = format!("{PROJECTS_DIR}/{name}/{PROJECT_FILE}");
+    Ok(!fs.exists(&header)? && only_foreign(fs, &format!("{PROJECTS_DIR}/{name}"))?)
 }
 
 fn write_if_changed(
@@ -1154,29 +1203,47 @@ pub fn write_open_project(fs: &mut dyn SyncFileSystem, project: &JsValue) -> Res
     // The header last, so an interrupted upload doesn't list files not yet written.
     write_if_changed(fs, &format!("{dir}/{PROJECT_FILE}"), &content)?;
 
+    // Every name the project knows is its own, whatever it looks like.
+    let known = |kind: &str, extension: &str| -> HashSet<String> {
+        project
+            .get("entities")
+            .and_then(|e| e.get(kind))
+            .and_then(JsValue::as_object)
+            .map(|map| {
+                map.iter()
+                    .map(|(id, _)| format!("{}{extension}", safe_name(&id.to_string_lossy())))
+                    .collect()
+            })
+            .unwrap_or_default()
+    };
     prune(
         fs,
         &format!("{dir}/{DOCUMENTS_DIR}"),
-        &document_paths,
+        (&document_paths, &known("documents", ".md")),
         ".md",
     )?;
     prune(
         fs,
         &format!("{dir}/{CHAPTERS_DIR}"),
-        &chapter_paths,
+        (&chapter_paths, &known("chapters", ".json")),
         ".json",
     )
 }
 
-/// `pruneEntityDir`.
+/// `pruneEntityDir`, except that another sync program's files are never removed: a conflict
+/// copy can be the only copy of an edit made on another computer. (ProseCraft at `7dae544`
+/// removes every file it didn't write.)
 fn prune(
     fs: &mut dyn SyncFileSystem,
     dir: &str,
-    keep: &HashSet<String>,
+    (keep, ours): (&HashSet<String>, &HashSet<String>),
     extension: &str,
 ) -> Result<(), SyncError> {
     for entry in fs.list_dir(dir)? {
-        if entry.is_directory || !entry.name.ends_with(extension) {
+        if entry.is_directory
+            || !entry.name.ends_with(extension)
+            || foreign(&entry.name, |n| ours.contains(n))
+        {
             continue;
         }
         let path = format!("{dir}/{}", entry.name);
@@ -1276,11 +1343,61 @@ impl SyncProvider for OpenFolderProvider<'_> {
         Ok(())
     }
 
+    /// A deleted project's files go; another sync program's conflict copies in its folder stay
+    /// (and are reported), with the folder they are in.
     fn remove(&mut self, project_ids: &[String]) -> Result<(), SyncError> {
         for id in project_ids {
-            self.fs.remove(&project_dir_name(id))?;
+            remove_keeping_foreign(self.fs, &project_dir_name(id))?;
         }
         Ok(())
+    }
+
+    /// Another sync program's conflict copies anywhere in the layout: of the marker, a project
+    /// folder, its `project.json`, a document, a chapter or the storyboard. None of them is read
+    /// or removed; the original beside each is what syncs.
+    fn conflict_files(&mut self) -> Result<Vec<String>, SyncError> {
+        let mut found = Vec::new();
+        let mut look = |fs: &mut dyn SyncFileSystem,
+                        dir: &str,
+                        ours: &HashSet<String>|
+         -> Result<(), SyncError> {
+            for entry in fs.list_dir(dir)? {
+                if is_conflict_copy(&entry.name) && !ours.contains(&entry.name) {
+                    found.push(if dir.is_empty() {
+                        entry.name
+                    } else {
+                        format!("{dir}/{}", entry.name)
+                    });
+                }
+            }
+            Ok(())
+        };
+        let none = HashSet::new();
+        look(self.fs, "", &none)?;
+        let mut ours_dirs = HashSet::new();
+        for project in self.fs.list_dir(PROJECTS_DIR)? {
+            if project.is_directory && left_alone(&project.name) {
+                let (id, _) = project_names(self.fs, &project.name);
+                if id.is_some_and(|id| safe_name(&id) == project.name) {
+                    ours_dirs.insert(project.name);
+                }
+            }
+        }
+        look(self.fs, PROJECTS_DIR, &ours_dirs)?;
+        for project in self.fs.list_dir(PROJECTS_DIR)? {
+            if !project.is_directory
+                || (left_alone(&project.name) && !ours_dirs.contains(&project.name))
+            {
+                continue;
+            }
+            let dir = format!("{PROJECTS_DIR}/{}", project.name);
+            let (_, ours) = project_names(self.fs, &project.name);
+            look(self.fs, &dir, &none)?;
+            for sub in [DOCUMENTS_DIR, CHAPTERS_DIR, STORYBOARD_DIR] {
+                look(self.fs, &format!("{dir}/{sub}"), &ours)?;
+            }
+        }
+        Ok(found)
     }
 
     /// Markdown is what this layout keeps of a document, so the records match what comes back

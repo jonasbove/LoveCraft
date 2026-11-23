@@ -235,7 +235,7 @@ check_version() { # expected "Name version", then the command
     fail "$* --version didn't run"
   fi
   [[ "$out" = "$want" ]] || fail "$* --version said '$out', expected '$want'"
-  ok "$(basename "${!#}") --version: $out"
+  ok "$(basename -- "${!#}") --version: $out"
   return
 }
 
@@ -329,7 +329,7 @@ check_appimage_integration() { # AppImage, name the entry must show
 check_mcp() { # the MCP server's command
   local out dir="$WORK/mcp-folder" name
   local MCP=("$@")
-  name="$(basename "${!#}")"
+  name="$(basename -- "${!#}")"
   [[ "$name" != --mcp ]] || name="$(basename "$PKG") --mcp"
   mkdir -p "$dir"
   # Without a folder it says which variable to set, and exits instead of waiting for input.
@@ -424,7 +424,8 @@ check_previous_replaced() { # package name
       fi
       ;;
     rpm) if rpm -q "$old" >/dev/null 2>&1; then fail "$old is still installed beside lovecraft: $(rpm -q "$old")"; fi ;;
-    arch) if pacman -Q "$old" >/dev/null 2>&1; then fail "$old is still installed beside lovecraft: $(pacman -Q "$old")"; fi ;;
+    # By name: `pacman -Q prosecraft-rs` would find lovecraft, which provides it.
+    arch) if pacman -Qq | grep -qx -- "$old"; then fail "$old is still installed beside lovecraft"; fi ;;
     tar) [[ ! -f "$PREFIX_BIN/$old" || -L "$PREFIX_BIN/$old" ]] || fail "$PREFIX_BIN/$old is still the previous binary" ;;
   esac
   ok "$old was replaced by lovecraft"

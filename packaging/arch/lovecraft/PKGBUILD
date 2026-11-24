@@ -9,7 +9,7 @@
 # LoveCraft was ProseCraft-rs until 0.2.0: this recipe replaces the prosecraft-rs one, and keeps its
 # commands (prosecraft-rs, prosecraft-mcp) as links. The cargo packages keep their names.
 pkgname=lovecraft
-pkgver=0.2.0
+pkgver=0.3.0
 pkgrel=1
 pkgdesc='Novel-writing app: outline, write and publish (a Rust rewrite of ProseCraft)'
 arch=('x86_64' 'aarch64')
@@ -33,7 +33,7 @@ source=("${pkgname}-${pkgver}.tar.gz::https://github.com/jonasbove/LoveCraft/arc
   "craft-fonts::git+https://github.com/storytold/craft-fonts.git#commit=${_fonts}")
 # Written by updpkgsums for each release (the second is the craft-fonts checkout's, pinned by its
 # commit too).
-sha256sums=('f8930a19da3efbe697b1b0a648d2d03cc9127b722c7296948337020d20e4de4b'
+sha256sums=('90987f7946dc2ce4601f8161782057c6f7d1494998d79451870abe28cbd3f7b3'
             'df6c6499e6651b5f1be16a31fc5cc5537cd1ae7ceb0af71412e4758d37ff8c19')
 
 _id=io.github.jonasbove.prosecraft_rs

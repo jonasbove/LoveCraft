@@ -17,12 +17,13 @@
 #      (skipped, with a notice, when that release is not older). A ProseCraft-rs package (0.1)
 #      must be replaced by the lovecraft one, and its commands must still work. For the AppImage:
 #      the menu entry the previous one added is taken over; for the .tar.gz: install.sh over the
-#      previous one's install
+#      previous one's install. --previous may be given more than once (the previous release, and
+#      ProseCraft-rs 0.1.2 across the rename): each upgrade is tested in turn, from a clean system
 #   7. removal: the files under /usr (or ~/.local for the .tar.gz) are gone again
 #
 # Usage, on a machine with Docker (the release workflow's package-test job runs exactly this):
 #
-#   packaging/linux/test-package.sh --image debian:12 [--previous OLD-FILE] [--no-gui] FILE
+#   packaging/linux/test-package.sh --image debian:12 [--previous OLD-FILE]... [--no-gui] FILE
 #
 #   FILE is a release file, lovecraft-<version>-linux-<arch>.<deb|rpm|pkg.tar.zst|AppImage|tar.gz>
 #   (prosecraft-rs-<version>-… before 0.2.0); the version to expect is taken from its name.
@@ -37,22 +38,22 @@ MIME=application/x-prosecraft
 SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
 
 IMAGE=""
-PREVIOUS=""
+PREVIOUS=()
 GUI=1
 INSIDE=0
 FILE=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --image) IMAGE="$2"; shift 2 ;;
-    --previous) PREVIOUS="$2"; shift 2 ;;
+    --previous) PREVIOUS+=("$2"); shift 2 ;;
     --no-gui) GUI=0; shift ;;
     --inside) INSIDE=1; shift ;;
-    -h | --help) sed -n '2,32p' "$SELF"; exit 0 ;;
+    -h | --help) sed -n '2,33p' "$SELF"; exit 0 ;;
     -*) echo "unknown option: $1" >&2; exit 2 ;;
     *) FILE="$1"; shift ;;
   esac
 done
-[[ -n "$FILE" ]] || { echo "usage: $0 --image IMAGE [--previous OLD-FILE] [--no-gui] FILE" >&2; exit 2; }
+[[ -n "$FILE" ]] || { echo "usage: $0 --image IMAGE [--previous OLD-FILE]... [--no-gui] FILE" >&2; exit 2; }
 
 # ---- on the host: start the container and run this script in it ---------------------------------
 if [[ "$INSIDE" = 0 ]]; then
@@ -61,11 +62,13 @@ if [[ "$INSIDE" = 0 ]]; then
   mounts=(-v "$SELF:/test-package.sh:ro" -v "$(cd "$(dirname "$FILE")" && pwd):/pkg/new:ro")
   args=(--inside)
   [[ "$GUI" = 1 ]] || args+=(--no-gui)
-  if [[ -n "$PREVIOUS" ]]; then
-    [[ -f "$PREVIOUS" ]] || { echo "error: $PREVIOUS not found" >&2; exit 1; }
-    mounts+=(-v "$(cd "$(dirname "$PREVIOUS")" && pwd):/pkg/old:ro")
-    args+=(--previous "/pkg/old/$(basename "$PREVIOUS")")
-  fi
+  n=0
+  for previous in "${PREVIOUS[@]}"; do
+    [[ -f "$previous" ]] || { echo "error: $previous not found" >&2; exit 1; }
+    n=$((n + 1))
+    mounts+=(-v "$(cd "$(dirname "$previous")" && pwd):/pkg/old$n:ro")
+    args+=(--previous "/pkg/old$n/$(basename "$previous")")
+  done
   echo "==> $(basename "$FILE") in $IMAGE"
   exec docker run --rm --tmpfs /tmp:exec -e GITHUB_ACTIONS \
     "${mounts[@]}" "$IMAGE" bash /test-package.sh "${args[@]}" "/pkg/new/$(basename "$FILE")"
@@ -468,47 +471,48 @@ older() { # a b → a sorts before b
   local a="${1//-/\~}" b="${2//-/\~}"
   [[ "$a" != "$b" && "$(printf '%s\n%s\n' "$a" "$b" | sort -V | head -1)" = "$a" ]]
 }
-if [[ -n "$PREVIOUS" ]]; then
-  OLD_VERSION="$(version_of "$PREVIOUS")"
-  OLD_NAME="$(package_of "$PREVIOUS")"
-  [[ -n "$OLD_VERSION" && -n "$OLD_NAME" ]] || fail "$PREVIOUS: the name is not <package>-<version>-linux-<arch>.<ext>"
-  [[ "$(format_of "$PREVIOUS")" = "$FMT" ]] || fail "$PREVIOUS is not a $FMT file"
+if [[ "${#PREVIOUS[@]}" -eq 0 ]]; then
+  notice "no --previous: the upgrade was not tested"
+fi
+for previous in "${PREVIOUS[@]}"; do
+  OLD_VERSION="$(version_of "$previous")"
+  OLD_NAME="$(package_of "$previous")"
+  [[ -n "$OLD_VERSION" && -n "$OLD_NAME" ]] || fail "$previous: the name is not <package>-<version>-linux-<arch>.<ext>"
+  [[ "$(format_of "$previous")" = "$FMT" ]] || fail "$previous is not a $FMT file"
   OLD_DISPLAY="$(display_name_of "$OLD_NAME")"
   if ! older "$OLD_VERSION" "$VERSION"; then
     notice "the previous release ($OLD_VERSION) is not older than $VERSION: upgrade not tested"
-  else
-    step "6. upgrade from $OLD_NAME $OLD_VERSION"
-    cp "$PREVIOUS" "$WORK/"
-    OLD_FILE="$WORK/$(basename "$PREVIOUS")"
-    if [[ "$FMT" = appimage ]]; then
-      # The previous AppImage's first run adds its menu entry; this one's takes it over.
-      chmod +x "$OLD_FILE"
-      rm -f "$DATA/applications/$APP_ID.desktop"
-      check_appimage_integration "$OLD_FILE" "$OLD_DISPLAY"
-      check_appimage_integration "$PKG" LoveCraft
-      ok "upgraded from $OLD_NAME $OLD_VERSION: the menu entry starts this AppImage"
-    else
-      install_file "$OLD_FILE"
-      # The previous release by the command it had (prosecraft-rs before 0.2.0).
-      if [[ "$FMT" = tar ]]; then
-        check_version "$OLD_DISPLAY $OLD_VERSION" "$PREFIX_BIN/$OLD_NAME"
-      else
-        check_version "$OLD_DISPLAY $OLD_VERSION" "$OLD_NAME"
-      fi
-      install_file "$PKG"
-      check_versions
-      check_files
-      if [[ "$OLD_NAME" != lovecraft ]]; then check_previous_replaced "$OLD_NAME"; fi
-      check_mcp "${OLD_MCP[@]}"
-      ok "upgraded from $OLD_NAME $OLD_VERSION; the 0.1 commands start LoveCraft $VERSION"
-      step "7. remove after the upgrade"
-      remove_package
-      check_removed
-    fi
+    continue
   fi
-else
-  notice "no --previous: the upgrade was not tested"
-fi
+  step "6. upgrade from $OLD_NAME $OLD_VERSION"
+  cp "$previous" "$WORK/"
+  OLD_FILE="$WORK/$(basename "$previous")"
+  if [[ "$FMT" = appimage ]]; then
+    # The previous AppImage's first run adds its menu entry; this one's takes it over.
+    chmod +x "$OLD_FILE"
+    rm -f "$DATA/applications/$APP_ID.desktop"
+    check_appimage_integration "$OLD_FILE" "$OLD_DISPLAY"
+    check_appimage_integration "$PKG" LoveCraft
+    ok "upgraded from $OLD_NAME $OLD_VERSION: the menu entry starts this AppImage"
+  else
+    install_file "$OLD_FILE"
+    # The previous release by the command it had (prosecraft-rs before 0.2.0).
+    if [[ "$FMT" = tar ]]; then
+      check_version "$OLD_DISPLAY $OLD_VERSION" "$PREFIX_BIN/$OLD_NAME"
+    else
+      check_version "$OLD_DISPLAY $OLD_VERSION" "$OLD_NAME"
+    fi
+    install_file "$PKG"
+    check_versions
+    check_files
+    if [[ "$OLD_NAME" != lovecraft ]]; then check_previous_replaced "$OLD_NAME"; fi
+    check_mcp "${OLD_MCP[@]}"
+    ok "upgraded from $OLD_NAME $OLD_VERSION; the 0.1 commands start LoveCraft $VERSION"
+    step "7. remove after the upgrade from $OLD_NAME $OLD_VERSION"
+    remove_package
+    check_removed
+  fi
+done
 
 echo
 echo "==> all checks passed: LoveCraft $VERSION ($FMT) on $OS $(uname -m)"

@@ -3,6 +3,7 @@
 #
 #   $DIST/lovecraft-<version>-linux-<arch>.AppImage        any distro with glibc >= the build host's
 #   $DIST/lovecraft-<version>-linux-<arch>.AppImage.zsync  delta updates (needs zsyncmake)
+#   $DIST/prosecraft-rs-<version>-linux-<arch>.AppImage.zsync  a copy, for 0.1 AppImages' updater
 #   $DIST/lovecraft-<version>-linux-<arch>.deb             Debian, Ubuntu, Mint, Pop!_OS, ...
 #   $DIST/lovecraft-<version>-linux-<arch>.rpm             Fedora, openSUSE, RHEL, ...
 #   $DIST/lovecraft-<version>-linux-<arch>.tar.gz          lovecraft-<version>-linux-<arch>/{bin,share}
@@ -51,7 +52,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --skip-build) SKIP_BUILD=1; shift ;;
     --formats) FORMATS="$2"; shift 2 ;;
-    -h | --help) sed -n '2,27p' "$0"; exit 0 ;;
+    -h | --help) sed -n '2,28p' "$0"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -204,8 +205,23 @@ if has appimage; then
   # also writes the .zsync, into its working directory, hence the cd.
   (cd "$DIST" && ARCH="$ARCH" APPIMAGE_EXTRACT_AND_RUN=1 "$TOOL" --no-appstream --runtime-file "$RUNTIME" -u "$UPDATE_INFO" "$APPDIR" "$OUT")
   echo "wrote $OUT"
+  OLD_ZSYNC="$DIST/$OLD_PKG-$VERSION-linux-$ARCH.AppImage.zsync"
+  rm -f "$OLD_ZSYNC"
   if [[ -s "$OUT.zsync" ]]; then
     echo "wrote $OUT.zsync"
+    # The same .zsync under the 0.1 name. A ProseCraft-rs 0.1 AppImage's update information looks
+    # for prosecraft-rs-*-linux-<arch>.AppImage.zsync in jonasbove/ProseCraft-rs (which GitHub
+    # redirects here); without this file its updater finds nothing. A plain copy is enough: the
+    # .zsync's URL is relative (the AppImage's name), so it resolves to this release's AppImage
+    # beside it, and its Filename names the new file lovecraft-…. Checked here, as an absolute
+    # URL would send the old name somewhere else.
+    url="$(sed -n '1,/^$/s/^URL: //p' "$OUT.zsync")"
+    if [[ "$url" != "$BASENAME.AppImage" ]]; then
+      echo "error: $OUT.zsync has URL '$url', expected the relative '$BASENAME.AppImage'" >&2
+      exit 1
+    fi
+    cp "$OUT.zsync" "$OLD_ZSYNC"
+    echo "wrote $OLD_ZSYNC (for ProseCraft-rs 0.1 AppImages' updater)"
   else
     warn "zsyncmake not found, so $OUT.zsync was not written; AppImage delta updates need it"
   fi

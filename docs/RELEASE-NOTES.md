@@ -5,6 +5,31 @@ release links to its section here. The newest version is at the top.
 
 ## Unreleased
 
+## 0.3.0
+
+Updating from ProseCraft-rs: AppImages find LoveCraft, and every system's update is tested.
+
+### When updating
+
+- **A ProseCraft-rs 0.1 AppImage updates itself again.** Its updater (AppImageUpdate and
+  `appimageupdatetool`, which read the AppImage's update information) looks for files named
+  `prosecraft-rs-…`, and 0.2.0 had none, so it found no update. Each release now also has the AppImage's
+  `.zsync` under that name, which leads the updater to the LoveCraft AppImage: it downloads
+  `lovecraft-<ver>-linux-<arch>.AppImage` beside the old file, which you can then delete. The new AppImage
+  takes over the menu entry when it first starts, and its own updater looks for `lovecraft-…` files.
+  Nothing else changes: the library, settings and window are kept, as in 0.2.0.
+
+### Fixes
+
+- **The update from ProseCraft-rs and from 0.2.0 is tested on every system.** Before a release is made, its
+  `.deb`, `.rpm` and Arch packages, AppImage, tarball and Windows installers are now installed over both
+  0.2.0's and ProseCraft-rs 0.1.2's, and so is the macOS app, whose update was untested until now:
+  `LoveCraft.app` dragged into Applications beside `ProseCraft-rs.app`, or over 0.2.0's, starts with the same
+  library (in `~/Library/Application Support/prosecraft-rs`) and keeps the old command names.
+- **The AUR recipes** (`lovecraft`, `lovecraft-bin`) have their checksums and `.SRCINFO` filled in for the
+  version they describe, checked against the published files; docs/RELEASING.md says how they move to each
+  new release.
+
 ## 0.2.0
 
 ProseCraft-rs is now LoveCraft, and it syncs through CraftCloud.
